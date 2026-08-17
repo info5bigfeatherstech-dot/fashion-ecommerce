@@ -1,9 +1,14 @@
 import * as AccordionPrimitive from '@radix-ui/react-accordion'
 import { ChevronDown } from 'lucide-react'
 
-export function Accordion({ items, type = 'single', collapsible = true }) {
+export function Accordion({ items, type = 'single', collapsible = true, defaultValue }) {
   return (
-    <AccordionPrimitive.Root type={type} collapsible={collapsible}>
+    <AccordionPrimitive.Root
+      type={type}
+      collapsible={collapsible}
+      defaultValue={defaultValue}
+      className="accordion"
+    >
       {items.map((item) => (
         <AccordionPrimitive.Item key={item.value} value={item.value} className="accordion-item">
           <AccordionPrimitive.Header>

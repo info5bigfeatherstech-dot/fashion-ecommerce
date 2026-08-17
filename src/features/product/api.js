@@ -13,10 +13,14 @@ export const MOCK_PRODUCTS = [
     sizes: ['XS', 'S', 'M', 'L', 'XL'],
     colors: ['Ink', 'Ivory'],
     images: [
-      'https://images.unsplash.com/photo-1595777457583-95e05998d760?w=600&h=800&fit=crop',
-      'https://images.unsplash.com/photo-1572804013309-59a694b6e713?w=600&h=800&fit=crop',
+      'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=1200&h=1600&q=80',
+      'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1200&h=1600&q=80',
+      'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1200&h=1600&q=80',
+      'https://images.unsplash.com/photo-1539008835657-9e8e9680c956?auto=format&fit=crop&w=1200&h=1600&q=80',
     ],
     description: 'Fluid silk wrap dress with a deep V neckline and tie waist. Designed for effortless elegance from day to evening.',
+    composition: '100% silk twill. Wrap silhouette with a self-tie waist and midi length. Lined bodice.',
+    care: 'Dry clean only. Cool iron on reverse. Store hanging, away from direct sunlight.',
     ingredients: null,
   },
   {
@@ -457,11 +461,22 @@ export async function getProducts(filters = {}) {
   return { products: results, total: results.length }
 }
 
+function withGalleryImages(product) {
+  return {
+    ...product,
+    images: product.images.map((src) => {
+      if (!src.includes('images.unsplash.com')) return src
+      const base = src.split('?')[0]
+      return `${base}?auto=format&fit=crop&w=1200&h=1600&q=80`
+    }),
+  }
+}
+
 export async function getProductBySlug(slug) {
   await delay()
   const product = MOCK_PRODUCTS.find((p) => p.slug === slug)
   if (!product) throw new Error('Product not found')
-  return product
+  return withGalleryImages(product)
 }
 
 export async function getBestsellers() {

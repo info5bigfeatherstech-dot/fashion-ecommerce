@@ -1,17 +1,28 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { Star, Heart } from 'lucide-react'
+import { Star, Heart, Minus, Plus, Truck, RotateCcw, ShieldCheck } from 'lucide-react'
 import { ProductGallery } from '@/features/product/components/ProductGallery'
 import { PriceBlock } from '@/features/product/components/PriceBlock'
 import { SizeSelector, ColorSelector } from '@/features/product/components/SizeSelector'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Accordion } from '@/components/ui/Accordion'
+import { ProductCarousel } from '@/features/product/components/ProductCarousel'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
 import { useProductDetail, useProductListing } from '@/features/product/hooks'
-import { ProductCard } from '@/features/product/components/ProductCard'
 import { OfferCode } from '@/features/product/components/OfferCode'
 import { useAppStore } from '@/store'
+
+const TRUST_ITEMS = [
+  { icon: Truck, label: 'Free shipping over $100' },
+  { icon: RotateCcw, label: '30-day returns' },
+  { icon: ShieldCheck, label: 'Designed & made by VERAÒ' },
+]
+
+function formatLabel(value) {
+  if (!value) return ''
+  return value.replace(/-/g, ' ')
+}
 
 export default function ProductDetail() {
   const { slug } = useParams()
@@ -22,20 +33,30 @@ export default function ProductDetail() {
 
   const [selectedSize, setSelectedSize] = useState(null)
   const [selectedColor, setSelectedColor] = useState(null)
+  const [quantity, setQuantity] = useState(1)
 
   const addItem = useAppStore((s) => s.addItem)
   const openCart = useAppStore((s) => s.openCart)
   const toggleWishlist = useAppStore((s) => s.toggleWishlist)
-  const inWishlist = useAppStore((s) => product ? s.isInWishlist(product.id) : false)
+  const inWishlist = useAppStore((s) => (product ? s.isInWishlist(product.id) : false))
+
+  useEffect(() => {
+    setSelectedSize(null)
+    setSelectedColor(null)
+    setQuantity(1)
+  }, [slug])
 
   if (isLoading) {
     return (
-      <div className="container pdp">
-        <div className="skeleton skeleton--image" style={{ aspectRatio: '3/4' }} />
-        <div>
-          <div className="skeleton skeleton--title" style={{ marginBottom: 'var(--space-2)' }} />
-          <div className="skeleton skeleton--text" />
-          <div className="skeleton skeleton--text" style={{ width: '40%', marginTop: 'var(--space-2)' }} />
+      <div className="container pdp-page">
+        <div className="pdp">
+          <div className="skeleton skeleton--image pdp-gallery__main" />
+          <div className="pdp-info">
+            <div className="skeleton skeleton--title" />
+            <div className="skeleton skeleton--text" />
+            <div className="skeleton skeleton--text" style={{ width: '40%' }} />
+            <ProductGridSkeleton count={2} />
+          </div>
         </div>
       </div>
     )
@@ -54,34 +75,45 @@ export default function ProductDetail() {
   const color = selectedColor || product.colors?.[0]
 
   const handleAddToCart = () => {
-    addItem(product, { size, color })
+    addItem(product, { size, color, quantity })
     openCart()
   }
 
   const accordionItems = [
     {
-      value: 'description',
-      title: 'Description',
-      content: product.description,
+      value: 'details',
+      title: 'The Details',
+      content: product.composition || 'Designed, made, and owned by VERAÒ. No third-party white labels — every piece belongs to this house.',
     },
     ...(product.ingredients
       ? [{ value: 'ingredients', title: 'Key Ingredients', content: product.ingredients }]
       : []),
     {
+      value: 'care',
+      title: 'Care',
+      content: product.care || 'Follow the care label. We recommend professional cleaning for tailored and silk pieces. Store hanging, away from direct sunlight.',
+    },
+    {
       value: 'shipping',
       title: 'Shipping & Returns',
-      content: 'Free standard shipping on orders over $100. 30-day hassle-free returns on unworn items with tags attached.',
+      content: 'Free standard shipping on orders over $100. 30-day hassle-free returns on unworn items with tags attached. Duties and taxes calculated at checkout.',
     },
   ]
 
-  const related = relatedData?.products?.filter((p) => p.id !== product.id).slice(0, 4) || []
+  const related = relatedData?.products?.filter((p) => p.id !== product.id).slice(0, 8) || []
 
   return (
-    <div className="container">
+    <div className="container pdp-page">
       <nav className="breadcrumb" aria-label="Breadcrumb">
         <Link to="/">Home</Link>
         <span className="breadcrumb__sep">/</span>
-        <Link to={`/shop/${product.category}`}>{product.category}</Link>
+        <Link to={`/shop/${product.category}`}>{formatLabel(product.category)}</Link>
+        {product.subcategory && (
+          <>
+            <span className="breadcrumb__sep">/</span>
+            <Link to={`/shop/${product.category}`}>{formatLabel(product.subcategory)}</Link>
+          </>
+        )}
         <span className="breadcrumb__sep">/</span>
         <span>{product.name}</span>
       </nav>
@@ -90,12 +122,26 @@ export default function ProductDetail() {
         <ProductGallery images={product.images} name={product.name} />
 
         <div className="pdp-info">
-          {product.badge && <Badge badge={product.badge} />}
-          <p className="pdp-info__category">{product.category} · {product.subcategory}</p>
+          <div className="pdp-info__kicker">
+            {product.badge && <Badge badge={product.badge} />}
+            <p className="pdp-info__category">
+              {formatLabel(product.category)}
+              {product.subcategory ? ` · ${formatLabel(product.subcategory)}` : ''}
+            </p>
+          </div>
+
           <h1 className="pdp-info__title">{product.name}</h1>
 
-          <div className="product-card__rating">
-            <Star size={16} fill="currentColor" />
+          <div className="pdp-info__rating">
+            <span className="pdp-info__stars" aria-hidden="true">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star
+                  key={i}
+                  size={14}
+                  fill={i < Math.round(product.rating) ? 'currentColor' : 'none'}
+                />
+              ))}
+            </span>
             <span>{product.rating}</span>
             <span className="text-muted">({product.reviewCount} reviews)</span>
           </div>
@@ -103,12 +149,8 @@ export default function ProductDetail() {
           <PriceBlock price={product.price} originalPrice={product.originalPrice} size="large" />
           <OfferCode />
 
-          {product.sizes?.length > 0 && (
-            <SizeSelector
-              sizes={product.sizes}
-              selected={size}
-              onSelect={setSelectedSize}
-            />
+          {product.description && (
+            <p className="pdp-info__lead">{product.description}</p>
           )}
 
           {product.colors?.length > 0 && (
@@ -119,13 +161,45 @@ export default function ProductDetail() {
             />
           )}
 
-          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+          {product.sizes?.length > 0 && (
+            <SizeSelector
+              sizes={product.sizes}
+              selected={size}
+              onSelect={setSelectedSize}
+            />
+          )}
+
+          <div className="pdp-info__qty">
+            <p className="heading-sm">Quantity</p>
+            <div className="qty-stepper">
+              <button
+                type="button"
+                className="qty-stepper__btn"
+                onClick={() => setQuantity((n) => Math.max(1, n - 1))}
+                aria-label="Decrease quantity"
+              >
+                <Minus size={14} />
+              </button>
+              <span className="qty-stepper__value">{quantity}</span>
+              <button
+                type="button"
+                className="qty-stepper__btn"
+                onClick={() => setQuantity((n) => Math.min(8, n + 1))}
+                aria-label="Increase quantity"
+              >
+                <Plus size={14} />
+              </button>
+            </div>
+          </div>
+
+          <div className="pdp-info__actions">
             <Button variant="primary" size="lg" fullWidth onClick={handleAddToCart}>
               Add to Bag
             </Button>
             <Button
               variant="secondary"
               size="lg"
+              className="pdp-info__wish"
               onClick={() => toggleWishlist(product)}
               aria-label={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
             >
@@ -133,18 +207,28 @@ export default function ProductDetail() {
             </Button>
           </div>
 
-          <Accordion items={accordionItems} />
+          <ul className="pdp-trust">
+            {TRUST_ITEMS.map((item) => (
+              <li key={item.label} className="pdp-trust__item">
+                <item.icon size={16} />
+                <span>{item.label}</span>
+              </li>
+            ))}
+          </ul>
+
+          <Accordion items={accordionItems} defaultValue="details" />
         </div>
       </div>
 
       {related.length > 0 && (
-        <section className="section">
-          <h2 className="display-md" style={{ marginBottom: 'var(--space-4)' }}>You May Also Like</h2>
-          <div className="grid-4">
-            {related.map((p) => (
-              <ProductCard key={p.id} product={p} />
-            ))}
+        <section className="pdp-related">
+          <div className="section-header">
+            <div>
+              <p className="heading-sm">Complete the look</p>
+              <h2 className="display-md">You May Also Like</h2>
+            </div>
           </div>
+          <ProductCarousel products={related} />
         </section>
       )}
     </div>
