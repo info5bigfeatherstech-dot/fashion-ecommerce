@@ -7,7 +7,7 @@ import { MegaMenuPanel } from '@/features/category/components/MegaMenu'
 import { PointsBadge } from '@/features/loyalty/components/LoyaltySpotlight'
 import { useAppStore } from '@/store'
 import { useCartCount } from '@/store/selectors'
-import { SITE_NAME, NAV_ITEMS, NAV_PROMO } from '@/config/site'
+import { SITE_NAME, NAV_ITEMS } from '@/config/site'
 
 const MENU_CLOSE_DELAY = 280
 
@@ -56,6 +56,10 @@ export function Header() {
       closeTimer.current = null
     }, MENU_CLOSE_DELAY)
   }
+
+  useEffect(() => {
+    closeMenu()
+  }, [location.pathname])
 
   useEffect(() => {
     return () => {
@@ -134,18 +138,6 @@ export function Header() {
                 </div>
               ))}
             </nav>
-
-            {/* <div className="header__promos" onMouseEnter={closeMenu}>
-              {NAV_PROMO.map((item) => (
-                <Link
-                  key={item.label}
-                  to={item.href}
-                  className={`header__promo header__promo--${item.variant}`}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div> */}
           </div>
         </div>
 

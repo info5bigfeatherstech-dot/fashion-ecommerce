@@ -1108,6 +1108,7 @@ body {
   width: calc(100% - var(--space-4));
   max-width: var(--hero-max);
   margin-inline: auto;
+  overflow: visible;
 }
 
 .top-banner {
@@ -1204,7 +1205,7 @@ body {
   z-index: var(--z-header);
   background-color: var(--color-ink);
   border-bottom: 1px solid transparent;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .header__main {
@@ -1424,14 +1425,14 @@ body {
 
 .mega-menu {
   position: absolute;
-  top: calc(100% + 4px);
+  top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  width: calc(100% - var(--space-4));
+  width: 100%;
   max-width: var(--container-max);
   background-color: var(--color-paper);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
   box-shadow: var(--shadow-lg);
   z-index: var(--z-dropdown);
   padding: var(--space-4) var(--space-3);

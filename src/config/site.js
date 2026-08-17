@@ -16,12 +16,6 @@ export const TOP_BANNER = {
   href: '/loyalty',
 }
 
-export const NAV_PROMO = [
-  { label: 'Offers', href: '/shop/sale', variant: 'sale' },
-  { label: 'Atelier', href: '/shop/women', variant: 'accent' },
-  { label: 'Brands', href: '/shop/new-arrivals', variant: 'ink' },
-]
-
 export const NAV_ITEMS = [
   { label: 'Women', slug: 'women', megaMenu: true },
   { label: 'Men', slug: 'men', megaMenu: true },
