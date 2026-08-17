@@ -1,6 +1,12 @@
 export const SITE_NAME = 'VERAÒ'
 export const SITE_TAGLINE = 'Crafted for the world. Owned by us.'
 
+export const PRODUCT_OFFER = {
+  code: 'VERA26',
+  label: 'Use code',
+  detail: 'Extra 10% off at checkout',
+}
+
 export const TOP_BANNER = {
   badge: 'Circle Week',
   lead: 'Use code',
@@ -10,13 +16,18 @@ export const TOP_BANNER = {
   href: '/loyalty',
 }
 
+export const NAV_PROMO = [
+  { label: 'Offers', href: '/shop/sale', variant: 'sale' },
+  { label: 'Atelier', href: '/shop/women', variant: 'accent' },
+  { label: 'Brands', href: '/shop/new-arrivals', variant: 'ink' },
+]
+
 export const NAV_ITEMS = [
   { label: 'Women', slug: 'women', megaMenu: true },
   { label: 'Men', slug: 'men', megaMenu: true },
   { label: 'Kids', slug: 'kids', megaMenu: true },
   { label: 'Beauty', slug: 'beauty', megaMenu: true },
   { label: 'New In', slug: 'new-arrivals', megaMenu: false },
-  { label: 'Sale', slug: 'sale', megaMenu: false },
 ]
 
 export const CATEGORY_STRIP = [

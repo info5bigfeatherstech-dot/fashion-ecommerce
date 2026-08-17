@@ -363,16 +363,77 @@ export const MOCK_PRODUCTS = [
 
 const delay = (ms = 400) => new Promise((resolve) => setTimeout(resolve, ms))
 
+export const PRICE_RANGES = [
+  { key: 'all', label: 'All prices' },
+  { key: '0-50', label: 'Under $50', min: 0, max: 49 },
+  { key: '50-100', label: '$50 – $100', min: 50, max: 100 },
+  { key: '100-200', label: '$100 – $200', min: 100, max: 200 },
+  { key: '200-plus', label: '$200 & above', min: 200 },
+]
+
+export const BADGE_OPTIONS = [
+  { value: '', label: 'All' },
+  { value: 'new', label: 'New' },
+  { value: 'bestseller', label: 'Bestseller' },
+  { value: 'limited', label: 'Limited' },
+]
+
+export const SIZE_OPTIONS = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
+
+export const COLOR_OPTIONS = ['Black', 'Ivory', 'Navy', 'Nude', 'White', 'Camel', 'Charcoal']
+
+export const TOP_CATEGORIES = [
+  { label: 'Women', slug: 'women' },
+  { label: 'Men', slug: 'men' },
+  { label: 'Kids', slug: 'kids' },
+  { label: 'Skincare', slug: 'skincare' },
+  { label: 'Makeup', slug: 'makeup' },
+  { label: 'Innerwear', slug: 'innerwear' },
+  { label: 'Watches', slug: 'watches-accessories' },
+]
+
+const BEAUTY_CATEGORIES = ['skincare', 'makeup']
+
 export async function getProducts(filters = {}) {
   await delay()
   let results = [...MOCK_PRODUCTS]
 
-  if (filters.category) {
+  if (filters.category === 'beauty') {
+    results = results.filter((p) => BEAUTY_CATEGORIES.includes(p.category))
+  } else if (filters.category === 'sale') {
+    results = results.filter((p) => p.originalPrice)
+  } else if (filters.category === 'new-arrivals') {
+    results = results.filter((p) => p.badge === 'new' || p.badge === 'limited')
+  } else if (filters.category) {
     results = results.filter((p) => p.category === filters.category)
+  }
+
+  if (filters.subcategory) {
+    results = results.filter((p) => p.subcategory === filters.subcategory)
   }
 
   if (filters.badge) {
     results = results.filter((p) => p.badge === filters.badge)
+  }
+
+  if (filters.minPrice != null) {
+    results = results.filter((p) => p.price >= Number(filters.minPrice))
+  }
+
+  if (filters.maxPrice != null) {
+    results = results.filter((p) => p.price <= Number(filters.maxPrice))
+  }
+
+  if (filters.onSale) {
+    results = results.filter((p) => p.originalPrice)
+  }
+
+  if (filters.size) {
+    results = results.filter((p) => p.sizes?.includes(filters.size))
+  }
+
+  if (filters.color) {
+    results = results.filter((p) => p.colors?.includes(filters.color))
   }
 
   if (filters.search) {

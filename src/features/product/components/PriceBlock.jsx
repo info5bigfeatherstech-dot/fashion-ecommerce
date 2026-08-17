@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { formatPrice, formatDiscount } from '@/lib/utils'
 
 export function PriceBlock({ price, originalPrice, size = 'default' }) {

@@ -10,6 +10,7 @@ import { Accordion } from '@/components/ui/Accordion'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
 import { useProductDetail, useProductListing } from '@/features/product/hooks'
 import { ProductCard } from '@/features/product/components/ProductCard'
+import { OfferCode } from '@/features/product/components/OfferCode'
 import { useAppStore } from '@/store'
 
 export default function ProductDetail() {
@@ -100,6 +101,7 @@ export default function ProductDetail() {
           </div>
 
           <PriceBlock price={product.price} originalPrice={product.originalPrice} size="large" />
+          <OfferCode />
 
           {product.sizes?.length > 0 && (
             <SizeSelector

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { Search } from 'lucide-react'
 import { searchProducts } from '../api'
 
-export function SearchBar({ className }) {
+export function SearchBar({ className, iconRight = false }) {
   const [query, setQuery] = useState('')
   const [isOpen, setIsOpen] = useState(false)
   const navigate = useNavigate()
@@ -35,7 +35,7 @@ export function SearchBar({ className }) {
   }
 
   return (
-    <div className={`search-bar ${className || ''}`} ref={wrapperRef}>
+    <div className={`search-bar ${iconRight ? 'search-bar--icon-right' : ''} ${className || ''}`} ref={wrapperRef}>
       <form onSubmit={handleSubmit}>
         <Search size={16} className="search-bar__icon" />
         <input

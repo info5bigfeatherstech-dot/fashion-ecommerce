@@ -1,8 +1,19 @@
 import { useState } from 'react'
 import { useParams, useSearchParams, Link } from 'react-router-dom'
+import { SlidersHorizontal, X } from 'lucide-react'
 import { ProductCard } from '@/features/product/components/ProductCard'
+import { ProductFilters } from '@/features/product/components/ProductFilters'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
+import { Button } from '@/components/ui/Button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/Select'
 import { useProductListing } from '@/features/product/hooks'
+import { PRICE_RANGES } from '@/features/product/api'
 import { CATEGORY_TREE } from '@/features/category/api'
 
 const SORT_OPTIONS = [
@@ -12,49 +23,81 @@ const SORT_OPTIONS = [
   { value: 'rating', label: 'Top Rated' },
 ]
 
-const FILTER_CHIPS = [
-  { value: '', label: 'All' },
-  { value: 'new', label: 'New' },
-  { value: 'bestseller', label: 'Bestseller' },
-  { value: 'limited', label: 'Limited' },
-]
-
 export default function ProductListing() {
-  const { category } = useParams()
+  const { category, subcategory } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [activeBadge, setActiveBadge] = useState(searchParams.get('badge') || '')
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   const sort = searchParams.get('sort') || ''
   const search = searchParams.get('q') || ''
+  const badge = searchParams.get('badge') || ''
+  const priceKey = searchParams.get('price') || 'all'
+  const size = searchParams.get('size') || ''
+  const color = searchParams.get('color') || ''
+  const onSale = searchParams.get('sale') === '1'
 
-  const resolvedCategory = category === 'new-arrivals' ? null : category === 'sale' ? null : category
+  const specials = ['new-arrivals', 'sale']
+  const resolvedCategory = specials.includes(category) ? category : category
+  const categoryInfo = CATEGORY_TREE[category] || null
+  const priceRange = PRICE_RANGES.find((range) => range.key === priceKey)
 
   const filters = {
-    category: resolvedCategory,
-    badge: activeBadge || (category === 'new-arrivals' ? 'new' : undefined),
+    category: resolvedCategory || undefined,
+    subcategory: subcategory || undefined,
+    badge: badge || undefined,
+    minPrice: priceRange?.min,
+    maxPrice: priceRange?.max,
+    size: size || undefined,
+    color: color || undefined,
+    onSale: onSale || undefined,
     sort: sort || undefined,
     search: search || undefined,
   }
 
   const { data, isLoading } = useProductListing(filters)
-  const categoryInfo = category ? CATEGORY_TREE[category] : null
 
   const title = search
     ? `Results for "${search}"`
-    : category === 'new-arrivals'
-      ? 'New Arrivals'
-      : category === 'sale'
-        ? 'Sale'
-        : categoryInfo?.label || 'All Products'
+    : subcategory
+      ? categoryInfo?.children?.find((child) => child.slug === subcategory)?.label || subcategory
+      : category === 'new-arrivals'
+        ? 'New Arrivals'
+        : category === 'sale'
+          ? 'Sale'
+          : categoryInfo?.label || 'All Products'
 
-  const handleSortChange = (e) => {
+  const updateParam = (key, value) => {
     const params = new URLSearchParams(searchParams)
-    if (e.target.value) {
-      params.set('sort', e.target.value)
+    if (value) {
+      params.set(key, value)
     } else {
-      params.delete('sort')
+      params.delete(key)
     }
     setSearchParams(params)
+  }
+
+  const clearFilters = () => {
+    const params = new URLSearchParams()
+    if (search) params.set('q', search)
+    if (sort) params.set('sort', sort)
+    setSearchParams(params)
+  }
+
+  const filterProps = {
+    category,
+    subcategory,
+    categoryInfo,
+    priceKey,
+    badge,
+    size,
+    color,
+    onSale,
+    onPriceChange: (key) => updateParam('price', key === 'all' ? '' : key),
+    onBadgeChange: (value) => updateParam('badge', value),
+    onSizeChange: (value) => updateParam('size', value),
+    onColorChange: (value) => updateParam('color', value),
+    onSaleChange: (checked) => updateParam('sale', checked ? '1' : ''),
+    onClear: clearFilters,
   }
 
   return (
@@ -62,63 +105,90 @@ export default function ProductListing() {
       <nav className="breadcrumb" aria-label="Breadcrumb">
         <Link to="/">Home</Link>
         <span className="breadcrumb__sep">/</span>
-        <span>{title}</span>
+        {subcategory && categoryInfo ? (
+          <>
+            <Link to={`/shop/${category}`}>{categoryInfo.label}</Link>
+            <span className="breadcrumb__sep">/</span>
+            <span>{title}</span>
+          </>
+        ) : (
+          <span>{title}</span>
+        )}
       </nav>
 
       <div className="plp-header">
         <h1 className="display-lg">{title}</h1>
-        {categoryInfo && (
-          <p className="body-lg text-muted" style={{ marginTop: 'var(--space-1)' }}>
-            {categoryInfo.children?.length} subcategories · {data?.total || 0} products
-          </p>
-        )}
+        <p className="body-lg text-muted" style={{ marginTop: 'var(--space-1)' }}>
+          {data?.total || 0} products
+        </p>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap', marginBottom: 'var(--space-3)' }}>
-        <div className="plp-filters">
-          {FILTER_CHIPS.map((chip) => (
-            <button
-              key={chip.value}
-              className={`plp-filter-chip ${activeBadge === chip.value ? 'plp-filter-chip--active' : ''}`}
-              onClick={() => setActiveBadge(chip.value)}
-            >
-              {chip.label}
-            </button>
-          ))}
-        </div>
-        <select
-          className="input"
-          style={{ width: 'auto', minWidth: '180px' }}
-          value={sort}
-          onChange={handleSortChange}
-          aria-label="Sort products"
+      <div className="plp-toolbar">
+        <Button
+          variant="secondary"
+          size="sm"
+          className="plp-toolbar__toggle"
+          onClick={() => setFiltersOpen(true)}
         >
-          {SORT_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
+          <SlidersHorizontal size={16} />
+          Filters
+        </Button>
+        <Select
+          value={sort || 'featured'}
+          onValueChange={(value) => updateParam('sort', value === 'featured' ? '' : value)}
+        >
+          <SelectTrigger className="plp-sort" aria-label="Sort products">
+            <SelectValue placeholder="Sort" />
+          </SelectTrigger>
+          <SelectContent>
+            {SORT_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value || 'featured'} value={opt.value || 'featured'}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      {isLoading ? (
-        <ProductGridSkeleton count={8} />
-      ) : data?.products?.length === 0 ? (
-        <div className="empty-state">
-          <h2 className="empty-state__title">No products found</h2>
-          <p className="body-lg text-muted">Try adjusting your filters or search terms.</p>
-          <Link to="/shop/women"><span className="section-header__link">Browse Women</span></Link>
-        </div>
-      ) : (
-        <>
-          <p className="body-sm text-muted" style={{ marginBottom: 'var(--space-3)' }}>
-            {data?.total} products
-          </p>
-          <div className="grid-4">
-            {data?.products?.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+      <div className="plp-layout">
+        <div className={`plp-sidebar-shell ${filtersOpen ? 'plp-sidebar-shell--open' : ''}`}>
+          <div className="plp-sidebar-overlay" onClick={() => setFiltersOpen(false)} />
+          <div className="plp-sidebar-panel">
+            <div className="plp-sidebar__mobile-head">
+              <p className="plp-sidebar__title">Filters</p>
+              <button
+                type="button"
+                className="btn btn--ghost btn--icon"
+                onClick={() => setFiltersOpen(false)}
+                aria-label="Close filters"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <ProductFilters {...filterProps} />
           </div>
-        </>
-      )}
+        </div>
+
+        <div className="plp-main">
+          {isLoading ? (
+            <ProductGridSkeleton count={8} />
+          ) : data?.products?.length === 0 ? (
+            <div className="empty-state">
+              <h2 className="empty-state__title">No products found</h2>
+              <p className="body-lg text-muted">Try adjusting your filters or search terms.</p>
+              <button type="button" className="section-header__link" onClick={clearFilters}>
+                Clear filters
+              </button>
+            </div>
+          ) : (
+            <div className="grid-4">
+              {data?.products?.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { useAppStore } from '@/store'
 import { formatPrice, formatDiscount } from '@/lib/utils'
 import { FEATURE_FLAGS } from '@/config/site'
+import { OfferCode } from './OfferCode'
 
 export function ProductCard({ product, compact = false }) {
   const toggleWishlist = useAppStore((s) => s.toggleWishlist)
@@ -82,6 +83,7 @@ export function ProductCard({ product, compact = false }) {
             <span className="product-card__discount">-{discount}%</span>
           )}
         </div>
+        <OfferCode compact />
         <div className="product-card__rating">
           <Star size={12} className="product-card__star" fill="currentColor" />
           <span>{product.rating}</span>
