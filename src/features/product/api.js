@@ -77,8 +77,8 @@ export const MOCK_PRODUCTS = [
     sizes: ['28', '30', '32', '34', '36'],
     colors: ['Stone', 'Navy', 'Olive'],
     images: [
-      'https://images.unsplash.com/photo-1473966968600-fa801b869a51?w=600&h=800&fit=crop',
-      'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=600&h=800&fit=crop',
+      'https://images.unsplash.com/photo-1473966968600-fa801b869a51?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1200&q=80',
     ],
     description: 'Stretch cotton chino with a modern slim silhouette. Your everyday essential.',
     ingredients: null,
@@ -197,7 +197,7 @@ export const MOCK_PRODUCTS = [
     sizes: ['8ml'],
     colors: ['Black', 'Brown'],
     images: [
-      'https://images.unsplash.com/photo-1631214494013-2410d0d0c0a5?auto=format&fit=crop&w=480&h=480&q=80',
+      'https://images.unsplash.com/photo-1631214524020-51c275a0fb4e?auto=format&fit=crop&w=1200&q=80',
       'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=480&h=480&q=80',
     ],
     description: 'Lengthening mascara with a flexible wand. Soft, buildable, and flake-resistant.',
@@ -238,7 +238,7 @@ export const MOCK_PRODUCTS = [
     colors: ['Black', 'Nude', 'White'],
     images: [
       'https://images.unsplash.com/photo-1582552936330-448458d661b3?w=600&h=800&fit=crop',
-      'https://images.unsplash.com/photo-1596755094514-f87e34085b56?w=600&h=800&fit=crop',
+      'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=1200&q=80',
     ],
     description: 'Wire-free seamless bralette with removable pads. All-day comfort, invisible under clothing.',
     ingredients: null,
@@ -297,7 +297,7 @@ export const MOCK_PRODUCTS = [
     sizes: ['One Size'],
     colors: ['Camel', 'Grey', 'Black'],
     images: [
-      'https://images.unsplash.com/photo-1520903920245-00c27a0f9b5d?w=600&h=800&fit=crop',
+      'https://images.unsplash.com/photo-1601924994987-69e26d50dc26?auto=format&fit=crop&w=1200&q=80',
       'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=600&h=800&fit=crop',
     ],
     description: 'Pure cashmere wrap scarf. Generously sized for versatile styling.',
@@ -467,7 +467,7 @@ function withGalleryImages(product) {
     images: product.images.map((src) => {
       if (!src.includes('images.unsplash.com')) return src
       const base = src.split('?')[0]
-      return `${base}?auto=format&fit=crop&w=1200&h=1600&q=80`
+      return `${base}?auto=format&fit=crop&w=1200&q=80`
     }),
   }
 }

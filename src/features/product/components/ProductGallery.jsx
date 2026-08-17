@@ -1,17 +1,23 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1200&h=1600&q=80'
 
 function GalleryImage({ src, alt }) {
-  const [failed, setFailed] = useState(false)
+  const [currentSrc, setCurrentSrc] = useState(src)
+
+  useEffect(() => {
+    setCurrentSrc(src)
+  }, [src])
 
   return (
     <img
-      src={failed ? FALLBACK_IMAGE : src}
+      src={currentSrc}
       alt={alt}
       referrerPolicy="no-referrer"
-      onError={() => setFailed(true)}
+      onError={() => {
+        if (currentSrc !== FALLBACK_IMAGE) setCurrentSrc(FALLBACK_IMAGE)
+      }}
     />
   )
 }
@@ -19,7 +25,13 @@ function GalleryImage({ src, alt }) {
 export function ProductGallery({ images = [], name }) {
   const [activeIndex, setActiveIndex] = useState(0)
   const photos = images.length ? images : [FALLBACK_IMAGE]
-  const active = photos[activeIndex] || photos[0]
+  const photoKey = photos.join('|')
+  const safeIndex = Math.min(activeIndex, photos.length - 1)
+  const active = photos[safeIndex]
+
+  useEffect(() => {
+    setActiveIndex(0)
+  }, [photoKey])
 
   return (
     <div className="pdp-gallery">
@@ -29,10 +41,10 @@ export function ProductGallery({ images = [], name }) {
             <button
               key={`${img}-${i}`}
               type="button"
-              className={`pdp-gallery__thumb ${i === activeIndex ? 'pdp-gallery__thumb--active' : ''}`}
+              className={`pdp-gallery__thumb ${i === safeIndex ? 'pdp-gallery__thumb--active' : ''}`}
               onClick={() => setActiveIndex(i)}
               aria-label={`View image ${i + 1}`}
-              aria-selected={i === activeIndex}
+              aria-selected={i === safeIndex}
             >
               <GalleryImage src={img} alt="" />
             </button>
@@ -41,7 +53,7 @@ export function ProductGallery({ images = [], name }) {
       )}
 
       <div className="pdp-gallery__main">
-        <GalleryImage src={active} alt={name} />
+        <GalleryImage key={active} src={active} alt={name} />
       </div>
     </div>
   )
