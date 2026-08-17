@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ProductCard } from '@/features/product/components/ProductCard'
-import { Carousel } from '@/components/ui/Carousel'
+import { ProductCarousel } from '@/features/product/components/ProductCarousel'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
 import { useNewArrivals } from '@/features/product/hooks'
 
@@ -19,11 +18,7 @@ export function NewDropsSection() {
       {isLoading ? (
         <ProductGridSkeleton count={4} />
       ) : (
-        <Carousel itemCount={products?.length || 0}>
-          {products?.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </Carousel>
+        <ProductCarousel products={products} />
       )}
     </section>
   )

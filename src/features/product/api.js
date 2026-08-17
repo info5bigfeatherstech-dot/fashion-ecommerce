@@ -153,8 +153,8 @@ export const MOCK_PRODUCTS = [
     sizes: ['3.5g'],
     colors: ['Rosewood', 'Crimson', 'Nude', 'Berry'],
     images: [
-      'https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=600&h=800&fit=crop',
-      'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=600&h=800&fit=crop',
+      'https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&w=480&h=480&q=80',
+      'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=480&h=480&q=80',
     ],
     description: 'Highly pigmented matte lipstick with a comfortable, non-drying formula.',
     ingredients: 'Jojoba Oil, Vitamin E, Natural Waxes',
@@ -173,11 +173,51 @@ export const MOCK_PRODUCTS = [
     sizes: ['30ml'],
     colors: ['Fair', 'Light', 'Medium', 'Tan', 'Deep'],
     images: [
-      'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=600&h=800&fit=crop',
-      'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=600&h=800&fit=crop',
+      'https://images.unsplash.com/photo-1631214524020-51c275a0fb4e?auto=format&fit=crop&w=480&h=480&q=80',
+      'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=480&h=480&q=80',
     ],
     description: 'Buildable medium coverage with a natural luminous finish. 24-hour wear.',
     ingredients: 'Hyaluronic Acid, SPF 15, Light-Reflecting Pigments',
+  },
+  {
+    id: '17',
+    slug: 'ink-lash-mascara',
+    name: 'Ink Lash Mascara',
+    category: 'makeup',
+    subcategory: 'eyes',
+    price: 28,
+    originalPrice: null,
+    badge: 'bestseller',
+    rating: 4.7,
+    reviewCount: 186,
+    sizes: ['8ml'],
+    colors: ['Black', 'Brown'],
+    images: [
+      'https://images.unsplash.com/photo-1631214494013-2410d0d0c0a5?auto=format&fit=crop&w=480&h=480&q=80',
+      'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=480&h=480&q=80',
+    ],
+    description: 'Lengthening mascara with a flexible wand. Soft, buildable, and flake-resistant.',
+    ingredients: 'Beeswax, Panthenol, Vitamin B5',
+  },
+  {
+    id: '18',
+    slug: 'soft-flush-blush',
+    name: 'Soft Flush Blush',
+    category: 'makeup',
+    subcategory: 'face',
+    price: 34,
+    originalPrice: null,
+    badge: 'new',
+    rating: 4.8,
+    reviewCount: 112,
+    sizes: ['6g'],
+    colors: ['Petal', 'Apricot', 'Rose'],
+    images: [
+      'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=480&h=480&q=80',
+      'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=480&h=480&q=80',
+    ],
+    description: 'A sheer cream-powder blush that melts into skin for a natural flush.',
+    ingredients: 'Jojoba Oil, Mica, Vitamin E',
   },
   {
     id: '10',
@@ -365,12 +405,12 @@ export async function getProductBySlug(slug) {
 
 export async function getBestsellers() {
   await delay()
-  return MOCK_PRODUCTS.filter((p) => p.badge === 'bestseller' || p.reviewCount > 100).slice(0, 8)
+  return [...MOCK_PRODUCTS].sort((a, b) => b.reviewCount - a.reviewCount)
 }
 
 export async function getNewArrivals() {
   await delay()
-  return MOCK_PRODUCTS.filter((p) => p.badge === 'new' || p.badge === 'limited').slice(0, 8)
+  return [...MOCK_PRODUCTS]
 }
 
 export async function getBeautyProducts() {

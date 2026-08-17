@@ -10,7 +10,7 @@ export function ShopByCategorySection() {
           <h2 className="display-md">Shop by Category</h2>
         </div>
       </div>
-      {/* <CategoryGrid categories={DEEP_CATEGORIES} /> */}
+      <CategoryGrid categories={DEEP_CATEGORIES} />
     </section>
   )
 }

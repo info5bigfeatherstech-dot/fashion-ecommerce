@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Share2 } from 'lucide-react'
+import Scanner from '@/components/effects/Scanner'
 import { SITE_NAME, FOOTER_COLUMNS, PAYMENT_METHODS } from '@/config/site'
 
 const SOCIAL_LINKS = [
@@ -9,9 +11,50 @@ const SOCIAL_LINKS = [
 ]
 
 export function Footer() {
+  const [reduceMotion, setReduceMotion] = useState(false)
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)')
+    setReduceMotion(media.matches)
+    const onChange = (event) => setReduceMotion(event.matches)
+    media.addEventListener('change', onChange)
+    return () => media.removeEventListener('change', onChange)
+  }, [])
+
   return (
     <footer className="footer">
-      <div className="container">
+      {!reduceMotion && (
+        <div className="footer__scanner" aria-hidden="true">
+          <Scanner
+            color1="#14120F"
+            color2="#E0396A"
+            color3="#FAF7F2"
+            speed={0.35}
+            sweepSpeed={0.18}
+            sweepWidth={1.8}
+            sweepFalloff={7}
+            scale={1.4}
+            frequency={1.6}
+            ripple={0.18}
+            bandDensity={9}
+            lineSharpness={5}
+            glow={0.28}
+            scanDirection="horizontal"
+            colorSpread={0.45}
+            brightness={0.85}
+            contrast={1.1}
+            softness={1.6}
+            vignette={0.55}
+            scanline={true}
+            grain={true}
+            grainIntensity={0.04}
+            opacity={0.55}
+            mouseInteraction={false}
+          />
+        </div>
+      )}
+
+      <div className="container footer__content">
         <div className="footer__grid">
           {FOOTER_COLUMNS.map((col) => (
             <div key={col.title}>

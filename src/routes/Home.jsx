@@ -19,7 +19,7 @@ export default function Home() {
       <NewDropsSection />
       <BestsellersSection />
       <BeautySpotlightSection />
-      {/* <ShopByCategorySection /> */}
+      <ShopByCategorySection />
       <EditorialSection />
       <LoyaltySection />
       <DealsSection />

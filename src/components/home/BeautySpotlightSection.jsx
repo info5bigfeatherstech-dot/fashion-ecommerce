@@ -41,14 +41,18 @@ export function BeautySpotlightSection() {
         )}
       </div>
 
-      <div style={{ marginTop: 'var(--space-4)' }}>
-        <p className="heading-sm" style={{ marginBottom: 'var(--space-3)' }}>Makeup</p>
+      <div className="beauty-makeup">
+        <div className="beauty-makeup__intro">
+          <p className="heading-sm">Makeup</p>
+          <h3 className="display-md">Color, refined</h3>
+          <p className="body-sm text-muted">Pigment made in-house. Compact, wearable, and built for everyday.</p>
+        </div>
         {isLoading ? (
-          <ProductGridSkeleton count={2} />
+          <ProductGridSkeleton count={4} />
         ) : (
-          <div className="grid-2">
-            {makeup.slice(0, 2).map((product) => (
-              <ProductCard key={product.id} product={product} />
+          <div className="beauty-makeup__grid">
+            {makeup.slice(0, 4).map((product) => (
+              <ProductCard key={product.id} product={product} compact />
             ))}
           </div>
         )}

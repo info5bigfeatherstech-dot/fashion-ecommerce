@@ -7,7 +7,7 @@ import { useAppStore } from '@/store'
 import { formatPrice, formatDiscount } from '@/lib/utils'
 import { FEATURE_FLAGS } from '@/config/site'
 
-export function ProductCard({ product }) {
+export function ProductCard({ product, compact = false }) {
   const toggleWishlist = useAppStore((s) => s.toggleWishlist)
   const inWishlist = useAppStore((s) => s.isInWishlist(product.id))
   const addItem = useAppStore((s) => s.addItem)
@@ -29,7 +29,7 @@ export function ProductCard({ product }) {
   }
 
   return (
-    <Link to={`/product/${product.slug}`} className="product-card">
+    <Link to={`/product/${product.slug}`} className={`product-card ${compact ? 'product-card--compact' : ''}`}>
       <div className="product-card__media">
         {product.badge && (
           <div className="product-card__badge">
@@ -45,7 +45,7 @@ export function ProductCard({ product }) {
             whileTap={{ scale: 0.85 }}
             transition={{ duration: 0.15 }}
           >
-            <Heart size={18} />
+            <Heart size={compact ? 16 : 18} />
           </motion.div>
         </button>
         <img
@@ -54,7 +54,7 @@ export function ProductCard({ product }) {
           className="product-card__image product-card__image--primary"
           loading="lazy"
         />
-        {product.images[1] && (
+        {!compact && product.images[1] && (
           <img
             src={product.images[1]}
             alt=""
@@ -63,7 +63,7 @@ export function ProductCard({ product }) {
             aria-hidden="true"
           />
         )}
-        {FEATURE_FLAGS.enableQuickAdd && (
+        {!compact && FEATURE_FLAGS.enableQuickAdd && (
           <div className="product-card__quick-add">
             <Button variant="primary" size="sm" fullWidth onClick={handleQuickAdd}>
               Quick Add

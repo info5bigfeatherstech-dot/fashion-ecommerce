@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ProductCard } from '@/features/product/components/ProductCard'
+import { ProductCarousel } from '@/features/product/components/ProductCarousel'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
 import { useBestsellers } from '@/features/product/hooks'
 
@@ -16,13 +16,9 @@ export function BestsellersSection() {
         <Link to="/shop?sort=rating" className="section-header__link">Shop All</Link>
       </div>
       {isLoading ? (
-        <ProductGridSkeleton count={8} />
+        <ProductGridSkeleton count={4} />
       ) : (
-        <div className="grid-4">
-          {products?.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        <ProductCarousel products={products} />
       )}
     </section>
   )
