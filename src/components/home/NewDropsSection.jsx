@@ -1,0 +1,30 @@
+import { Link } from 'react-router-dom'
+import { ProductCard } from '@/features/product/components/ProductCard'
+import { Carousel } from '@/components/ui/Carousel'
+import { ProductGridSkeleton } from '@/components/ui/Skeleton'
+import { useNewArrivals } from '@/features/product/hooks'
+
+export function NewDropsSection() {
+  const { data: products, isLoading } = useNewArrivals()
+
+  return (
+    <section className="section container">
+      <div className="section-header">
+        <div>
+          <p className="heading-sm text-accent">Just Launched</p>
+          <h2 className="display-md">New Drops</h2>
+        </div>
+        <Link to="/shop/new-arrivals" className="section-header__link">View All</Link>
+      </div>
+      {isLoading ? (
+        <ProductGridSkeleton count={4} />
+      ) : (
+        <Carousel itemCount={products?.length || 0}>
+          {products?.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </Carousel>
+      )}
+    </section>
+  )
+}
