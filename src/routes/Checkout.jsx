@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -6,35 +6,102 @@ import { z } from 'zod'
 import { Button } from '@/components/ui/Button'
 import { Input, InputGroup } from '@/components/ui/Input'
 import { Separator } from '@/components/ui/Separator'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs'
 import { useAppStore } from '@/store'
 import { useCartTotal } from '@/store/selectors'
 import { formatPrice } from '@/lib/utils'
-
-const checkoutSchema = z.object({
-  email: z.string().email('Valid email required'),
-  firstName: z.string().min(1, 'First name required'),
-  lastName: z.string().min(1, 'Last name required'),
-  address: z.string().min(1, 'Address required'),
-  city: z.string().min(1, 'City required'),
-  state: z.string().min(1, 'State required'),
-  zip: z.string().min(3, 'ZIP code required'),
-  cardNumber: z.string().min(16, 'Valid card number required').max(19),
-  expiry: z.string().regex(/^\d{2}\/\d{2}$/, 'Use MM/YY format'),
-  cvv: z.string().min(3, 'CVV required').max(4),
-})
 
 export default function Checkout() {
   const cartItems = useAppStore((s) => s.cartItems)
   const cartTotal = useCartTotal()
   const clearCart = useAppStore((s) => s.clearCart)
   const [orderPlaced, setOrderPlaced] = useState(false)
-
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
-    resolver: zodResolver(checkoutSchema),
-  })
+  const [prepaidOption, setPrepaidOption] = useState('card')
 
   const shipping = cartTotal >= 100 ? 0 : 9.95
   const total = cartTotal + shipping
+
+  const checkoutSchema = useMemo(() => {
+    return z
+      .object({
+        email: z.string().email('Valid email required'),
+        firstName: z.string().min(1, 'First name required'),
+        lastName: z.string().min(1, 'Last name required'),
+        address: z.string().min(1, 'Address required'),
+        city: z.string().min(1, 'City required'),
+        state: z.string().min(1, 'State required'),
+        zip: z.string().min(3, 'ZIP code required'),
+
+        paymentMethod: z.enum(['prepaid', 'cod', 'partial']),
+        prepaidOption: z.enum(['razorpay', 'card']).optional(),
+        cardNumber: z.string().optional(),
+        expiry: z.string().optional(),
+        cvv: z.string().optional(),
+        partialAmount: z.string().optional(),
+      })
+      .superRefine((data, ctx) => {
+        if (data.paymentMethod === 'prepaid') {
+          if (!data.prepaidOption) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ['prepaidOption'],
+              message: 'Select a prepaid option',
+            })
+            return
+          }
+          if (!data.cardNumber || data.cardNumber.length < 16 || data.cardNumber.length > 19) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ['cardNumber'],
+              message: 'Valid card number required',
+            })
+          }
+          if (!data.expiry || !/^\d{2}\/\d{2}$/.test(data.expiry)) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ['expiry'],
+              message: 'Use MM/YY format',
+            })
+          }
+          if (!data.cvv || data.cvv.length < 3 || data.cvv.length > 4) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ['cvv'],
+              message: 'CVV required',
+            })
+          }
+        }
+
+        if (data.paymentMethod === 'partial') {
+          const num = Number(data.partialAmount)
+          if (!data.partialAmount || Number.isNaN(num) || num <= 0) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ['partialAmount'],
+              message: 'Enter a valid amount',
+            })
+          } else if (num > total) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ['partialAmount'],
+              message: `Amount cannot exceed ${formatPrice(total)}`,
+            })
+          }
+        }
+      })
+  }, [total])
+
+  const { register, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm({
+    resolver: zodResolver(checkoutSchema),
+    defaultValues: {
+      paymentMethod: 'prepaid',
+      prepaidOption: 'card',
+      partialAmount: '',
+    },
+  })
+
+  const paymentMethod = watch('paymentMethod')
+  const partialAmountNum = Number(watch('partialAmount') || 0)
 
   if (cartItems.length === 0 && !orderPlaced) {
     return (
@@ -106,23 +173,124 @@ export default function Checkout() {
 
           <section className="checkout-section">
             <h2 className="checkout-section__title">Payment</h2>
-            <div className="form-grid">
-              <InputGroup label="Card Number" htmlFor="cardNumber" error={errors.cardNumber?.message}>
-                <Input id="cardNumber" placeholder="1234 5678 9012 3456" error={errors.cardNumber} {...register('cardNumber')} />
-              </InputGroup>
-              <div className="form-grid form-grid--2">
-                <InputGroup label="Expiry" htmlFor="expiry" error={errors.expiry?.message}>
-                  <Input id="expiry" placeholder="MM/YY" error={errors.expiry} {...register('expiry')} />
-                </InputGroup>
-                <InputGroup label="CVV" htmlFor="cvv" error={errors.cvv?.message}>
-                  <Input id="cvv" placeholder="123" error={errors.cvv} {...register('cvv')} />
-                </InputGroup>
-              </div>
-            </div>
+            <input type="hidden" {...register('paymentMethod')} />
+            <Tabs
+              defaultValue="prepaid"
+              value={paymentMethod}
+              onValueChange={(v) => setValue('paymentMethod', v, { shouldValidate: true })}
+              className="checkout-payment-tabs"
+            >
+              <TabsList>
+                <TabsTrigger value="prepaid">Prepaid</TabsTrigger>
+                <TabsTrigger value="cod">COD</TabsTrigger>
+                <TabsTrigger value="partial">Partial</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="prepaid">
+                <Tabs
+                  defaultValue="card"
+                  value={prepaidOption}
+                  onValueChange={(v) => {
+                    setPrepaidOption(v)
+                    setValue('prepaidOption', v, { shouldValidate: true })
+                  }}
+                  className="checkout-prepaid-tabs"
+                >
+                  <TabsList>
+                    <TabsTrigger value="razorpay">Razorpay</TabsTrigger>
+                    <TabsTrigger value="card">Card</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="razorpay">
+                    <div className="form-grid" style={{ marginTop: 'var(--space-3)' }}>
+                      <InputGroup label="Card Number" htmlFor="cardNumber" error={errors.cardNumber?.message}>
+                        <Input
+                          id="cardNumber"
+                          placeholder="1234 5678 9012 3456"
+                          error={errors.cardNumber}
+                          {...register('cardNumber')}
+                        />
+                      </InputGroup>
+                      <div className="form-grid form-grid--2">
+                        <InputGroup label="Expiry" htmlFor="expiry" error={errors.expiry?.message}>
+                          <Input id="expiry" placeholder="MM/YY" error={errors.expiry} {...register('expiry')} />
+                        </InputGroup>
+                        <InputGroup label="CVV" htmlFor="cvv" error={errors.cvv?.message}>
+                          <Input id="cvv" placeholder="123" error={errors.cvv} {...register('cvv')} />
+                        </InputGroup>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="card">
+                    <div className="form-grid" style={{ marginTop: 'var(--space-3)' }}>
+                      <InputGroup label="Card Number" htmlFor="cardNumber" error={errors.cardNumber?.message}>
+                        <Input
+                          id="cardNumber"
+                          placeholder="1234 5678 9012 3456"
+                          error={errors.cardNumber}
+                          {...register('cardNumber')}
+                        />
+                      </InputGroup>
+                      <div className="form-grid form-grid--2">
+                        <InputGroup label="Expiry" htmlFor="expiry" error={errors.expiry?.message}>
+                          <Input id="expiry" placeholder="MM/YY" error={errors.expiry} {...register('expiry')} />
+                        </InputGroup>
+                        <InputGroup label="CVV" htmlFor="cvv" error={errors.cvv?.message}>
+                          <Input id="cvv" placeholder="123" error={errors.cvv} {...register('cvv')} />
+                        </InputGroup>
+                      </div>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </TabsContent>
+
+              <TabsContent value="cod">
+                <div className="card" style={{ padding: 'var(--space-4)' }}>
+                  <p className="body-sm text-muted">
+                    Pay on delivery. No card details required for COD.
+                  </p>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="partial">
+                <div className="form-grid">
+                  <InputGroup
+                    label="Amount to pay now"
+                    htmlFor="partialAmount"
+                    error={errors.partialAmount?.message}
+                  >
+                    <Input
+                      id="partialAmount"
+                      placeholder={`Up to ${formatPrice(total)}`}
+                      error={errors.partialAmount}
+                      {...register('partialAmount')}
+                    />
+                  </InputGroup>
+                  <p className="body-sm text-muted">
+                    Remaining balance will be collected later (API integration later).
+                  </p>
+                </div>
+              </TabsContent>
+            </Tabs>
           </section>
 
-          <Button type="submit" variant="primary" size="lg" fullWidth disabled={isSubmitting} style={{ marginTop: 'var(--space-4)' }}>
-            {isSubmitting ? 'Processing...' : `Pay ${formatPrice(total)}`}
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            fullWidth
+            disabled={isSubmitting}
+            style={{ marginTop: 'var(--space-4)' }}
+          >
+            {isSubmitting
+              ? 'Processing...'
+              : paymentMethod === 'cod'
+                ? 'Place Order'
+                : paymentMethod === 'partial'
+                  ? `Pay ${formatPrice(partialAmountNum || 0)} now`
+                  : `Pay ${formatPrice(total)}`
+            }
           </Button>
         </form>
       </div>

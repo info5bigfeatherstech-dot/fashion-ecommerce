@@ -6,8 +6,8 @@ export function ShopByCategorySection() {
     <section className="section container">
       <div className="section-header">
         <div>
-          <p className="heading-sm">Collections</p>
-          <h2 className="display-md">Shop by Category</h2>
+          <p className="heading-sm">Jewelry Collections</p>
+          <h2 className="display-md">Shop by Jewelry Style</h2>
         </div>
       </div>
       <CategoryGrid categories={DEEP_CATEGORIES} />

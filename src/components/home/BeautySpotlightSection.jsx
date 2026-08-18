@@ -13,21 +13,21 @@ export function BeautySpotlightSection() {
     <section className="section container">
       <div className="section-header">
         <div>
-          <p className="heading-sm">Beauty & Skincare</p>
-          <h2 className="display-md">Your Ritual, Our Formula</h2>
+          <p className="heading-sm">Jewelry Spotlight</p>
+          <h2 className="display-md">Style That Shines Every Day</h2>
         </div>
-        <Link to="/shop/skincare" className="section-header__link">Explore Beauty</Link>
+        <Link to="/shop/skincare" className="section-header__link">Explore Jewelry</Link>
       </div>
 
       <div className="beauty-spotlight">
         <div className="beauty-spotlight__content">
-          <p className="beauty-spotlight__ingredient">Clean · Cruelty-Free · Dermatologist Tested</p>
-          <h3 className="display-md">Science-Backed Skincare</h3>
+          <p className="beauty-spotlight__ingredient">Lightweight · Trendy · Occasion Ready</p>
+          <h3 className="display-md">Statement Pieces for Every Look</h3>
           <p className="body-lg text-muted">
-            Every formula developed in our own labs. No third-party white labels — just results you can see and feel.
+            Discover artificial jewelry designed to elevate festive outfits, daily wear, and gifting moments without losing comfort or style.
           </p>
           <Link to="/shop/skincare">
-            <Button variant="secondary">Shop Skincare</Button>
+            <Button variant="secondary">Shop Statement Styles</Button>
           </Link>
         </div>
         {isLoading ? (
@@ -43,9 +43,9 @@ export function BeautySpotlightSection() {
 
       <div className="beauty-makeup">
         <div className="beauty-makeup__intro">
-          <p className="heading-sm">Makeup</p>
-          <h3 className="display-md">Color, refined</h3>
-          <p className="body-sm text-muted">Pigment made in-house. Compact, wearable, and built for everyday.</p>
+          <p className="heading-sm">Daily Favorites</p>
+          <h3 className="display-md">Elegant pieces, easy styling</h3>
+          <p className="body-sm text-muted">From earrings to layered necklaces, find jewelry that works for casual looks, events, and gifting.</p>
         </div>
         {isLoading ? (
           <ProductGridSkeleton count={4} />

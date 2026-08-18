@@ -23,13 +23,13 @@ export function NewsletterSection() {
     <section className="section container">
       <div className="newsletter">
         <div>
-          <h2 className="display-md" style={{ marginBottom: 'var(--space-1)' }}>Stay in the Circle</h2>
+          <h2 className="display-md" style={{ marginBottom: 'var(--space-1)' }}>Stay in the Jewelry Circle</h2>
           <p className="body-lg text-muted">
-            First access to drops, style edits, and member-only offers.
+            Get first access to new jewelry drops, festive edits, styling ideas, and member-only offers.
           </p>
           {FEATURE_FLAGS.enableAppDownload && (
             <p className="body-sm" style={{ marginTop: 'var(--space-2)' }}>
-              Download the VERAÒ app for exclusive mobile rewards.
+              Follow VERAÒ for jewelry launches, gifting ideas, and exclusive app-only rewards.
             </p>
           )}
         </div>

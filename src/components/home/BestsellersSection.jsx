@@ -10,8 +10,7 @@ export function BestsellersSection() {
     <section className="section container">
       <div className="section-header">
         <div>
-          <p className="heading-sm">Customer Favorites</p>
-          <h2 className="display-md">Bestsellers</h2>
+          <h2 className="display-md ">Bestselling <span className="text-accent" style={{ fontFamily: 'var(--font-ui)' }}>Jewelry</span></h2>
         </div>
         <Link to="/shop?sort=rating" className="section-header__link">Shop All</Link>
       </div>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import ReflectCard from '@/components/effects/ReflectCard'
 import { CATEGORY_STRIP } from '@/config/site'
 
 const PAGE_SIZE = 7
@@ -43,8 +44,8 @@ export function CategoryStripSection() {
     <section className="section container">
       <div className="section-header">
         <div>
-          <p className="heading-sm">Shop</p>
-          <h2 className="display-md">Browse the House</h2>
+          <p className="heading-sm text-accent">Jewelry Categories</p>
+          <h2 className="display-md">Browse Our Artificial Jewelry</h2>
         </div>
       </div>
 
@@ -72,10 +73,17 @@ export function CategoryStripSection() {
                   to={`/shop/${cat.slug}`}
                   className="category-strip__item"
                 >
-                  <div className="category-strip__icon">
-                    <img src={cat.image} alt={cat.label} />
-                  </div>
-                  <span className="category-strip__label">{cat.label}</span>
+                  <ReflectCard className="category-strip__card">
+                    <div className="category-strip__media">
+                      <img src={cat.image} alt={cat.label} />
+                    </div>
+                    <div className="category-strip__content">
+                      <span className="category-strip__label">{cat.label}</span>
+                      <p className="category-strip__desc">
+                        {cat.description || 'Artificial jewelry styles for every occasion.'}
+                      </p>
+                    </div>
+                  </ReflectCard>
                 </Link>
               ))}
             </div>

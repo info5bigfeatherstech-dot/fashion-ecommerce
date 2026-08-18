@@ -6,8 +6,8 @@ export function EditorialSection() {
     <section className="section container">
       <div className="section-header">
         <div>
-          <p className="heading-sm">Edits & Guides</p>
-          <h2 className="display-md">Curated by VERAÒ</h2>
+          <p className="heading-sm">Jewelry Guides</p>
+          <h2 className="display-md">Curated Styling Inspiration</h2>
         </div>
       </div>
       <div className="grid-3">

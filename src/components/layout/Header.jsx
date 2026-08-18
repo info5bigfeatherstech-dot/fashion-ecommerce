@@ -95,7 +95,7 @@ export function Header() {
                   <span className="header__badge-count">{wishlistCount}</span>
                 )}
               </Link>
-              <Link to="/account" className="header__util">
+              <Link to="/profile" className="header__util">
                 <User size={18} />
                 <span className="header__util-label">My Account</span>
               </Link>

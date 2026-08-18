@@ -1,9 +1,14 @@
 import * as TabsPrimitive from '@radix-ui/react-tabs'
 import { cn } from '@/lib/utils'
 
-export function Tabs({ defaultValue, children, className }) {
+export function Tabs({ defaultValue, children, className, value, onValueChange }) {
   return (
-    <TabsPrimitive.Root defaultValue={defaultValue} className={className}>
+    <TabsPrimitive.Root
+      defaultValue={defaultValue}
+      value={value}
+      onValueChange={onValueChange}
+      className={className}
+    >
       {children}
     </TabsPrimitive.Root>
   )

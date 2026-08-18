@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Star, Heart, Minus, Plus, Truck, RotateCcw, ShieldCheck } from 'lucide-react'
 import { ProductGallery } from '@/features/product/components/ProductGallery'
 import { PriceBlock } from '@/features/product/components/PriceBlock'
@@ -39,6 +39,8 @@ export default function ProductDetail() {
   const openCart = useAppStore((s) => s.openCart)
   const toggleWishlist = useAppStore((s) => s.toggleWishlist)
   const inWishlist = useAppStore((s) => (product ? s.isInWishlist(product.id) : false))
+  const isAuthenticated = useAppStore((s) => s.isAuthenticated)
+  const navigate = useNavigate()
 
   useEffect(() => {
     setSelectedSize(null)
@@ -76,6 +78,10 @@ export default function ProductDetail() {
   const color = selectedColor || product.colors?.[0]
 
   const handleAddToCart = () => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { redirectTo: `/product/${slug}` }, replace: true })
+      return
+    }
     addItem(product, { size, color, quantity })
     openCart()
   }
@@ -201,7 +207,13 @@ export default function ProductDetail() {
               variant="secondary"
               size="lg"
               className="pdp-info__wish"
-              onClick={() => toggleWishlist(product)}
+              onClick={() => {
+                if (!isAuthenticated) {
+                  navigate('/login', { state: { redirectTo: `/product/${slug}` }, replace: true })
+                  return
+                }
+                toggleWishlist(product)
+              }}
               aria-label={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
             >
               <Heart size={20} fill={inWishlist ? 'currentColor' : 'none'} />

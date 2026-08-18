@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Heart, Star } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Badge } from '@/components/ui/Badge'
@@ -13,12 +13,18 @@ export function ProductCard({ product, compact = false }) {
   const inWishlist = useAppStore((s) => s.isInWishlist(product.id))
   const addItem = useAppStore((s) => s.addItem)
   const openCart = useAppStore((s) => s.openCart)
+  const isAuthenticated = useAppStore((s) => s.isAuthenticated)
+  const navigate = useNavigate()
 
   const discount = formatDiscount(product.originalPrice, product.price)
 
   const handleQuickAdd = (e) => {
     e.preventDefault()
     e.stopPropagation()
+    if (!isAuthenticated) {
+      navigate('/login', { state: { redirectTo: `/product/${product.slug}` } })
+      return
+    }
     addItem(product)
     openCart()
   }
@@ -26,6 +32,10 @@ export function ProductCard({ product, compact = false }) {
   const handleWishlist = (e) => {
     e.preventDefault()
     e.stopPropagation()
+    if (!isAuthenticated) {
+      navigate('/login', { state: { redirectTo: `/product/${product.slug}` } })
+      return
+    }
     toggleWishlist(product)
   }
 

@@ -1,5 +1,5 @@
 export const SITE_NAME = 'VERAÒ'
-export const SITE_TAGLINE = 'Crafted for the world. Owned by us.'
+export const SITE_TAGLINE = 'Artificial jewelry for everyday shine.'
 
 export const PRODUCT_OFFER = {
   code: 'VERA26',
@@ -11,7 +11,7 @@ export const TOP_BANNER = {
   badge: 'Circle Week',
   lead: 'Use code',
   code: 'VERA26',
-  message: 'Free shipping over $100 · Double points for Circle members',
+  message: 'Artificial jewelry styles for every occasion · Free shipping over $100',
   terms: 'See terms in FAQ',
   href: '/loyalty',
 }
@@ -23,9 +23,24 @@ export const NAV_ITEMS = [
 ]
 
 export const CATEGORY_STRIP = [
-  { label: 'Women', slug: 'women', image: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=400&h=400&q=80' },
-  { label: 'Men', slug: 'men', image: 'https://images.unsplash.com/photo-1617137968427-85924c800a22?auto=format&fit=crop&w=400&h=400&q=80' },
-  { label: 'Kids', slug: 'kids', image: 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=400&h=400&q=80' },
+  {
+    label: 'Earrings',
+    slug: 'women',
+    image: 'https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&w=700&h=900&q=80',
+    description: 'Lightweight artificial jewelry for daily and festive looks.',
+  },
+  {
+    label: 'Necklaces',
+    slug: 'men',
+    image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=700&h=900&q=80',
+    description: 'Layered styles and statement pieces that instantly dress up an outfit.',
+  },
+  {
+    label: 'Rings',
+    slug: 'kids',
+    image: 'https://images.unsplash.com/photo-1602173574767-37ac01994b2a?auto=format&fit=crop&w=700&h=900&q=80',
+    description: 'Elegant designs made to mix, match, stack, and gift.',
+  },
 ]
 
 export const HERO_SLIDES = [
@@ -63,78 +78,78 @@ export const HERO_SLIDES = [
 
 export const DEEP_CATEGORIES = [
   {
-    label: 'Iconic Sneakers',
+    label: 'Statement Earrings',
     slug: 'new-arrivals',
     offer: 'Min 30% off',
-    image: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=520&h=720&q=80',
-    imageBack: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=480&h=680&q=80',
+    image: 'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=520&h=720&q=80',
+    imageBack: 'https://images.unsplash.com/photo-1617038260849-41f2d537454b?auto=format&fit=crop&w=480&h=680&q=80',
   },
   {
-    label: 'Silk Dresses',
+    label: 'Layered Necklaces',
     slug: 'women',
     offer: 'Up to 65% off',
-    image: 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=520&h=720&q=80',
-    imageBack: 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=480&h=680&q=80',
+    image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=520&h=720&q=80',
+    imageBack: 'https://images.unsplash.com/photo-1611085583191-a3b181a88401?auto=format&fit=crop&w=480&h=680&q=80',
   },
   {
-    label: 'Relaxed Shirts',
+    label: 'Bracelets & Bangles',
     slug: 'men',
     offer: 'Up to 70% off',
-    image: 'https://images.unsplash.com/photo-1617137968427-85924c800a22?auto=format&fit=crop&w=520&h=720&q=80',
-    imageBack: 'https://images.unsplash.com/photo-1603252109303-2751441dd157?auto=format&fit=crop&w=480&h=680&q=80',
+    image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=520&h=720&q=80',
+    imageBack: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=480&h=680&q=80',
   },
   {
-    label: 'Soft Innerwear',
+    label: 'Pendants',
     slug: 'innerwear',
     offer: 'Up to 50% off',
-    image: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=520&h=720&q=80',
-    imageBack: 'https://images.unsplash.com/photo-1483985988355-763728ad1434?auto=format&fit=crop&w=480&h=680&q=80',
+    image: 'https://images.unsplash.com/photo-1611107683227-e9060eccd846?auto=format&fit=crop&w=520&h=720&q=80',
+    imageBack: 'https://images.unsplash.com/photo-1611652022680-18b16bf7f2b4?auto=format&fit=crop&w=480&h=680&q=80',
   },
   {
-    label: 'Little Icons',
+    label: 'Jewelry Sets',
     slug: 'kids',
     offer: 'Min 40% off',
-    image: 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=520&h=720&q=80',
-    imageBack: 'https://images.unsplash.com/photo-1514090458221-65bb69cf63e6?auto=format&fit=crop&w=480&h=680&q=80',
+    image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=520&h=720&q=80',
+    imageBack: 'https://images.unsplash.com/photo-1617038220872-5f3648c8edc5?auto=format&fit=crop&w=480&h=680&q=80',
   },
 ]
 
 export const EDITORIAL_GUIDES = [
   {
-    tag: 'Style Edit',
-    title: 'Autumn Layers: The Art of Texture',
-    description: 'How to build a capsule wardrobe that transitions from city mornings to evening dinners.',
+    tag: 'Styling Guide',
+    title: 'How to Style Statement Earrings',
+    description: 'Easy ways to pair bold artificial jewelry with festive and everyday outfits.',
     slug: 'autumn-layers',
-    image: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=800&h=500&fit=crop',
+    image: 'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?w=800&h=500&fit=crop',
   },
   {
-    tag: 'Skincare Guide',
-    title: 'Your 4-Step Evening Ritual',
-    description: 'Cleanse, treat, hydrate, protect — the VERAÒ routine for radiant skin.',
+    tag: 'Jewelry Care',
+    title: 'Keep Your Jewelry Looking New',
+    description: 'Simple care tips to help your artificial jewelry stay bright, stylish, and wearable longer.',
     slug: 'evening-ritual',
-    image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=800&h=500&fit=crop',
+    image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=800&h=500&fit=crop',
   },
   {
     tag: 'Gifting Guide',
-    title: 'Curated Gifts Under $100',
-    description: 'Thoughtful presents for every person on your list — all from our house.',
+    title: 'Jewelry Gifts They Will Love',
+    description: 'Thoughtful earrings, rings, and sets for birthdays, festive wear, and special occasions.',
     slug: 'gifts-under-100',
-    image: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=800&h=500&fit=crop',
+    image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?w=800&h=500&fit=crop',
   },
 ]
 
 export const DEALS = [
-  { tag: 'Bundle & Save', title: 'Skincare Trio — 20% Off', description: 'Cleanse, serum, and moisturizer. Better together.', slug: 'skincare-trio' },
-  { tag: 'Gift With Purchase', title: 'Free Mini Mascara', description: 'On orders over $75 in makeup.', slug: 'gwp-mascara' },
-  { tag: 'Seasonal Sale', title: 'End of Season — Up to 40%', description: 'Selected styles across all categories.', slug: 'seasonal-sale' },
-  { tag: 'Exclusive Online', title: 'Online-Only Watch Set', description: 'Two timepieces, one exceptional price.', slug: 'watch-set' },
+  { tag: 'Bundle & Save', title: 'Jewelry Set Offers', description: 'Save more when you shop matching earrings, necklace, and bracelet sets.', slug: 'skincare-trio' },
+  { tag: 'Gift With Purchase', title: 'Free Jewelry Pouch', description: 'On qualifying jewelry orders while stocks last.', slug: 'gwp-mascara' },
+  { tag: 'Seasonal Sale', title: 'Festive Collection Sale', description: 'Selected artificial jewelry styles at limited-time prices.', slug: 'seasonal-sale' },
+  { tag: 'Exclusive Online', title: 'Online-Only Statement Set', description: 'A curated jewelry combo at a special online price.', slug: 'watch-set' },
 ]
 
 export const TRUST_ITEMS = [
-  { title: 'Global Shipping', description: 'Free over $100 to 40+ countries' },
-  { title: 'Easy Returns', description: '30-day hassle-free returns' },
+  { title: 'Fast Shipping', description: 'Reliable delivery for your jewelry orders' },
+  { title: 'Easy Returns', description: 'Simple return support on eligible products' },
   { title: 'Secure Payment', description: '256-bit SSL encryption' },
-  { title: '100% Authentic', description: 'Every product made by VERAÒ' },
+  { title: 'Quality Checked', description: 'Every jewelry piece is checked before dispatch' },
 ]
 
 export const FOOTER_COLUMNS = [

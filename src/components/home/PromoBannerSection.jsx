@@ -13,13 +13,13 @@ export function PromoBannerSection() {
         </div>
         <div className="promo-banner__overlay" />
         <div className="promo-banner__content">
-          <p className="heading-sm" style={{ opacity: 0.85, marginBottom: 'var(--space-1)' }}>Limited Edition</p>
-          <h2 className="display-md" style={{ marginBottom: 'var(--space-2)' }}>The Atelier Collection</h2>
+          <p className="heading-sm" style={{ opacity: 0.85, marginBottom: 'var(--space-1)' }}>Jewelry Edit</p>
+          <h2 className="display-md" style={{ marginBottom: 'var(--space-2)' }}>Artificial Jewelry for Every Occasion</h2>
           <p className="body-lg" style={{ opacity: 0.9, marginBottom: 'var(--space-3)' }}>
-            Hand-finished pieces in limited quantities. Once they're gone, they're gone.
+            Explore statement earrings, rings, bangles, necklaces, and sets made to complement festive looks and everyday outfits.
           </p>
           <Link to="/shop/women">
-            <Button variant="accent">Shop the Collection</Button>
+            <Button variant="accent">Shop Jewelry</Button>
           </Link>
         </div>
       </div>

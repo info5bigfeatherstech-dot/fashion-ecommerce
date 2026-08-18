@@ -10,8 +10,8 @@ export function NewDropsSection() {
     <section className="section container">
       <div className="section-header">
         <div>
-          <p className="heading-sm text-accent">Just Launched</p>
-          <h2 className="display-md">New Drops</h2>
+          <p className="heading-sm text-accent">Just Arrived</p>
+          <h2 className="display-md">New Jewelry Drops</h2>
         </div>
         <Link to="/shop/new-arrivals" className="section-header__link">View All</Link>
       </div>

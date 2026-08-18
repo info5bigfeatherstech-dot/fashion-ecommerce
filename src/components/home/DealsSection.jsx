@@ -6,8 +6,8 @@ export function DealsSection() {
     <section className="section container">
       <div className="section-header">
         <div>
-          <p className="heading-sm text-accent">Exclusive Offers</p>
-          <h2 className="display-md">Deals & Offers</h2>
+          <p className="heading-sm text-accent">Exclusive Jewelry Offers</p>
+          <h2 className="display-md">Deals on Artificial Jewelry</h2>
         </div>
         <Link to="/shop/sale" className="section-header__link">View All Deals</Link>
       </div>

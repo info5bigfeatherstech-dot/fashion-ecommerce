@@ -8,7 +8,7 @@ const NAV_LINKS = [
   { to: '/shop/women', label: 'Shop', icon: Search },
   { to: '/wishlist', label: 'Wishlist', icon: Heart, badge: 'wishlistCount' },
   { to: '/cart', label: 'Bag', icon: ShoppingBag, badge: 'cartCount' },
-  { to: '/account', label: 'Account', icon: User },
+  { to: '/profile', label: 'Account', icon: User },
 ]
 
 export function MobileBottomNav() {

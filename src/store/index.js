@@ -18,6 +18,7 @@ export const useAppStore = create(
         wishlistItems: state.wishlistItems,
         user: state.user,
         isAuthenticated: state.isAuthenticated,
+        addresses: state.addresses,
       }),
     }
   )
