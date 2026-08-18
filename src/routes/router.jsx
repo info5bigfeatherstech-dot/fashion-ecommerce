@@ -12,6 +12,7 @@ import Register from './Register'
 import Profile from './Profile'
 import AddToCart from './AddToCart'
 import Loyalty from './Loyalty'
+import Wholesale from './Wholesale'
 
 export const router = createBrowserRouter([
   {
@@ -31,6 +32,7 @@ export const router = createBrowserRouter([
       { path: 'profile', element: <Profile /> },
       { path: 'account', element: <Account /> },
       { path: 'loyalty', element: <Loyalty /> },
+      { path: 'wholesale', element: <Wholesale /> },
     ],
   },
 ])

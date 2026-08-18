@@ -5124,3 +5124,63 @@ textarea {
 .plp-page > .container {
   padding-top: var(--space-2);
 }
+
+.wholesale-page {
+  padding-block: clamp(var(--space-4), 5vw, var(--space-6));
+}
+
+.wholesale-page__intro {
+  max-width: 640px;
+  margin-bottom: var(--space-5);
+}
+
+.wholesale-page__intro h1 {
+  margin-block: var(--space-2);
+}
+
+.wholesale-page__layout {
+  display: grid;
+  gap: var(--space-4);
+}
+
+@media (min-width: 900px) {
+  .wholesale-page__layout {
+    grid-template-columns: minmax(240px, 0.85fr) minmax(0, 1.4fr);
+    align-items: start;
+  }
+}
+
+.wholesale-page__side,
+.wholesale-page__form-card {
+  padding: var(--space-4);
+}
+
+.wholesale-page__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.wholesale-page__points {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+  padding: 0;
+  list-style: disc;
+  padding-left: 1.1rem;
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+.wholesale-page__form-card textarea.input {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.wholesale-page__success {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: flex-start;
+}

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { ShoppingBag, Heart, User, MessageCircle, MapPin, Menu, Search, X, ChevronDown, LogIn } from 'lucide-react'
+import { ShoppingBag, Heart, User, MessageCircle, MapPin, Menu, Search, X, ChevronDown, LogIn, Warehouse } from 'lucide-react'
 import { SearchBar } from '@/features/search/components/SearchBar'
 import { CartDrawer } from '@/features/cart/components/CartDrawer'
 import { MegaMenuPanel } from '@/features/category/components/MegaMenu'
@@ -166,6 +166,10 @@ export function Header() {
                 <User size={18} />
                 <span className="header__util-label">My Account</span>
               </Link>
+              <Link to="/wholesale" className="header__util header__util--desktop">
+                <Warehouse size={18} />
+                <span className="header__util-label">Wholesale</span>
+              </Link>
               <Link
                 to={isAuthenticated ? '/loyalty' : '/login'}
                 className={`header__points ${isAuthenticated ? '' : 'header__points--login'}`}
@@ -306,6 +310,7 @@ export function Header() {
             })}
             <div className="header__mobile-extras">
               <Link to="/profile" onClick={() => setMobileNavOpen(false)}>My Account</Link>
+              <Link to="/wholesale" onClick={() => setMobileNavOpen(false)}>Wholesale</Link>
               <Link to="/wishlist" onClick={() => setMobileNavOpen(false)}>Wishlist</Link>
               <Link to="/loyalty" onClick={() => setMobileNavOpen(false)}>Circle Points</Link>
               <Link to="/account" onClick={() => setMobileNavOpen(false)}>Stores</Link>
