@@ -2640,6 +2640,28 @@ textarea {
   transform: scale(1.25);
 }
 
+@media (max-width: 767px) {
+  .hero__content {
+    padding-bottom: calc(var(--space-6) + var(--space-2));
+  }
+
+  .hero__subtitle {
+    margin-bottom: var(--space-3);
+  }
+
+  .hero__dots {
+    left: 50%;
+    right: auto;
+    bottom: var(--space-2);
+    transform: translateX(-50%);
+  }
+
+  .hero__dot {
+    width: 28px;
+    height: 28px;
+  }
+}
+
 /* ─── Category Strip ─── */
 
 .category-strip-wrap {
