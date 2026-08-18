@@ -29,11 +29,12 @@ export function LoyaltySpotlight({ compact = false }) {
   return (
     <div className="loyalty-spotlight">
       <div>
-        <p className="heading-sm" style={{ color: 'var(--color-border)', marginBottom: 'var(--space-1)' }}>
-          VERAÒ Circle
-        </p>
         <h2 className="display-md" style={{ marginBottom: 'var(--space-2)' }}>
-          {data?.isMember ? `Welcome back, ${data.tier}` : 'Rewards That Move With You'}
+          {data?.isMember ? (
+            <>Welcome back, <span className="heading-accent">{data.tier}</span></>
+          ) : (
+            <>Rewards That <span className="heading-accent">Move With You</span></>
+          )}
         </h2>
         {data?.isMember ? (
           <p className="loyalty-spotlight__points">{data.points.toLocaleString()} points</p>
@@ -47,6 +48,9 @@ export function LoyaltySpotlight({ compact = false }) {
           <span className="loyalty-spotlight__benefit"><Truck size={16} /> Free shipping tiers</span>
           <span className="loyalty-spotlight__benefit"><Sparkles size={16} /> Early access</span>
         </div>
+        <p className="section-footnote" style={{ opacity: 0.85 }}>
+          Join free and start earning on every jewelry order — rewards that grow with you.
+        </p>
       </div>
       <div>
         {!data?.isMember && (

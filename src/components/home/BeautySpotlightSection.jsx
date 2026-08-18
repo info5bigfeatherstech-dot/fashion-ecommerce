@@ -13,8 +13,10 @@ export function BeautySpotlightSection() {
     <section className="section container">
       <div className="section-header">
         <div>
-          <p className="heading-sm">Jewelry Spotlight</p>
-          <h2 className="display-md">Style That Shines Every Day</h2>
+          <h2 className="display-md">Style That <span className="heading-accent">Shines</span> Every Day</h2>
+          <p className="section-subheader">
+            Lightweight, trendy jewelry designed for daily wear, celebrations, and thoughtful gifts.
+          </p>
         </div>
         <Link to="/shop/skincare" className="section-header__link">Explore Jewelry</Link>
       </div>
@@ -57,6 +59,9 @@ export function BeautySpotlightSection() {
           </div>
         )}
       </div>
+      <p className="section-footnote">
+        Mix, match, and layer pieces that work as hard as your wardrobe — from casual days to festive nights.
+      </p>
     </section>
   )
 }

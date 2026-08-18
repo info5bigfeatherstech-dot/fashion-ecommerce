@@ -13,14 +13,16 @@ export function PromoBannerSection() {
         </div>
         <div className="promo-banner__overlay" />
         <div className="promo-banner__content">
-          <p className="heading-sm" style={{ opacity: 0.85, marginBottom: 'var(--space-1)' }}>Jewelry Edit</p>
-          <h2 className="display-md" style={{ marginBottom: 'var(--space-2)' }}>Artificial Jewelry for Every Occasion</h2>
+          <h2 className="display-md" style={{ marginBottom: 'var(--space-2)' }}><span className="heading-accent">Artificial Jewelry</span> for Every Occasion</h2>
           <p className="body-lg" style={{ opacity: 0.9, marginBottom: 'var(--space-3)' }}>
             Explore statement earrings, rings, bangles, necklaces, and sets made to complement festive looks and everyday outfits.
           </p>
           <Link to="/shop/women">
             <Button variant="accent">Shop Jewelry</Button>
           </Link>
+          <p className="section-footnote" style={{ color: 'inherit', opacity: 0.8, marginTop: 'var(--space-3)' }}>
+            One edit for every occasion — from daily wear to celebrations and gifting.
+          </p>
         </div>
       </div>
     </section>

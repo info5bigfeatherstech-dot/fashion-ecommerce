@@ -6,9 +6,12 @@ export function EditorialSection() {
     <section className="section container">
       <div className="section-header">
         <div>
-          <p className="heading-sm">Jewelry Guides</p>
-          <h2 className="display-md">Curated Styling Inspiration</h2>
+          <h2 className="display-md">Curated <span className="heading-accent">Styling Inspiration</span></h2>
+          <p className="section-subheader">
+            Lookbooks and styling notes to help you layer, gift, and wear every piece with ease.
+          </p>
         </div>
+        <Link to="/shop" className="section-header__link">Shop the Looks</Link>
       </div>
       <div className="grid-3">
         {EDITORIAL_GUIDES.map((guide) => (
@@ -22,6 +25,9 @@ export function EditorialSection() {
           </Link>
         ))}
       </div>
+      <p className="section-footnote">
+        Explore each story for outfit ideas and shoppable jewelry edits.
+      </p>
     </section>
   )
 }

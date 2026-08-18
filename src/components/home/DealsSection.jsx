@@ -6,8 +6,10 @@ export function DealsSection() {
     <section className="section container">
       <div className="section-header">
         <div>
-          <p className="heading-sm text-accent">Exclusive Jewelry Offers</p>
-          <h2 className="display-md">Deals on Artificial Jewelry</h2>
+          <h2 className="display-md">Deals on <span className="heading-accent">Artificial Jewelry</span></h2>
+          <p className="section-subheader">
+            Limited-time offers on bestsellers, festive sets, and everyday jewelry essentials.
+          </p>
         </div>
         <Link to="/shop/sale" className="section-header__link">View All Deals</Link>
       </div>
@@ -20,6 +22,9 @@ export function DealsSection() {
           </Link>
         ))}
       </div>
+      <p className="section-footnote">
+        Offers change often — shop while stocks last and save on the pieces you love.
+      </p>
     </section>
   )
 }

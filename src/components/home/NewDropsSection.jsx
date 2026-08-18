@@ -10,8 +10,10 @@ export function NewDropsSection() {
     <section className="section container">
       <div className="section-header">
         <div>
-          <p className="heading-sm text-accent">Just Arrived</p>
-          <h2 className="display-md">New Jewelry Drops</h2>
+          <h2 className="display-md">New <span className="heading-accent">Jewelry Drops</span></h2>
+          <p className="section-subheader">
+            Just landed — fresh earrings, chains, and statement sets ready to layer, gift, and wear now.
+          </p>
         </div>
         <Link to="/shop/new-arrivals" className="section-header__link">View All</Link>
       </div>
@@ -20,6 +22,9 @@ export function NewDropsSection() {
       ) : (
         <ProductCarousel products={products} />
       )}
+      <p className="section-footnote">
+        New styles drop regularly. Shop the latest edit before it sells out.
+      </p>
     </section>
   )
 }

@@ -23,7 +23,7 @@ export function NewsletterSection() {
     <section className="section container">
       <div className="newsletter">
         <div>
-          <h2 className="display-md" style={{ marginBottom: 'var(--space-1)' }}>Stay in the Jewelry Circle</h2>
+          <h2 className="display-md" style={{ marginBottom: 'var(--space-1)' }}>Stay in the <span className="heading-accent">Jewelry Circle</span></h2>
           <p className="body-lg text-muted">
             Get first access to new jewelry drops, festive edits, styling ideas, and member-only offers.
           </p>
@@ -32,6 +32,9 @@ export function NewsletterSection() {
               Follow VERAÒ for jewelry launches, gifting ideas, and exclusive app-only rewards.
             </p>
           )}
+          <p className="section-footnote">
+            Join the list and never miss a drop, deal, or styling edit.
+          </p>
         </div>
         <form className="newsletter__form" onSubmit={handleSubmit(onSubmit)} noValidate>
           <InputGroup label="Email address" htmlFor="newsletter-email" error={errors.email?.message}>

@@ -61,9 +61,12 @@ export function CategoryStripSection() {
     <section className="section container">
       <div className="section-header">
         <div>
-          <p className="heading-sm text-accent">Jewelry Categories</p>
-          <h2 className="display-md">Browse Our Artificial Jewelry</h2>
+          <h2 className="display-md">Browse Our <span className="heading-accent">Artificial Jewelry</span></h2>
+          <p className="section-subheader">
+            Earrings, necklaces, rings, bangles, and sets — styled for daily wear, celebrations, and gifting.
+          </p>
         </div>
+        <Link to="/shop" className="section-header__link">Shop All</Link>
       </div>
 
       <div className="category-strip-wrap">
@@ -117,6 +120,9 @@ export function CategoryStripSection() {
           <ChevronRight size={22} />
         </button>
       </div>
+      <p className="section-footnote">
+        Scroll through each style to find the piece that completes your look — from everyday staples to statement sets.
+      </p>
     </section>
   )
 }

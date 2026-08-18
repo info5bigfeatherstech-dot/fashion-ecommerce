@@ -10,7 +10,10 @@ export function BestsellersSection() {
     <section className="section container">
       <div className="section-header">
         <div>
-          <h2 className="display-md ">Bestselling <span className="text-accent" style={{ fontFamily: 'var(--font-ui)' }}>Jewelry</span></h2>
+          <h2 className="display-md">Bestselling <span className="heading-accent">Jewelry</span></h2>
+          <p className="section-subheader">
+            The pieces customers wear on repeat — everyday staples and occasion-ready favorites.
+          </p>
         </div>
         <Link to="/shop?sort=rating" className="section-header__link">Shop All</Link>
       </div>
@@ -19,6 +22,9 @@ export function BestsellersSection() {
       ) : (
         <ProductCarousel products={products} />
       )}
+      <p className="section-footnote">
+        Loved for comfort, finish, and how easily they complete an outfit.
+      </p>
     </section>
   )
 }
