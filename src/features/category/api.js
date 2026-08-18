@@ -58,7 +58,7 @@ export const MEGA_MENUS = {
       href: '/shop/watches-accessories',
       seeMore: true,
       links: [
-        { label: 'Bags', href: '/shop/watches-accessories/bags' },
+        { label: 'Bags', href: '/shop/bags' },
         { label: 'Jewelry', href: '/shop/watches-accessories/jewelry' },
         { label: 'Belts', href: '/shop/watches-accessories/belts' },
         { label: 'Scarves', href: '/shop/women/scarves' },
@@ -173,7 +173,7 @@ export const MEGA_MENUS = {
       seeMore: true,
       links: [
         { label: 'Watches', href: '/shop/watches-accessories/watches' },
-        { label: 'Bags', href: '/shop/watches-accessories/bags' },
+        { label: 'Bags', href: '/shop/bags' },
         { label: 'Belts', href: '/shop/watches-accessories/belts' },
         { label: 'Wallets', href: '/shop/watches-accessories/wallets' },
         { label: 'Sunglasses', href: '/shop/men/sunglasses' },
@@ -395,10 +395,13 @@ export const CATEGORY_TREE = {
     image: 'https://images.unsplash.com/photo-1617137968427-85924c800a22?w=400&h=500&fit=crop',
     children: [
       { label: 'Shirts', slug: 'shirts' },
+      { label: 'T-Shirts', slug: 'tshirts' },
       { label: 'Trousers', slug: 'trousers' },
+      { label: 'Denim', slug: 'denim' },
       { label: 'Knitwear', slug: 'knitwear' },
       { label: 'Outerwear', slug: 'outerwear' },
       { label: 'Suits', slug: 'suits' },
+      { label: 'Sneakers', slug: 'sneakers' },
     ],
   },
   kids: {
@@ -467,6 +470,24 @@ export const CATEGORY_TREE = {
       { label: 'Jewelry', slug: 'jewelry' },
       { label: 'Belts', slug: 'belts' },
     ],
+  },
+  footwear: {
+    label: 'Footwear',
+    slug: 'footwear',
+    image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=500&fit=crop',
+    children: [
+      { label: 'Sneakers', slug: 'sneakers' },
+      { label: 'Sandals', slug: 'sandals' },
+      { label: 'Heels', slug: 'heels' },
+      { label: 'Boots', slug: 'boots' },
+      { label: 'Loafers', slug: 'loafers' },
+    ],
+  },
+  bags: {
+    label: 'Bags',
+    slug: 'bags',
+    image: 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=400&h=500&fit=crop',
+    children: [],
   },
 }
 

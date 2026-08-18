@@ -363,6 +363,146 @@ export const MOCK_PRODUCTS = [
     description: 'Classic denim jacket sized for growing kids. Softened for comfort from day one.',
     ingredients: null,
   },
+  {
+    id: '17',
+    slug: 'poplin-oxford-shirt',
+    name: 'Poplin Oxford Shirt',
+    category: 'men',
+    subcategory: 'shirts',
+    price: 118,
+    originalPrice: 148,
+    badge: 'bestseller',
+    rating: 4.6,
+    reviewCount: 94,
+    sizes: ['S', 'M', 'L', 'XL', 'XXL'],
+    colors: ['White', 'Sky', 'Navy'],
+    images: [
+      'https://images.unsplash.com/photo-1603252109303-2751441dd157?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=1200&q=80',
+    ],
+    description: 'Crisp cotton oxford with a relaxed shoulder and a clean button-down collar.',
+    ingredients: null,
+  },
+  {
+    id: '18',
+    slug: 'heavyweight-tee',
+    name: 'Heavyweight Cotton Tee',
+    category: 'men',
+    subcategory: 'tshirts',
+    price: 48,
+    originalPrice: null,
+    badge: 'new',
+    rating: 4.5,
+    reviewCount: 61,
+    sizes: ['S', 'M', 'L', 'XL', 'XXL'],
+    colors: ['Ivory', 'Black', 'Sage'],
+    images: [
+      'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&w=1200&q=80',
+    ],
+    description: 'Thick-knit cotton tee with a boxy cut. Washes in, never out.',
+    ingredients: null,
+  },
+  {
+    id: '19',
+    slug: 'straight-leg-denim',
+    name: 'Straight Leg Denim',
+    category: 'men',
+    subcategory: 'denim',
+    price: 148,
+    originalPrice: 188,
+    badge: 'bestseller',
+    rating: 4.8,
+    reviewCount: 142,
+    sizes: ['28', '30', '32', '34', '36'],
+    colors: ['Indigo', 'Stone', 'Black'],
+    images: [
+      'https://images.unsplash.com/photo-1542272604-787c595da107?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1200&q=80',
+    ],
+    description: 'Twelve-ounce Japanese denim with a straight leg and a lived-in wash from day one.',
+    ingredients: null,
+  },
+  {
+    id: '20',
+    slug: 'court-sneakers',
+    name: 'Court Sneakers',
+    category: 'men',
+    subcategory: 'sneakers',
+    price: 165,
+    originalPrice: null,
+    badge: 'new',
+    rating: 4.7,
+    reviewCount: 88,
+    sizes: ['40', '41', '42', '43', '44', '45'],
+    colors: ['White', 'Navy'],
+    images: [
+      'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=1200&q=80',
+    ],
+    description: 'Leather court sneaker with a cushioned insole and a gum sole.',
+    ingredients: null,
+  },
+  {
+    id: '21',
+    slug: 'leather-slides',
+    name: 'Leather Slides',
+    category: 'men',
+    subcategory: 'sandals',
+    price: 78,
+    originalPrice: 98,
+    badge: null,
+    rating: 4.4,
+    reviewCount: 53,
+    sizes: ['40', '41', '42', '43', '44'],
+    colors: ['Tan', 'Black'],
+    images: [
+      'https://images.unsplash.com/photo-1603487742131-4160ec999306?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1562273138-f46be4ebdf33?auto=format&fit=crop&w=1200&q=80',
+    ],
+    description: 'Vegetable-tanned leather slides with a contoured footbed.',
+    ingredients: null,
+  },
+  {
+    id: '22',
+    slug: 'sculpted-heel',
+    name: 'Sculpted Leather Heel',
+    category: 'women',
+    subcategory: 'heels',
+    price: 210,
+    originalPrice: null,
+    badge: 'limited',
+    rating: 4.6,
+    reviewCount: 41,
+    sizes: ['36', '37', '38', '39', '40'],
+    colors: ['Black', 'Nude'],
+    images: [
+      'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1518049362265-d4b2c5680b8a?auto=format&fit=crop&w=1200&q=80',
+    ],
+    description: 'A walkable sculpted heel in soft nappa leather. Evening height, daytime ease.',
+    ingredients: null,
+  },
+  {
+    id: '23',
+    slug: 'structured-tote',
+    name: 'Structured Leather Tote',
+    category: 'watches-accessories',
+    subcategory: 'bags',
+    price: 245,
+    originalPrice: 295,
+    badge: 'bestseller',
+    rating: 4.8,
+    reviewCount: 73,
+    sizes: ['One Size'],
+    colors: ['Black', 'Tan'],
+    images: [
+      'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?auto=format&fit=crop&w=1200&q=80',
+    ],
+    description: 'Full-grain tote with a laptop sleeve and a zip-top close. Built for the commute.',
+    ingredients: null,
+  },
 ]
 
 const delay = (ms = 400) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -394,9 +534,12 @@ export const TOP_CATEGORIES = [
   { label: 'Makeup', slug: 'makeup' },
   { label: 'Innerwear', slug: 'innerwear' },
   { label: 'Watches', slug: 'watches-accessories' },
+  { label: 'Footwear', slug: 'footwear' },
+  { label: 'Bags', slug: 'bags' },
 ]
 
 const BEAUTY_CATEGORIES = ['skincare', 'makeup']
+const FOOTWEAR_SUBS = ['sneakers', 'sandals', 'heels', 'boots', 'loafers', 'flats', 'shoes']
 
 export async function getProducts(filters = {}) {
   await delay()
@@ -408,6 +551,10 @@ export async function getProducts(filters = {}) {
     results = results.filter((p) => p.originalPrice)
   } else if (filters.category === 'new-arrivals') {
     results = results.filter((p) => p.badge === 'new' || p.badge === 'limited')
+  } else if (filters.category === 'footwear') {
+    results = results.filter((p) => FOOTWEAR_SUBS.includes(p.subcategory))
+  } else if (filters.category === 'bags') {
+    results = results.filter((p) => p.subcategory === 'bags' || p.category === 'bags')
   } else if (filters.category) {
     results = results.filter((p) => p.category === filters.category)
   }

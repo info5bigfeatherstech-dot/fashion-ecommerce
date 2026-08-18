@@ -15,6 +15,8 @@ import {
 import { useProductListing } from '@/features/product/hooks'
 import { PRICE_RANGES } from '@/features/product/api'
 import { CATEGORY_TREE } from '@/features/category/api'
+import { getCategoryLanding } from '@/config/categoryLandings'
+import { CategoryLanding } from '@/components/category/CategoryLanding'
 
 const SORT_OPTIONS = [
   { value: '', label: 'Featured' },
@@ -39,6 +41,7 @@ export default function ProductListing() {
   const specials = ['new-arrivals', 'sale']
   const resolvedCategory = specials.includes(category) ? category : category
   const categoryInfo = CATEGORY_TREE[category] || null
+  const landing = !subcategory && !search ? getCategoryLanding(category) : null
   const priceRange = PRICE_RANGES.find((range) => range.key === priceKey)
 
   const filters = {
@@ -101,7 +104,10 @@ export default function ProductListing() {
   }
 
   return (
-    <div className="container">
+    <div className={landing ? 'plp-page' : 'container'}>
+      {landing ? <CategoryLanding landing={landing} /> : null}
+
+      <div className={landing ? 'container' : undefined}>
       <nav className="breadcrumb" aria-label="Breadcrumb">
         <Link to="/">Home</Link>
         <span className="breadcrumb__sep">/</span>
@@ -117,7 +123,11 @@ export default function ProductListing() {
       </nav>
 
       <div className="plp-header">
-        <h1 className="display-lg">{title}</h1>
+        {landing ? (
+          <h2 className="display-lg">Shop All {title}</h2>
+        ) : (
+          <h1 className="display-lg">{title}</h1>
+        )}
         <p className="body-lg text-muted" style={{ marginTop: 'var(--space-1)' }}>
           {data?.total || 0} products
         </p>
@@ -188,6 +198,7 @@ export default function ProductListing() {
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   )
