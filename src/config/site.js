@@ -26,19 +26,6 @@ export const CATEGORY_STRIP = [
   { label: 'Women', slug: 'women', image: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=400&h=400&q=80' },
   { label: 'Men', slug: 'men', image: 'https://images.unsplash.com/photo-1617137968427-85924c800a22?auto=format&fit=crop&w=400&h=400&q=80' },
   { label: 'Kids', slug: 'kids', image: 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=400&h=400&q=80' },
-  { label: 'Skincare', slug: 'skincare', image: 'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?auto=format&fit=crop&w=400&h=400&q=80' },
-  { label: 'Makeup', slug: 'makeup', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=400&h=400&q=80' },
-  { label: 'Innerwear', slug: 'innerwear', image: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=400&h=400&q=80' },
-  { label: 'Watches', slug: 'watches-accessories', image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=400&h=400&q=80' },
-  { label: 'Fragrance', slug: 'beauty', image: 'https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&w=400&h=400&q=80' },
-  { label: 'Bags', slug: 'bags', image: 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?auto=format&fit=crop&w=400&h=400&q=80' },
-  { label: 'Footwear', slug: 'footwear', image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=400&h=400&q=80' },
-  { label: 'New In', slug: 'new-arrivals', image: 'https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=400&h=400&q=80' },
-  { label: 'Sale', slug: 'sale', image: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=400&h=400&q=80' },
-  { label: 'Jewelry', slug: 'watches-accessories', image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=400&h=400&q=80' },
-  { label: 'Loungewear', slug: 'innerwear', image: 'https://images.unsplash.com/photo-1617331140180-f39179649759?auto=format&fit=crop&w=400&h=400&q=80' },
- 
-
 ]
 
 export const HERO_SLIDES = [
@@ -152,19 +139,16 @@ export const TRUST_ITEMS = [
 
 export const FOOTER_COLUMNS = [
   {
-    title: 'Shop',
+    title: 'Artificial Jewlery',
     links: [
-      { label: 'Women', href: '/shop/women' },
-      { label: 'Men', href: '/shop/men' },
-      { label: 'Kids', href: '/shop/kids' },
-      { label: 'Skincare', href: '/shop/skincare' },
-      { label: 'Makeup', href: '/shop/makeup' },
-      { label: 'Innerwear', href: '/shop/innerwear' },
-      { label: 'Watches & Accessories', href: '/shop/watches-accessories' },
-      { label: 'Footwear', href: '/shop/footwear' },
-      { label: 'Bags', href: '/shop/bags' },
-      { label: 'New Arrivals', href: '/shop/new-arrivals' },
-      { label: 'Sale', href: '/shop/sale' },
+      { label: 'Earings & Studs', href: '/shop/watches-accessories/jewelry' },
+      { label: 'Rings', href: '/shop/watches-accessories/jewelry' },
+      { label: 'Bracelets & Bangles', href: '/shop/watches-accessories/jewelry' },
+      { label: 'Necklace & Pendants', href: '/shop/watches-accessories/jewelry' },
+      { label: 'Mangalsutras', href: '/shop/watches-accessories/jewelry' },
+      { label: 'Sets', href: '/shop/watches-accessories/jewelry' },
+      { label: 'Gifting', href: '/shop/watches-accessories/jewelry' },
+      { label: 'Trendings', href: '/shop/watches-accessories/jewelry' },
     ],
   },
   {

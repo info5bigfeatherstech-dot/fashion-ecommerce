@@ -139,17 +139,17 @@ export function Header() {
               ))}
             </nav>
           </div>
-        </div>
 
-        {activeMenu && categoryMap[activeMenu] && (
-          <div
-            className="mega-menu"
-            onMouseEnter={() => openMenu(activeMenu)}
-            onMouseLeave={scheduleClose}
-          >
-            <MegaMenuPanel activeCategory={categoryMap[activeMenu]} />
-          </div>
-        )}
+          {activeMenu && categoryMap[activeMenu] && (
+            <div
+              className={`mega-menu ${activeMenu === 'women' ? 'mega-menu--women' : ''}`}
+              onMouseEnter={() => openMenu(activeMenu)}
+              onMouseLeave={scheduleClose}
+            >
+              <MegaMenuPanel activeCategory={categoryMap[activeMenu]} />
+            </div>
+          )}
+        </div>
       </header>
       <CartDrawer />
     </>

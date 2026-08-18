@@ -107,25 +107,70 @@ export default function ProductListing() {
   }
 
   if (isSoonCollection) {
-    return (
-      <div className="container">
-        <section className="section soon-collection">
-          <div className="soon-collection__card">
-            <p className="heading-sm text-accent">Collection will be added soon</p>
-            <h1 className="display-md">{categoryInfo?.label || category}</h1>
-            <p className="body-lg text-muted">
-              Our next edit for <strong>{categoryInfo?.label || category}</strong> is in progress.
-              Check back shortly.
-            </p>
+    const isMen = category === 'men'
+    const soonLabel = categoryInfo?.label || category
+    const soonImage = isMen
+      ? 'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?auto=format&fit=crop&w=1800&h=1000&q=80'
+      : 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=1800&h=1000&q=80'
 
-            <div className="soon-collection__cta">
-              <Button asChild variant="accent" size="lg">
-                <Link to="/shop/new-arrivals">Explore New Arrivals</Link>
-              </Button>
-              <Button asChild variant="secondary" size="lg">
-                <Link to="/shop/women">Browse Women</Link>
-              </Button>
+    return (
+      <div className="soon">
+        <section className="soon__hero">
+          <div className="soon__hero-bg">
+            <img src={soonImage} alt="" />
+          </div>
+          <div className="soon__hero-overlay" />
+          <div className="soon__hero-content">
+            <p className="soon__eyebrow">Coming Soon</p>
+            <h1 className="soon__title">{soonLabel}</h1>
+            <p className="soon__subtitle">
+              We're crafting something special. The {soonLabel.toLowerCase()} collection
+              is being designed with the same care and attention you expect from VERAÒ.
+            </p>
+            <div className="soon__notify">
+              <input
+                type="email"
+                className="soon__input"
+                placeholder="Enter your email to get notified"
+                aria-label="Email for notification"
+              />
+              <Button variant="accent" size="lg">Notify Me</Button>
             </div>
+          </div>
+        </section>
+
+        <section className="container soon__details">
+          <div className="soon__grid">
+            <div className="soon__feature">
+              <span className="soon__feature-num">01</span>
+              <h3 className="soon__feature-title">Curated Selection</h3>
+              <p className="body-sm text-muted">
+                Hand-picked pieces that blend timeless design with modern craftsmanship.
+              </p>
+            </div>
+            <div className="soon__feature">
+              <span className="soon__feature-num">02</span>
+              <h3 className="soon__feature-title">Premium Quality</h3>
+              <p className="body-sm text-muted">
+                Every item made in-house — no third-party labels, no compromises.
+              </p>
+            </div>
+            <div className="soon__feature">
+              <span className="soon__feature-num">03</span>
+              <h3 className="soon__feature-title">Exclusive Drops</h3>
+              <p className="body-sm text-muted">
+                Limited quantities, numbered pieces. Be the first to shop the collection.
+              </p>
+            </div>
+          </div>
+
+          <div className="soon__cta-row">
+            <Button asChild variant="accent" size="lg">
+              <Link to="/shop/women">Explore Women's Collection</Link>
+            </Button>
+            <Button asChild variant="secondary" size="lg">
+              <Link to="/">Back to Home</Link>
+            </Button>
           </div>
         </section>
       </div>
