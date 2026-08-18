@@ -179,6 +179,7 @@ export default function ProductListing() {
 
   return (
     <div className={landing ? 'plp-page' : 'container'}>
+      {landing && <CategoryLanding landing={landing} />}
       <div className={landing ? 'container' : undefined}>
       <nav className="breadcrumb" aria-label="Breadcrumb">
         <Link to="/">Home</Link>

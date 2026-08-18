@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { ShoppingBag, Heart, User, MessageCircle, MapPin, Menu, Search, X } from 'lucide-react'
+import { ShoppingBag, Heart, User, MessageCircle, MapPin, Menu, Search, X, ChevronDown, LogIn } from 'lucide-react'
 import { SearchBar } from '@/features/search/components/SearchBar'
 import { CartDrawer } from '@/features/cart/components/CartDrawer'
 import { MegaMenuPanel } from '@/features/category/components/MegaMenu'
@@ -8,19 +8,27 @@ import { PointsBadge } from '@/features/loyalty/components/LoyaltySpotlight'
 import { useAppStore } from '@/store'
 import { useCartCount, useWishlistCount } from '@/store/selectors'
 import { SITE_NAME, NAV_ITEMS } from '@/config/site'
+import { MEGA_MENUS } from '@/features/category/api'
 
 const MENU_CLOSE_DELAY = 280
 
 function navHref(item) {
+  if (item.slug === 'home') return '/'
   if (item.slug === 'new-arrivals') return '/shop/new-arrivals'
   if (item.slug === 'sale') return '/shop/sale'
   return `/shop/${item.slug}`
+}
+
+function isNavActive(item, pathname) {
+  if (item.slug === 'home') return pathname === '/'
+  return pathname.includes(item.slug)
 }
 
 export function Header() {
   const [activeMenu, setActiveMenu] = useState(null)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [mobileSection, setMobileSection] = useState(null)
   const closeTimer = useRef(null)
   const location = useLocation()
   const cartCount = useCartCount()
@@ -63,6 +71,7 @@ export function Header() {
     closeMenu()
     setMobileNavOpen(false)
     setSearchOpen(false)
+    setMobileSection(null)
   }, [location.pathname])
 
   useEffect(() => {
@@ -156,8 +165,19 @@ export function Header() {
                 <User size={18} />
                 <span className="header__util-label">My Account</span>
               </Link>
-              <Link to="/loyalty" className="header__points">
-                {isAuthenticated ? <PointsBadge /> : 'Circle Points: Log in'}
+              <Link
+                to={isAuthenticated ? '/loyalty' : '/login'}
+                className={`header__points ${isAuthenticated ? '' : 'header__points--login'}`}
+                aria-label={isAuthenticated ? 'Loyalty points' : 'Log in'}
+              >
+                {isAuthenticated ? (
+                  <PointsBadge />
+                ) : (
+                  <>
+                    <LogIn size={14} strokeWidth={1.75} aria-hidden="true" />
+                    <span>Log in</span>
+                  </>
+                )}
               </Link>
               <button type="button" className="header__util header__util--icon" onClick={openCart} aria-label="Shopping bag">
                 <ShoppingBag size={20} />
@@ -188,7 +208,7 @@ export function Header() {
                 >
                   <Link
                     to={navHref(item)}
-                    className={`header__nav-link ${location.pathname.includes(item.slug) ? 'header__nav-link--active' : ''}`}
+                    className={`header__nav-link ${isNavActive(item, location.pathname) ? 'header__nav-link--active' : ''}`}
                   >
                     {item.label}
                   </Link>
@@ -229,16 +249,60 @@ export function Header() {
                 <X size={20} />
               </button>
             </div>
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.slug}
-                to={navHref(item)}
-                className={`header__mobile-link ${location.pathname.includes(item.slug) ? 'header__mobile-link--active' : ''}`}
-                onClick={() => setMobileNavOpen(false)}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {NAV_ITEMS.map((item) => {
+              const columns = item.megaMenu ? MEGA_MENUS[categoryMap[item.slug]] : null
+              const isExpanded = mobileSection === item.slug
+
+              if (columns?.length) {
+                return (
+                  <div key={item.slug} className="header__mobile-group">
+                    <button
+                      type="button"
+                      className={`header__mobile-link ${isNavActive(item, location.pathname) ? 'header__mobile-link--active' : ''}`}
+                      aria-expanded={isExpanded}
+                      onClick={() => setMobileSection(isExpanded ? null : item.slug)}
+                    >
+                      {item.label}
+                      <ChevronDown size={18} style={{ transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 150ms ease' }} />
+                    </button>
+                    {isExpanded && (
+                      <div className="header__mobile-sub">
+                        {columns.flatMap((column) =>
+                          column.links.map((link) => (
+                            <Link
+                              key={`${item.slug}-${link.label}`}
+                              to={link.href}
+                              className="header__mobile-sublink"
+                              onClick={() => setMobileNavOpen(false)}
+                            >
+                              {link.label}
+                            </Link>
+                          ))
+                        )}
+                        <Link
+                          to={navHref(item)}
+                          className="header__mobile-sublink"
+                          onClick={() => setMobileNavOpen(false)}
+                        >
+                          Shop all {item.label}
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                )
+              }
+
+              return (
+                <Link
+                  key={item.slug}
+                  to={navHref(item)}
+                  className={`header__mobile-link ${isNavActive(item, location.pathname) ? 'header__mobile-link--active' : ''}`}
+                  onClick={() => setMobileNavOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              )
+            })}
             <div className="header__mobile-extras">
               <Link to="/profile" onClick={() => setMobileNavOpen(false)}>My Account</Link>
               <Link to="/wishlist" onClick={() => setMobileNavOpen(false)}>Wishlist</Link>

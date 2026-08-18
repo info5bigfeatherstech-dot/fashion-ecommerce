@@ -12,20 +12,35 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  overflow-x: clip;
 }
 
 body {
   min-height: 100vh;
+  min-height: 100dvh;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+  max-width: 100%;
 }
 
 img,
 picture,
 video,
-canvas,
+canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
 svg {
   display: block;
+  max-width: 100%;
+}
+
+iframe,
+embed,
+object {
   max-width: 100%;
 }
 
@@ -66,4 +81,7 @@ h6 {
 #root {
   isolation: isolate;
   min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: clip;
+  max-width: 100%;
 }

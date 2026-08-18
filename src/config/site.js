@@ -17,6 +17,7 @@ export const TOP_BANNER = {
 }
 
 export const NAV_ITEMS = [
+  { label: 'Home', slug: 'home', megaMenu: false },
   { label: 'Women', slug: 'women', megaMenu: true },
   { label: 'Men', slug: 'men', megaMenu: false },
   { label: 'Kids', slug: 'kids', megaMenu: false },
@@ -190,10 +191,7 @@ export const FOOTER_COLUMNS = [
     title: 'About',
     links: [
       { label: 'Our Story', href: '/account' },
-      { label: 'Sustainability', href: '/account' },
       { label: 'Careers', href: '/account' },
-      { label: 'Press', href: '/account' },
-      { label: 'Store Locator', href: '/account' },
     ],
   },
 ]

@@ -37,7 +37,7 @@ export default function Cart() {
 
   return (
     <div className="container" style={{ paddingBlock: 'var(--space-4)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
+      <div className="page-toolbar">
         <h1 className="display-lg">Shopping Bag</h1>
         <button className="body-sm section-header__link" onClick={clearCart}>Clear Bag</button>
       </div>

@@ -39,7 +39,7 @@ export default function Loyalty() {
           </div>
         </div>
       ) : (
-        <div style={{ textAlign: 'center', marginBottom: 'var(--space-6)' }}>
+        <div className="loyalty-join">
           <Link to={isAuthenticated ? '/account' : '/account'}>
             <Button variant="accent" size="lg">Join VERAÒ Circle — It's Free</Button>
           </Link>
