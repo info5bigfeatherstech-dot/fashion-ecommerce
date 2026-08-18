@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { HERO_SLIDES } from '@/config/site'
 
@@ -45,6 +46,23 @@ export function HeroSection() {
             </div>
           </motion.div>
         </AnimatePresence>
+
+        <button
+          type="button"
+          className="hero__nav hero__nav--prev"
+          onClick={() => setIndex((current) => (current - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)}
+          aria-label="Previous slide"
+        >
+          <ChevronLeft size={22} />
+        </button>
+        <button
+          type="button"
+          className="hero__nav hero__nav--next"
+          onClick={() => setIndex((current) => (current + 1) % HERO_SLIDES.length)}
+          aria-label="Next slide"
+        >
+          <ChevronRight size={22} />
+        </button>
 
         <div className="hero__dots" role="tablist" aria-label="Hero slides">
           {HERO_SLIDES.map((item, i) => (

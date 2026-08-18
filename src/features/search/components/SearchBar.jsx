@@ -4,11 +4,12 @@ import { useNavigate } from 'react-router-dom'
 import { Search } from 'lucide-react'
 import { searchProducts } from '../api'
 
-export function SearchBar({ className, iconRight = false }) {
+export function SearchBar({ className, iconRight = false, autoFocus = false }) {
   const [query, setQuery] = useState('')
   const [isOpen, setIsOpen] = useState(false)
   const navigate = useNavigate()
   const wrapperRef = useRef(null)
+  const inputRef = useRef(null)
 
   const { data: results = [] } = useQuery({
     queryKey: ['search', query],
@@ -26,6 +27,10 @@ export function SearchBar({ className, iconRight = false }) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  useEffect(() => {
+    if (autoFocus) inputRef.current?.focus()
+  }, [autoFocus])
+
   const handleSubmit = (e) => {
     e.preventDefault()
     if (query.trim()) {
@@ -39,6 +44,7 @@ export function SearchBar({ className, iconRight = false }) {
       <form onSubmit={handleSubmit}>
         <Search size={16} className="search-bar__icon" />
         <input
+          ref={inputRef}
           type="search"
           className="search-bar__input"
           placeholder="Search products..."
