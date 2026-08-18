@@ -7,8 +7,21 @@ import { formatPrice } from '@/lib/utils'
 
 export default function Cart() {
   const cartItems = useAppStore((s) => s.cartItems)
+  const isAuthenticated = useAppStore((s) => s.isAuthenticated)
   const cartTotal = useCartTotal()
   const clearCart = useAppStore((s) => s.clearCart)
+
+  if (!isAuthenticated) {
+    return (
+      <div className="container empty-state">
+        <h1 className="empty-state__title">Sign in to view your bag</h1>
+        <p className="body-lg text-muted">Your bag items will appear here after login.</p>
+        <Link to="/login">
+          <Button variant="primary">Sign In</Button>
+        </Link>
+      </div>
+    )
+  }
 
   if (cartItems.length === 0) {
     return (

@@ -6,7 +6,7 @@ import { CartDrawer } from '@/features/cart/components/CartDrawer'
 import { MegaMenuPanel } from '@/features/category/components/MegaMenu'
 import { PointsBadge } from '@/features/loyalty/components/LoyaltySpotlight'
 import { useAppStore } from '@/store'
-import { useCartCount } from '@/store/selectors'
+import { useCartCount, useWishlistCount } from '@/store/selectors'
 import { SITE_NAME, NAV_ITEMS } from '@/config/site'
 
 const MENU_CLOSE_DELAY = 280
@@ -22,7 +22,7 @@ export function Header() {
   const closeTimer = useRef(null)
   const location = useLocation()
   const cartCount = useCartCount()
-  const wishlistCount = useAppStore((s) => s.wishlistItems.length)
+  const wishlistCount = useWishlistCount()
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
   const openCart = useAppStore((s) => s.openCart)
 

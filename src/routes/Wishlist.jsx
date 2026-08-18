@@ -6,6 +6,20 @@ import { useAppStore } from '@/store'
 
 export default function Wishlist() {
   const wishlistItems = useAppStore((s) => s.wishlistItems)
+  const isAuthenticated = useAppStore((s) => s.isAuthenticated)
+
+  if (!isAuthenticated) {
+    return (
+      <div className="container empty-state">
+        <Heart size={48} style={{ color: 'var(--color-muted)' }} />
+        <h1 className="empty-state__title">Sign in to view your wishlist</h1>
+        <p className="body-lg text-muted">Your saved jewelry items will appear here after login.</p>
+        <Link to="/login">
+          <Button variant="primary">Sign In</Button>
+        </Link>
+      </div>
+    )
+  }
 
   if (wishlistItems.length === 0) {
     return (

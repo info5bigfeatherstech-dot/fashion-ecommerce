@@ -1,7 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { Home, Search, Heart, ShoppingBag, User } from 'lucide-react'
-import { useAppStore } from '@/store'
-import { useCartCount } from '@/store/selectors'
+import { useCartCount, useWishlistCount } from '@/store/selectors'
 
 const NAV_LINKS = [
   { to: '/', label: 'Home', icon: Home },
@@ -14,7 +13,7 @@ const NAV_LINKS = [
 export function MobileBottomNav() {
   const location = useLocation()
   const cartCount = useCartCount()
-  const wishlistCount = useAppStore((s) => s.wishlistItems.length)
+  const wishlistCount = useWishlistCount()
 
   const badges = { cartCount, wishlistCount }
 

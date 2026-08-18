@@ -10,10 +10,10 @@ import { OfferCode } from './OfferCode'
 
 export function ProductCard({ product, compact = false }) {
   const toggleWishlist = useAppStore((s) => s.toggleWishlist)
-  const inWishlist = useAppStore((s) => s.isInWishlist(product.id))
   const addItem = useAppStore((s) => s.addItem)
   const openCart = useAppStore((s) => s.openCart)
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
+  const inWishlist = useAppStore((s) => (s.isAuthenticated ? s.isInWishlist(product.id) : false))
   const navigate = useNavigate()
 
   const discount = formatDiscount(product.originalPrice, product.price)

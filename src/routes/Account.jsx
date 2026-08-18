@@ -3,7 +3,9 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { CalendarDays, Mail, MapPin, Package, Phone, Sparkles, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { Badge } from '@/components/ui/Badge'
 import { Input, InputGroup } from '@/components/ui/Input'
 import { Separator } from '@/components/ui/Separator'
 import { Modal } from '@/components/ui/Modal'
@@ -45,8 +47,8 @@ const addressSchema = z
   })
 
 const ACCOUNT_LINKS = [
-  { id: 'orders', label: 'Orders' },
   { id: 'profile', label: 'Profile' },
+  { id: 'orders', label: 'Orders' },
   { id: 'addresses', label: 'Addresses' },
 ]
 
@@ -155,8 +157,11 @@ export default function Account({
                 <div className="auth-modal__register-hero" aria-hidden="true">
                   <div className="auth-modal__register-hero-inner">
                     <p className="auth-modal__eyebrow">Create Account</p>
-                    <h3 className="display-lg auth-modal__register-title" style={{ marginBottom: 'var(--space-2)' }}>
-                      Join the jewelry circle
+                    <h3
+                      className="display-lg auth-modal__register-title"
+                      style={{ marginBottom: 'var(--space-2)', fontFamily: 'var(--font-italic-serif)' }}
+                    >
+                      Join the Fashion circle
                     </h3>
                     <p className="body-lg auth-modal__register-subtitle">
                       Get early access to drops, save your wishlist, and check out faster.
@@ -262,6 +267,7 @@ export default function Account({
                       </p>
                       <ul style={{ margin: 0, paddingLeft: '18px' }}>
                         <li className="body-sm" style={{ marginBottom: 'var(--space-1)' }}>Save wishlist items</li>
+                        <li className="body-sm" style={{ marginBottom: 'var(--space-1)' }}>Quick checkout </li>
                       </ul>
                       <p className="body-sm text-muted" style={{ marginTop: 'var(--space-3)' }}>
                         UI is ready now; authentication API can be added later.
@@ -274,7 +280,7 @@ export default function Account({
               <div className="auth-modal__grid">
                 <div className="auth-modal__side">
                   <p className="heading-sm text-accent" style={{ marginBottom: 'var(--space-2)' }}>
-                    Artificial Jewelry
+                  Fashion 
                   </p>
                   <h3 className="display-md" style={{ marginBottom: 'var(--space-2)' }}>
                     Shine with pieces made to wear daily.
@@ -282,9 +288,6 @@ export default function Account({
                   <div className="card" style={{ padding: 'var(--space-3)' }}>
                     <p className="body-sm" style={{ marginBottom: 'var(--space-2)' }}>
                       Save your favorites, add to bag quickly, and manage your profile.
-                    </p>
-                    <p className="body-sm text-muted">
-                      This is a UI preview. Backend integration comes next.
                     </p>
                   </div>
                 </div>
@@ -367,11 +370,14 @@ export default function Account({
 
   return (
     <div className="container account-layout">
-      <aside>
-        <div style={{ marginBottom: 'var(--space-3)' }}>
+      <aside className="account-sidebar">
+        <div className="account-sidebar__card">
+          <div className="account-sidebar__avatar">
+            <UserRound size={24} />
+          </div>
           <p className="display-md">{user.firstName} {user.lastName}</p>
           <p className="body-sm text-muted">{user.email}</p>
-          <div style={{ marginTop: 'var(--space-1)' }}><PointsBadge /></div>
+          <div style={{ marginTop: 'var(--space-2)' }}><PointsBadge /></div>
         </div>
         <nav className="account-nav" aria-label="Account navigation">
           {ACCOUNT_LINKS.map((link) => (
@@ -388,36 +394,85 @@ export default function Account({
         <Button variant="ghost" onClick={handleLogout}>Sign Out</Button>
       </aside>
 
-      <div>
+      <div className="account-main">
         {activeTab === 'orders' && (
-          <div>
-            <h2 className="display-md" style={{ marginBottom: 'var(--space-3)' }}>Order History</h2>
-            <div className="card" style={{ padding: 'var(--space-4)' }}>
-              <p className="body-lg text-muted">No orders yet. Start shopping to see your orders here.</p>
+          <div className="account-section">
+            <div className="account-section__header">
+              <div>
+                <p className="heading-sm text-accent">Orders</p>
+                <h2 className="display-md">Order History</h2>
+              </div>
+            </div>
+            <div className="account-panel">
+              <div className="account-empty">
+                <div className="account-empty__icon"><Package size={22} /></div>
+                <p className="body-lg">No orders yet</p>
+                <p className="body-sm text-muted">Start shopping to see your orders here.</p>
+              </div>
             </div>
           </div>
         )}
-        {activeTab === 'profile' && (
-          <div>
-            <h2 className="display-md" style={{ marginBottom: 'var(--space-3)' }}>Profile</h2>
 
-            <div className="card" style={{ padding: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
-              <div style={{ display: 'flex', gap: 'var(--space-4)', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                <div style={{ minWidth: 260 }}>
-                  <p className="heading-sm" style={{ marginBottom: 'var(--space-1)' }}>VERAÒ Customer</p>
-                  <p className="display-md" style={{ marginBottom: 'var(--space-1)' }}>{user.firstName} {user.lastName}</p>
-                  <p className="body-sm text-muted">{user.email}</p>
+        {activeTab === 'profile' && (
+          <div className="account-section">
+            <div className="account-section__header">
+              <div>
+                <p className="heading-sm text-accent">Profile</p>
+                <h2 className="display-md">Your Account</h2>
+              </div>
+              <Badge className="account-badge">Active member</Badge>
+            </div>
+
+            <div className="account-hero">
+              <div>
+                <p className="heading-sm">VERAÒ Customer</p>
+                <h3 className="display-md account-hero__title">{user.firstName} {user.lastName}</h3>
+                <p className="body-lg text-muted">Manage your details, delivery addresses, and upcoming orders from one place.</p>
+              </div>
+              <div className="account-hero__points">
+                <PointsBadge />
+              </div>
+            </div>
+
+            <div className="account-stats">
+              <div className="account-stat-card">
+                <Mail size={18} />
+                <div>
+                  <p className="account-stat-card__label">Email</p>
+                  <p className="account-stat-card__value">{user.email}</p>
                 </div>
-                <div style={{ alignSelf: 'center' }}>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <PointsBadge />
-                  </div>
+              </div>
+              <div className="account-stat-card">
+                <Phone size={18} />
+                <div>
+                  <p className="account-stat-card__label">Phone</p>
+                  <p className="account-stat-card__value">Not provided</p>
+                </div>
+              </div>
+              <div className="account-stat-card">
+                <MapPin size={18} />
+                <div>
+                  <p className="account-stat-card__label">Saved addresses</p>
+                  <p className="account-stat-card__value">{addresses.length}</p>
+                </div>
+              </div>
+              <div className="account-stat-card">
+                <CalendarDays size={18} />
+                <div>
+                  <p className="account-stat-card__label">Member since</p>
+                  <p className="account-stat-card__value">Today</p>
                 </div>
               </div>
             </div>
 
-            <div className="card" style={{ padding: 'var(--space-4)' }}>
-              <h3 className="display-sm" style={{ marginBottom: 'var(--space-3)' }}>Account details</h3>
+            <div className="account-panel">
+              <div className="account-panel__header">
+                <div>
+                  <p className="heading-sm text-accent">Details</p>
+                  <h3 className="display-md">Account information</h3>
+                </div>
+              </div>
+
               <div className="form-grid form-grid--2">
                 <InputGroup label="Full name">
                   <Input readOnly defaultValue={`${user.firstName} ${user.lastName}`} />
@@ -435,17 +490,30 @@ export default function Account({
 
               <Separator style={{ marginBlock: 'var(--space-4)' }} />
 
-              <p className="body-sm text-muted">
-                This is a preview profile UI. Later, we’ll connect the profile form to your backend.
-              </p>
+              <div className="account-note">
+                <Sparkles size={16} />
+                <p className="body-sm text-muted">Profile UI is ready. Later, we can connect editing and real customer data through your backend.</p>
+              </div>
             </div>
           </div>
         )}
+
         {activeTab === 'addresses' && (
-          <div>
-            <h2 className="display-md" style={{ marginBottom: 'var(--space-3)' }}>Saved Addresses</h2>
-            <div className="card" style={{ padding: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
-              <h3 className="display-sm" style={{ marginBottom: 'var(--space-3)' }}>Add a new address</h3>
+          <div className="account-section">
+            <div className="account-section__header">
+              <div>
+                <p className="heading-sm text-accent">Addresses</p>
+                <h2 className="display-md">Saved Addresses</h2>
+              </div>
+            </div>
+
+            <div className="account-panel" style={{ marginBottom: 'var(--space-4)' }}>
+              <div className="account-panel__header">
+                <div>
+                  <p className="heading-sm text-accent">Add</p>
+                  <h3 className="display-md">Add a new address</h3>
+                </div>
+              </div>
 
               <form onSubmit={addressForm.handleSubmit(handleAddAddress)} noValidate>
                 <div className="form-grid" style={{ gap: 'var(--space-3)' }}>
@@ -515,14 +583,21 @@ export default function Account({
             </div>
 
             {addresses.length === 0 ? (
-              <div className="card" style={{ padding: 'var(--space-4)' }}>
-                <p className="body-lg text-muted">No saved addresses yet.</p>
+              <div className="account-panel">
+                <div className="account-empty">
+                  <div className="account-empty__icon"><MapPin size={22} /></div>
+                  <p className="body-lg">No saved addresses yet</p>
+                  <p className="body-sm text-muted">Add your first delivery address to speed up future checkout.</p>
+                </div>
               </div>
             ) : (
               <div className="grid-2" style={{ gap: 'var(--space-4)' }}>
                 {addresses.map((addr) => (
-                  <div key={addr.id} className="card" style={{ padding: 'var(--space-4)' }}>
-                    <p className="heading-sm" style={{ marginBottom: 'var(--space-1)' }}>Delivery address</p>
+                  <div key={addr.id} className="account-address-card">
+                    <div className="account-address-card__head">
+                      <p className="heading-sm" style={{ marginBottom: 0 }}>Delivery address</p>
+                      <Badge className="account-badge">Saved</Badge>
+                    </div>
                     <p className="body-lg" style={{ marginBottom: 'var(--space-2)' }}>{addr.fullAddress}</p>
                     <p className="body-sm text-muted" style={{ marginBottom: 'var(--space-2)' }}>
                       {addr.city}, {addr.state} · {addr.zip}

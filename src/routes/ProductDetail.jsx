@@ -38,8 +38,10 @@ export default function ProductDetail() {
   const addItem = useAppStore((s) => s.addItem)
   const openCart = useAppStore((s) => s.openCart)
   const toggleWishlist = useAppStore((s) => s.toggleWishlist)
-  const inWishlist = useAppStore((s) => (product ? s.isInWishlist(product.id) : false))
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
+  const inWishlist = useAppStore((s) => (
+    s.isAuthenticated && product ? s.isInWishlist(product.id) : false
+  ))
   const navigate = useNavigate()
 
   useEffect(() => {

@@ -4,8 +4,6 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import ReflectCard from '@/components/effects/ReflectCard'
 import { CATEGORY_STRIP } from '@/config/site'
 
-const PAGE_SIZE = 7
-
 function chunk(items, size) {
   const pages = []
   for (let i = 0; i < items.length; i += size) {
@@ -18,7 +16,26 @@ export function CategoryStripSection() {
   const trackRef = useRef(null)
   const [canPrev, setCanPrev] = useState(false)
   const [canNext, setCanNext] = useState(false)
-  const pages = useMemo(() => chunk(CATEGORY_STRIP, PAGE_SIZE), [])
+  const [pageSize, setPageSize] = useState(7)
+  const pages = useMemo(() => chunk(CATEGORY_STRIP, pageSize), [pageSize])
+
+  useEffect(() => {
+    const updatePageSize = () => {
+      if (window.innerWidth < 640) {
+        setPageSize(1)
+      } else if (window.innerWidth < 900) {
+        setPageSize(2)
+      } else if (window.innerWidth < 1200) {
+        setPageSize(4)
+      } else {
+        setPageSize(7)
+      }
+    }
+
+    updatePageSize()
+    window.addEventListener('resize', updatePageSize)
+    return () => window.removeEventListener('resize', updatePageSize)
+  }, [])
 
   const updateArrows = useCallback(() => {
     const el = trackRef.current
