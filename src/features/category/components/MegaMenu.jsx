@@ -7,11 +7,19 @@ export function MegaMenuPanel({ activeCategory }) {
 
   return (
     <div className="mega-menu__grid">
-      {columns.map((column) => (
-        <div key={column.title} className="mega-menu__column">
-          <Link to={column.href} className="mega-menu__column-title">
-            {column.title}
-          </Link>
+      {columns.map((column, idx) => (
+        <div key={column.title || idx} className="mega-menu__column">
+          {column.title ? (
+            column.href ? (
+              <Link to={column.href} className="mega-menu__column-title">
+                {column.title}
+              </Link>
+            ) : (
+              <span className="mega-menu__column-title mega-menu__column-title--plain">
+                {column.title}
+              </span>
+            )
+          ) : null}
           {column.links.map((link) => (
             <Link key={link.label} to={link.href} className="mega-menu__link">
               {link.label}

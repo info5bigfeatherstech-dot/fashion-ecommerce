@@ -125,7 +125,7 @@ export function Header() {
                     if (item.megaMenu) {
                       openMenu(item.slug)
                     } else {
-                      scheduleClose()
+                      closeMenu()
                     }
                   }}
                 >

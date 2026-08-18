@@ -18,10 +18,8 @@ export const TOP_BANNER = {
 
 export const NAV_ITEMS = [
   { label: 'Women', slug: 'women', megaMenu: true },
-  { label: 'Men', slug: 'men', megaMenu: true },
-  { label: 'Kids', slug: 'kids', megaMenu: true },
-  { label: 'Beauty', slug: 'beauty', megaMenu: true },
-  { label: 'New In', slug: 'new-arrivals', megaMenu: false },
+  { label: 'Men', slug: 'men', megaMenu: false },
+  { label: 'Kids', slug: 'kids', megaMenu: false },
 ]
 
 export const CATEGORY_STRIP = [

@@ -44,6 +44,9 @@ export default function ProductListing() {
   const landing = !subcategory && !search ? getCategoryLanding(category) : null
   const priceRange = PRICE_RANGES.find((range) => range.key === priceKey)
 
+  const isSoonCollection =
+    (!subcategory && !search && (category === 'men' || category === 'kids'))
+
   const filters = {
     category: resolvedCategory || undefined,
     subcategory: subcategory || undefined,
@@ -103,10 +106,34 @@ export default function ProductListing() {
     onClear: clearFilters,
   }
 
+  if (isSoonCollection) {
+    return (
+      <div className="container">
+        <section className="section soon-collection">
+          <div className="soon-collection__card">
+            <p className="heading-sm text-accent">Collection will be added soon</p>
+            <h1 className="display-md">{categoryInfo?.label || category}</h1>
+            <p className="body-lg text-muted">
+              Our next edit for <strong>{categoryInfo?.label || category}</strong> is in progress.
+              Check back shortly.
+            </p>
+
+            <div className="soon-collection__cta">
+              <Button asChild variant="accent" size="lg">
+                <Link to="/shop/new-arrivals">Explore New Arrivals</Link>
+              </Button>
+              <Button asChild variant="secondary" size="lg">
+                <Link to="/shop/women">Browse Women</Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+      </div>
+    )
+  }
+
   return (
     <div className={landing ? 'plp-page' : 'container'}>
-      {landing ? <CategoryLanding landing={landing} /> : null}
-
       <div className={landing ? 'container' : undefined}>
       <nav className="breadcrumb" aria-label="Breadcrumb">
         <Link to="/">Home</Link>

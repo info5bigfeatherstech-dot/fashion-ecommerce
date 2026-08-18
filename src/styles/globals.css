@@ -1484,6 +1484,11 @@ body {
   color: var(--color-accent);
 }
 
+.mega-menu__column-title--plain:hover {
+  color: var(--color-ink);
+  cursor: default;
+}
+
 .mega-menu__link {
   display: block;
   font-size: var(--text-sm);
@@ -1508,6 +1513,31 @@ body {
 
 .mega-menu__see-more:hover {
   color: var(--color-accent);
+}
+
+/* ─── Soon Collection Page ─── */
+
+.soon-collection {
+  padding-block: var(--space-8);
+}
+
+.soon-collection__card {
+  background-color: var(--color-neutral);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+
+.soon-collection__card p {
+  max-width: 60ch;
+}
+
+.soon-collection__cta {
+  margin-top: var(--space-4);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
 }
 
 /* ─── Mobile Bottom Nav ─── */
