@@ -1447,6 +1447,16 @@ body {
   padding: var(--space-3) var(--space-4);
 }
 
+.mega-menu--women .mega-menu__column-title--plain {
+  /* Make the "Artificial Jewlery" column title match its themed color */
+  color: var(--color-accent);
+}
+
+.mega-menu--women .mega-menu__column-title--plain:hover {
+  /* Keep it colored (plain title is not supposed to change on hover) */
+  color: var(--color-accent);
+}
+
 .mega-menu--women .mega-menu__grid {
   grid-template-columns: 1fr !important;
   column-gap: 0;
