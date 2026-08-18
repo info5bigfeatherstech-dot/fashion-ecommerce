@@ -71,7 +71,8 @@
   --badge-limited: #C1443D;
 
   /* Layout */
-  --header-height: 72px;
+  --header-height: 76px;
+  --logo-height: 36px;
   --mobile-nav-height: 64px;
   --container-max: 1480px;
   --container-narrow: 1040px;
@@ -93,13 +94,22 @@
 @media (min-width: 768px) {
   :root {
     --category-icon: 140px;
-    --header-height: 80px;
+    --header-height: 88px;
+    --logo-height: 46px;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --header-height: 92px;
+    --logo-height: 52px;
   }
 }
 
 @media (max-width: 479px) {
   :root {
-    --header-height: 64px;
+    --header-height: 68px;
+    --logo-height: 30px;
     --space-8: 48px;
     --space-10: 56px;
   }
@@ -1520,28 +1530,34 @@ textarea {
   align-items: center;
   gap: var(--space-3);
   min-height: var(--header-height);
-  padding-block: var(--space-2);
+  padding-block: 10px;
   flex-wrap: nowrap;
 }
 
 .header__logo {
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  justify-content: flex-start;
+  flex: 0 1 auto;
   min-width: 0;
-  height: var(--space-6);
-  padding-inline: var(--space-3);
+  height: var(--logo-height);
+  max-width: min(46vw, 280px);
+  padding: 0;
   background-color: transparent;
 }
 
-.header__logo-mark {
-  font-family: var(--font-display);
-  font-size: var(--text-xl);
-  font-weight: var(--weight-regular);
-  letter-spacing: 0.16em;
-  color: var(--color-white);
-  line-height: 1;
+.brand-logo {
+  display: block;
+  height: var(--logo-height);
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: left center;
+  mix-blend-mode: lighten;
+}
+
+.brand-logo--footer {
+  height: clamp(40px, 7vw, 56px);
 }
 
 .header__util.header__menu-btn,
@@ -1585,14 +1601,11 @@ textarea {
 
   .header__logo {
     min-width: 0;
-    padding-inline: var(--space-1);
-    flex: 1;
+    padding: 0;
+    flex: 1 1 auto;
     justify-content: flex-start;
-  }
-
-  .header__logo-mark {
-    font-size: clamp(1rem, 4.2vw, var(--text-lg));
-    letter-spacing: 0.1em;
+    max-width: min(52vw, 220px);
+    height: var(--logo-height);
   }
 
   .header__util:not(.header__util--icon),
@@ -1879,7 +1892,9 @@ textarea {
   }
 
   .header__logo {
-    min-width: 148px;
+    max-width: 280px;
+    min-width: 0;
+    height: var(--logo-height);
   }
 }
 
@@ -2301,6 +2316,16 @@ textarea {
 .footer__content {
   position: relative;
   z-index: 1;
+}
+
+.footer__brand {
+  margin-bottom: var(--space-5);
+}
+
+.footer__logo {
+  display: inline-flex;
+  align-items: center;
+  max-width: min(280px, 70vw);
 }
 
 .footer a:hover {

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Scanner from '@/components/effects/Scanner'
 import { SITE_NAME, FOOTER_COLUMNS, PAYMENT_METHODS } from '@/config/site'
+import { BrandLogo } from './BrandLogo'
 
 function SocialIcon({ type, size = 18 }) {
   const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', xmlns: 'http://www.w3.org/2000/svg' }
@@ -100,6 +101,11 @@ export function Footer() {
       )}
 
       <div className="container footer__content">
+        <div className="footer__brand">
+          <Link to="/" className="footer__logo" aria-label={`${SITE_NAME} home`}>
+            <BrandLogo className="brand-logo--footer" />
+          </Link>
+        </div>
         <div className="footer__grid">
           {FOOTER_COLUMNS.map((col) => (
             <div key={col.title}>

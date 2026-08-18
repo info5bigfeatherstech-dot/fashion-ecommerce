@@ -9,6 +9,7 @@ import { useAppStore } from '@/store'
 import { useCartCount, useWishlistCount } from '@/store/selectors'
 import { SITE_NAME, NAV_ITEMS } from '@/config/site'
 import { MEGA_MENUS } from '@/features/category/api'
+import { BrandLogo } from './BrandLogo'
 
 const MENU_CLOSE_DELAY = 280
 
@@ -127,7 +128,7 @@ export function Header() {
             </button>
 
             <Link to="/" className="header__logo" aria-label={`${SITE_NAME} home`}>
-              <span className="header__logo-mark">{SITE_NAME}</span>
+              <BrandLogo />
             </Link>
 
             <div className="header__search">
