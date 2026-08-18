@@ -2712,7 +2712,7 @@ textarea {
 .category-strip__card {
   position: relative;
   width: 100%;
-  min-height: clamp(240px, 58vw, 320px);
+  min-height: clamp(300px, 70vw, 420px);
   border-radius: calc(var(--radius-xl) + 4px);
   overflow: hidden;
   background: linear-gradient(180deg, rgba(250, 247, 242, 0.02), rgba(20, 18, 15, 0.14));
@@ -2743,7 +2743,7 @@ textarea {
 .category-strip__content {
   position: relative;
   z-index: 1;
-  min-height: clamp(240px, 58vw, 320px);
+  min-height: clamp(300px, 70vw, 420px);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
