@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { ProductCard } from './ProductCard'
 
-export function ProductCarousel({ products = [] }) {
+export function ProductCarousel({ products = [], compact = false, mobileOnly = false }) {
   const trackRef = useRef(null)
   const [canPrev, setCanPrev] = useState(false)
   const [canNext, setCanNext] = useState(false)
@@ -37,7 +37,7 @@ export function ProductCarousel({ products = [] }) {
   if (!products.length) return null
 
   return (
-    <div className="product-carousel">
+    <div className={`product-carousel${mobileOnly ? ' product-carousel--mobile-only' : ''}`}>
       <button
         type="button"
         className="product-carousel__btn product-carousel__btn--prev"
@@ -55,7 +55,7 @@ export function ProductCarousel({ products = [] }) {
       >
         {products.map((product) => (
           <div key={product.id} className="product-carousel__item">
-            <ProductCard product={product} />
+            <ProductCard product={product} compact={compact} />
           </div>
         ))}
       </div>

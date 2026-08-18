@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ProductCard } from '@/features/product/components/ProductCard'
+import { ProductCarousel } from '@/features/product/components/ProductCarousel'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
 import { Button } from '@/components/ui/Button'
 import { useBeautyProducts } from '@/features/product/hooks'
@@ -52,11 +53,7 @@ export function BeautySpotlightSection() {
         {isLoading ? (
           <ProductGridSkeleton count={4} />
         ) : (
-          <div className="beauty-makeup__grid">
-            {makeup.slice(0, 4).map((product) => (
-              <ProductCard key={product.id} product={product} compact />
-            ))}
-          </div>
+          <ProductCarousel products={makeup.slice(0, 4)} compact mobileOnly />
         )}
       </div>
       <p className="section-footnote">
