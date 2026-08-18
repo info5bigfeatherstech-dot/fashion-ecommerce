@@ -192,7 +192,7 @@ textarea {
 
 .heading-accent {
   font-family: var(--font-display);
-  font-style: italic;
+  /* font-style: italic; */
   font-weight: var(--weight-regular);
   font-size: clamp(var(--text-lg), 2vw, var(--text-xl));
   color: var(--color-accent);
