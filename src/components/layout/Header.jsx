@@ -148,14 +148,14 @@ export function Header() {
               >
                 {searchOpen ? <X size={18} /> : <Search size={18} />}
               </button>
-              <Link to="/account" className="header__util header__util--desktop">
+              {/* <Link to="/account" className="header__util header__util--desktop">
                 <MessageCircle size={18} />
                 <span className="header__util-label">Chat</span>
-              </Link>
-              <Link to="/account" className="header__util header__util--desktop">
+              </Link> */}
+              {/* <Link to="/account" className="header__util header__util--desktop">
                 <MapPin size={18} />
                 <span className="header__util-label">Stores</span>
-              </Link>
+              </Link> */}
               <Link to="/wishlist" className="header__util header__util--icon" aria-label="Wishlist">
                 <Heart size={18} />
                 {wishlistCount > 0 && (
@@ -309,7 +309,7 @@ export function Header() {
               <Link to="/wishlist" onClick={() => setMobileNavOpen(false)}>Wishlist</Link>
               <Link to="/loyalty" onClick={() => setMobileNavOpen(false)}>Circle Points</Link>
               <Link to="/account" onClick={() => setMobileNavOpen(false)}>Stores</Link>
-              <Link to="/account" onClick={() => setMobileNavOpen(false)}>Chat</Link>
+              {/* <Link to="/account" onClick={() => setMobileNavOpen(false)}>Chat</Link> */}
             </div>
           </nav>
         </>
