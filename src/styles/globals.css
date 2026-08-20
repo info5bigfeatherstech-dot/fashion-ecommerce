@@ -808,7 +808,8 @@ textarea {
 
 .modal-content--auth {
   max-width: min(920px, calc(100vw - 24px));
-  padding: clamp(var(--space-3), 3vw, var(--space-5));
+  max-height: min(78vh, calc(100dvh - 32px));
+  padding: clamp(var(--space-2), 2vw, var(--space-4));
   border: 1px solid rgba(221, 215, 204, 0.8);
   overflow-x: hidden;
   overflow-y: auto;
@@ -855,18 +856,18 @@ textarea {
 .auth-modal__grid {
   display: grid;
   grid-template-columns: 1.05fr 0.95fr;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .auth-modal__side {
-  padding: var(--space-4);
+  padding: var(--space-3);
   border: 1px solid rgba(221, 215, 204, 0.8);
   border-radius: var(--radius-lg);
   background: linear-gradient(180deg, rgba(250, 247, 242, 0.85), rgba(255, 255, 255, 1));
 }
 
 .auth-modal__form {
-  padding: var(--space-4);
+  padding: var(--space-3);
   border: 1px solid rgba(221, 215, 204, 0.8);
   border-radius: var(--radius-lg);
   background: var(--color-white);
@@ -880,7 +881,7 @@ textarea {
 }
 
 .auth-modal__register-hero {
-  padding: clamp(var(--space-4), 5vw, var(--space-6)) clamp(var(--space-3), 4vw, var(--space-5)) clamp(var(--space-3), 4vw, var(--space-5));
+  padding: clamp(var(--space-3), 3vw, var(--space-4)) clamp(var(--space-3), 3vw, var(--space-5)) clamp(var(--space-2), 2.5vw, var(--space-3));
   background: linear-gradient(135deg, rgba(224, 57, 106, 0.95) 0%, rgba(20, 18, 15, 0.92) 60%, rgba(20, 18, 15, 1) 100%);
   color: var(--color-paper);
   position: relative;
@@ -934,14 +935,14 @@ textarea {
 .auth-modal__register-features {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
-  margin-top: var(--space-3);
+  gap: var(--space-1);
+  margin-top: var(--space-2);
 }
 
 .auth-modal__register-features span {
   display: inline-flex;
   align-items: center;
-  padding: 10px 14px;
+  padding: 7px 12px;
   border-radius: 999px;
   background: rgba(250, 247, 242, 0.1);
   border: 1px solid rgba(250, 247, 242, 0.18);
@@ -953,8 +954,8 @@ textarea {
 .auth-modal__register-body {
   display: grid;
   grid-template-columns: 1.1fr 0.9fr;
-  gap: var(--space-4);
-  padding: clamp(var(--space-3), 4vw, var(--space-5));
+  gap: var(--space-3);
+  padding: clamp(var(--space-2), 2.5vw, var(--space-4));
   align-items: start;
 }
 
@@ -962,7 +963,7 @@ textarea {
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(221, 215, 204, 0.8);
   border-radius: 18px;
-  padding: clamp(var(--space-3), 4vw, var(--space-5));
+  padding: clamp(var(--space-3), 2.5vw, var(--space-4));
   box-shadow: var(--shadow-lg);
   min-width: 0;
 }
@@ -4592,6 +4593,19 @@ textarea {
   background: rgba(224, 57, 106, 0.08);
   color: var(--color-accent);
   border: 1px solid rgba(224, 57, 106, 0.18);
+}
+
+.account-wishlist-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.account-wishlist-item__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-1);
 }
 
 /* ─── Empty State ─── */

@@ -3,15 +3,19 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { CalendarDays, Mail, MapPin, Package, Phone, Sparkles, UserRound } from 'lucide-react'
+import { CalendarDays, Heart, Mail, MapPin, Package, Phone, ShoppingBag, Sparkles, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Input, InputGroup } from '@/components/ui/Input'
 import { Separator } from '@/components/ui/Separator'
 import { Modal } from '@/components/ui/Modal'
 import { PointsBadge } from '@/features/loyalty/components/LoyaltySpotlight'
+import { CartItem } from '@/features/cart/components/CartItem'
+import { ProductCard } from '@/features/product/components/ProductCard'
 import { login, register as registerUser, logout } from '@/features/auth/api'
 import { useAppStore } from '@/store'
+import { useCartTotal } from '@/store/selectors'
+import { formatPrice } from '@/lib/utils'
 
 const loginSchema = z.object({
   email: z.string().email('Valid email required'),
@@ -48,6 +52,8 @@ const addressSchema = z
 
 const ACCOUNT_LINKS = [
   { id: 'profile', label: 'Profile' },
+  { id: 'cart', label: 'Add to cart' },
+  { id: 'wishlist', label: 'Wishlist' },
   { id: 'orders', label: 'Orders' },
   { id: 'addresses', label: 'Addresses' },
 ]
@@ -64,6 +70,11 @@ export default function Account({
   const addresses = useAppStore((s) => s.addresses)
   const addAddress = useAppStore((s) => s.addAddress)
   const removeAddress = useAppStore((s) => s.removeAddress)
+  const cartItems = useAppStore((s) => s.cartItems)
+  const wishlistItems = useAppStore((s) => s.wishlistItems)
+  const addItem = useAppStore((s) => s.addItem)
+  const removeFromWishlist = useAppStore((s) => s.removeFromWishlist)
+  const cartTotal = useCartTotal()
   const location = useLocation()
   const navigate = useNavigate()
   const redirectTo = location.state?.redirectTo
@@ -158,12 +169,12 @@ export default function Account({
                   <div className="auth-modal__register-hero-inner">
                     <p className="auth-modal__eyebrow">Create Account</p>
                     <h3
-                      className="display-lg auth-modal__register-title"
-                      style={{ marginBottom: 'var(--space-2)', fontFamily: 'var(--font-italic-serif)' }}
+                      className="display-md auth-modal__register-title"
+                      style={{ marginBottom: 'var(--space-1)', fontFamily: 'var(--font-italic-serif)' }}
                     >
                       Join the Fashion circle
                     </h3>
-                    <p className="body-lg auth-modal__register-subtitle">
+                    <p className="body-sm auth-modal__register-subtitle">
                       Get early access to drops, save your wishlist, and check out faster.
                     </p>
                     <div className="auth-modal__register-features">
@@ -282,10 +293,10 @@ export default function Account({
                   <p className="heading-sm text-accent" style={{ marginBottom: 'var(--space-2)' }}>
                   Fashion 
                   </p>
-                  <h3 className="display-md" style={{ marginBottom: 'var(--space-2)' }}>
+                  <h3 className="display-md" style={{ marginBottom: 'var(--space-1)' }}>
                     Shine with pieces made to wear daily.
                   </h3>
-                  <div className="card" style={{ padding: 'var(--space-3)' }}>
+                  <div className="card" style={{ padding: 'var(--space-2)' }}>
                     <p className="body-sm" style={{ marginBottom: 'var(--space-2)' }}>
                       Save your favorites, add to bag quickly, and manage your profile.
                     </p>
@@ -380,15 +391,22 @@ export default function Account({
           <div style={{ marginTop: 'var(--space-2)' }}><PointsBadge /></div>
         </div>
         <nav className="account-nav" aria-label="Account navigation">
-          {ACCOUNT_LINKS.map((link) => (
-            <button
-              key={link.id}
-              className={`account-nav__link ${activeTab === link.id ? 'account-nav__link--active' : ''}`}
-              onClick={() => setActiveTab(link.id)}
-            >
-              {link.label}
-            </button>
-          ))}
+          {ACCOUNT_LINKS.map((link) => {
+            const count =
+              link.id === 'cart' ? cartItems.reduce((sum, item) => sum + item.quantity, 0)
+              : link.id === 'wishlist' ? wishlistItems.length
+              : 0
+
+            return (
+              <button
+                key={link.id}
+                className={`account-nav__link ${activeTab === link.id ? 'account-nav__link--active' : ''}`}
+                onClick={() => setActiveTab(link.id)}
+              >
+                {link.label}{count > 0 ? ` (${count})` : ''}
+              </button>
+            )
+          })}
         </nav>
         <Separator style={{ marginBlock: 'var(--space-3)' }} />
         <Button variant="ghost" onClick={handleLogout}>Sign Out</Button>
@@ -495,6 +513,122 @@ export default function Account({
                 <p className="body-sm text-muted">Profile UI is ready. Later, we can connect editing and real customer data through your backend.</p>
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'cart' && (
+          <div className="account-section">
+            <div className="account-section__header">
+              <div>
+                <p className="heading-sm text-accent">Bag</p>
+                <h2 className="display-md">Add to cart</h2>
+              </div>
+              {cartItems.length > 0 && (
+                <Link to="/cart">
+                  <Button variant="secondary" size="sm">View bag</Button>
+                </Link>
+              )}
+            </div>
+
+            {cartItems.length === 0 ? (
+              <div className="account-panel">
+                <div className="account-empty">
+                  <div className="account-empty__icon"><ShoppingBag size={22} /></div>
+                  <p className="body-lg">Your bag is empty</p>
+                  <p className="body-sm text-muted">Items you add to cart will show up here.</p>
+                  <Link to="/shop/women" style={{ marginTop: 'var(--space-2)' }}>
+                    <Button variant="primary">Start shopping</Button>
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="account-panel">
+                {cartItems.map((item) => (
+                  <CartItem key={item.id} item={item} />
+                ))}
+                <Separator style={{ marginBlock: 'var(--space-3)' }} />
+                <div className="checkout-summary__row">
+                  <span>Subtotal</span>
+                  <span>{formatPrice(cartTotal)}</span>
+                </div>
+                <Link to="/checkout" style={{ display: 'block', marginTop: 'var(--space-3)' }}>
+                  <Button variant="primary" fullWidth>Proceed to Checkout</Button>
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'wishlist' && (
+          <div className="account-section">
+            <div className="account-section__header">
+              <div>
+                <p className="heading-sm text-accent">Saved</p>
+                <h2 className="display-md">Wishlist</h2>
+              </div>
+              {wishlistItems.length > 0 && (
+                <Link to="/wishlist">
+                  <Button variant="secondary" size="sm">View wishlist</Button>
+                </Link>
+              )}
+            </div>
+
+            {wishlistItems.length === 0 ? (
+              <div className="account-panel">
+                <div className="account-empty">
+                  <div className="account-empty__icon"><Heart size={22} /></div>
+                  <p className="body-lg">Your wishlist is empty</p>
+                  <p className="body-sm text-muted">Tap the heart on any product and it will appear here.</p>
+                  <Link to="/shop/women" style={{ marginTop: 'var(--space-2)' }}>
+                    <Button variant="primary">Explore jewelry</Button>
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="grid-3">
+                {wishlistItems.map((item) => (
+                  <div key={item.id} className="account-wishlist-item">
+                    <ProductCard
+                      product={{
+                        ...item,
+                        images: [item.image, item.image],
+                        category: '',
+                        subcategory: '',
+                        sizes: [],
+                        colors: [],
+                        description: '',
+                      }}
+                    />
+                    <div className="account-wishlist-item__actions">
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        fullWidth
+                        onClick={() => addItem({
+                          id: item.id,
+                          slug: item.slug,
+                          name: item.name,
+                          price: item.price,
+                          images: [item.image],
+                          sizes: [],
+                          colors: [],
+                        })}
+                      >
+                        Add to cart
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        fullWidth
+                        onClick={() => removeFromWishlist(item.id)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
