@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { TrendingUp } from 'lucide-react'
 import { ProductCarousel } from '@/features/product/components/ProductCarousel'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
 import { useBestsellers } from '@/features/product/hooks'
@@ -11,10 +12,14 @@ export function TrendingNowFastSection() {
     <section className="section container">
       <div className="section-header">
         <div>
+          <span className="trending-now-badge">
+            <TrendingUp size={14} aria-hidden="true" />
+            Trending Jewellery
+          </span>
           <h2 className="display-md">
             Trending Now <span className="heading-accent">This Season</span>
           </h2>
-          <p className="section-subheader">
+          <p className="section-subheader trending-now-subheader">
             The fastest-moving favorites — selling out and getting restocked quickly.
           </p>
         </div>

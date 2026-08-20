@@ -16,6 +16,8 @@ import { JewelleryFestSection } from '@/components/home/JewelleryFestSection'
 import { DealsSection } from '@/components/home/DealsSection'
 import { TrustStripSection } from '@/components/home/TrustStripSection'
 import { PromoBannerSection } from '@/components/home/PromoBannerSection'
+import { SignatureJewelrySection } from '@/components/home/SignatureJewelrySection'
+import { CraftsmanshipSection } from '@/components/home/CraftsmanshipSection'
 import { NewsletterSection } from '@/components/home/NewsletterSection'
 
 export default function Home() {
@@ -24,6 +26,8 @@ export default function Home() {
       <HeroSection />
       <NewArrivalsSection />
       <JewelleryFestSection />
+      <SignatureJewelrySection />
+      <CraftsmanshipSection />
       <TrendingNowFastSection />
       <TheArchiveSection />
       <AsSeenOnYouSection />

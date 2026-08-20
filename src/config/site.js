@@ -105,6 +105,48 @@ export const LATEST_COLLECTIONS = [
   },
 ]
 
+export const SIGNATURE_JEWELRY = {
+  eyebrow: 'Signature Jewelry',
+  titleLine1: 'Timeless',
+  titleLine2: 'Elegance',
+  ctaLabel: 'Explore Collection',
+  ctaHref: '/shop/women',
+  note: 'Exclusive jewelry series',
+  badge: 'Crafted with precision',
+  watermark: 'VERAÒ',
+  image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=900&h=1100&q=80',
+  alt: 'VERAÒ signature necklace and earrings on display',
+}
+
+export const CRAFTSMANSHIP_INSPECTION = {
+  eyebrow: 'Craftsmanship Inspection',
+  titleLead: 'Gold',
+  titleAmp: '&',
+  titleTrail: 'Diamond',
+  heading: '18K Solid Gold Natural Diamonds',
+  body: 'Our jewelry pieces are handcrafted by skilled artisans using certified 18K gold and ethically sourced natural diamonds. Every gemstone is carefully selected for brilliance, clarity, and precision setting to ensure timeless elegance.',
+  ctaLabel: 'Shop Jewelry',
+  ctaHref: '/shop/women',
+  image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=1000&h=1000&q=80',
+  alt: 'Twisted gold hoop earrings on white stones',
+  specs: [
+    {
+      id: 'clarity',
+      label: 'Diamond Clarity',
+      value: 'VVS1',
+      detail: 'Exceptional Brilliance',
+      icon: 'gem',
+    },
+    {
+      id: 'purity',
+      label: 'Gold Purity',
+      value: '18K (75%)',
+      detail: 'Hallmarked Certification',
+      icon: 'shield',
+    },
+  ],
+}
+
 export const AS_SEEN_ON_YOU = {
   instagramHref: 'https://instagram.com/',
 }
