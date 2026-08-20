@@ -5,6 +5,7 @@ export const productKeys = {
   details: () => [...productKeys.all, 'detail'],
   detail: (slug) => [...productKeys.details(), slug],
   bestsellers: () => [...productKeys.all, 'bestsellers'],
+  featured: () => [...productKeys.all, 'featured'],
   newArrivals: () => [...productKeys.all, 'newArrivals'],
   beauty: () => [...productKeys.all, 'beauty'],
 }

@@ -1,5 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
-import { getProducts, getProductBySlug, getBestsellers, getNewArrivals, getBeautyProducts } from './api'
+import {
+  getProducts,
+  getProductBySlug,
+  getBestsellers,
+  getNewArrivals,
+  getBeautyProducts,
+  getFeaturedProducts,
+} from './api'
 import { productKeys } from './queryKeys'
 
 export function useProductListing(filters = {}) {
@@ -21,6 +28,13 @@ export function useBestsellers() {
   return useQuery({
     queryKey: productKeys.bestsellers(),
     queryFn: getBestsellers,
+  })
+}
+
+export function useFeaturedProducts({ limit = 12 } = {}) {
+  return useQuery({
+    queryKey: productKeys.featured(),
+    queryFn: () => getFeaturedProducts({ limit }),
   })
 }
 

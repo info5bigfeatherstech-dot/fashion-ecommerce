@@ -1,26 +1,40 @@
 import axiosClient from './axiosClient'
+import { getAuthToken } from './config'
+import { normalizeApiError } from './errors'
+
+let interceptorsInstalled = false
 
 export function setupInterceptors() {
+  if (interceptorsInstalled) return
+  interceptorsInstalled = true
+
   axiosClient.interceptors.request.use(
     (config) => {
-      const token = localStorage.getItem('verao_token')
+      const token = getAuthToken()
       if (token) {
         config.headers.Authorization = `Bearer ${token}`
       }
       return config
     },
-    (error) => Promise.reject(error)
+    (error) => Promise.reject(normalizeApiError(error))
   )
 
   axiosClient.interceptors.response.use(
-    (response) => response,
-    (error) => {
-      const normalized = {
-        message: error.response?.data?.message || error.message || 'Something went wrong',
-        status: error.response?.status || 500,
-        code: error.response?.data?.code || 'UNKNOWN_ERROR',
+    (response) => {
+      const payload = response.data
+      if (payload && typeof payload === 'object' && payload.success === false) {
+        return Promise.reject(
+          normalizeApiError({
+            response: {
+              status: response.status,
+              data: payload,
+            },
+            message: payload.message || 'Request failed',
+          })
+        )
       }
-      return Promise.reject(normalized)
-    }
+      return response
+    },
+    (error) => Promise.reject(normalizeApiError(error))
   )
 }

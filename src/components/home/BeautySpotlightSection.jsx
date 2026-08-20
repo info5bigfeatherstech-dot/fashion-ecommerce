@@ -44,7 +44,7 @@ export function BeautySpotlightSection() {
         )}
       </div>
 
-      <div className="beauty-makeup">
+      {/* <div className="beauty-makeup">
         <div className="beauty-makeup__intro">
           <p className="heading-sm">Daily Favorites</p>
           <h3 className="display-md">Elegant pieces, easy styling</h3>
@@ -55,7 +55,7 @@ export function BeautySpotlightSection() {
         ) : (
           <ProductCarousel products={makeup.slice(0, 4)} compact mobileOnly />
         )}
-      </div>
+      </div> */}
       <p className="section-footnote">
         Mix, match, and layer pieces that work as hard as your wardrobe — from casual days to festive nights.
       </p>

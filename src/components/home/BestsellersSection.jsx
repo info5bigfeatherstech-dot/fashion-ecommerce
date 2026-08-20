@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom'
 import { ProductCarousel } from '@/features/product/components/ProductCarousel'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
-import { useBestsellers } from '@/features/product/hooks'
+import { useFeaturedProducts } from '@/features/product/hooks'
 
 export function BestsellersSection() {
-  const { data: products, isLoading } = useBestsellers()
+  const { data: products = [], isLoading } = useFeaturedProducts({ limit: 12 })
 
   return (
     <section className="section container">

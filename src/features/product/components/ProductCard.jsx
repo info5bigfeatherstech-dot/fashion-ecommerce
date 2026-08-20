@@ -60,12 +60,12 @@ export function ProductCard({ product, compact = false }) {
           </motion.div>
         </button>
         <img
-          src={product.images[0]}
+          src={product.images?.[0]}
           alt={product.name}
           className="product-card__image product-card__image--primary"
           loading="lazy"
         />
-        {!compact && product.images[1] && (
+        {!compact && product.images?.[1] && (
           <img
             src={product.images[1]}
             alt=""
