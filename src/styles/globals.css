@@ -1892,26 +1892,37 @@ textarea {
 }
 
 .header__mobile-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: calc(var(--z-header) + 1);
-  border: 0;
-  background: var(--color-overlay);
+  display: none;
 }
 
 .header__mobile-menu {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: calc(var(--z-header) + 2);
-  width: min(22rem, 92vw);
-  height: 100vh;
-  height: 100dvh;
-  overflow-y: auto;
-  padding: calc(var(--space-4) + env(safe-area-inset-top, 0px)) var(--space-4) calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
-  background-color: var(--color-paper);
+  display: none;
+}
+
+.header__mobile-body {
+  padding-bottom: calc(var(--space-4) + var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
+}
+
+.header__mobile-extras {
+  display: grid;
+  gap: 2px;
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.header__mobile-extras a {
+  display: grid;
+  grid-template-columns: 18px 1fr 16px;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--touch-min);
+  font-size: var(--text-sm);
   color: var(--color-ink);
-  box-shadow: var(--shadow-lg);
+}
+
+.header__mobile-extras a:hover {
+  color: var(--color-accent);
 }
 
 .header__mobile-menu-head {
@@ -1944,27 +1955,10 @@ textarea {
   color: var(--color-accent);
 }
 
-.header__mobile-extras {
-  display: grid;
-  gap: var(--space-1);
-  margin-top: var(--space-4);
-}
-
-.header__mobile-extras a {
-  display: flex;
-  align-items: center;
-  min-height: var(--touch-min);
-  font-size: var(--text-sm);
-  color: var(--color-muted);
-}
-
-.header__mobile-extras a:hover {
-  color: var(--color-ink);
-}
-
 .header__mobile-sub {
   display: grid;
   gap: 2px;
+  overflow: hidden;
   padding: var(--space-2) 0 var(--space-3);
 }
 
@@ -3613,6 +3607,13 @@ textarea {
   flex-direction: column;
   box-shadow: var(--shadow-lg);
   border-left: 1px solid rgba(221, 215, 204, 0.85);
+}
+
+.drawer--left {
+  right: auto;
+  left: 0;
+  border-left: 0;
+  border-right: 1px solid rgba(221, 215, 204, 0.85);
 }
 
 .drawer__header {

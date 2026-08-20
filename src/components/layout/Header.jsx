@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { ShoppingBag, Heart, User, MessageCircle, MapPin, Menu, Search, X, ChevronDown, LogIn, Warehouse } from 'lucide-react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { ShoppingBag, Heart, User, MessageCircle, MapPin, Menu, Search, X, ChevronDown, ChevronRight, LogIn, Warehouse, Sparkles } from 'lucide-react'
 import { SearchBar } from '@/features/search/components/SearchBar'
 import { CartDrawer } from '@/features/cart/components/CartDrawer'
 import { MegaMenuPanel } from '@/features/category/components/MegaMenu'
@@ -247,91 +248,127 @@ export function Header() {
         </div>
       </header>
 
-      {mobileNavOpen && (
-        <>
-          <button
-            type="button"
-            className="header__mobile-overlay"
-            aria-label="Close menu"
-            onClick={() => setMobileNavOpen(false)}
-          />
-          <nav className="header__mobile-menu" aria-label="Mobile navigation">
-            <div className="header__mobile-menu-head">
-              <p className="heading-sm text-accent">Shop</p>
-              <button
-                type="button"
-                className="btn btn--ghost btn--icon"
-                onClick={() => setMobileNavOpen(false)}
-                aria-label="Close menu"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            {NAV_ITEMS.map((item) => {
-              const columns = item.megaMenu ? MEGA_MENUS[categoryMap[item.slug]] : null
-              const isExpanded = mobileSection === item.slug
+      <AnimatePresence>
+        {mobileNavOpen && (
+          <>
+            <motion.button
+              type="button"
+              className="drawer-overlay"
+              aria-label="Close menu"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.22 }}
+              onClick={() => setMobileNavOpen(false)}
+            />
+            <motion.nav
+              className="drawer drawer--left"
+              aria-label="Mobile navigation"
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'tween', duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <div className="drawer__header">
+                <div>
+                  <p className="drawer__eyebrow">Menu</p>
+                  <h2 className="drawer__title">{SITE_NAME}</h2>
+                  <p className="drawer__meta">Shop jewelry by category</p>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--icon"
+                  onClick={() => setMobileNavOpen(false)}
+                  aria-label="Close menu"
+                >
+                  <X size={20} />
+                </button>
+              </div>
 
-              if (columns?.length) {
-                return (
-                  <div key={item.slug} className="header__mobile-group">
-                    <button
-                      type="button"
+              <div className="drawer__body header__mobile-body">
+                {NAV_ITEMS.map((item) => {
+                  const columns = item.megaMenu ? MEGA_MENUS[categoryMap[item.slug]] : null
+                  const isExpanded = mobileSection === item.slug
+
+                  if (columns?.length) {
+                    return (
+                      <div key={item.slug} className="header__mobile-group">
+                        <button
+                          type="button"
+                          className={`header__mobile-link ${isNavActive(item, location.pathname) ? 'header__mobile-link--active' : ''}`}
+                          aria-expanded={isExpanded}
+                          onClick={() => setMobileSection(isExpanded ? null : item.slug)}
+                        >
+                          {item.label}
+                          <ChevronDown size={18} style={{ transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease' }} />
+                        </button>
+                        <AnimatePresence initial={false}>
+                          {isExpanded && (
+                            <motion.div
+                              className="header__mobile-sub"
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              {columns.flatMap((column) =>
+                                column.links.map((link) => (
+                                  <Link
+                                    key={`${item.slug}-${link.label}`}
+                                    to={link.href}
+                                    className="header__mobile-sublink"
+                                    onClick={() => setMobileNavOpen(false)}
+                                  >
+                                    {link.label}
+                                  </Link>
+                                ))
+                              )}
+                              <Link
+                                to={navHref(item)}
+                                className="header__mobile-sublink"
+                                onClick={() => setMobileNavOpen(false)}
+                              >
+                                Shop all {item.label}
+                              </Link>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    )
+                  }
+
+                  return (
+                    <Link
+                      key={item.slug}
+                      to={navHref(item)}
                       className={`header__mobile-link ${isNavActive(item, location.pathname) ? 'header__mobile-link--active' : ''}`}
-                      aria-expanded={isExpanded}
-                      onClick={() => setMobileSection(isExpanded ? null : item.slug)}
+                      onClick={() => setMobileNavOpen(false)}
                     >
                       {item.label}
-                      <ChevronDown size={18} style={{ transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 150ms ease' }} />
-                    </button>
-                    {isExpanded && (
-                      <div className="header__mobile-sub">
-                        {columns.flatMap((column) =>
-                          column.links.map((link) => (
-                            <Link
-                              key={`${item.slug}-${link.label}`}
-                              to={link.href}
-                              className="header__mobile-sublink"
-                              onClick={() => setMobileNavOpen(false)}
-                            >
-                              {link.label}
-                            </Link>
-                          ))
-                        )}
-                        <Link
-                          to={navHref(item)}
-                          className="header__mobile-sublink"
-                          onClick={() => setMobileNavOpen(false)}
-                        >
-                          Shop all {item.label}
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                )
-              }
+                      <ChevronRight size={16} />
+                    </Link>
+                  )
+                })}
 
-              return (
-                <Link
-                  key={item.slug}
-                  to={navHref(item)}
-                  className={`header__mobile-link ${isNavActive(item, location.pathname) ? 'header__mobile-link--active' : ''}`}
-                  onClick={() => setMobileNavOpen(false)}
-                >
-                  {item.label}
-                </Link>
-              )
-            })}
-            <div className="header__mobile-extras">
-              <Link to="/profile" onClick={() => setMobileNavOpen(false)}>My Account</Link>
-              <Link to="/wholesale" onClick={() => setMobileNavOpen(false)}>Wholesale</Link>
-              <Link to="/wishlist" onClick={() => setMobileNavOpen(false)}>Wishlist</Link>
-              <Link to="/loyalty" onClick={() => setMobileNavOpen(false)}>Circle Points</Link>
-              <Link to="/account" onClick={() => setMobileNavOpen(false)}>Stores</Link>
-              {/* <Link to="/account" onClick={() => setMobileNavOpen(false)}>Chat</Link> */}
-            </div>
-          </nav>
-        </>
-      )}
+                <div className="header__mobile-extras">
+                  <Link to="/profile" onClick={() => setMobileNavOpen(false)}>
+                    <User size={16} /> My Account <ChevronRight size={16} />
+                  </Link>
+                  <Link to="/wholesale" onClick={() => setMobileNavOpen(false)}>
+                    <Warehouse size={16} /> Wholesale <ChevronRight size={16} />
+                  </Link>
+                  <Link to="/wishlist" onClick={() => setMobileNavOpen(false)}>
+                    <Heart size={16} /> Wishlist <ChevronRight size={16} />
+                  </Link>
+                  <Link to="/loyalty" onClick={() => setMobileNavOpen(false)}>
+                    <Sparkles size={16} /> Circle Points <ChevronRight size={16} />
+                  </Link>
+                </div>
+              </div>
+            </motion.nav>
+          </>
+        )}
+      </AnimatePresence>
       <CartDrawer />
     </>
   )

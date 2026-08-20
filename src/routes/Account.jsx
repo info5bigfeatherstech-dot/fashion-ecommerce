@@ -283,9 +283,9 @@ export default function Account({
                         <li className="body-sm" style={{ marginBottom: 'var(--space-1)' }}>Save wishlist items</li>
                         <li className="body-sm" style={{ marginBottom: 'var(--space-1)' }}>Quick checkout </li>
                       </ul>
-                      <p className="body-sm text-muted" style={{ marginTop: 'var(--space-3)' }}>
+                      {/* <p className="body-sm text-muted" style={{ marginTop: 'var(--space-3)' }}>
                         UI is ready now; authentication API can be added later.
-                      </p>
+                      </p> */}
                     </div>
                   </div>
                 </div>
