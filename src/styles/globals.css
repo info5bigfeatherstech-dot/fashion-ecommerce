@@ -290,6 +290,7 @@ textarea {
   margin-top: var(--space-1);
   max-width: 42rem;
   color: var(--color-muted);
+  font-family: 'Montserrat', sans-serif;
   font-size: clamp(0.8125rem, 1.35vw, var(--text-sm));
   line-height: var(--leading-normal);
 }
@@ -306,7 +307,7 @@ textarea {
 }
 
 .section-header .section-subheader {
-  font-family: 'Cormorant Garamond', serif;
+  font-family: 'Montserrat', sans-serif;
 }
 
 .trending-now-subheader {
@@ -536,6 +537,7 @@ textarea {
   margin-top: clamp(var(--space-3), 3vw, var(--space-5));
   max-width: 46rem;
   color: var(--color-muted);
+  font-family: 'Montserrat', sans-serif;
   font-size: var(--text-sm);
   line-height: var(--leading-normal);
 }
@@ -2838,6 +2840,7 @@ textarea {
 }
 
 .hero__eyebrow {
+  font-family: 'Montserrat', sans-serif;
   font-size: var(--text-xs);
   font-weight: var(--weight-semibold);
   letter-spacing: 0.12em;
@@ -2857,6 +2860,7 @@ textarea {
 }
 
 .hero__subtitle {
+  font-family: 'Montserrat', sans-serif;
   font-size: clamp(var(--text-sm), 2.6vw, var(--text-lg));
   line-height: var(--leading-relaxed);
   margin-bottom: var(--space-4);
@@ -3872,7 +3876,7 @@ textarea {
   align-items: center;
   gap: 0.75rem;
   margin: 0;
-  font-family: var(--font-display);
+  font-family: 'Montserrat', sans-serif;
   font-size: 0.7rem;
   letter-spacing: 0.28em;
   text-transform: uppercase;
@@ -4079,6 +4083,14 @@ textarea {
   font-weight: 500;
 }
 
+.jewelry-archive__heading .heading-accent {
+  color: var(--color-accent);
+  font-size: inherit;
+  line-height: inherit;
+  font-style: italic;
+  font-weight: 500;
+}
+
 .jewelry-archive__layout {
   display: grid;
   gap: clamp(var(--space-4), 4vw, var(--space-8));
@@ -4102,8 +4114,8 @@ textarea {
 .jewelry-archive__frame {
   position: relative;
   width: 100%;
-  aspect-ratio: 4 / 5;
-  max-height: 28rem;
+  aspect-ratio: 3 / 4;
+  max-height: 40rem;
   overflow: hidden;
   border-radius: var(--radius-md);
   background: linear-gradient(180deg, #f3f1ed 0%, #e8e4dc 100%);
@@ -4141,7 +4153,7 @@ textarea {
 .jewelry-archive__tag-name {
   margin: 0 0 0.35rem;
   font-family: 'Playfair Display', var(--font-display), serif;
-  font-size: clamp(var(--text-base), 1.8vw, var(--text-lg));
+  font-size: clamp(var(--text-sm), 1.4vw, var(--text-base));
   font-weight: 600;
   line-height: 1.25;
   color: var(--color-accent);
@@ -4203,7 +4215,7 @@ textarea {
 
 .jewelry-archive__description {
   margin: 0;
-  font-family: var(--font-italic-serif);
+  font-family: 'Montserrat', sans-serif;
   font-size: clamp(0.9375rem, 1.5vw, 1.0625rem);
   line-height: var(--leading-relaxed);
   color: var(--color-ink);
@@ -4294,7 +4306,7 @@ textarea {
 
 @media (max-width: 899px) {
   .jewelry-archive__frame {
-    max-height: 22rem;
+    max-height: 26rem;
   }
 
   .jewelry-archive__watermark {
@@ -4328,7 +4340,9 @@ textarea {
 .craft-inspect__zoom {
   position: relative;
   width: 100%;
-  aspect-ratio: 1;
+  aspect-ratio: 3 / 4;
+  min-height: 28rem;
+  max-height: 45rem;
   overflow: hidden;
   border-radius: var(--radius-md);
   background-color: var(--color-neutral);
@@ -6010,6 +6024,7 @@ textarea {
 }
 
 .cat-hero__eyebrow {
+  font-family: 'Montserrat', sans-serif;
   font-size: var(--text-xs);
   font-weight: var(--weight-semibold);
   letter-spacing: 0.14em;
@@ -6171,6 +6186,7 @@ textarea {
 }
 
 .cat-collection__eyebrow {
+  font-family: 'Montserrat', sans-serif;
   font-size: var(--text-xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -6186,6 +6202,7 @@ textarea {
 }
 
 .cat-collection__caption {
+  font-family: 'Montserrat', sans-serif;
   font-size: var(--text-sm);
   line-height: var(--leading-normal);
   opacity: 0.9;
@@ -6561,7 +6578,7 @@ textarea {
 
 .jewellery-fest__eyebrow {
   margin-top: var(--space-1);
-  font-family: var(--font-display);
+  font-family: 'Montserrat', sans-serif;
   font-size: var(--text-sm);
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -6582,6 +6599,7 @@ textarea {
   align-items: center;
   justify-content: center;
   gap: var(--space-1);
+  font-family: 'Montserrat', sans-serif;
   font-size: var(--text-sm);
   color: var(--color-muted);
   text-transform: uppercase;
@@ -6678,7 +6696,7 @@ textarea {
 
 .jewellery-fest__panel-title {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: 'Montserrat', sans-serif;
   font-size: var(--text-sm);
   letter-spacing: 0.12em;
   text-transform: uppercase;

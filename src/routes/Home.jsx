@@ -28,8 +28,8 @@ export default function Home() {
       <JewelleryFestSection />
       <SignatureJewelrySection />
       <CraftsmanshipSection />
-      <TrendingNowFastSection />
       <TheArchiveSection />
+      <TrendingNowFastSection />
       <AsSeenOnYouSection />
       {/* <CategoryStripSection /> */}
       <LatestCollectionsSection />

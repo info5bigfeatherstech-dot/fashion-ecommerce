@@ -1,4 +1,4 @@
-export const SITE_NAME = 'VERAÒ'
+export const SITE_NAME = 'FABUNIQO'
 export const SITE_TAGLINE = 'Artificial jewelry for everyday shine.'
 
 export const PRODUCT_OFFER = {
@@ -113,9 +113,9 @@ export const SIGNATURE_JEWELRY = {
   ctaHref: '/shop/women',
   note: 'Exclusive jewelry series',
   badge: 'Crafted with precision',
-  watermark: 'VERAÒ',
+  watermark: 'FABUNIQO',
   image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=900&h=1100&q=80',
-  alt: 'VERAÒ signature necklace and earrings on display',
+  alt: 'FABUNIQO signature necklace and earrings on display',
 }
 
 export const CRAFTSMANSHIP_INSPECTION = {
@@ -397,7 +397,7 @@ export const FOOTER_COLUMNS = [
     ],
   },
   {
-    title: 'VERAÒ Circle',
+    title: 'FABUNIQO Circle',
     links: [
       { label: 'Join the Program', href: '/loyalty' },
       { label: 'Earn Points', href: '/loyalty' },

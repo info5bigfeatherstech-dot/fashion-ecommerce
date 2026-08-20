@@ -14,7 +14,7 @@ export function TheArchiveSection() {
   return (
     <section className="section container jewelry-archive" aria-label="Jewelry archive">
       <h2 className="jewelry-archive__heading">
-        Jewelry <em>Archive</em>
+        Jewelry <span className="heading-accent">Archive</span>
       </h2>
 
       <div className="jewelry-archive__layout">
