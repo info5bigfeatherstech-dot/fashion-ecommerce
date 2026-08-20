@@ -214,6 +214,63 @@ export const JEWELRY_ARCHIVE = [
 
 export const AS_SEEN_ON_YOU = {
   instagramHref: 'https://instagram.com/',
+  /** Dummy gallery until Instagram/UGC API is connected */
+  collage: [
+    {
+      id: 'spot-1',
+      image: 'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=700&h=900&q=80',
+      alt: 'Gold earrings worn at a festive evening',
+      href: '/shop/women',
+    },
+    {
+      id: 'spot-2',
+      image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=700&h=800&q=80',
+      alt: 'Layered necklace close-up',
+      href: '/shop/new-arrivals',
+    },
+    {
+      id: 'spot-3',
+      image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=700&h=850&q=80',
+      alt: 'Pearl and gold jewelry styling',
+      href: '/shop/women',
+    },
+    {
+      id: 'spot-4',
+      image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=700&h=900&q=80',
+      alt: 'Crystal set on display',
+      href: '/shop/sale',
+    },
+    {
+      id: 'spot-5',
+      image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=700&h=800&q=80',
+      alt: 'Twisted hoop earrings detail',
+      href: '/shop/women',
+    },
+    {
+      id: 'spot-6',
+      image: 'https://images.unsplash.com/photo-1602173574767-37ac01994b2a?auto=format&fit=crop&w=700&h=850&q=80',
+      alt: 'Ring stack everyday look',
+      href: '/shop/new-arrivals',
+    },
+    {
+      id: 'spot-7',
+      image: 'https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&w=700&h=900&q=80',
+      alt: 'Statement earrings portrait',
+      href: '/shop/women',
+    },
+    {
+      id: 'spot-8',
+      image: 'https://images.unsplash.com/photo-1611107683227-e9060eccd846?auto=format&fit=crop&w=700&h=800&q=80',
+      alt: 'Pendant necklace flatlay',
+      href: '/shop/women',
+    },
+    {
+      id: 'spot-9',
+      image: 'https://images.unsplash.com/photo-1617038260849-41f2d537454b?auto=format&fit=crop&w=700&h=850&q=80',
+      alt: 'Gold jewelry on soft fabric',
+      href: '/shop/new-arrivals',
+    },
+  ],
 }
 
 export const NEW_ARRIVALS_SLIDES = [

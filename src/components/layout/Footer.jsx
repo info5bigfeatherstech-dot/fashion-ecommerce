@@ -1,59 +1,15 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Mail, Phone } from 'lucide-react'
+import { SiFacebook, SiInstagram, SiThreads } from 'react-icons/si'
 import Scanner from '@/components/effects/Scanner'
 import { SITE_NAME, SITE_CONTACT, FOOTER_COLUMNS, PAYMENT_METHODS } from '@/config/site'
 import { FooterBrandMark } from './BrandLogo'
 
-function SocialIcon({ type, size = 18 }) {
-  const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', xmlns: 'http://www.w3.org/2000/svg' }
-  const stroke = 'currentColor'
-
-  if (type === 'facebook') {
-    return (
-      <svg {...common}>
-        <path d="M14 9H17V6H14C12.3431 6 11 7.34315 11 9V11H9V14H11V18H14V14H16L17 11H14V9Z" fill={stroke} />
-      </svg>
-    )
-  }
-
-  if (type === 'instagram') {
-    return (
-      <svg {...common}>
-        <path
-          d="M7.5 3.5H16.5C18.7091 3.5 20.5 5.29086 20.5 7.5V16.5C20.5 18.7091 18.7091 20.5 16.5 20.5H7.5C5.29086 20.5 3.5 18.7091 3.5 16.5V7.5C3.5 5.29086 5.29086 3.5 7.5 3.5Z"
-          stroke={stroke}
-          strokeWidth="1.8"
-        />
-        <path d="M12 16.2C14.3196 16.2 16.2 14.3196 16.2 12C16.2 9.68041 14.3196 7.8 12 7.8C9.68041 7.8 7.8 9.68041 7.8 12C7.8 14.3196 9.68041 16.2 12 16.2Z" stroke={stroke} strokeWidth="1.8" />
-        <path d="M17.3 6.8H17.31" stroke={stroke} strokeWidth="2.4" strokeLinecap="round" />
-      </svg>
-    )
-  }
-
-  return (
-    <svg {...common}>
-      <path
-        d="M12 21c5 0 9-4 9-9s-4-9-9-9-9 4-9 9 4 9 9 9Z"
-        stroke={stroke}
-        strokeWidth="1.8"
-      />
-      <path
-        d="M9.8 12.3c0-2 1.2-3.3 3-3.3 1.6 0 2.7 1 2.7 2.6 0 1.3-.7 2-1.6 2-.7 0-1-.4-1-1.1v-1.9"
-        stroke={stroke}
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="M10 10.4l1.7-.8" stroke={stroke} strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  )
-}
-
 const SOCIAL_LINKS = [
-  { label: 'Instagram', href: '#', type: 'instagram' },
-  { label: 'Facebook', href: '#', type: 'facebook' },
-  { label: 'Instagram Threads', href: '#', type: 'threads' },
+  { label: 'Instagram', href: '#', Icon: SiInstagram },
+  { label: 'Facebook', href: '#', Icon: SiFacebook },
+  { label: 'Instagram Threads', href: '#', Icon: SiThreads },
 ]
 
 export function Footer() {
@@ -123,10 +79,10 @@ export function Footer() {
           <div>
             <h3 className="footer__column-title">Follow Us</h3>
             <div className="footer__social">
-              {SOCIAL_LINKS.map((social) => (
-                <a key={social.label} href={social.href} className="footer__link" aria-label={social.label}>
-                  <SocialIcon type={social.type} size={18} />
-                  <span className="sr-only">{social.label}</span>
+              {SOCIAL_LINKS.map(({ label, href, Icon }) => (
+                <a key={label} href={href} className="footer__link footer__social-link" aria-label={label}>
+                  <Icon size={26} aria-hidden />
+                  <span className="sr-only">{label}</span>
                 </a>
               ))}
             </div>

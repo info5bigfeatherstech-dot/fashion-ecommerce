@@ -1995,7 +1995,7 @@ textarea {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 4px;
   position: relative;
   min-width: var(--touch-min);
   min-height: var(--touch-min);
@@ -2014,10 +2014,16 @@ textarea {
   justify-content: center;
 }
 
+.header__util-icon svg,
+.header__util > svg {
+  width: 20px;
+  height: 20px;
+}
+
 .header__util-label {
   display: none;
   font-family: var(--font-ui);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -2028,6 +2034,12 @@ textarea {
 @media (min-width: 1024px) {
   .header__util-label {
     display: block;
+  }
+
+  .header__util-icon svg,
+  .header__util > svg {
+    width: 22px;
+    height: 22px;
   }
 }
 
@@ -2789,7 +2801,23 @@ textarea {
 
 .footer__social {
   display: flex;
+  align-items: center;
   gap: var(--space-2);
+}
+
+.footer__social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 40px;
+}
+
+.footer__social-link svg {
+  display: block;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
 }
 
 .footer__payments {
@@ -4269,7 +4297,7 @@ textarea {
 }
 
 .jewelry-archive__cta:hover {
-  color: var(--color-gold);
+  color: var(--color-accent);
 }
 
 .jewelry-archive__timeline {
@@ -6461,7 +6489,9 @@ textarea {
 .as-seen-collage {
   display: flex;
   width: auto;
-  margin-inline: calc(-1 * var(--space-1));
+  max-width: 1300px;
+  margin-inline: auto;
+  padding-inline: var(--space-1);
 }
 
 .as-seen-collage__column {
@@ -6469,17 +6499,27 @@ textarea {
   background-clip: padding-box;
 }
 
+.as-seen-collage__motion {
+  margin-bottom: var(--space-2);
+}
+
 .as-seen-collage__item {
   display: block;
   position: relative;
-  overflow: hidden;
-  border-radius: var(--radius-sm);
-  margin-bottom: var(--space-2);
+  width: 100%;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 18px;
   background-color: var(--color-neutral);
 }
 
+.as-seen-collage__item .reflective-card__inner {
+  border-radius: inherit;
+  height: 100%;
+}
+
 .as-seen-collage__item--tall {
-  aspect-ratio: 3 / 5;
+  aspect-ratio: 4 / 5;
 }
 
 .as-seen-collage__item--square {
@@ -6487,19 +6527,69 @@ textarea {
 }
 
 .as-seen-collage__item--medium {
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 5 / 6;
 }
-
 .as-seen-collage__image {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform var(--transition-slow);
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.as-seen-collage__item:hover .as-seen-collage__image {
-  transform: scale(1.04);
+.as-seen-collage__shine {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(
+    120deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.28) 50%,
+    transparent 65%
+  );
+  transform: translateX(-120%);
+  transition: transform 0.7s ease;
+}
+
+.as-seen-collage__overlay {
+  position: absolute;
+  left: var(--space-2);
+  right: var(--space-2);
+  bottom: var(--space-2);
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: var(--radius-full);
+  background: rgba(20, 18, 15, 0.72);
+  color: var(--color-paper);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.as-seen-collage__item:hover .as-seen-collage__image,
+.as-seen-collage__item:focus-visible .as-seen-collage__image {
+  transform: scale(1.06);
+}
+
+.as-seen-collage__item:hover .as-seen-collage__shine,
+.as-seen-collage__item:focus-visible .as-seen-collage__shine {
+  transform: translateX(120%);
+}
+
+.as-seen-collage__item:hover .as-seen-collage__overlay,
+.as-seen-collage__item:focus-visible .as-seen-collage__overlay {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 @media (max-width: 767px) {
@@ -6512,6 +6602,21 @@ textarea {
   .as-seen-section__cta {
     width: 100%;
     justify-content: center;
+  }
+
+  .as-seen-collage__item {
+    border-radius: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .as-seen-collage__motion {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .as-seen-collage__shine {
+    display: none;
   }
 }
 

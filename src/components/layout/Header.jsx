@@ -158,7 +158,7 @@ export function Header() {
               </Link> */}
               <Link to="/wishlist" className="header__util header__util--icon" aria-label="Wishlist">
                 <span className="header__util-icon">
-                  <Heart size={18} />
+                  <Heart size={22} />
                   {wishlistCount > 0 && (
                     <span className="header__badge-count">{wishlistCount}</span>
                   )}
@@ -167,19 +167,19 @@ export function Header() {
               </Link>
               <Link to="/profile" className="header__util header__util--desktop">
                 <span className="header__util-icon">
-                  <User size={18} />
+                  <User size={22} />
                 </span>
                 <span className="header__util-label">My Account</span>
               </Link>
               <Link to="/wholesale" className="header__util header__util--desktop">
                 <span className="header__util-icon">
-                  <Warehouse size={18} />
+                  <Warehouse size={22} />
                 </span>
                 <span className="header__util-label">Wholesale</span>
               </Link>
               <button type="button" className="header__util header__util--icon" onClick={openCart} aria-label="Shopping bag">
                 <span className="header__util-icon">
-                  <ShoppingBag size={20} />
+                  <ShoppingBag size={24} />
                   {cartCount > 0 && (
                     <span className="header__badge-count">{cartCount}</span>
                   )}
