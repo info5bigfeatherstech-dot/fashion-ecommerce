@@ -108,6 +108,47 @@ export const AS_SEEN_ON_YOU = {
   instagramHref: 'https://instagram.com/',
 }
 
+export const JEWELLERY_FEST = {
+  eyebrow: 'Limited Time',
+  title: 'Jewellery Fest',
+  offerLabel: 'Limited time offer',
+  ctaLabel: 'Explore Fine Jewellery',
+  ctaHref: '/shop/sale',
+  panelTitle: 'Jewellery for every moment',
+  /** Ends at end of the current local day (resets daily). */
+  endOfDay: true,
+  categories: [
+    {
+      id: 'everyday',
+      title: 'Everyday Minimal Jewellery',
+      discount: 20,
+      fallbackPrice: 999,
+      href: '/shop/women',
+    },
+    {
+      id: 'office',
+      title: 'Office Elegance Collection',
+      discount: 25,
+      fallbackPrice: 1499,
+      href: '/shop/new-arrivals',
+    },
+    {
+      id: 'festival',
+      title: 'Festival & Wedding Jewellery',
+      discount: 30,
+      fallbackPrice: 2999,
+      href: '/shop/women',
+    },
+    {
+      id: 'party',
+      title: 'Party & Night Out Sparkle',
+      discount: 35,
+      fallbackPrice: 1799,
+      href: '/shop/sale',
+    },
+  ],
+}
+
 export const DEEP_CATEGORIES = [
   {
     label: 'Statement Earrings',

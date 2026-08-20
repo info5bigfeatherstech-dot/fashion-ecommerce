@@ -31,7 +31,20 @@ const COLLAGE_COLUMNS = {
   480: 1,
 }
 
-const SIZE_PATTERN = ['tall', 'square', 'square', 'square', 'medium', 'square', 'medium', 'tall']
+const SIZE_PATTERN = [
+  'tall',
+  'square',
+  'square',
+  'medium',
+  'square',
+  'tall',
+  'medium',
+  'square',
+  'square',
+  'medium',
+  'tall',
+  'square',
+]
 
 const SIZE_CLASS = {
   tall: 'as-seen-collage__item--tall',
@@ -39,21 +52,28 @@ const SIZE_CLASS = {
   medium: 'as-seen-collage__item--medium',
 }
 
+const COLLAGE_IMAGE_LIMIT = 28
+
 function buildCollageItems(products = []) {
   const items = []
+  const seen = new Set()
 
   for (const product of products) {
     const images = (product.images || []).filter(Boolean)
+    if (!images.length && product.image) images.push(product.image)
     if (!images.length) continue
 
     for (const image of images) {
+      if (seen.has(image)) continue
+      seen.add(image)
+
       items.push({
         id: `${product.id}-${items.length}`,
         image,
         alt: product.name,
         href: `/product/${product.slug}`,
       })
-      if (items.length >= 16) return items
+      if (items.length >= COLLAGE_IMAGE_LIMIT) return items
     }
   }
 
@@ -62,7 +82,7 @@ function buildCollageItems(products = []) {
 
 export function AsSeenOnYouSection() {
   const { data: products = [], isLoading } = useBestsellers()
-  const collageItems = buildCollageItems(products.slice(0, 24))
+  const collageItems = buildCollageItems(products.slice(0, 48))
 
   return (
     <section className="section container as-seen-section">
@@ -87,7 +107,7 @@ export function AsSeenOnYouSection() {
       </div>
 
       {isLoading ? (
-        <ProductGridSkeleton count={8} />
+        <ProductGridSkeleton count={12} />
       ) : collageItems.length > 0 ? (
         <Masonry
           breakpointCols={COLLAGE_COLUMNS}

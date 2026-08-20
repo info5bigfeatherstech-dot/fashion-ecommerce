@@ -11,6 +11,7 @@ import { ShopByCategorySection } from '@/components/home/ShopByCategorySection'
 import { EditorialSection } from '@/components/home/EditorialSection'
 import { AsSeenOnYouSection } from '@/components/home/AsSeenOnYouSection'
 import { LoyaltySection } from '@/components/home/LoyaltySection'
+import { JewelleryFestSection } from '@/components/home/JewelleryFestSection'
 import { DealsSection } from '@/components/home/DealsSection'
 import { TrustStripSection } from '@/components/home/TrustStripSection'
 import { PromoBannerSection } from '@/components/home/PromoBannerSection'
@@ -29,9 +30,10 @@ export default function Home() {
       <MostLovedSection />
       {/* <BeautySpotlightSection /> */}
       <ShopByCategorySection />
-      <EditorialSection />
+      {/* <EditorialSection /> */}
       <AsSeenOnYouSection />
       {/* <LoyaltySection /> */}
+      <JewelleryFestSection />
       <DealsSection />
       <TrustStripSection />
       <PromoBannerSection />
