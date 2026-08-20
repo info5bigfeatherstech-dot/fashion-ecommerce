@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { CalendarDays, Heart, Mail, MapPin, Package, Phone, ShoppingBag, Sparkles, UserRound } from 'lucide-react'
+import { CalendarDays, ChevronRight, Heart, Mail, MapPin, Package, Phone, ShoppingBag, Sparkles, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Input, InputGroup } from '@/components/ui/Input'
@@ -50,12 +50,15 @@ const addressSchema = z
       .refine((v) => !v || v.replace(/\D/g, '').length >= 8, 'Phone number looks too short'),
   })
 
-const ACCOUNT_LINKS = [
-  { id: 'profile', label: 'Profile' },
-  { id: 'cart', label: 'Add to cart' },
-  { id: 'wishlist', label: 'Wishlist' },
-  { id: 'orders', label: 'Orders' },
-  { id: 'addresses', label: 'Addresses' },
+const ACCOUNT_QUICK_LINKS = [
+  { id: 'orders', label: 'Orders', icon: Package },
+  { id: 'wishlist', label: 'Wishlist', icon: Heart },
+  { id: 'cart', label: 'Cart', icon: ShoppingBag },
+]
+
+const ACCOUNT_MENU_LINKS = [
+  { id: 'profile', label: 'Profile information', icon: UserRound },
+  { id: 'addresses', label: 'Saved addresses', icon: MapPin },
 ]
 
 export default function Account({
@@ -384,14 +387,19 @@ export default function Account({
       <aside className="account-sidebar">
         <div className="account-sidebar__card">
           <div className="account-sidebar__avatar">
-            <UserRound size={24} />
+            <UserRound size={22} />
           </div>
-          <p className="display-md">{user.firstName} {user.lastName}</p>
-          <p className="body-sm text-muted">{user.email}</p>
-          <div style={{ marginTop: 'var(--space-2)' }}><PointsBadge /></div>
+          <div className="account-sidebar__identity">
+            <p className="account-sidebar__hello">Hello,</p>
+            <p className="account-sidebar__name">{user.firstName} {user.lastName}</p>
+            <p className="account-sidebar__email">{user.email}</p>
+          </div>
+          <div className="account-sidebar__points"><PointsBadge /></div>
         </div>
-        <nav className="account-nav" aria-label="Account navigation">
-          {ACCOUNT_LINKS.map((link) => {
+
+        <div className="account-quick">
+          {ACCOUNT_QUICK_LINKS.map((link) => {
+            const Icon = link.icon
             const count =
               link.id === 'cart' ? cartItems.reduce((sum, item) => sum + item.quantity, 0)
               : link.id === 'wishlist' ? wishlistItems.length
@@ -400,16 +408,39 @@ export default function Account({
             return (
               <button
                 key={link.id}
-                className={`account-nav__link ${activeTab === link.id ? 'account-nav__link--active' : ''}`}
+                type="button"
+                className={`account-quick__tile ${activeTab === link.id ? 'account-quick__tile--active' : ''}`}
                 onClick={() => setActiveTab(link.id)}
               >
-                {link.label}{count > 0 ? ` (${count})` : ''}
+                <Icon size={18} />
+                <span>{link.label}</span>
+                {count > 0 && <b>{count}</b>}
+              </button>
+            )
+          })}
+        </div>
+
+        <nav className="account-menu" aria-label="Account settings">
+          {ACCOUNT_MENU_LINKS.map((link) => {
+            const Icon = link.icon
+            return (
+              <button
+                key={link.id}
+                type="button"
+                className={`account-menu__link ${activeTab === link.id ? 'account-menu__link--active' : ''}`}
+                onClick={() => setActiveTab(link.id)}
+              >
+                <Icon size={18} />
+                <span>{link.label}</span>
+                <ChevronRight size={16} />
               </button>
             )
           })}
         </nav>
-        <Separator style={{ marginBlock: 'var(--space-3)' }} />
-        <Button variant="ghost" onClick={handleLogout}>Sign Out</Button>
+
+        <button type="button" className="account-signout" onClick={handleLogout}>
+          Sign out
+        </button>
       </aside>
 
       <div className="account-main">
@@ -433,7 +464,7 @@ export default function Account({
 
         {activeTab === 'profile' && (
           <div className="account-section">
-            <div className="account-section__header">
+            <div className="account-section__header account-section__header--profile">
               <div>
                 <p className="heading-sm text-accent">Profile</p>
                 <h2 className="display-md">Your Account</h2>
@@ -452,7 +483,7 @@ export default function Account({
               </div>
             </div>
 
-            <div className="account-stats">
+            {/* <div className="account-stats">
               <div className="account-stat-card">
                 <Mail size={18} />
                 <div>
@@ -481,7 +512,7 @@ export default function Account({
                   <p className="account-stat-card__value">Today</p>
                 </div>
               </div>
-            </div>
+            </div> */}
 
             <div className="account-panel">
               <div className="account-panel__header">
@@ -644,7 +675,7 @@ export default function Account({
             <div className="account-panel" style={{ marginBottom: 'var(--space-4)' }}>
               <div className="account-panel__header">
                 <div>
-                  <p className="heading-sm text-accent">Add</p>
+                  {/* <p className="heading-sm text-accent">Add</p> */}
                   <h3 className="display-md">Add a new address</h3>
                 </div>
               </div>

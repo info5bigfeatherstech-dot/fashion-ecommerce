@@ -22,7 +22,8 @@ function navHref(item) {
 
 function isNavActive(item, pathname) {
   if (item.slug === 'home') return pathname === '/'
-  return pathname.includes(item.slug)
+  const href = navHref(item)
+  return pathname === href || pathname.startsWith(`${href}/`)
 }
 
 export function Header() {
