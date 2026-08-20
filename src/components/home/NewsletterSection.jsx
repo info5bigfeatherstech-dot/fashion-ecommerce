@@ -23,13 +23,13 @@ export function NewsletterSection() {
     <section className="section container">
       <div className="newsletter">
         <div>
-          <h2 className="display-md" style={{ marginBottom: 'var(--space-1)' }}>Stay in the <span className="heading-accent">Jewelry Circle</span></h2>
+          <h2 className="display-md" style={{ marginBottom: 'var(--space-1)' }}>Stay in the <span className="heading-accent heading-accent--gold">Loop</span></h2>
           <p className="body-lg text-muted">
-            Get first access to new jewelry drops, festive edits, styling ideas, and member-only offers.
+            Get first access to new jewelry drops, festive edits, styling ideas, and exclusive offers.
           </p>
           {FEATURE_FLAGS.enableAppDownload && (
             <p className="body-sm" style={{ marginTop: 'var(--space-2)' }}>
-              Follow VERAÒ for jewelry launches, gifting ideas, and exclusive app-only rewards.
+              Follow FABUNIQO for jewelry launches, gifting ideas, and app-only updates.
             </p>
           )}
           <p className="section-footnote">

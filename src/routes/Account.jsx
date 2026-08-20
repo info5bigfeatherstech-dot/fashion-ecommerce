@@ -10,7 +10,6 @@ import { Input, InputGroup } from '@/components/ui/Input'
 import { Separator } from '@/components/ui/Separator'
 import { Modal } from '@/components/ui/Modal'
 import { CheckoutAddressModal } from '@/components/checkout/CheckoutAddressModal'
-import { PointsBadge } from '@/features/loyalty/components/LoyaltySpotlight'
 import { CartItem } from '@/features/cart/components/CartItem'
 import { ProductCard } from '@/features/product/components/ProductCard'
 import { login, register as registerUser, logout } from '@/features/auth/api'
@@ -398,7 +397,6 @@ export default function Account({
             <p className="account-sidebar__name">{user.firstName} {user.lastName}</p>
             <p className="account-sidebar__email">{user.email}</p>
           </div>
-          <div className="account-sidebar__points"><PointsBadge /></div>
         </div>
 
         <div className="account-quick">
@@ -473,17 +471,14 @@ export default function Account({
                 <p className="heading-sm text-accent">Profile</p>
                 <h2 className="display-md">Your Account</h2>
               </div>
-              <Badge className="account-badge">Active member</Badge>
+              <Badge className="account-badge">Customer</Badge>
             </div>
 
             <div className="account-hero">
               <div>
-                <p className="heading-sm">VERAÒ Customer</p>
+                <p className="heading-sm">FABUNIQO Customer</p>
                 <h3 className="display-md account-hero__title">{user.firstName} {user.lastName}</h3>
                 <p className="body-lg text-muted">Manage your details, delivery addresses, and upcoming orders from one place.</p>
-              </div>
-              <div className="account-hero__points">
-                <PointsBadge />
               </div>
             </div>
 

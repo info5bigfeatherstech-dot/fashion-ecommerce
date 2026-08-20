@@ -3,7 +3,6 @@ import { Gift, Sparkles, Truck } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { useMemberStatus } from '../hooks'
-import { LOYALTY_TIERS } from '@/config/site'
 
 export function LoyaltySpotlight({ compact = false }) {
   const { data, isLoading } = useMemberStatus()

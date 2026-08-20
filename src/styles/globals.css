@@ -7,6 +7,7 @@
   --color-neutral: #EDE7DD;
   --color-border: #DDD7CC;
   --color-accent: #E0396A;
+  --color-gold: rgb(209, 167, 67);
   --color-success: #3B7A57;
   --color-error: #C1443D;
   --color-muted: #6B6560;
@@ -201,6 +202,10 @@ textarea {
   line-height: 1.2;
 }
 
+.heading-accent--gold {
+  color: var(--color-gold);
+}
+
 .display-md .heading-accent,
 .display-lg .heading-accent,
 .display-xl .heading-accent {
@@ -232,6 +237,10 @@ textarea {
 
 .text-accent {
   color: var(--color-accent);
+}
+
+.text-gold {
+  color: var(--color-gold);
 }
 
 .text-success {
@@ -452,8 +461,8 @@ textarea {
 .new-arrivals-slide {
   position: relative;
   flex: 0 0 min(72vw, 260px);
-  aspect-ratio: 3 / 4;
-  border-radius: 20px;
+  aspect-ratio: 1 / 1;
+  border-radius: 28px;
   overflow: hidden;
   scroll-snap-align: start;
   background-color: var(--color-neutral);
@@ -2738,7 +2747,7 @@ textarea {
 
 @media (min-width: 1024px) {
   .footer__grid {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 }
 
@@ -3910,7 +3919,7 @@ textarea {
   display: block;
   width: 32px;
   height: 1px;
-  background: var(--color-accent);
+  background: var(--color-gold);
   flex-shrink: 0;
 }
 
@@ -3929,7 +3938,7 @@ textarea {
 }
 
 .signature-jewelry__title-accent {
-  color: var(--color-accent);
+  color: var(--color-gold);
 }
 
 .signature-jewelry__actions {
@@ -3950,11 +3959,11 @@ textarea {
 }
 
 .signature-jewelry__cta:hover {
-  color: var(--color-accent);
+  color: var(--color-gold);
 }
 
 .signature-jewelry__cta:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-gold);
   outline-offset: 4px;
 }
 
@@ -3983,7 +3992,7 @@ textarea {
 }
 
 .signature-jewelry__cta:hover .signature-jewelry__cta-icon {
-  border-color: var(--color-accent);
+  border-color: var(--color-gold);
   transform: translateX(2px);
 }
 
@@ -4122,7 +4131,7 @@ textarea {
 
 @media (min-width: 900px) {
   .jewelry-archive__layout {
-    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
     gap: clamp(var(--space-4), 4vw, var(--space-8));
     align-items: start;
     min-height: 0;
@@ -4260,7 +4269,7 @@ textarea {
 }
 
 .jewelry-archive__cta:hover {
-  color: var(--color-accent);
+  color: var(--color-gold);
 }
 
 .jewelry-archive__timeline {
@@ -4318,13 +4327,13 @@ textarea {
 
 .jewelry-archive__year:hover,
 .jewelry-archive__year.is-active {
-  color: var(--color-accent);
+  color: var(--color-gold);
 }
 
 .jewelry-archive__year.is-active .jewelry-archive__year-tick {
   width: 3px;
   height: 22px;
-  background-color: var(--color-ink);
+  background-color: var(--color-gold);
 }
 
 @media (max-width: 899px) {
@@ -4460,7 +4469,7 @@ textarea {
   display: block;
   width: 2.5rem;
   height: 1px;
-  background-color: var(--color-border);
+  background-color: var(--color-gold);
 }
 
 .craft-inspect__brand-title {
@@ -4474,7 +4483,7 @@ textarea {
 
 .craft-inspect__brand-lead,
 .craft-inspect__brand-trail {
-  color: var(--color-accent);
+  color: var(--color-gold);
 }
 
 .craft-inspect__brand-amp {
@@ -4527,7 +4536,7 @@ textarea {
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-accent);
+  color: var(--color-gold);
 }
 
 .craft-inspect__spec-value {
@@ -4555,8 +4564,8 @@ textarea {
   margin-top: var(--space-3);
   padding: 12px 22px;
   border-radius: var(--radius-sm);
-  background-color: var(--color-accent);
-  color: var(--color-white);
+  background-color: var(--color-gold);
+  color: var(--color-ink);
   text-decoration: none;
   font-family: 'Montserrat', sans-serif;
   font-size: 0.75rem;
@@ -4568,6 +4577,7 @@ textarea {
 
 .craft-inspect__cta:hover {
   background-color: var(--color-ink);
+  color: var(--color-paper);
 }
 
 @media (max-width: 899px) {

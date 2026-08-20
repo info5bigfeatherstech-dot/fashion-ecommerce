@@ -11,7 +11,6 @@ import { BeautySpotlightSection } from '@/components/home/BeautySpotlightSection
 import { ShopByCategorySection } from '@/components/home/ShopByCategorySection'
 import { EditorialSection } from '@/components/home/EditorialSection'
 import { AsSeenOnYouSection } from '@/components/home/AsSeenOnYouSection'
-import { LoyaltySection } from '@/components/home/LoyaltySection'
 import { JewelleryFestSection } from '@/components/home/JewelleryFestSection'
 import { DealsSection } from '@/components/home/DealsSection'
 import { TrustStripSection } from '@/components/home/TrustStripSection'
@@ -32,14 +31,13 @@ export default function Home() {
       <TrendingNowFastSection />
       <AsSeenOnYouSection />
       {/* <CategoryStripSection /> */}
-      <LatestCollectionsSection />
+      {/* <LatestCollectionsSection /> */}
       <NewDropsSection />
       <BestsellersSection />
-      <MostLovedSection />
+      {/* <MostLovedSection /> */}
       {/* <BeautySpotlightSection /> */}
       <ShopByCategorySection />
       {/* <EditorialSection /> */}
-      {/* <LoyaltySection /> */}
       {/* <DealsSection /> */}
       {/* <TrustStripSection /> */}
       {/* <PromoBannerSection /> */}

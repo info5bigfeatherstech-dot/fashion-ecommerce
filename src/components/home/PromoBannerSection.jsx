@@ -19,9 +19,9 @@ export function PromoBannerSection() {
           <p className="body-lg promo-banner__copy">
             Explore statement earrings, rings, bangles, necklaces, and sets made to complement festive looks and everyday outfits.
           </p>
-          <Link to="/shop/women">
-            <Button variant="accent">Shop Jewelry</Button>
-          </Link>
+          <Button variant="accent" asChild>
+            <Link to="/shop/women">Shop Jewelry</Link>
+          </Button>
           <p className="section-footnote promo-banner__note">
             One edit for every occasion — from daily wear to celebrations and gifting.
           </p>

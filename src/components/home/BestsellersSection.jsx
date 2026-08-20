@@ -10,7 +10,7 @@ export function BestsellersSection() {
     <section className="section container">
       <div className="section-header">
         <div>
-          <h2 className="display-md">Bestselling <span className="heading-accent">Jewelry</span></h2>
+          <h2 className="display-md">Bestselling <span className="heading-accent heading-accent--gold">Jewelry</span></h2>
           <p className="section-subheader">
             The pieces customers wear on repeat — everyday staples and occasion-ready favorites.
           </p>

@@ -15,12 +15,12 @@ export const PRODUCT_OFFER = {
 }
 
 export const TOP_BANNER = {
-  badge: 'Circle Week',
+  badge: 'Season Edit',
   lead: 'Use code',
   code: 'VERA26',
   message: 'Artificial jewelry styles for every occasion · Free shipping over $100',
   terms: 'See terms in FAQ',
-  href: '/loyalty',
+  href: '/shop/new-arrivals',
 }
 
 export const NAV_ITEMS = [
@@ -404,15 +404,6 @@ export const FOOTER_COLUMNS = [
     ],
   },
   {
-    title: 'FABUNIQO Circle',
-    links: [
-      { label: 'Join the Program', href: '/loyalty' },
-      { label: 'Earn Points', href: '/loyalty' },
-      { label: 'Redeem Rewards', href: '/loyalty' },
-      { label: 'Member Benefits', href: '/loyalty' },
-    ],
-  },
-  {
     title: 'About',
     links: [
       { label: 'Our Story', href: '/account' },
@@ -425,12 +416,6 @@ export const PAYMENT_METHODS = ['Visa', 'MC', 'Amex', 'PayPal', 'Apple Pay']
 
 export const FEATURE_FLAGS = {
   enableAppDownload: true,
-  enableLoyalty: true,
+  enableLoyalty: false,
   enableQuickAdd: true,
 }
-
-export const LOYALTY_TIERS = [
-  { name: 'Member', minPoints: 0, benefits: ['Earn 1 pt per $1', 'Birthday reward', 'Early access emails'] },
-  { name: 'Insider', minPoints: 500, benefits: ['Earn 1.5 pts per $1', 'Free shipping', 'Exclusive drops'] },
-  { name: 'Elite', minPoints: 2000, benefits: ['Earn 2 pts per $1', 'Personal stylist', 'VIP events'] },
-]

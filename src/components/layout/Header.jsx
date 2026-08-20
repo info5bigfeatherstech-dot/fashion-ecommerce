@@ -1,11 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ShoppingBag, Heart, User, MessageCircle, MapPin, Menu, Search, X, ChevronDown, ChevronRight, LogIn, Warehouse, Sparkles, Home as HomeIcon } from 'lucide-react'
+import { ShoppingBag, Heart, User, MessageCircle, MapPin, Menu, Search, X, ChevronDown, ChevronRight, Warehouse, Home as HomeIcon } from 'lucide-react'
 import { SearchBar } from '@/features/search/components/SearchBar'
 import { CartDrawer } from '@/features/cart/components/CartDrawer'
 import { MegaMenuPanel } from '@/features/category/components/MegaMenu'
-import { PointsBadge } from '@/features/loyalty/components/LoyaltySpotlight'
 import { useAppStore } from '@/store'
 import { useCartCount, useWishlistCount } from '@/store/selectors'
 import { SITE_NAME, NAV_ITEMS } from '@/config/site'
@@ -36,7 +35,6 @@ export function Header() {
   const location = useLocation()
   const cartCount = useCartCount()
   const wishlistCount = useWishlistCount()
-  const isAuthenticated = useAppStore((s) => s.isAuthenticated)
   const openCart = useAppStore((s) => s.openCart)
 
   const categoryMap = {
@@ -179,22 +177,6 @@ export function Header() {
                 </span>
                 <span className="header__util-label">Wholesale</span>
               </Link>
-              {/* <Link
-                to={isAuthenticated ? '/loyalty' : '/login'}
-                className={`header__points ${isAuthenticated ? '' : 'header__points--login'}`}
-                aria-label={isAuthenticated ? 'Loyalty points' : 'Log in'}
-              >
-                {isAuthenticated ? (
-                  <PointsBadge />
-                ) : (
-                  <>
-                    <span className="header__util-icon">
-                      <LogIn size={16} strokeWidth={1.75} aria-hidden="true" />
-                    </span>
-                    <span className="header__util-label header__util-label--always">Log in</span>
-                  </>
-                )}
-              </Link> */}
               <button type="button" className="header__util header__util--icon" onClick={openCart} aria-label="Shopping bag">
                 <span className="header__util-icon">
                   <ShoppingBag size={20} />
@@ -359,9 +341,6 @@ export function Header() {
                   </Link>
                   <Link to="/wishlist" onClick={() => setMobileNavOpen(false)}>
                     <Heart size={16} /> Wishlist <ChevronRight size={16} />
-                  </Link>
-                  <Link to="/loyalty" onClick={() => setMobileNavOpen(false)}>
-                    <Sparkles size={16} /> Circle Points <ChevronRight size={16} />
                   </Link>
                 </div>
               </div>

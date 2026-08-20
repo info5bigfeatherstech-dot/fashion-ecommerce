@@ -89,7 +89,7 @@ export function AsSeenOnYouSection() {
       <div className="section-header as-seen-section__header">
         <div>
           <h2 className="display-md">
-            As Seen <span className="heading-accent">On You</span>
+          Jewellery  <span className="heading-accent">Spotted</span>
           </h2>
           <p className="section-subheader">
             Real people, real style. Tag <strong>#FABUNIQO</strong> for a chance to be featured in our global gallery.

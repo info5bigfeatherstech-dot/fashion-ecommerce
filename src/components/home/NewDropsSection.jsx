@@ -10,7 +10,7 @@ export function NewDropsSection() {
     <section className="section container">
       <div className="section-header">
         <div>
-          <h2 className="display-md">New <span className="heading-accent">Jewelry Drops</span></h2>
+          <h2 className="display-md">New <span className="heading-accent heading-accent--gold">Jewelry Drops</span></h2>
           <p className="section-subheader">
             Just landed — fresh earrings, chains, and statement sets ready to layer, gift, and wear now.
           </p>

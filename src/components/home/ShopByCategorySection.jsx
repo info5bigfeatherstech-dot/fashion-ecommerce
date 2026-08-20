@@ -7,7 +7,7 @@ export function ShopByCategorySection() {
     <section className="section container">
       <div className="section-header">
         <div>
-          <h2 className="display-md">Shop by <span className="heading-accent">Jewelry Style</span></h2>
+          <h2 className="display-md">Shop by <span className="heading-accent heading-accent--gold">Jewelry Style</span></h2>
           <p className="section-subheader">
             Browse earrings, necklaces, rings, and more — organized by the styles you reach for most.
           </p>
