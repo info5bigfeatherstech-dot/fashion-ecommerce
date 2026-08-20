@@ -1648,8 +1648,20 @@ textarea {
 .header__utils {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-shrink: 0;
+}
+
+@media (min-width: 1024px) {
+  .header__utils {
+    gap: 22px;
+  }
+
+  .header__util,
+  .header__points--login {
+    min-width: 4.75rem;
+    padding-inline: 8px;
+  }
 }
 
 @media (max-width: 1023px) {
@@ -1707,7 +1719,7 @@ textarea {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 3px;
   position: relative;
   min-width: var(--touch-min);
   min-height: var(--touch-min);
@@ -1719,17 +1731,25 @@ textarea {
   color: var(--color-accent);
 }
 
+.header__util-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .header__util-label {
   display: none;
   font-family: var(--font-ui);
   font-size: 9px;
   font-weight: 500;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   white-space: nowrap;
+  line-height: 1;
 }
 
-@media (min-width: 1100px) {
+@media (min-width: 1024px) {
   .header__util-label {
     display: block;
   }
@@ -1755,8 +1775,16 @@ textarea {
 }
 
 .header__points--login {
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  flex-direction: column;
+  gap: 3px;
+  max-width: none;
+  min-height: var(--touch-min);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .header__points--login svg {
@@ -1769,7 +1797,12 @@ textarea {
   background-color: rgba(224, 57, 106, 0.08);
 }
 
-@media (min-width: 1100px) {
+.header__points--login:hover {
+  border-color: transparent;
+  background-color: transparent;
+}
+
+@media (min-width: 1024px) {
   .header__points {
     display: inline-flex;
   }
@@ -1989,8 +2022,8 @@ textarea {
 
 .header__badge-count {
   position: absolute;
-  top: -4px;
-  right: -6px;
+  top: -6px;
+  right: -8px;
   min-width: 16px;
   height: 16px;
   display: flex;

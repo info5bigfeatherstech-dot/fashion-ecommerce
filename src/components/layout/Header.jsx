@@ -158,20 +158,27 @@ export function Header() {
                 <span className="header__util-label">Stores</span>
               </Link> */}
               <Link to="/wishlist" className="header__util header__util--icon" aria-label="Wishlist">
-                <Heart size={18} />
-                {wishlistCount > 0 && (
-                  <span className="header__badge-count">{wishlistCount}</span>
-                )}
+                <span className="header__util-icon">
+                  <Heart size={18} />
+                  {wishlistCount > 0 && (
+                    <span className="header__badge-count">{wishlistCount}</span>
+                  )}
+                </span>
+                <span className="header__util-label">Wishlist</span>
               </Link>
               <Link to="/profile" className="header__util header__util--desktop">
-                <User size={18} />
+                <span className="header__util-icon">
+                  <User size={18} />
+                </span>
                 <span className="header__util-label">My Account</span>
               </Link>
               <Link to="/wholesale" className="header__util header__util--desktop">
-                <Warehouse size={18} />
+                <span className="header__util-icon">
+                  <Warehouse size={18} />
+                </span>
                 <span className="header__util-label">Wholesale</span>
               </Link>
-              <Link
+              {/* <Link
                 to={isAuthenticated ? '/loyalty' : '/login'}
                 className={`header__points ${isAuthenticated ? '' : 'header__points--login'}`}
                 aria-label={isAuthenticated ? 'Loyalty points' : 'Log in'}
@@ -180,16 +187,21 @@ export function Header() {
                   <PointsBadge />
                 ) : (
                   <>
-                    <LogIn size={14} strokeWidth={1.75} aria-hidden="true" />
-                    <span>Log in</span>
+                    <span className="header__util-icon">
+                      <LogIn size={16} strokeWidth={1.75} aria-hidden="true" />
+                    </span>
+                    <span className="header__util-label header__util-label--always">Log in</span>
                   </>
                 )}
-              </Link>
+              </Link> */}
               <button type="button" className="header__util header__util--icon" onClick={openCart} aria-label="Shopping bag">
-                <ShoppingBag size={20} />
-                {cartCount > 0 && (
-                  <span className="header__badge-count">{cartCount}</span>
-                )}
+                <span className="header__util-icon">
+                  <ShoppingBag size={20} />
+                  {cartCount > 0 && (
+                    <span className="header__badge-count">{cartCount}</span>
+                  )}
+                </span>
+                <span className="header__util-label">Bag</span>
               </button>
             </div>
           </div>
