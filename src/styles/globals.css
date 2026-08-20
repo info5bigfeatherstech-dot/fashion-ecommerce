@@ -1428,39 +1428,38 @@ textarea {
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
   scrollbar-width: none;
-  padding: var(--space-1) var(--space-2);
+  padding-block: var(--space-1);
+  /* Keep full cards clear of the overlay arrows */
+  padding-inline: calc(var(--touch-min) + var(--space-2));
+  scroll-padding-inline: calc(var(--touch-min) + var(--space-2));
 }
 
 .product-carousel__track::-webkit-scrollbar {
   display: none;
 }
 
+/* Exact card widths so a whole number of images fit — no edge cut-off */
 .product-carousel__item {
-  flex: 0 0 min(78%, 280px);
+  flex: 0 0 calc((100% - var(--space-3)) / 2);
   scroll-snap-align: start;
+  scroll-snap-stop: always;
   min-width: 0;
 }
 
 @media (min-width: 640px) {
   .product-carousel__item {
-    flex-basis: min(42%, 280px);
-  }
-}
-
-@media (min-width: 768px) {
-  .product-carousel__track {
-    padding: var(--space-1) var(--space-6);
-  }
-
-  .product-carousel__item {
-    flex-basis: min(32%, 280px);
+    flex-basis: calc((100% - (2 * var(--space-3))) / 3);
   }
 }
 
 @media (min-width: 1024px) {
   .product-carousel__item {
-    flex-basis: calc(25% - var(--space-3));
+    flex-basis: calc((100% - (3 * var(--space-3))) / 4);
   }
+}
+
+.product-carousel .product-card__media {
+  aspect-ratio: 3 / 4;
 }
 
 .product-carousel__btn {
