@@ -6,12 +6,12 @@ import { Button } from '@/components/ui/Button'
 import { useAppStore } from '@/store'
 import { formatPrice, formatDiscount } from '@/lib/utils'
 import { FEATURE_FLAGS } from '@/config/site'
+import { showAddedToCartToast } from '@/lib/cart-toast'
 import { OfferCode } from './OfferCode'
 
 export function ProductCard({ product, compact = false }) {
   const toggleWishlist = useAppStore((s) => s.toggleWishlist)
   const addItem = useAppStore((s) => s.addItem)
-  const openCart = useAppStore((s) => s.openCart)
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
   const inWishlist = useAppStore((s) => (s.isAuthenticated ? s.isInWishlist(product.id) : false))
   const navigate = useNavigate()
@@ -26,7 +26,7 @@ export function ProductCard({ product, compact = false }) {
       return
     }
     addItem(product)
-    openCart()
+    showAddedToCartToast(product, { onViewBag: () => navigate('/cart') })
   }
 
   const handleWishlist = (e) => {

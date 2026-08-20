@@ -12,6 +12,7 @@ import { ProductGridSkeleton } from '@/components/ui/Skeleton'
 import { useProductDetail, useProductListing } from '@/features/product/hooks'
 import { OfferCode } from '@/features/product/components/OfferCode'
 import { useAppStore } from '@/store'
+import { showAddedToCartToast } from '@/lib/cart-toast'
 
 const TRUST_ITEMS = [
   { icon: Truck, label: 'Free shipping over $100' },
@@ -36,7 +37,6 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState(1)
 
   const addItem = useAppStore((s) => s.addItem)
-  const openCart = useAppStore((s) => s.openCart)
   const toggleWishlist = useAppStore((s) => s.toggleWishlist)
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
   const inWishlist = useAppStore((s) => (
@@ -85,7 +85,10 @@ export default function ProductDetail() {
       return
     }
     addItem(product, { size, color, quantity })
-    openCart()
+    showAddedToCartToast(product, {
+      quantity,
+      onViewBag: () => navigate('/cart'),
+    })
   }
 
   const accordionItems = [

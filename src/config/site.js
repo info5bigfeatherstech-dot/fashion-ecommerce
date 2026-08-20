@@ -77,6 +77,37 @@ export const HERO_SLIDES = [
   },
 ]
 
+export const LATEST_COLLECTIONS = [
+  {
+    slug: 'autumn-edit',
+    eyebrow: 'Seasonal Edit',
+    title: 'Autumn Glow',
+    caption: 'Warm gold tones and layered chains for festive evenings and everyday polish.',
+    href: '/shop/new-arrivals',
+    image: 'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=800&h=1067&q=80',
+  },
+  {
+    slug: 'minimal-luxe',
+    eyebrow: 'Everyday Edit',
+    title: 'Minimal Luxe',
+    caption: 'Understated studs, slim bands, and delicate pendants made for daily wear.',
+    href: '/shop/women',
+    image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=800&h=1067&q=80',
+  },
+  {
+    slug: 'statement-night',
+    eyebrow: 'Occasion Edit',
+    title: 'Statement Night',
+    caption: 'Bold earrings and crystal sets designed to turn heads after dark.',
+    href: '/shop/women',
+    image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=800&h=1067&q=80',
+  },
+]
+
+export const AS_SEEN_ON_YOU = {
+  instagramHref: 'https://instagram.com/',
+}
+
 export const DEEP_CATEGORIES = [
   {
     label: 'Statement Earrings',

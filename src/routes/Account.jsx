@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Input, InputGroup } from '@/components/ui/Input'
 import { Separator } from '@/components/ui/Separator'
 import { Modal } from '@/components/ui/Modal'
+import { CheckoutAddressModal } from '@/components/checkout/CheckoutAddressModal'
 import { PointsBadge } from '@/features/loyalty/components/LoyaltySpotlight'
 import { CartItem } from '@/features/cart/components/CartItem'
 import { ProductCard } from '@/features/product/components/ProductCard'
@@ -16,6 +17,7 @@ import { login, register as registerUser, logout } from '@/features/auth/api'
 import { useAppStore } from '@/store'
 import { useCartTotal } from '@/store/selectors'
 import { formatPrice } from '@/lib/utils'
+import { showAddedToCartToast } from '@/lib/cart-toast'
 
 const loginSchema = z.object({
   email: z.string().email('Valid email required'),
@@ -85,6 +87,7 @@ export default function Account({
   const [authMode, setAuthMode] = useState(initialAuthMode)
   const [authError, setAuthError] = useState('')
   const [authModalOpen, setAuthModalOpen] = useState(true)
+  const [checkoutAddressOpen, setCheckoutAddressOpen] = useState(false)
 
   const loginForm = useForm({ resolver: zodResolver(loginSchema) })
   const registerForm = useForm({ resolver: zodResolver(registerSchema) })
@@ -383,7 +386,8 @@ export default function Account({
   }
 
   return (
-    <div className="container account-layout">
+    <>
+      <div className="container account-layout">
       <aside className="account-sidebar">
         <div className="account-sidebar__card">
           <div className="account-sidebar__avatar">
@@ -582,9 +586,14 @@ export default function Account({
                   <span>Subtotal</span>
                   <span>{formatPrice(cartTotal)}</span>
                 </div>
-                <Link to="/checkout" style={{ display: 'block', marginTop: 'var(--space-3)' }}>
-                  <Button variant="primary" fullWidth>Proceed to Checkout</Button>
-                </Link>
+                <Button
+                  variant="primary"
+                  fullWidth
+                  style={{ display: 'block', marginTop: 'var(--space-3)' }}
+                  onClick={() => setCheckoutAddressOpen(true)}
+                >
+                  Proceed to Checkout
+                </Button>
               </div>
             )}
           </div>
@@ -635,15 +644,19 @@ export default function Account({
                         variant="primary"
                         size="sm"
                         fullWidth
-                        onClick={() => addItem({
-                          id: item.id,
-                          slug: item.slug,
-                          name: item.name,
-                          price: item.price,
-                          images: [item.image],
-                          sizes: [],
-                          colors: [],
-                        })}
+                        onClick={() => {
+                          const product = {
+                            id: item.id,
+                            slug: item.slug,
+                            name: item.name,
+                            price: item.price,
+                            images: [item.image],
+                            sizes: [],
+                            colors: [],
+                          }
+                          addItem(product)
+                          showAddedToCartToast(product, { onViewBag: () => navigate('/cart') })
+                        }}
                       >
                         Add to cart
                       </Button>
@@ -783,5 +796,12 @@ export default function Account({
         )}
       </div>
     </div>
+
+      <CheckoutAddressModal
+        open={checkoutAddressOpen}
+        onOpenChange={setCheckoutAddressOpen}
+        onProceed={() => navigate('/checkout')}
+      />
+    </>
   )
 }

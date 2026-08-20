@@ -19,6 +19,7 @@ export const useAppStore = create(
         user: state.user,
         isAuthenticated: state.isAuthenticated,
         addresses: state.addresses,
+        checkoutAddress: state.checkoutAddress,
       }),
     }
   )

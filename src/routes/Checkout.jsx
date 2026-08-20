@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -15,6 +15,9 @@ export default function Checkout() {
   const cartItems = useAppStore((s) => s.cartItems)
   const cartTotal = useCartTotal()
   const clearCart = useAppStore((s) => s.clearCart)
+  const user = useAppStore((s) => s.user)
+  const checkoutAddress = useAppStore((s) => s.checkoutAddress)
+  const clearCheckoutAddress = useAppStore((s) => s.clearCheckoutAddress)
   const [orderPlaced, setOrderPlaced] = useState(false)
   const [prepaidOption, setPrepaidOption] = useState('card')
 
@@ -97,11 +100,33 @@ export default function Checkout() {
       paymentMethod: 'prepaid',
       prepaidOption: 'card',
       partialAmount: '',
+      email: user?.email ?? '',
+      firstName: user?.firstName ?? '',
+      lastName: user?.lastName ?? '',
+      address: checkoutAddress?.fullAddress ?? '',
+      city: checkoutAddress?.city ?? '',
+      state: checkoutAddress?.state ?? '',
+      zip: checkoutAddress?.zip ?? '',
     },
   })
 
   const paymentMethod = watch('paymentMethod')
   const partialAmountNum = Number(watch('partialAmount') || 0)
+
+  // When the user picked an address in the popup right before navigation,
+  // pre-fill the checkout form fields.
+  useEffect(() => {
+    if (!user && !checkoutAddress) return
+
+    if (user?.email) setValue('email', user.email)
+    if (user?.firstName) setValue('firstName', user.firstName)
+    if (user?.lastName) setValue('lastName', user.lastName)
+
+    if (checkoutAddress?.fullAddress) setValue('address', checkoutAddress.fullAddress)
+    if (checkoutAddress?.city) setValue('city', checkoutAddress.city)
+    if (checkoutAddress?.state) setValue('state', checkoutAddress.state)
+    if (checkoutAddress?.zip) setValue('zip', checkoutAddress.zip)
+  }, [user, checkoutAddress, setValue])
 
   if (cartItems.length === 0 && !orderPlaced) {
     return (
@@ -125,6 +150,7 @@ export default function Checkout() {
   const onSubmit = async () => {
     await new Promise((r) => setTimeout(r, 1000))
     clearCart()
+    clearCheckoutAddress()
     setOrderPlaced(true)
   }
 

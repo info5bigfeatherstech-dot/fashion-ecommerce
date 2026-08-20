@@ -1,15 +1,19 @@
-import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { CartItem } from '@/features/cart/components/CartItem'
 import { useAppStore } from '@/store'
 import { useCartTotal } from '@/store/selectors'
 import { formatPrice } from '@/lib/utils'
+import { CheckoutAddressModal } from '@/components/checkout/CheckoutAddressModal'
 
 export default function Cart() {
   const cartItems = useAppStore((s) => s.cartItems)
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
   const cartTotal = useCartTotal()
   const clearCart = useAppStore((s) => s.clearCart)
+  const navigate = useNavigate()
+  const [checkoutAddressOpen, setCheckoutAddressOpen] = useState(false)
 
   if (!isAuthenticated) {
     return (
@@ -63,11 +67,22 @@ export default function Cart() {
             <span>Total</span>
             <span>{formatPrice(cartTotal + (cartTotal >= 100 ? 0 : 9.95))}</span>
           </div>
-          <Link to="/checkout" style={{ display: 'block', marginTop: 'var(--space-3)' }}>
-            <Button variant="primary" fullWidth>Proceed to Checkout</Button>
-          </Link>
+          <Button
+            variant="primary"
+            fullWidth
+            style={{ marginTop: 'var(--space-3)' }}
+            onClick={() => setCheckoutAddressOpen(true)}
+          >
+            Proceed to Checkout
+          </Button>
         </div>
       </div>
+
+      <CheckoutAddressModal
+        open={checkoutAddressOpen}
+        onOpenChange={setCheckoutAddressOpen}
+        onProceed={() => navigate('/checkout')}
+      />
     </div>
   )
 }

@@ -8,6 +8,9 @@ export const authSlice = (set, get) => ({
 
   addresses: [],
 
+  // Address selected in the checkout flow (set from the checkout address popup).
+  checkoutAddress: null,
+
   addAddress: (address) => {
     const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`
     set((state) => ({
@@ -19,6 +22,8 @@ export const authSlice = (set, get) => ({
         },
       ],
     }))
+
+    return id
   },
 
   removeAddress: (addressId) => {
@@ -27,11 +32,15 @@ export const authSlice = (set, get) => ({
     }))
   },
 
+  setCheckoutAddress: (address) => set({ checkoutAddress: address }),
+  clearCheckoutAddress: () => set({ checkoutAddress: null }),
+
   clearUser: () =>
     set({
       user: null,
       isAuthenticated: false,
       addresses: [],
+      checkoutAddress: null,
       cartItems: [],
       wishlistItems: [],
       isCartOpen: false,

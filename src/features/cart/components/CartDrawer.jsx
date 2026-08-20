@@ -1,11 +1,13 @@
+import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowRight, Lock, ShoppingBag, Sparkles, X } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { useAppStore } from '@/store'
 import { useCartTotal } from '@/store/selectors'
 import { formatPrice } from '@/lib/utils'
 import { CartItem } from './CartItem'
+import { CheckoutAddressModal } from '@/components/checkout/CheckoutAddressModal'
 
 export function CartDrawer() {
   const isCartOpen = useAppStore((s) => s.isCartOpen)
@@ -14,9 +16,12 @@ export function CartDrawer() {
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
   const cartTotal = useCartTotal()
   const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
+  const navigate = useNavigate()
+  const [checkoutAddressOpen, setCheckoutAddressOpen] = useState(false)
 
   return (
-    <AnimatePresence>
+    <>
+      <AnimatePresence>
       {isCartOpen && (
         <>
           <motion.div
@@ -93,11 +98,17 @@ export function CartDrawer() {
                   </div>
                 </div>
 
-                <Link to="/checkout" onClick={closeCart} className="drawer__cta-link">
-                  <Button variant="primary" fullWidth>
-                    Proceed to Checkout <ArrowRight size={16} />
-                  </Button>
-                </Link>
+                <Button
+                  variant="primary"
+                  fullWidth
+                  className="drawer__cta-link"
+                  onClick={() => {
+                    closeCart()
+                    setCheckoutAddressOpen(true)
+                  }}
+                >
+                  Proceed to Checkout <ArrowRight size={16} />
+                </Button>
                 <Link to="/cart" onClick={closeCart} style={{ display: 'block', textAlign: 'center', marginTop: 'var(--space-2)' }}>
                   <span className="body-sm section-header__link">View Full Bag</span>
                 </Link>
@@ -106,6 +117,13 @@ export function CartDrawer() {
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+      </AnimatePresence>
+
+      <CheckoutAddressModal
+        open={checkoutAddressOpen}
+        onOpenChange={setCheckoutAddressOpen}
+        onProceed={() => navigate('/checkout')}
+      />
+    </>
   )
 }
