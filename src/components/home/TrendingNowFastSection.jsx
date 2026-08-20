@@ -29,7 +29,7 @@ export function TrendingNowFastSection() {
       {isLoading ? (
         <ProductGridSkeleton count={4} />
       ) : (
-        <ProductCarousel products={trendingProducts} />
+        <ProductCarousel products={trendingProducts} autoplay autoplayInterval={2000} />
       )}
 
       <p className="section-footnote">
