@@ -147,6 +147,64 @@ export const CRAFTSMANSHIP_INSPECTION = {
   ],
 }
 
+export const JEWELRY_ARCHIVE = [
+  {
+    year: 2022,
+    title: 'Heritage Glow',
+    description: 'A revival of classic temple motifs — warm gold tones and sculpted florals for festive evenings.',
+    href: '/shop/women',
+    tagEyebrow: 'Signature Jewelry',
+    tagName: 'Temple Bloom Necklace',
+    tagPrice: '₹14,250',
+    image: 'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=900&h=1200&q=80',
+    alt: 'Heritage gold necklace and earrings set',
+  },
+  {
+    year: 2023,
+    title: 'Modern Minimal',
+    description: 'Clean lines and quiet shine — everyday pieces designed for layering without the noise.',
+    href: '/shop/new-arrivals',
+    tagEyebrow: 'Signature Jewelry',
+    tagName: 'Slim Chain Pendant',
+    tagPrice: '₹6,480',
+    image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=900&h=1200&q=80',
+    alt: 'Minimal gold pendant necklace',
+  },
+  {
+    year: 2024,
+    title: 'Pearl Elegance',
+    description: 'Inspired by ocean beauty, this collection introduced graceful pearl necklaces and delicate pendants.',
+    href: '/shop/women',
+    tagEyebrow: 'Signature Jewelry',
+    tagName: 'Traditional Black Beads Set',
+    tagPrice: '₹18,780',
+    image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=900&h=1200&q=80',
+    alt: 'Traditional black beads jewelry set with pearls',
+  },
+  {
+    year: 2025,
+    title: 'Night Sparkle',
+    description: 'Statement crystals and mirrored finishes for celebrations that run past midnight.',
+    href: '/shop/sale',
+    tagEyebrow: 'Signature Jewelry',
+    tagName: 'Crystal Drop Earrings',
+    tagPrice: '₹9,920',
+    image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=900&h=1200&q=80',
+    alt: 'Crystal drop earrings and necklace',
+  },
+  {
+    year: 2026,
+    title: 'Atelier Edit',
+    description: 'Hand-finished limited runs — the season’s most requested silhouettes, refined and restocked.',
+    href: '/shop/new-arrivals',
+    tagEyebrow: 'Signature Jewelry',
+    tagName: 'Twisted Hoop Pair',
+    tagPrice: '₹7,150',
+    image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=900&h=1200&q=80',
+    alt: 'Twisted gold hoop earrings',
+  },
+]
+
 export const AS_SEEN_ON_YOU = {
   instagramHref: 'https://instagram.com/',
 }
