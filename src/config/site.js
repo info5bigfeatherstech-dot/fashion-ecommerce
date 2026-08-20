@@ -20,6 +20,7 @@ export const NAV_ITEMS = [
   { label: 'Home', slug: 'home', megaMenu: false },
   { label: 'Women', slug: 'women', megaMenu: true },
   { label: 'Men', slug: 'men', megaMenu: false },
+  { label: 'Youth', slug: 'youth', megaMenu: false },
   { label: 'Kids', slug: 'kids', megaMenu: false },
 ]
 
@@ -107,6 +108,51 @@ export const LATEST_COLLECTIONS = [
 export const AS_SEEN_ON_YOU = {
   instagramHref: 'https://instagram.com/',
 }
+
+export const NEW_ARRIVALS_SLIDES = [
+  {
+    id: 'work-office',
+    title: 'Work & Office',
+    itemCount: '85+',
+    href: '/shop/women',
+    image: 'https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&w=700&h=900&q=80',
+  },
+  {
+    id: 'festivals',
+    title: 'Festivals',
+    itemCount: '60+',
+    href: '/shop/new-arrivals',
+    image: 'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=700&h=900&q=80',
+  },
+  {
+    id: 'party-night',
+    title: 'Party & Night Out',
+    itemCount: '95+',
+    href: '/shop/women',
+    image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=700&h=900&q=80',
+  },
+  {
+    id: 'weddings',
+    title: 'Weddings',
+    itemCount: '45+',
+    href: '/shop/women',
+    image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=700&h=900&q=80',
+  },
+  {
+    id: 'everyday',
+    title: 'Everyday Wear',
+    itemCount: '70+',
+    href: '/shop/new-arrivals',
+    image: 'https://images.unsplash.com/photo-1602173574767-37ac01994b2a?auto=format&fit=crop&w=700&h=900&q=80',
+  },
+  {
+    id: 'gifting',
+    title: 'Gifting',
+    itemCount: '55+',
+    href: '/shop/sale',
+    image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=700&h=900&q=80',
+  },
+]
 
 export const JEWELLERY_FEST = {
   eyebrow: 'Limited Time',

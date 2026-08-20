@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ShoppingBag, Heart, User, MessageCircle, MapPin, Menu, Search, X, ChevronDown, ChevronRight, LogIn, Warehouse, Sparkles } from 'lucide-react'
+import { ShoppingBag, Heart, User, MessageCircle, MapPin, Menu, Search, X, ChevronDown, ChevronRight, LogIn, Warehouse, Sparkles, Home as HomeIcon } from 'lucide-react'
 import { SearchBar } from '@/features/search/components/SearchBar'
 import { CartDrawer } from '@/features/cart/components/CartDrawer'
 import { MegaMenuPanel } from '@/features/category/components/MegaMenu'
@@ -229,7 +229,7 @@ export function Header() {
                     to={navHref(item)}
                     className={`header__nav-link ${isNavActive(item, location.pathname) ? 'header__nav-link--active' : ''}`}
                   >
-                    {item.label}
+                    {item.slug === 'home' ? <HomeIcon size={18} aria-hidden /> : item.label}
                   </Link>
                 </div>
               ))}
@@ -344,7 +344,7 @@ export function Header() {
                       className={`header__mobile-link ${isNavActive(item, location.pathname) ? 'header__mobile-link--active' : ''}`}
                       onClick={() => setMobileNavOpen(false)}
                     >
-                      {item.label}
+                      {item.slug === 'home' ? <HomeIcon size={18} aria-hidden /> : item.label}
                       <ChevronRight size={16} />
                     </Link>
                   )

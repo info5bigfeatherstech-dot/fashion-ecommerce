@@ -1,0 +1,36 @@
+import { Link } from 'react-router-dom'
+import { ProductCarousel } from '@/features/product/components/ProductCarousel'
+import { ProductGridSkeleton } from '@/components/ui/Skeleton'
+import { useBestsellers } from '@/features/product/hooks'
+
+export function TrendingNowFastSection() {
+  const { data: products = [], isLoading } = useBestsellers()
+  const trendingProducts = products.slice(0, 12)
+
+  return (
+    <section className="section container">
+      <div className="section-header">
+        <div>
+          <h2 className="display-md">
+            Trending Now <span className="heading-accent">This Season</span>
+          </h2>
+          <p className="section-subheader">
+            The fastest-moving favorites — selling out and getting restocked quickly.
+          </p>
+        </div>
+        <Link to="/shop?sort=rating" className="section-header__link">View All</Link>
+      </div>
+
+      {isLoading ? (
+        <ProductGridSkeleton count={4} />
+      ) : (
+        <ProductCarousel products={trendingProducts} />
+      )}
+
+      <p className="section-footnote">
+        Ranked by sold popularity and customer reviews — so you see what shoppers love first.
+      </p>
+    </section>
+  )
+}
+

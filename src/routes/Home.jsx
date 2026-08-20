@@ -6,6 +6,7 @@ import { NewDropsSection } from '@/components/home/NewDropsSection'
 import { TheArchiveSection } from '@/components/home/TheArchiveSection'
 import { BestsellersSection } from '@/components/home/BestsellersSection'
 import { MostLovedSection } from '@/components/home/MostLovedSection'
+import { TrendingNowFastSection } from '@/components/home/TrendingNowFastSection'
 import { BeautySpotlightSection } from '@/components/home/BeautySpotlightSection'
 import { ShopByCategorySection } from '@/components/home/ShopByCategorySection'
 import { EditorialSection } from '@/components/home/EditorialSection'
@@ -21,22 +22,23 @@ export default function Home() {
   return (
     <>
       <HeroSection />
-      <CategoryStripSection />
       <NewArrivalsSection />
+      <JewelleryFestSection />
+      <TrendingNowFastSection />
+      <TheArchiveSection />
+      <AsSeenOnYouSection />
+      {/* <CategoryStripSection /> */}
       <LatestCollectionsSection />
       <NewDropsSection />
-      <TheArchiveSection />
       <BestsellersSection />
       <MostLovedSection />
       {/* <BeautySpotlightSection /> */}
       <ShopByCategorySection />
       {/* <EditorialSection /> */}
-      <AsSeenOnYouSection />
       {/* <LoyaltySection /> */}
-      <JewelleryFestSection />
-      <DealsSection />
-      <TrustStripSection />
-      <PromoBannerSection />
+      {/* <DealsSection /> */}
+      {/* <TrustStripSection /> */}
+      {/* <PromoBannerSection /> */}
       <NewsletterSection />
     </>
   )
