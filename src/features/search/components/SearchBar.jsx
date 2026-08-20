@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { Search } from 'lucide-react'
 import { searchProducts } from '../api'
+import { searchKeys } from '../queryKeys'
 
 export function SearchBar({ className, iconRight = false, autoFocus = false }) {
   const [query, setQuery] = useState('')
@@ -12,9 +13,9 @@ export function SearchBar({ className, iconRight = false, autoFocus = false }) {
   const inputRef = useRef(null)
 
   const { data: results = [] } = useQuery({
-    queryKey: ['search', query],
-    queryFn: () => searchProducts(query),
-    enabled: query.length >= 2,
+    queryKey: searchKeys.query(query, { limit: 6 }),
+    queryFn: ({ signal }) => searchProducts(query, { signal, limit: 6 }),
+    enabled: query.trim().length >= 2,
   })
 
   useEffect(() => {
@@ -57,7 +58,7 @@ export function SearchBar({ className, iconRight = false, autoFocus = false }) {
           aria-label="Search products"
         />
       </form>
-      {isOpen && query.length >= 2 && results.length > 0 && (
+      {isOpen && query.trim().length >= 2 && results.length > 0 && (
         <Autosuggest results={results} onSelect={() => setIsOpen(false)} />
       )}
     </div>
@@ -79,10 +80,10 @@ export function Autosuggest({ results, onSelect }) {
             onSelect()
           }}
         >
-          <img src={product.images[0]} alt="" className="search-suggest__thumb" />
+          <img src={product.images?.[0]} alt="" className="search-suggest__thumb" />
           <div>
             <p className="body-sm" style={{ fontWeight: 'var(--weight-medium)' }}>{product.name}</p>
-            <p className="body-sm text-muted">{product.category}</p>
+            <p className="body-sm text-muted">{product.categoryLabel || product.category}</p>
           </div>
         </button>
       ))}

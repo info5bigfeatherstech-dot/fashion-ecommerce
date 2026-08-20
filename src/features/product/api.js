@@ -1,7 +1,7 @@
 import { http } from '@/api/http'
 import { API_ENDPOINTS, PRODUCT_CATALOG_MAX_PAGES, PRODUCT_CATALOG_PAGE_SIZE } from '@/api/endpoints'
 import { ApiError } from '@/api/errors'
-import { mapPagination, mapProductList } from './mappers'
+import { extractProductList, mapPagination, mapProductList } from './mappers'
 
 export {
   PRICE_RANGES,
@@ -131,6 +131,46 @@ export async function fetchProductsPage(
   return { products, pagination, raw: payload }
 }
 
+/**
+ * Products belonging to a category slug.
+ * GET /api/products/category/:slug
+ */
+export async function getProductsByCategory(slug, { page = 1, limit = 50, signal, ...params } = {}) {
+  if (!slug) {
+    return { products: [], total: 0, pagination: mapPagination(null) }
+  }
+
+  const payload = await http.get(API_ENDPOINTS.products.byCategory(slug), {
+    params: { page, limit, ...params },
+    signal,
+  })
+
+  const products = extractProductList(payload)
+  const pagination = mapPagination(payload?.pagination ?? payload?.data?.pagination, products.length)
+
+  return {
+    products,
+    total: pagination.total || products.length,
+    pagination,
+    raw: payload,
+  }
+}
+
+/**
+ * Related products for a product slug (shown on PDP).
+ * GET /api/products/:slug/related
+ */
+export async function getRelatedProducts(slug, { signal, limit } = {}) {
+  if (!slug) return []
+
+  const payload = await http.get(API_ENDPOINTS.products.related(slug), {
+    params: limit ? { limit } : undefined,
+    signal,
+  })
+
+  return extractProductList(payload)
+}
+
 async function fetchFullCatalog() {
   const products = []
   let page = 1
@@ -173,7 +213,86 @@ export async function getProductCatalog({ force = false } = {}) {
   return catalogInFlight
 }
 
+/**
+ * Server-side product search.
+ * GET /api/products/search?q=productName
+ */
+export async function searchProducts(query, { page = 1, limit = 12, signal } = {}) {
+  const q = String(query || '').trim()
+  if (q.length < 2) {
+    return {
+      products: [],
+      total: 0,
+      pagination: mapPagination({ total: 0, page: 1, limit }, 0),
+    }
+  }
+
+  const payload = await http.get(API_ENDPOINTS.products.search, {
+    params: { q, page, limit },
+    signal,
+  })
+
+  const products = extractProductList(payload)
+  const pagination = mapPagination(
+    {
+      total: payload?.total ?? payload?.pagination?.total,
+      page: payload?.page ?? payload?.pagination?.page ?? page,
+      limit: payload?.limit ?? payload?.pagination?.limit ?? limit,
+      totalPages: payload?.totalPages ?? payload?.pagination?.totalPages,
+      hasNextPage: payload?.hasNextPage ?? payload?.pagination?.hasNextPage,
+      hasPrevPage: payload?.hasPrevPage ?? payload?.pagination?.hasPrevPage,
+    },
+    products.length
+  )
+
+  return {
+    products,
+    total: pagination.total || products.length,
+    pagination,
+    raw: payload,
+  }
+}
+
 export async function getProducts(filters = {}) {
+  const category = filters.category
+  const searchQuery = String(filters.search || '').trim()
+
+  // Prefer dedicated search API when a query is present
+  if (searchQuery.length >= 2) {
+    try {
+      const { products, pagination, total } = await searchProducts(searchQuery)
+      const filtered = applyProductFilters(products, { ...filters, search: undefined })
+      return {
+        products: filtered,
+        total: filtered.length,
+        pagination: {
+          ...pagination,
+          total: filtered.length === products.length ? total : filtered.length,
+        },
+      }
+    } catch {
+      // Fall back to catalog filter if search route is unavailable
+    }
+  }
+
+  // Prefer dedicated category API for real category slugs
+  if (category && !SPECIAL_CATEGORIES.has(category)) {
+    try {
+      const { products, pagination, total } = await getProductsByCategory(category)
+      const filtered = applyProductFilters(products, { ...filters, category: undefined })
+      return {
+        products: filtered,
+        total: filtered.length,
+        pagination: {
+          ...pagination,
+          total: filtered.length === products.length ? total : filtered.length,
+        },
+      }
+    } catch {
+      // Fall back to full catalog if category route is unavailable
+    }
+  }
+
   const catalog = await getProductCatalog()
   const products = applyProductFilters(catalog.products, filters)
 

@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Accordion } from '@/components/ui/Accordion'
 import { ProductCarousel } from '@/features/product/components/ProductCarousel'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
-import { useProductDetail, useProductListing } from '@/features/product/hooks'
+import { useProductDetail, useRelatedProducts } from '@/features/product/hooks'
 import { OfferCode } from '@/features/product/components/OfferCode'
 import { useAppStore } from '@/store'
 import { showAddedToCartToast } from '@/lib/cart-toast'
@@ -28,9 +28,7 @@ function formatLabel(value) {
 export default function ProductDetail() {
   const { slug } = useParams()
   const { data: product, isLoading, isError } = useProductDetail(slug)
-  const { data: relatedData } = useProductListing(
-    product ? { category: product.category } : {}
-  )
+  const { data: relatedProducts = [] } = useRelatedProducts(slug, { limit: 8 })
 
   const [selectedSize, setSelectedSize] = useState(null)
   const [selectedColor, setSelectedColor] = useState(null)
@@ -112,7 +110,7 @@ export default function ProductDetail() {
     },
   ]
 
-  const related = relatedData?.products?.filter((p) => p.id !== product.id).slice(0, 8) || []
+  const related = relatedProducts.filter((p) => p.id !== product.id).slice(0, 8)
 
   return (
     <div className="container pdp-page">

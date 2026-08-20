@@ -8,6 +8,8 @@ export const API_ENDPOINTS = {
     featured: '/products/featured',
     bySlug: (slug) => `/products/${encodeURIComponent(slug)}`,
     byId: (id) => `/products/id/${encodeURIComponent(id)}`,
+    byCategory: (slug) => `/products/category/${encodeURIComponent(slug)}`,
+    related: (slug) => `/products/${encodeURIComponent(slug)}/related`,
     search: '/products/search',
   },
   auth: {

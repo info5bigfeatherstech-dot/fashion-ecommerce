@@ -145,13 +145,49 @@ export function mapProductList(items) {
   return asArray(items).map(mapProduct).filter(Boolean)
 }
 
+/** Normalize list payloads from category / related / catalog routes. */
+export function extractProductList(payload) {
+  if (Array.isArray(payload)) return mapProductList(payload)
+  if (!payload || typeof payload !== 'object') return []
+
+  const candidates = [
+    payload.products,
+    payload.related,
+    payload.relatedProducts,
+    payload.data?.products,
+    payload.data,
+    payload.items,
+    payload.results,
+  ]
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) return mapProductList(candidate)
+  }
+
+  return []
+}
+
 export function mapPagination(pagination, fallbackCount = 0) {
+  const total = toNumber(pagination?.total, fallbackCount)
+  const page = toNumber(pagination?.page, 1)
+  const limit = toNumber(pagination?.limit, fallbackCount || 12)
+  const totalPages = toNumber(
+    pagination?.totalPages,
+    limit > 0 ? Math.max(1, Math.ceil(total / limit)) : 1
+  )
+
   return {
-    total: toNumber(pagination?.total, fallbackCount),
-    page: toNumber(pagination?.page, 1),
-    limit: toNumber(pagination?.limit, fallbackCount),
-    totalPages: toNumber(pagination?.totalPages, 1),
-    hasNextPage: Boolean(pagination?.hasNextPage),
-    hasPrevPage: Boolean(pagination?.hasPrevPage),
+    total,
+    page,
+    limit,
+    totalPages,
+    hasNextPage:
+      pagination?.hasNextPage != null
+        ? Boolean(pagination.hasNextPage)
+        : page < totalPages,
+    hasPrevPage:
+      pagination?.hasPrevPage != null
+        ? Boolean(pagination.hasPrevPage)
+        : page > 1,
   }
 }

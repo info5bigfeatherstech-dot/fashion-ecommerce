@@ -6,6 +6,9 @@ import {
   getNewArrivals,
   getBeautyProducts,
   getFeaturedProducts,
+  getProductsByCategory,
+  getRelatedProducts,
+  searchProducts,
 } from './api'
 import { productKeys } from './queryKeys'
 
@@ -21,6 +24,32 @@ export function useProductDetail(slug) {
     queryKey: productKeys.detail(slug),
     queryFn: () => getProductBySlug(slug),
     enabled: !!slug,
+  })
+}
+
+export function useProductsByCategory(slug, params = {}) {
+  return useQuery({
+    queryKey: productKeys.byCategory(slug, params),
+    queryFn: ({ signal }) => getProductsByCategory(slug, { ...params, signal }),
+    enabled: !!slug,
+  })
+}
+
+export function useRelatedProducts(slug, { limit = 8 } = {}) {
+  return useQuery({
+    queryKey: productKeys.related(slug),
+    queryFn: ({ signal }) => getRelatedProducts(slug, { signal, limit }),
+    enabled: !!slug,
+  })
+}
+
+export function useProductSearch(query, { page = 1, limit = 12 } = {}) {
+  const q = String(query || '').trim()
+
+  return useQuery({
+    queryKey: productKeys.search(q, { page, limit }),
+    queryFn: ({ signal }) => searchProducts(q, { page, limit, signal }),
+    enabled: q.length >= 2,
   })
 }
 

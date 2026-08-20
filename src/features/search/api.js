@@ -1,8 +1,12 @@
-import { getProducts } from '@/features/product/api'
+import { searchProducts as searchProductsApi } from '@/features/product/api'
 
-export async function searchProducts(query, { signal } = {}) {
-  if (!query || query.length < 2) return []
+/**
+ * Autosuggest / typeahead search.
+ * Uses GET /api/products/search?q=...
+ */
+export async function searchProducts(query, { signal, limit = 6 } = {}) {
+  if (!query || String(query).trim().length < 2) return []
 
-  const { products } = await getProducts({ search: query }, { signal })
-  return products.slice(0, 6)
+  const { products } = await searchProductsApi(query, { signal, limit, page: 1 })
+  return products.slice(0, limit)
 }

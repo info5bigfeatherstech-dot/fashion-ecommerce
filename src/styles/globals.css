@@ -324,6 +324,10 @@ textarea {
   font-size: clamp(0.9375rem, 1.6vw, 1.0625rem);
 }
 
+.trending-now-section {
+  max-width: var(--container-wide);
+}
+
 .trending-now-badge {
   display: inline-flex;
   align-items: center;
@@ -1429,9 +1433,9 @@ textarea {
   scroll-behavior: smooth;
   scrollbar-width: none;
   padding-block: var(--space-1);
-  /* Keep full cards clear of the overlay arrows */
-  padding-inline: calc(var(--touch-min) + var(--space-2));
-  scroll-padding-inline: calc(var(--touch-min) + var(--space-2));
+  /* Slim side inset so cards use more of the container width */
+  padding-inline: var(--space-5);
+  scroll-padding-inline: var(--space-5);
 }
 
 .product-carousel__track::-webkit-scrollbar {

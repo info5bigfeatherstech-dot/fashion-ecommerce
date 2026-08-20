@@ -9,7 +9,7 @@ export function TrendingNowFastSection() {
   const trendingProducts = products.slice(0, 12)
 
   return (
-    <section className="section container">
+    <section className="section container container--wide trending-now-section">
       <div className="section-header">
         <div>
           <span className="trending-now-badge">
