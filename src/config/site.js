@@ -1,6 +1,13 @@
 export const SITE_NAME = 'FABUNIQO'
 export const SITE_TAGLINE = 'Artificial jewelry for everyday shine.'
 
+export const SITE_CONTACT = {
+  email: 'hello@fabuniqo.com',
+  phone: '+91 98765 43210',
+  phoneHref: 'tel:+919876543210',
+  emailHref: 'mailto:hello@fabuniqo.com',
+}
+
 export const PRODUCT_OFFER = {
   code: 'VERA26',
   label: 'Use code',

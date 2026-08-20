@@ -2689,6 +2689,29 @@ textarea {
   display: inline-flex;
   align-items: center;
   max-width: min(420px, 80vw);
+  text-decoration: none;
+}
+
+.footer__contact {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.footer__contact-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--color-neutral);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.footer__contact-link:hover {
+  color: var(--color-accent);
 }
 
 .footer a:hover {
@@ -2715,7 +2738,7 @@ textarea {
 
 @media (min-width: 1024px) {
   .footer__grid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 }
 

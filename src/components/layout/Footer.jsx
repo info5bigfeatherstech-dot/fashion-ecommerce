@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Mail, Phone } from 'lucide-react'
 import Scanner from '@/components/effects/Scanner'
-import { SITE_NAME, FOOTER_COLUMNS, PAYMENT_METHODS } from '@/config/site'
+import { SITE_NAME, SITE_CONTACT, FOOTER_COLUMNS, PAYMENT_METHODS } from '@/config/site'
 import { FooterBrandMark } from './BrandLogo'
 
 function SocialIcon({ type, size = 18 }) {
@@ -30,7 +31,6 @@ function SocialIcon({ type, size = 18 }) {
     )
   }
 
-  // Threads (stylized "@" mark)
   return (
     <svg {...common}>
       <path
@@ -106,6 +106,7 @@ export function Footer() {
             <FooterBrandMark />
           </Link>
         </div>
+
         <div className="footer__grid">
           {FOOTER_COLUMNS.map((col) => (
             <div key={col.title}>
@@ -128,6 +129,19 @@ export function Footer() {
                   <span className="sr-only">{social.label}</span>
                 </a>
               ))}
+            </div>
+          </div>
+          <div>
+            <h3 className="footer__column-title">Contact</h3>
+            <div className="footer__contact">
+              <a href={SITE_CONTACT.emailHref} className="footer__contact-link">
+                <Mail size={16} aria-hidden="true" />
+                {SITE_CONTACT.email}
+              </a>
+              <a href={SITE_CONTACT.phoneHref} className="footer__contact-link">
+                <Phone size={16} aria-hidden="true" />
+                {SITE_CONTACT.phone}
+              </a>
             </div>
           </div>
         </div>
