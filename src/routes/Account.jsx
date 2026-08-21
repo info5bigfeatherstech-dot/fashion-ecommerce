@@ -23,7 +23,8 @@ import {
 import { applyFieldErrors } from '@/features/address/mappers'
 import { ADDRESS_FORM_DEFAULTS, addressFormSchema } from '@/features/address/schema'
 import { WishlistProductGrid } from '@/features/wishlist/components/WishlistProductGrid'
-import { useCartProducts } from '@/features/cart/hooks'
+import { useCart, useCartProducts } from '@/features/cart/hooks'
+import { useWishlist } from '@/features/wishlist/hooks'
 import { useAppStore } from '@/store'
 import { useCartTotal } from '@/store/selectors'
 import { formatPrice } from '@/lib/utils'
@@ -61,6 +62,9 @@ export default function Account({
   const [checkoutAddressOpen, setCheckoutAddressOpen] = useState(false)
   const [addressFormError, setAddressFormError] = useState('')
   const [showAddressForm, setShowAddressForm] = useState(false)
+
+  useCart({ enabled: isAuthenticated && (activeTab === 'cart' || activeTab === 'orders') })
+  useWishlist({ enabled: isAuthenticated && activeTab === 'wishlist' })
 
   const { products: hydratedCartItems } = useCartProducts(cartItems, {
     enabled: isAuthenticated && activeTab === 'cart' && cartItems.length > 0,

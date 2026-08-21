@@ -3,9 +3,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Lock, ShoppingBag, Sparkles, Truck } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { CartItem } from '@/features/cart/components/CartItem'
-import { useCartProducts } from '@/features/cart/hooks'
+import { useCart, useCartProducts } from '@/features/cart/hooks'
 import { useAppStore } from '@/store'
-import { useCartTotal } from '@/store/selectors'
+import { useCartDiscount, useCartTotal } from '@/store/selectors'
 import { formatPrice } from '@/lib/utils'
 import { CheckoutAddressModal } from '@/components/checkout/CheckoutAddressModal'
 
@@ -14,10 +14,14 @@ const FREE_SHIPPING_THRESHOLD = 100
 export default function Cart() {
   const cartItems = useAppStore((s) => s.cartItems)
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
-  const cartTotal = useCartTotal()
+  const cartTotalFromItems = useCartTotal()
+  const { totalDiscount, totalAmount: apiTotalAmount } = useCartDiscount()
+  const cartTotal = apiTotalAmount > 0 ? apiTotalAmount : cartTotalFromItems
   const clearCart = useAppStore((s) => s.clearCart)
   const navigate = useNavigate()
   const [checkoutAddressOpen, setCheckoutAddressOpen] = useState(false)
+
+  useCart({ enabled: isAuthenticated })
 
   const { products: hydratedItems } = useCartProducts(cartItems, {
     enabled: isAuthenticated && cartItems.length > 0,
@@ -135,6 +139,12 @@ export default function Cart() {
                 <span>Subtotal</span>
                 <span>{formatPrice(cartTotal)}</span>
               </div>
+              {totalDiscount > 0 && (
+                <div className="checkout-summary__row">
+                  <span>Discount</span>
+                  <span>-{formatPrice(totalDiscount)}</span>
+                </div>
+              )}
               <div className="checkout-summary__row">
                 <span>Shipping</span>
                 <span>{shipping === 0 ? 'Free' : formatPrice(shipping)}</span>

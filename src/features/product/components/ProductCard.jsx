@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Heart, Minus, Plus, ShoppingBag, Star } from 'lucide-react'
+import { Heart, Minus, Plus, Star } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -8,6 +8,7 @@ import { useAppStore } from '@/store'
 import { cn, formatPrice, formatDiscount } from '@/lib/utils'
 import { FEATURE_FLAGS } from '@/config/site'
 import { showAddedToCartToast } from '@/lib/cart-toast'
+import { resolveVariantId } from '@/features/product/mappers'
 import { OfferCode } from './OfferCode'
 
 const MAX_QUICK_QTY = 8
@@ -29,17 +30,25 @@ export function ProductCard({ product, compact = false }) {
   const cartItems = useAppStore((s) => s.cartItems)
   const navigate = useNavigate()
 
-  const { size, color } = getDefaultOptions(product)
+  const defaults = getDefaultOptions(product)
+  const { size, color } = defaults
   const productId = String(product.id)
+  const defaultVariantId = useMemo(() => {
+    const id = resolveVariantId(product, defaults)
+    return id ? String(id) : null
+  }, [product, defaults.size, defaults.color]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const cartLine = useMemo(() => {
     if (!isAuthenticated) return null
     return cartItems.find((item) => {
       if (String(item.productId) !== productId) return false
+      if (item.variantId && defaultVariantId) {
+        return String(item.variantId) === defaultVariantId
+      }
       if (size == null && color == null) return true
       return item.size === size && item.color === color
     }) || null
-  }, [isAuthenticated, cartItems, productId, size, color])
+  }, [isAuthenticated, cartItems, productId, size, color, defaultVariantId])
 
   const cartQtyForProduct = useMemo(() => {
     if (!isAuthenticated) return 0

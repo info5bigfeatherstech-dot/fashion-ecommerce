@@ -1,6 +1,7 @@
 import { http } from '@/api/http'
 import { API_ENDPOINTS, AUTH_PORTAL } from '@/api/endpoints'
 import { clearAuthSession } from '@/api/config'
+import { syncBagsAfterLogin } from '@/features/commerce/syncBags'
 import { useAppStore } from '@/store'
 
 function mapAuthUser(user) {
@@ -106,6 +107,11 @@ export async function verifyRegistrationOtp({ identifier, otp, email }) {
   })
 
   const session = applyLoginPayload(payload)
+  try {
+    await syncBagsAfterLogin()
+  } catch {
+    // Session is valid even if bag sync fails; UI can refetch later.
+  }
   return {
     message: payload?.message || 'Email verified successfully.',
     ...session,
@@ -124,6 +130,11 @@ export async function login({ identifier, email, password }) {
   })
 
   const session = applyLoginPayload(payload)
+  try {
+    await syncBagsAfterLogin()
+  } catch {
+    // Session is valid even if bag sync fails; UI can refetch later.
+  }
   return {
     message: payload?.message || 'Login successful',
     ...session,

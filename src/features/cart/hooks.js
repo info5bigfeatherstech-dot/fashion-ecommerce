@@ -1,7 +1,45 @@
-import { useMemo } from 'react'
-import { useQueries } from '@tanstack/react-query'
+import { useEffect, useMemo } from 'react'
+import { useMutation, useQuery, useQueryClient, useQueries } from '@tanstack/react-query'
+import { getCart, clearCartApi } from '@/features/cart/api'
+import { cartKeys } from '@/features/cart/queryKeys'
 import { getProductBySlug, getProductDetailedById } from '@/features/product/api'
 import { productKeys } from '@/features/product/queryKeys'
+import { useAppStore } from '@/store'
+
+/**
+ * Server cart query — keeps Zustand mirror in sync when authenticated.
+ */
+export function useCart({ enabled = true } = {}) {
+  const isAuthenticated = useAppStore((s) => s.isAuthenticated)
+  const accessToken = useAppStore((s) => s.accessToken)
+  const replaceCartFromApi = useAppStore((s) => s.replaceCartFromApi)
+
+  const query = useQuery({
+    queryKey: cartKeys.detail(),
+    queryFn: ({ signal }) => getCart({ signal }),
+    enabled: enabled && isAuthenticated && Boolean(accessToken),
+    staleTime: 1000 * 30,
+  })
+
+  useEffect(() => {
+    if (query.data) replaceCartFromApi(query.data)
+  }, [query.data, replaceCartFromApi])
+
+  return query
+}
+
+export function useClearCartMutation() {
+  const queryClient = useQueryClient()
+  const replaceCartFromApi = useAppStore((s) => s.replaceCartFromApi)
+
+  return useMutation({
+    mutationFn: clearCartApi,
+    onSuccess: (cart) => {
+      replaceCartFromApi(cart)
+      queryClient.invalidateQueries({ queryKey: cartKeys.all })
+    },
+  })
+}
 
 /**
  * Hydrate cart rows with live product details (productCode, price, image).
@@ -45,10 +83,10 @@ export function useCartProducts(cartItems = [], { enabled = true } = {}) {
         ...item,
         name: live.name || item.name,
         slug: live.slug || item.slug,
-        price: live.price ?? item.price,
-        originalPrice: live.originalPrice ?? item.originalPrice ?? null,
-        image: live.images?.[0] || item.image,
-        productCode: live.productCode || live.sku || item.productCode || null,
+        price: item.price ?? live.price,
+        originalPrice: item.originalPrice ?? live.originalPrice ?? null,
+        image: item.image || live.images?.[0],
+        productCode: item.productCode || live.productCode || live.sku || null,
         _hydrated: true,
         _isLoading: false,
       }

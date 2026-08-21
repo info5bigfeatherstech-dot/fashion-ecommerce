@@ -19,3 +19,11 @@ export function showAddedToCartToast(product, { quantity = 1, onViewBag } = {}) 
     }),
   })
 }
+
+export function notifyBagError(error, fallback = 'Could not update bag') {
+  toast.error(error?.message || fallback)
+}
+
+export function notifyWishlistError(error, fallback = 'Could not update wishlist') {
+  toast.error(error?.message || fallback)
+}

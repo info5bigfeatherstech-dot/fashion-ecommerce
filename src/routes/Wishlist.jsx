@@ -2,11 +2,14 @@ import { Link } from 'react-router-dom'
 import { Heart } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { WishlistProductGrid } from '@/features/wishlist/components/WishlistProductGrid'
+import { useWishlist } from '@/features/wishlist/hooks'
 import { useAppStore } from '@/store'
 
 export default function Wishlist() {
   const wishlistItems = useAppStore((s) => s.wishlistItems)
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
+
+  useWishlist({ enabled: isAuthenticated })
 
   if (!isAuthenticated) {
     return (

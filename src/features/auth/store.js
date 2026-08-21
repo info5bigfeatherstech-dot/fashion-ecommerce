@@ -44,6 +44,11 @@ export const authSlice = (set, get) => ({
       cartItems: [],
       wishlistItems: [],
       isCartOpen: false,
+      cartId: null,
+      cartTotalAmount: 0,
+      cartTotalOriginalAmount: 0,
+      cartTotalDiscount: 0,
+      cartTotalDiscountPercentage: 0,
     })
   },
 })

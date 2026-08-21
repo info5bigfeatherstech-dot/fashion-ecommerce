@@ -152,6 +152,49 @@ export function mapProductList(items) {
   return asArray(items).map(mapProduct).filter(Boolean)
 }
 
+function attributeValue(attributes, matcher) {
+  for (const attribute of asArray(attributes)) {
+    if (matcher.test(attribute.key)) return attribute.value
+  }
+  return undefined
+}
+
+/**
+ * Resolve a variant from mapped product.variants using selected size/color.
+ * Falls back to the first variant when size/color are not provided or unmatched.
+ */
+export function resolveVariant(product, { size, color, variantId } = {}) {
+  const variants = asArray(product?.variants)
+  if (!variants.length) return null
+
+  if (variantId) {
+    const byId = variants.find((variant) => String(variant.id) === String(variantId))
+    if (byId) return byId
+  }
+
+  const sizeStr = size != null ? String(size) : null
+  const colorStr = color != null ? String(color) : null
+
+  if (sizeStr != null || colorStr != null) {
+    const matched = variants.find((variant) => {
+      const variantSize = attributeValue(variant.attributes, SIZE_KEYS)
+      const variantColor = attributeValue(variant.attributes, COLOR_KEYS)
+      if (sizeStr != null && variantSize != null && String(variantSize) !== sizeStr) return false
+      if (colorStr != null && variantColor != null && String(variantColor) !== colorStr) return false
+      if (sizeStr != null && variantSize == null) return false
+      if (colorStr != null && variantColor == null) return false
+      return true
+    })
+    if (matched) return matched
+  }
+
+  return variants[0] || null
+}
+
+export function resolveVariantId(product, options = {}) {
+  return resolveVariant(product, options)?.id || null
+}
+
 /** Normalize a single product payload from by-slug / detailed-by-id routes. */
 export function extractProduct(payload) {
   if (!payload) return null

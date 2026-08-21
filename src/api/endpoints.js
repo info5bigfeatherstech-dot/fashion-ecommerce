@@ -31,6 +31,22 @@ export const API_ENDPOINTS = {
     create: '/addresses',
     byId: (id) => `/addresses/${encodeURIComponent(id)}`,
   },
+  cart: {
+    root: '/cart',
+    item: '/cart/item',
+    bulkRemove: '/cart/bulk-remove',
+    clear: '/cart/clear',
+    merge: '/cart/merge',
+  },
+  wishlist: {
+    root: '/wishlist',
+    add: '/wishlist/add',
+    removeBySlug: (slug) => `/wishlist/remove/${encodeURIComponent(slug)}`,
+    removeBulk: '/wishlist/remove-bulk',
+    clear: '/wishlist/clear',
+    merge: '/wishlist/merge',
+    moveToCart: '/wishlist/move-to-cart',
+  },
   search: {
     query: '/search',
   },

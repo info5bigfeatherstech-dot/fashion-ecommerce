@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { useAppStore } from '@/store'
 import { useCartTotal } from '@/store/selectors'
 import { formatPrice } from '@/lib/utils'
-import { useCartProducts } from '@/features/cart/hooks'
+import { useCart, useCartProducts } from '@/features/cart/hooks'
 import { CartItem } from './CartItem'
 import { CheckoutAddressModal } from '@/components/checkout/CheckoutAddressModal'
 
@@ -19,6 +19,8 @@ export function CartDrawer() {
   const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
   const navigate = useNavigate()
   const [checkoutAddressOpen, setCheckoutAddressOpen] = useState(false)
+
+  useCart({ enabled: isCartOpen && isAuthenticated })
 
   const { products: hydratedItems } = useCartProducts(cartItems, {
     enabled: isCartOpen && isAuthenticated && cartItems.length > 0,

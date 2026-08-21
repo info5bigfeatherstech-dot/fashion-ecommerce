@@ -1,7 +1,72 @@
-import { useMemo } from 'react'
-import { useQueries } from '@tanstack/react-query'
+import { useEffect, useMemo } from 'react'
+import { useMutation, useQuery, useQueryClient, useQueries } from '@tanstack/react-query'
+import {
+  clearWishlistApi,
+  getWishlist,
+  moveWishlistToCart,
+} from '@/features/wishlist/api'
+import { wishlistKeys } from '@/features/wishlist/queryKeys'
+import { cartKeys } from '@/features/cart/queryKeys'
 import { getProductBySlug, getProductDetailedById } from '@/features/product/api'
 import { productKeys } from '@/features/product/queryKeys'
+import { getCart } from '@/features/cart/api'
+import { useAppStore } from '@/store'
+
+/**
+ * Server wishlist query — keeps Zustand mirror in sync when authenticated.
+ */
+export function useWishlist({ enabled = true } = {}) {
+  const isAuthenticated = useAppStore((s) => s.isAuthenticated)
+  const accessToken = useAppStore((s) => s.accessToken)
+  const replaceWishlistFromApi = useAppStore((s) => s.replaceWishlistFromApi)
+
+  const query = useQuery({
+    queryKey: wishlistKeys.detail(),
+    queryFn: ({ signal }) => getWishlist({ signal }),
+    enabled: enabled && isAuthenticated && Boolean(accessToken),
+    staleTime: 1000 * 30,
+  })
+
+  useEffect(() => {
+    if (query.data) replaceWishlistFromApi(query.data)
+  }, [query.data, replaceWishlistFromApi])
+
+  return query
+}
+
+export function useClearWishlistMutation() {
+  const queryClient = useQueryClient()
+  const replaceWishlistFromApi = useAppStore((s) => s.replaceWishlistFromApi)
+
+  return useMutation({
+    mutationFn: clearWishlistApi,
+    onSuccess: (result) => {
+      if (result.wishlist) replaceWishlistFromApi(result.wishlist)
+      queryClient.invalidateQueries({ queryKey: wishlistKeys.all })
+    },
+  })
+}
+
+export function useMoveWishlistToCart() {
+  const queryClient = useQueryClient()
+  const replaceCartFromApi = useAppStore((s) => s.replaceCartFromApi)
+  const replaceWishlistFromApi = useAppStore((s) => s.replaceWishlistFromApi)
+
+  return useMutation({
+    mutationFn: moveWishlistToCart,
+    onSuccess: async () => {
+      queryClient.invalidateQueries({ queryKey: wishlistKeys.all })
+      queryClient.invalidateQueries({ queryKey: cartKeys.all })
+      try {
+        const [cart, wishlist] = await Promise.all([getCart(), getWishlist()])
+        replaceCartFromApi(cart)
+        replaceWishlistFromApi(wishlist)
+      } catch {
+        // invalidation will refetch via hooks when mounted
+      }
+    },
+  })
+}
 
 /**
  * Hydrate local wishlist snapshots with live product details (incl. productCode)
@@ -41,8 +106,9 @@ export function useWishlistProducts(wishlistItems = [], { enabled = true } = {})
           // Keep the wishlist row id stable so cart/wishlist matching doesn't thrash.
           id: item.id,
           slug: live.slug || item.slug,
-          image: live.images?.[0] || item.image,
-          productCode: live.productCode || live.sku || item.productCode || null,
+          variantId: item.variantId || live.variants?.[0]?.id || null,
+          image: item.image || live.images?.[0],
+          productCode: item.productCode || live.productCode || live.sku || null,
           _hydrated: true,
           _isLoading: false,
           _isError: false,
