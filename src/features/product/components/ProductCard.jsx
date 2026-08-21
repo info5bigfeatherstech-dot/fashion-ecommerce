@@ -84,6 +84,9 @@ export function ProductCard({ product, compact = false }) {
       </div>
       <div className="product-card__body">
         <h3 className="product-card__name">{product.name}</h3>
+        {(product.productCode || product.sku) && (
+          <p className="product-card__code">Code: {product.productCode || product.sku}</p>
+        )}
         <div className="product-card__price-row">
           <span className="product-card__price">{formatPrice(product.price)}</span>
           {product.originalPrice && (

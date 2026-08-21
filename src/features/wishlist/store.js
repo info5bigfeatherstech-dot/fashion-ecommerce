@@ -13,14 +13,24 @@ export const wishlistSlice = (set, get) => ({
             name: product.name,
             price: product.price,
             originalPrice: product.originalPrice,
-            image: product.images[0],
+            image: product.images?.[0] || product.image,
             badge: product.badge,
             rating: product.rating,
             reviewCount: product.reviewCount,
+            productCode: product.productCode || product.sku || null,
           },
         ],
       }
     })
+  },
+
+  /** Merge fresher API fields (e.g. productCode) into a saved wishlist row. */
+  patchWishlistItem: (productId, patch) => {
+    set((state) => ({
+      wishlistItems: state.wishlistItems.map((item) => (
+        item.id === productId ? { ...item, ...patch } : item
+      )),
+    }))
   },
 
   removeFromWishlist: (productId) => {

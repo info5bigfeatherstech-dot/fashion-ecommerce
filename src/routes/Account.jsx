@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
-import { ChevronRight, Heart, MapPin, Package, ShoppingBag, Sparkles, UserRound } from 'lucide-react'
+import { ChevronRight, Heart, MapPin, Package, Plus, ShoppingBag, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Input, InputGroup } from '@/components/ui/Input'
@@ -62,6 +62,7 @@ export default function Account({
   const [authModalOpen, setAuthModalOpen] = useState(true)
   const [checkoutAddressOpen, setCheckoutAddressOpen] = useState(false)
   const [addressFormError, setAddressFormError] = useState('')
+  const [showAddressForm, setShowAddressForm] = useState(false)
 
   const {
     data: addressData,
@@ -101,6 +102,21 @@ export default function Account({
     clearUser()
   }
 
+  const openAddressForm = () => {
+    setAddressFormError('')
+    addressForm.reset({
+      ...ADDRESS_FORM_DEFAULTS,
+      fullName: user?.name || '',
+      phone: user?.phone || '',
+    })
+    setShowAddressForm(true)
+  }
+
+  const closeAddressForm = () => {
+    setAddressFormError('')
+    setShowAddressForm(false)
+  }
+
   const handleAddAddress = async (data) => {
     setAddressFormError('')
     try {
@@ -111,6 +127,7 @@ export default function Account({
         fullName: user?.name || data.fullName || '',
         phone: user?.phone || '',
       })
+      setShowAddressForm(false)
     } catch (err) {
       const applied = applyFieldErrors(err, addressForm.setError)
       if (!applied) {
@@ -150,6 +167,13 @@ export default function Account({
   useEffect(() => {
     setActiveTab(initialActiveTab)
   }, [initialActiveTab])
+
+  useEffect(() => {
+    if (activeTab !== 'addresses') {
+      setShowAddressForm(false)
+      setAddressFormError('')
+    }
+  }, [activeTab])
 
   useEffect(() => {
     if (authGateMode === 'modal') {
@@ -570,39 +594,12 @@ export default function Account({
                 <p className="heading-sm text-accent">Addresses</p>
                 <h2 className="display-md">Saved Addresses</h2>
               </div>
-            </div>
-
-            <div className="account-panel" style={{ marginBottom: 'var(--space-4)' }}>
-              <div className="account-panel__header">
-                <div>
-                  <h3 className="display-md">Add a new address</h3>
-                </div>
-              </div>
-
-              <form onSubmit={addressForm.handleSubmit(handleAddAddress)} noValidate>
-                <AddressFormFields
-                  register={addressForm.register}
-                  control={addressForm.control}
-                  errors={addressForm.formState.errors}
-                  idPrefix="account-addr"
-                />
-
-                {addressFormError && (
-                  <p className="body-sm" style={{ color: 'var(--color-danger, #b42318)', marginTop: 'var(--space-3)' }}>
-                    {addressFormError}
-                  </p>
-                )}
-
-                <Button
-                  type="submit"
-                  variant="primary"
-                  fullWidth
-                  style={{ marginTop: 'var(--space-3)' }}
-                  disabled={createAddress.isPending || addressForm.formState.isSubmitting}
-                >
-                  {createAddress.isPending ? 'Saving…' : 'Save address'}
+              {!addressesLoading && !addressesFailed && !showAddressForm && addresses.length > 0 && (
+                <Button variant="secondary" size="sm" onClick={openAddressForm}>
+                  <Plus size={16} />
+                  Add address
                 </Button>
-              </form>
+              )}
             </div>
 
             {addressesLoading ? (
@@ -615,39 +612,99 @@ export default function Account({
                   {addressesError?.message || 'Could not load addresses.'}
                 </p>
               </div>
+            ) : showAddressForm ? (
+              <div className="account-panel">
+                <div className="account-panel__header">
+                  <div>
+                    <p className="heading-sm text-accent">New address</p>
+                    <h3 className="display-md">
+                      {addresses.length === 0 ? 'Add your address' : 'Add a new address'}
+                    </h3>
+                    <p className="body-sm text-muted" style={{ marginTop: 'var(--space-1)' }}>
+                      Enter your delivery details so checkout is faster next time.
+                    </p>
+                  </div>
+                </div>
+
+                <form onSubmit={addressForm.handleSubmit(handleAddAddress)} noValidate>
+                  <AddressFormFields
+                    register={addressForm.register}
+                    control={addressForm.control}
+                    errors={addressForm.formState.errors}
+                    idPrefix="account-addr"
+                  />
+
+                  {addressFormError && (
+                    <p className="body-sm" style={{ color: 'var(--color-danger, #b42318)', marginTop: 'var(--space-3)' }}>
+                      {addressFormError}
+                    </p>
+                  )}
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: 'var(--space-2)',
+                      flexWrap: 'wrap',
+                      marginTop: 'var(--space-3)',
+                    }}
+                  >
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={closeAddressForm}
+                      disabled={createAddress.isPending || addressForm.formState.isSubmitting}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      disabled={createAddress.isPending || addressForm.formState.isSubmitting}
+                      style={{ flex: 1, minWidth: '10rem' }}
+                    >
+                      {createAddress.isPending ? 'Saving…' : 'Save address'}
+                    </Button>
+                  </div>
+                </form>
+              </div>
             ) : addresses.length === 0 ? (
               <div className="account-panel">
                 <div className="account-empty">
                   <div className="account-empty__icon"><MapPin size={22} /></div>
                   <p className="body-lg">No saved addresses yet</p>
-                  <p className="body-sm text-muted">Add your first delivery address to speed up future checkout.</p>
+                  <p className="body-sm text-muted">
+                    Add your first delivery address to speed up future checkout.
+                  </p>
+                  <Button
+                    variant="primary"
+                    style={{ marginTop: 'var(--space-3)' }}
+                    onClick={openAddressForm}
+                  >
+                    <Plus size={16} />
+                    Add address
+                  </Button>
                 </div>
               </div>
             ) : (
-              <div className="grid-2" style={{ gap: 'var(--space-4)' }}>
+              <div className="account-address-list">
                 {addresses.map((addr) => (
-                  <div key={addr.id} className="account-address-card">
+                  <article key={addr.id} className="account-address-card">
                     <div className="account-address-card__head">
-                      <p className="heading-sm" style={{ marginBottom: 0 }}>{addr.fullName}</p>
-                      <Badge className="account-badge">{addr.isDefault ? 'Default' : addr.addressType || 'Saved'}</Badge>
+                      <p className="account-address-card__name">{addr.fullName}</p>
+                      <Badge className="account-badge">
+                        {addr.isDefault ? 'Default' : addr.addressType || 'Saved'}
+                      </Badge>
                     </div>
-                    <p className="body-lg" style={{ marginBottom: 'var(--space-2)' }}>
-                      {addr.displayLine1 || addr.fullAddress}
-                    </p>
-                    {addr.displayLine2 && (
-                      <p className="body-sm text-muted" style={{ marginBottom: 'var(--space-2)' }}>
-                        {addr.displayLine2}
+                    <div className="account-address-card__body">
+                      <p>{addr.displayLine1 || addr.fullAddress}</p>
+                      {addr.displayLine2 && <p>{addr.displayLine2}</p>}
+                      <p>
+                        {[addr.city, addr.state].filter(Boolean).join(', ')}
+                        {(addr.postalCode || addr.zip) ? ` · ${addr.postalCode || addr.zip}` : ''}
                       </p>
-                    )}
-                    <p className="body-sm text-muted" style={{ marginBottom: 'var(--space-2)' }}>
-                      {addr.city}, {addr.state} · {addr.postalCode || addr.zip}
-                    </p>
-                    {addr.phone && (
-                      <p className="body-sm text-muted" style={{ marginBottom: 'var(--space-2)' }}>
-                        Phone: {addr.phone}
-                      </p>
-                    )}
-                    <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                      {addr.phone && <p className="account-address-card__phone">Phone: {addr.phone}</p>}
+                    </div>
+                    <div className="account-address-card__actions">
                       {!addr.isDefault && (
                         <Button
                           variant="secondary"
@@ -667,7 +724,7 @@ export default function Account({
                         Remove
                       </Button>
                     </div>
-                  </div>
+                  </article>
                 ))}
               </div>
             )}
