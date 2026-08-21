@@ -489,6 +489,48 @@ export const CATEGORY_LANDINGS = {
     ],
   },
 
+  youth: {
+    hero: {
+      eyebrow: 'Youth',
+      brand: 'FABUNIQO',
+      title: 'Shine On Repeat',
+      subtitle: 'Trendy earrings, bangles, and sets made for everyday looks, hangouts, and gifting.',
+      cta: 'Shop Youth',
+      href: '/shop/youth',
+      image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=1600&h=700&q=80',
+      alt: 'Youth jewelry edit — layered necklace and earrings',
+    },
+    shops: [
+      { label: 'Earrings', href: '/shop/youth', image: 'https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&w=400&h=400&q=80' },
+      { label: 'Necklaces', href: '/shop/youth', image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=400&h=400&q=80' },
+      { label: 'Bangles', href: '/shop/youth', image: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?auto=format&fit=crop&w=400&h=400&q=80' },
+      { label: 'Rings', href: '/shop/youth', image: 'https://images.unsplash.com/photo-1602173574767-37ac01994b2a?auto=format&fit=crop&w=400&h=400&q=80' },
+      { label: 'Sets', href: '/shop/youth', image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=400&h=400&q=80' },
+      { label: 'New In', href: '/shop/new-arrivals', image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=400&h=400&q=80' },
+    ],
+    collections: [
+      {
+        title: 'Everyday Stack',
+        caption: 'Light pieces you can layer without thinking twice.',
+        href: '/shop/youth',
+        image: 'https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&w=720&h=960&q=80',
+      },
+      {
+        title: 'Festival Ready',
+        caption: 'Bold bangles and sets for celebrations.',
+        href: '/shop/youth',
+        image: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?auto=format&fit=crop&w=720&h=960&q=80',
+      },
+      {
+        title: 'Gift Edit',
+        caption: 'Pretty picks under a thoughtful budget.',
+        href: '/shop/youth',
+        image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=720&h=960&q=80',
+      },
+    ],
+    spotlights: [],
+  },
+
   'new-arrivals': {
     hero: {
       eyebrow: 'Just Launched',

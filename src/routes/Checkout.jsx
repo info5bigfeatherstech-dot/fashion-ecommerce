@@ -255,7 +255,7 @@ export default function Checkout() {
                   <h2 className="checkout-panel__title">Contact</h2>
                 </div>
               </div>
-              <InputGroup label="Email" htmlFor="email" error={errors.email?.message}>
+              <InputGroup label="Email" htmlFor="email" required error={errors.email?.message}>
                 <Input id="email" type="email" error={errors.email} {...register('email')} />
               </InputGroup>
               <p className="body-sm text-muted checkout-panel__hint">
@@ -317,25 +317,25 @@ export default function Checkout() {
 
               <div className="form-grid" style={{ marginTop: 'var(--space-3)' }}>
                 <div className="form-grid form-grid--2">
-                  <InputGroup label="First Name" htmlFor="firstName" error={errors.firstName?.message}>
+                  <InputGroup label="First Name" htmlFor="firstName" required error={errors.firstName?.message}>
                     <Input id="firstName" error={errors.firstName} {...register('firstName')} />
                   </InputGroup>
-                  <InputGroup label="Last Name" htmlFor="lastName" error={errors.lastName?.message}>
+                  <InputGroup label="Last Name" htmlFor="lastName" required error={errors.lastName?.message}>
                     <Input id="lastName" error={errors.lastName} {...register('lastName')} />
                   </InputGroup>
                 </div>
-                <InputGroup label="Address" htmlFor="address" error={errors.address?.message}>
+                <InputGroup label="Address" htmlFor="address" required error={errors.address?.message}>
                   <Input id="address" error={errors.address} {...register('address')} />
                 </InputGroup>
                 <div className="form-grid form-grid--2">
-                  <InputGroup label="City" htmlFor="city" error={errors.city?.message}>
+                  <InputGroup label="City" htmlFor="city" required error={errors.city?.message}>
                     <Input id="city" error={errors.city} {...register('city')} />
                   </InputGroup>
-                  <InputGroup label="State" htmlFor="state" error={errors.state?.message}>
+                  <InputGroup label="State" htmlFor="state" required error={errors.state?.message}>
                     <Input id="state" error={errors.state} {...register('state')} />
                   </InputGroup>
                 </div>
-                <InputGroup label="PIN / ZIP" htmlFor="zip" error={errors.zip?.message}>
+                <InputGroup label="PIN / ZIP" htmlFor="zip" required error={errors.zip?.message}>
                   <Input id="zip" error={errors.zip} {...register('zip')} />
                 </InputGroup>
               </div>
@@ -433,7 +433,7 @@ export default function Checkout() {
                     </div>
                   ) : (
                     <div className="form-grid">
-                      <InputGroup label="Card Number" htmlFor="cardNumber" error={errors.cardNumber?.message}>
+                      <InputGroup label="Card Number" htmlFor="cardNumber" required error={errors.cardNumber?.message}>
                         <Input
                           id="cardNumber"
                           placeholder="1234 5678 9012 3456"
@@ -442,10 +442,10 @@ export default function Checkout() {
                         />
                       </InputGroup>
                       <div className="form-grid form-grid--2">
-                        <InputGroup label="Expiry" htmlFor="expiry" error={errors.expiry?.message}>
+                        <InputGroup label="Expiry" htmlFor="expiry" required error={errors.expiry?.message}>
                           <Input id="expiry" placeholder="MM/YY" error={errors.expiry} {...register('expiry')} />
                         </InputGroup>
-                        <InputGroup label="CVV" htmlFor="cvv" error={errors.cvv?.message}>
+                        <InputGroup label="CVV" htmlFor="cvv" required error={errors.cvv?.message}>
                           <Input id="cvv" placeholder="123" error={errors.cvv} {...register('cvv')} />
                         </InputGroup>
                       </div>
@@ -468,6 +468,7 @@ export default function Checkout() {
                   <InputGroup
                     label="Amount to pay now"
                     htmlFor="partialAmount"
+                    required
                     error={errors.partialAmount?.message}
                   >
                     <Input

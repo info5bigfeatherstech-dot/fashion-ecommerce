@@ -26,7 +26,7 @@ export function CategoryLanding({ landing }) {
         </div>
       </section>
 
-      {shops.length > 0 && (
+      {/* {shops.length > 0 && (
         <section className="section container" aria-label="Shop by category">
           <div className="cat-shops">
             {shops.map((shop) => (
@@ -39,9 +39,9 @@ export function CategoryLanding({ landing }) {
             ))}
           </div>
         </section>
-      )}
+      )} */}
 
-      {collections.length > 0 && (
+      {/* {collections.length > 0 && (
         <section className="section container">
           <div className="section-header">
             <div>
@@ -66,9 +66,9 @@ export function CategoryLanding({ landing }) {
             ))}
           </div>
         </section>
-      )}
+      )} */}
 
-      {spotlights.map((spotlight) => (
+      {/* {spotlights.map((spotlight) => (
         <section key={spotlight.id} className="section container">
           <Link to={spotlight.href} className="cat-spotlight">
             <div className="cat-spotlight__bg">
@@ -83,7 +83,7 @@ export function CategoryLanding({ landing }) {
             </div>
           </Link>
         </section>
-      ))}
+      ))} */}
     </div>
   )
 }

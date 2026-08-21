@@ -316,6 +316,18 @@ export const CATEGORY_TREE = {
       { label: 'Sneakers', slug: 'sneakers' },
     ],
   },
+  youth: {
+    label: 'Youth',
+    slug: 'youth',
+    image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?w=400&h=500&fit=crop',
+    children: [
+      { label: 'Earrings', slug: 'earrings' },
+      { label: 'Necklaces', slug: 'necklaces' },
+      { label: 'Bangles', slug: 'bangles' },
+      { label: 'Rings', slug: 'rings' },
+      { label: 'Sets', slug: 'sets' },
+    ],
+  },
   kids: {
     label: 'Kids',
     slug: 'kids',
