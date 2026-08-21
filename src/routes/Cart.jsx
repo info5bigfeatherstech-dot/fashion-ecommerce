@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Lock, ShoppingBag, Sparkles, Truck } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { CartItem } from '@/features/cart/components/CartItem'
+import { useCartProducts } from '@/features/cart/hooks'
 import { useAppStore } from '@/store'
 import { useCartTotal } from '@/store/selectors'
 import { formatPrice } from '@/lib/utils'
@@ -17,6 +18,10 @@ export default function Cart() {
   const clearCart = useAppStore((s) => s.clearCart)
   const navigate = useNavigate()
   const [checkoutAddressOpen, setCheckoutAddressOpen] = useState(false)
+
+  const { products: hydratedItems } = useCartProducts(cartItems, {
+    enabled: isAuthenticated && cartItems.length > 0,
+  })
 
   const itemCount = cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0)
   const shipping = cartTotal >= FREE_SHIPPING_THRESHOLD ? 0 : 9.95
@@ -87,7 +92,7 @@ export default function Cart() {
 
         <div className="checkout cart-page__layout">
           <section className="cart-page__list" aria-label="Bag items">
-            {cartItems.map((item) => (
+            {hydratedItems.map((item) => (
               <CartItem key={item.id} item={item} layout="page" />
             ))}
           </section>

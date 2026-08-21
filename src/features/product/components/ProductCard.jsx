@@ -1,53 +1,134 @@
+import { useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Heart, Star } from 'lucide-react'
+import { Heart, Minus, Plus, ShoppingBag, Star } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { useAppStore } from '@/store'
-import { formatPrice, formatDiscount } from '@/lib/utils'
+import { cn, formatPrice, formatDiscount } from '@/lib/utils'
 import { FEATURE_FLAGS } from '@/config/site'
 import { showAddedToCartToast } from '@/lib/cart-toast'
 import { OfferCode } from './OfferCode'
 
+const MAX_QUICK_QTY = 8
+
+function getDefaultOptions(product) {
+  return {
+    size: product.sizes?.[0],
+    color: product.colors?.[0],
+  }
+}
+
 export function ProductCard({ product, compact = false }) {
   const toggleWishlist = useAppStore((s) => s.toggleWishlist)
   const addItem = useAppStore((s) => s.addItem)
+  const updateQuantity = useAppStore((s) => s.updateQuantity)
+  const removeItem = useAppStore((s) => s.removeItem)
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
   const inWishlist = useAppStore((s) => (s.isAuthenticated ? s.isInWishlist(product.id) : false))
+  const cartItems = useAppStore((s) => s.cartItems)
   const navigate = useNavigate()
 
+  const { size, color } = getDefaultOptions(product)
+  const productId = String(product.id)
+
+  const cartLine = useMemo(() => {
+    if (!isAuthenticated) return null
+    return cartItems.find((item) => {
+      if (String(item.productId) !== productId) return false
+      if (size == null && color == null) return true
+      return item.size === size && item.color === color
+    }) || null
+  }, [isAuthenticated, cartItems, productId, size, color])
+
+  const cartQtyForProduct = useMemo(() => {
+    if (!isAuthenticated) return 0
+    return cartItems
+      .filter((item) => String(item.productId) === productId)
+      .reduce((sum, item) => sum + (item.quantity || 0), 0)
+  }, [isAuthenticated, cartItems, productId])
+
   const discount = formatDiscount(product.originalPrice, product.price)
+  const inCartQty = cartLine?.quantity || 0
+  const isInCart = cartQtyForProduct > 0
+
+  const requireAuth = () => {
+    if (isAuthenticated) return true
+    navigate('/login', { state: { redirectTo: `/product/${product.slug}` } })
+    return false
+  }
 
   const handleQuickAdd = (e) => {
     e.preventDefault()
     e.stopPropagation()
-    if (!isAuthenticated) {
-      navigate('/login', { state: { redirectTo: `/product/${product.slug}` } })
+    if (!requireAuth()) return
+
+    addItem(product, { ...getDefaultOptions(product), quantity: 1 })
+    showAddedToCartToast(product, {
+      quantity: 1,
+      onViewBag: () => navigate('/cart'),
+    })
+  }
+
+  const handleDecrease = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!requireAuth() || !cartLine) return
+
+    if (cartLine.quantity <= 1) {
+      removeItem(cartLine.id)
       return
     }
-    addItem(product)
-    showAddedToCartToast(product, { onViewBag: () => navigate('/cart') })
+    updateQuantity(cartLine.id, cartLine.quantity - 1)
+  }
+
+  const handleIncrease = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!requireAuth()) return
+
+    if (cartLine) {
+      if (cartLine.quantity >= MAX_QUICK_QTY) return
+      updateQuantity(cartLine.id, cartLine.quantity + 1)
+      return
+    }
+
+    handleQuickAdd(e)
   }
 
   const handleWishlist = (e) => {
     e.preventDefault()
     e.stopPropagation()
-    if (!isAuthenticated) {
-      navigate('/login', { state: { redirectTo: `/product/${product.slug}` } })
-      return
-    }
+    if (!requireAuth()) return
     toggleWishlist(product)
   }
 
   return (
-    <Link to={`/product/${product.slug}`} className={`product-card ${compact ? 'product-card--compact' : ''}`}>
+    <Link
+      to={`/product/${product.slug}`}
+      className={cn(
+        'product-card',
+        compact && 'product-card--compact',
+        isInCart && 'product-card--in-cart',
+      )}
+      aria-label={isInCart ? `${product.name}, ${cartQtyForProduct} in bag` : product.name}
+    >
       <div className="product-card__media">
         {product.badge && (
           <div className="product-card__badge">
             <Badge badge={product.badge} />
           </div>
         )}
+
+        {/* {isInCart && (
+          <span className="product-card__in-cart" aria-hidden="true">
+            <ShoppingBag size={12} />
+            In bag · {cartQtyForProduct}
+          </span>
+        )} */}
+
         <button
+          type="button"
           className={`product-card__wishlist wishlist-btn ${inWishlist ? 'wishlist-btn--active' : ''}`}
           onClick={handleWishlist}
           aria-label={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
@@ -75,10 +156,49 @@ export function ProductCard({ product, compact = false }) {
           />
         )}
         {!compact && FEATURE_FLAGS.enableQuickAdd && (
-          <div className="product-card__quick-add">
-            <Button variant="primary" size="sm" fullWidth onClick={handleQuickAdd}>
-              Quick Add
-            </Button>
+          <div
+            className={`product-card__quick-add${inCartQty > 0 ? ' product-card__quick-add--active' : ''}`}
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+            }}
+          >
+            <div className="product-card__qty" role="group" aria-label="Quick add quantity">
+              <button
+                type="button"
+                className="product-card__qty-btn"
+                onClick={handleDecrease}
+                aria-label="Decrease quantity"
+                disabled={inCartQty === 0}
+              >
+                <Minus size={14} />
+              </button>
+
+              {inCartQty > 0 ? (
+                <span className="product-card__qty-value" aria-live="polite">
+                  {inCartQty}
+                </span>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="product-card__qty-add"
+                  onClick={handleQuickAdd}
+                >
+                  Quick Add
+                </Button>
+              )}
+
+              <button
+                type="button"
+                className="product-card__qty-btn"
+                onClick={handleIncrease}
+                aria-label="Increase quantity"
+                disabled={inCartQty >= MAX_QUICK_QTY}
+              >
+                <Plus size={14} />
+              </button>
+            </div>
           </div>
         )}
       </div>
