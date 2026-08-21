@@ -84,6 +84,7 @@ function mapVariant(variant) {
   return {
     id: variant.id || variant._id,
     sku: variant.sku,
+    productCode: variant.productCode || variant.product_code || null,
     title: variant.title || null,
     price: toNumber(variant.finalPrice ?? variant.price?.current),
     originalPrice: toNumber(variant.price?.base),
@@ -115,6 +116,12 @@ export function mapProduct(dto) {
     slug: dto.slug,
     name: dto.name || dto.title || 'Untitled product',
     title: dto.title || dto.name || '',
+    productCode:
+      dto.productCode ||
+      dto.product_code ||
+      primaryVariant?.productCode ||
+      primaryVariant?.sku ||
+      null,
     description: dto.description || '',
     brand: dto.brand || '',
     category: categorySlug,

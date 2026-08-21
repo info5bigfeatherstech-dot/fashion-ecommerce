@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { Star, Heart, Minus, Plus, Truck, RotateCcw, ShieldCheck } from 'lucide-react'
+import { Star, Heart, Minus, Plus } from 'lucide-react'
 import { ProductGallery } from '@/features/product/components/ProductGallery'
 import { PriceBlock } from '@/features/product/components/PriceBlock'
 import { SizeSelector, ColorSelector } from '@/features/product/components/SizeSelector'
@@ -13,12 +13,7 @@ import { useProductDetail, useRelatedProducts } from '@/features/product/hooks'
 import { OfferCode } from '@/features/product/components/OfferCode'
 import { useAppStore } from '@/store'
 import { showAddedToCartToast } from '@/lib/cart-toast'
-
-const TRUST_ITEMS = [
-  { icon: Truck, label: 'Free shipping over $100' },
-  { icon: RotateCcw, label: '30-day returns' },
-  { icon: ShieldCheck, label: 'Designed & made by VERAÒ' },
-]
+import { scrollToTop } from '@/lib/lenis'
 
 function formatLabel(value) {
   if (!value) return ''
@@ -42,12 +37,20 @@ export default function ProductDetail() {
   ))
   const navigate = useNavigate()
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setSelectedSize(null)
     setSelectedColor(null)
     setQuantity(1)
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    scrollToTop()
   }, [slug])
+
+  // Product + related content loads async; reset again so we don't land on "You May Also Like"
+  useLayoutEffect(() => {
+    if (isLoading || !product) return
+    scrollToTop()
+    const raf = requestAnimationFrame(() => scrollToTop())
+    return () => cancelAnimationFrame(raf)
+  }, [slug, isLoading, product?.id])
 
   if (isLoading) {
     return (
@@ -90,24 +93,20 @@ export default function ProductDetail() {
   }
 
   const accordionItems = [
-    {
-      value: 'details',
-      title: 'The Details',
-      content: product.composition || 'Designed, made, and owned by VERAÒ. No third-party white labels — every piece belongs to this house.',
-    },
-    ...(product.ingredients
-      ? [{ value: 'ingredients', title: 'Key Ingredients', content: product.ingredients }]
+    ...(product.description
+      ? [{
+          value: 'description',
+          title: 'Description',
+          content: product.description,
+        }]
       : []),
-    {
-      value: 'care',
-      title: 'Care',
-      content: product.care || 'Follow the care label. We recommend professional cleaning for tailored and silk pieces. Store hanging, away from direct sunlight.',
-    },
-    {
-      value: 'shipping',
-      title: 'Shipping & Returns',
-      content: 'Free standard shipping on orders over $100. 30-day hassle-free returns on unworn items with tags attached. Duties and taxes calculated at checkout.',
-    },
+    ...(product.composition
+      ? [{
+          value: 'details',
+          title: 'Details',
+          content: product.composition,
+        }]
+      : []),
   ]
 
   const related = relatedProducts.filter((p) => p.id !== product.id).slice(0, 8)
@@ -142,6 +141,10 @@ export default function ProductDetail() {
 
           <h1 className="pdp-info__title">{product.name}</h1>
 
+          {product.productCode && (
+            <p className="pdp-info__code">Code: {product.productCode}</p>
+          )}
+
           <div className="pdp-info__rating">
             <span className="pdp-info__stars" aria-hidden="true">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -158,10 +161,6 @@ export default function ProductDetail() {
 
           <PriceBlock price={product.price} originalPrice={product.originalPrice} size="large" />
           <OfferCode />
-
-          {product.description && (
-            <p className="pdp-info__lead">{product.description}</p>
-          )}
 
           {product.colors?.length > 0 && (
             <ColorSelector
@@ -209,7 +208,7 @@ export default function ProductDetail() {
             <Button
               variant="secondary"
               size="lg"
-              className="pdp-info__wish"
+              className={`pdp-info__wish${inWishlist ? ' pdp-info__wish--active' : ''}`}
               onClick={() => {
                 if (!isAuthenticated) {
                   navigate('/login', { state: { redirectTo: `/product/${slug}` }, replace: true })
@@ -223,16 +222,9 @@ export default function ProductDetail() {
             </Button>
           </div>
 
-          <ul className="pdp-trust">
-            {TRUST_ITEMS.map((item) => (
-              <li key={item.label} className="pdp-trust__item">
-                <item.icon size={16} />
-                <span>{item.label}</span>
-              </li>
-            ))}
-          </ul>
-
-          <Accordion items={accordionItems} defaultValue="details" />
+          {accordionItems.length > 0 && (
+            <Accordion items={accordionItems} defaultValue="description" />
+          )}
         </div>
       </div>
 

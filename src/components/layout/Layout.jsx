@@ -1,9 +1,10 @@
 import { useLayoutEffect } from 'react'
-import { Outlet, ScrollRestoration, useLocation, useNavigationType } from 'react-router-dom'
+import { Outlet, useLocation, useNavigationType } from 'react-router-dom'
 import { PromoBanner } from './PromoBanner'
 import { Header } from './Header'
 import { Footer } from './Footer'
 import { MobileBottomNav } from './MobileBottomNav'
+import { scrollToTop } from '@/lib/lenis'
 
 function ScrollToTop() {
   const { pathname, search, hash } = useLocation()
@@ -11,11 +12,15 @@ function ScrollToTop() {
 
   useLayoutEffect(() => {
     if (hash) return
+    // Always reset on new navigations; POP can keep prior position
     if (navType === 'POP') return
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    scrollToTop()
+    // After layout (images/skeletons), force top again so Lenis can't stick at bottom
+    const raf = requestAnimationFrame(() => scrollToTop())
+    return () => cancelAnimationFrame(raf)
   }, [pathname, search, hash, navType])
 
-  return <ScrollRestoration />
+  return null
 }
 
 export function Layout() {
