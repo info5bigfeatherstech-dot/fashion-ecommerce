@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { NEW_ARRIVALS_SLIDES } from '@/config/site'
+import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
 import { useBestsellers } from '@/features/product/hooks'
 
 const AUTO_SLIDE_MS = 3500
@@ -51,16 +52,18 @@ export function NewArrivalsSection() {
     <section className="section container new-arrivals-section">
       <div className="section-header new-arrivals-header">
         <div className="new-arrivals-header__copy">
-          <h2 className="new-arrivals-pill">
+          <ScrollRevealText as="h2" className="new-arrivals-pill">
             <span className="new-arrivals-pill__new">New</span>{' '}
             <span className="new-arrivals-pill__arrivals">Arrivals</span>
-          </h2>
-          <p className="new-arrivals-subheader">
-            Browse through our curated collections crafted for every mood, celebration, and everyday elegance.
-          </p>
+          </ScrollRevealText>
+          <Reveal delay={0.08}>
+            <p className="new-arrivals-subheader">
+              Browse through our curated collections crafted for every mood, celebration, and everyday elegance.
+            </p>
+          </Reveal>
         </div>
 
-        <div className="new-arrivals-nav" aria-label="New arrivals slider controls">
+        <Reveal delay={0.1} className="new-arrivals-nav" aria-label="New arrivals slider controls">
           <button
             type="button"
             className="new-arrivals-nav__btn"
@@ -77,7 +80,7 @@ export function NewArrivalsSection() {
           >
             <ChevronRight size={20} />
           </button>
-        </div>
+        </Reveal>
       </div>
 
       <div

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Tag, Zap } from 'lucide-react'
 import { JEWELLERY_FEST } from '@/config/site'
+import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
 import { useBestsellers } from '@/features/product/hooks'
 import { formatPrice } from '@/lib/utils'
 
@@ -60,33 +61,39 @@ export function JewelleryFestSection() {
             <Zap size={18} />
           </div>
 
-          <p className="jewellery-fest__eyebrow">{JEWELLERY_FEST.eyebrow}</p>
-          <h2 className="jewellery-fest__title">{JEWELLERY_FEST.title}</h2>
+          <Reveal x={-14} y={0}>
+            <p className="jewellery-fest__eyebrow">{JEWELLERY_FEST.eyebrow}</p>
+          </Reveal>
+          <ScrollRevealText as="h2" className="jewellery-fest__title">
+            {JEWELLERY_FEST.title}
+          </ScrollRevealText>
 
-          <p className="jewellery-fest__offer">
-            <span className="jewellery-fest__offer-dot" aria-hidden="true" />
-            {JEWELLERY_FEST.offerLabel}
-          </p>
+          <Reveal delay={0.1}>
+            <p className="jewellery-fest__offer">
+              <span className="jewellery-fest__offer-dot" aria-hidden="true" />
+              {JEWELLERY_FEST.offerLabel}
+            </p>
 
-          <div className="jewellery-fest__timer" role="timer" aria-live="polite" aria-label="Offer countdown">
-            <div className="jewellery-fest__unit">
-              <span className="jewellery-fest__unit-value">{hours}</span>
-              <span className="jewellery-fest__unit-label">Hours</span>
+            <div className="jewellery-fest__timer" role="timer" aria-live="polite" aria-label="Offer countdown">
+              <div className="jewellery-fest__unit">
+                <span className="jewellery-fest__unit-value">{hours}</span>
+                <span className="jewellery-fest__unit-label">Hours</span>
+              </div>
+              <div className="jewellery-fest__unit">
+                <span className="jewellery-fest__unit-value">{minutes}</span>
+                <span className="jewellery-fest__unit-label">Minutes</span>
+              </div>
+              <div className="jewellery-fest__unit">
+                <span className="jewellery-fest__unit-value">{seconds}</span>
+                <span className="jewellery-fest__unit-label">Seconds</span>
+              </div>
             </div>
-            <div className="jewellery-fest__unit">
-              <span className="jewellery-fest__unit-value">{minutes}</span>
-              <span className="jewellery-fest__unit-label">Minutes</span>
-            </div>
-            <div className="jewellery-fest__unit">
-              <span className="jewellery-fest__unit-value">{seconds}</span>
-              <span className="jewellery-fest__unit-label">Seconds</span>
-            </div>
-          </div>
 
-          <Link to={JEWELLERY_FEST.ctaHref} className="jewellery-fest__cta">
-            <Tag size={16} aria-hidden="true" />
-            {JEWELLERY_FEST.ctaLabel}
-          </Link>
+            <Link to={JEWELLERY_FEST.ctaHref} className="jewellery-fest__cta">
+              <Tag size={16} aria-hidden="true" />
+              {JEWELLERY_FEST.ctaLabel}
+            </Link>
+          </Reveal>
         </div>
 
         <div className="jewellery-fest__right">

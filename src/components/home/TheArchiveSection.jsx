@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowRight } from 'lucide-react'
 import { ReflectiveCard } from '@/components/ui/ReflectiveCard'
+import { ScrollRevealText, ImageReveal } from '@/components/motion/ScrollRevealText'
 import { JEWELRY_ARCHIVE } from '@/config/site'
 
 const DEFAULT_YEAR = 2024
@@ -14,9 +15,9 @@ export function TheArchiveSection() {
 
   return (
     <section className="section container jewelry-archive" aria-label="Jewelry archive">
-      <h2 className="jewelry-archive__heading">
+      <ScrollRevealText as="h2" className="jewelry-archive__heading">
         Jewelry <span className="heading-accent">Archive</span>
-      </h2>
+      </ScrollRevealText>
 
       <div className="jewelry-archive__layout">
         <div className="jewelry-archive__copy">
@@ -64,24 +65,26 @@ export function TheArchiveSection() {
         </div>
 
         <div className="jewelry-archive__media">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={entry.year}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.35, ease: 'easeOut' }}
-            >
-              <ReflectiveCard className="jewelry-archive__frame" maxTilt={7} glareOpacity={0.48}>
-                <img src={entry.image} alt={entry.alt} className="jewelry-archive__image" loading="lazy" />
-                <div className="jewelry-archive__tag">
-                  <p className="jewelry-archive__tag-eyebrow">{entry.tagEyebrow}</p>
-                  <p className="jewelry-archive__tag-name">{entry.tagName}</p>
-                  <p className="jewelry-archive__tag-price">{entry.tagPrice}</p>
-                </div>
-              </ReflectiveCard>
-            </motion.div>
-          </AnimatePresence>
+          <ImageReveal>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={entry.year}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.35, ease: 'easeOut' }}
+              >
+                <ReflectiveCard className="jewelry-archive__frame" maxTilt={7} glareOpacity={0.48}>
+                  <img src={entry.image} alt={entry.alt} className="jewelry-archive__image" loading="lazy" />
+                  <div className="jewelry-archive__tag">
+                    <p className="jewelry-archive__tag-eyebrow">{entry.tagEyebrow}</p>
+                    <p className="jewelry-archive__tag-name">{entry.tagName}</p>
+                    <p className="jewelry-archive__tag-price">{entry.tagPrice}</p>
+                  </div>
+                </ReflectiveCard>
+              </motion.div>
+            </AnimatePresence>
+          </ImageReveal>
         </div>
       </div>
     </section>

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
 import { HERO_SLIDES } from '@/config/site'
 
 export function HeroSection() {
@@ -37,12 +38,20 @@ export function HeroSection() {
             </div>
             <div className="hero__overlay" />
             <div className="hero__content">
-              <p className="hero__eyebrow">{slide.eyebrow}</p>
-              <h1 className="hero__title">{slide.title}</h1>
-              <p className="hero__subtitle">{slide.subtitle}</p>
-              <Link to={slide.href}>
-                <Button variant="accent" size="lg">{slide.cta}</Button>
-              </Link>
+              <Reveal y={18} delay={0.05}>
+                <p className="hero__eyebrow">{slide.eyebrow}</p>
+              </Reveal>
+              <ScrollRevealText as="h1" className="hero__title">
+                {slide.title}
+              </ScrollRevealText>
+              <Reveal y={18} delay={0.2}>
+                <p className="hero__subtitle">{slide.subtitle}</p>
+              </Reveal>
+              <Reveal y={18} delay={0.32}>
+                <Link to={slide.href}>
+                  <Button variant="accent" size="lg">{slide.cta}</Button>
+                </Link>
+              </Reveal>
             </div>
           </motion.div>
         </AnimatePresence>

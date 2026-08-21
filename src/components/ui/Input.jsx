@@ -19,10 +19,19 @@ export function Label({ className, htmlFor, children, ...props }) {
   )
 }
 
-export function InputGroup({ label, htmlFor, error, children }) {
+export function InputGroup({ label, htmlFor, error, required = false, children }) {
   return (
     <div className="input-group">
-      {label && <Label htmlFor={htmlFor}>{label}</Label>}
+      {label && (
+        <Label htmlFor={htmlFor}>
+          {label}
+          {required && (
+            <span className="input-label__required" aria-hidden="true">
+              *
+            </span>
+          )}
+        </Label>
+      )}
       {children}
       {error && <span className="input-error" role="alert">{error}</span>}
     </div>

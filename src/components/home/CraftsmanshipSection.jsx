@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronRight, Gem, ShieldCheck, ZoomIn } from 'lucide-react'
+import { ScrollRevealText, Reveal, ImageReveal } from '@/components/motion/ScrollRevealText'
 import { CRAFTSMANSHIP_INSPECTION } from '@/config/site'
 
 const LENS_SIZE = 180
@@ -75,27 +76,33 @@ export function CraftsmanshipSection() {
     <section className="section container craft-inspect" aria-label="Craftsmanship inspection">
       <div className="craft-inspect__layout">
         <div className="craft-inspect__media">
-          <CraftImageZoom src={data.image} alt={data.alt} />
+          <ImageReveal>
+            <CraftImageZoom src={data.image} alt={data.alt} />
+          </ImageReveal>
         </div>
 
         <div className="craft-inspect__copy">
-          <p className="craft-inspect__eyebrow">
-            <span className="craft-inspect__eyebrow-rule" aria-hidden="true" />
-            {data.eyebrow}
-          </p>
+          <Reveal x={-16} y={0}>
+            <p className="craft-inspect__eyebrow">
+              <span className="craft-inspect__eyebrow-rule" aria-hidden="true" />
+              {data.eyebrow}
+            </p>
+          </Reveal>
 
-          <h2 className="craft-inspect__brand-title">
+          <ScrollRevealText as="h2" className="craft-inspect__brand-title">
             <span className="craft-inspect__brand-lead">{data.titleLead}</span>
             {' '}
             <span className="craft-inspect__brand-amp">{data.titleAmp}</span>
             {' '}
             <span className="craft-inspect__brand-trail">{data.titleTrail}</span>
-          </h2>
+          </ScrollRevealText>
 
-          <h3 className="craft-inspect__heading">{data.heading}</h3>
-          <p className="craft-inspect__body">{data.body}</p>
+          <Reveal delay={0.1}>
+            <h3 className="craft-inspect__heading">{data.heading}</h3>
+            <p className="craft-inspect__body">{data.body}</p>
+          </Reveal>
 
-          <div className="craft-inspect__specs">
+          <Reveal delay={0.18} className="craft-inspect__specs">
             {data.specs.map((spec) => (
               <div key={spec.id} className="craft-inspect__spec">
                 <p className="craft-inspect__spec-label">
@@ -106,12 +113,14 @@ export function CraftsmanshipSection() {
                 <p className="craft-inspect__spec-detail">{spec.detail}</p>
               </div>
             ))}
-          </div>
+          </Reveal>
 
-          <Link to={data.ctaHref} className="craft-inspect__cta">
-            {data.ctaLabel}
-            <ChevronRight size={16} aria-hidden="true" />
-          </Link>
+          <Reveal delay={0.24}>
+            <Link to={data.ctaHref} className="craft-inspect__cta">
+              {data.ctaLabel}
+              <ChevronRight size={16} aria-hidden="true" />
+            </Link>
+          </Reveal>
         </div>
       </div>
     </section>

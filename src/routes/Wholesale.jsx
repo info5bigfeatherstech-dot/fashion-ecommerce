@@ -15,8 +15,8 @@ const wholesaleSchema = z.object({
     .max(20, 'Phone number looks too long'),
   city: z.string().min(2, 'City is required'),
   gst: z.string().optional(),
-  categories: z.string().min(2, 'Tell us what you want to buy'),
-  quantity: z.string().min(1, 'Approximate quantity is required'),
+  categories: z.string().optional(),
+  quantity: z.string().optional(),
   message: z.string().optional(),
 })
 
@@ -77,7 +77,7 @@ export default function Wholesale() {
             <form onSubmit={handleSubmit(onSubmit)} noValidate>
               <div className="form-grid" style={{ gap: 'var(--space-3)' }}>
                 <div className="form-grid form-grid--2">
-                  <InputGroup label="Full Name" htmlFor="ws-name" error={errors.fullName?.message}>
+                  <InputGroup label="Full Name" htmlFor="ws-name" required error={errors.fullName?.message}>
                     <Input
                       id="ws-name"
                       placeholder="Your name"
@@ -85,7 +85,7 @@ export default function Wholesale() {
                       {...register('fullName')}
                     />
                   </InputGroup>
-                  <InputGroup label="Shop / Company Name" htmlFor="ws-shop" error={errors.shopName?.message}>
+                  <InputGroup label="Shop / Company Name" htmlFor="ws-shop" required error={errors.shopName?.message}>
                     <Input
                       id="ws-shop"
                       placeholder="Shop name"
@@ -96,7 +96,7 @@ export default function Wholesale() {
                 </div>
 
                 <div className="form-grid form-grid--2">
-                  <InputGroup label="Phone / WhatsApp" htmlFor="ws-phone" error={errors.phone?.message}>
+                  <InputGroup label="Phone / WhatsApp" htmlFor="ws-phone" required error={errors.phone?.message}>
                     <Input
                       id="ws-phone"
                       type="tel"
@@ -105,7 +105,7 @@ export default function Wholesale() {
                       {...register('phone')}
                     />
                   </InputGroup>
-                  <InputGroup label="City" htmlFor="ws-city" error={errors.city?.message}>
+                  <InputGroup label="City" htmlFor="ws-city" required error={errors.city?.message}>
                     <Input
                       id="ws-city"
                       placeholder="Mumbai"
@@ -126,7 +126,7 @@ export default function Wholesale() {
 
                 <div className="form-grid form-grid--2">
                   <InputGroup
-                    label="What do you want to buy?"
+                    label="What do you want to buy? (optional)"
                     htmlFor="ws-categories"
                     error={errors.categories?.message}
                   >
@@ -138,7 +138,7 @@ export default function Wholesale() {
                     />
                   </InputGroup>
                   <InputGroup
-                    label="Approximate quantity"
+                    label="Approximate quantity (optional)"
                     htmlFor="ws-quantity"
                     error={errors.quantity?.message}
                   >

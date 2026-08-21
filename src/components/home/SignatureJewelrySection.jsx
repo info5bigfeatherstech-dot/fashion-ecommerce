@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { ScrollRevealText } from '@/components/motion/ScrollRevealText'
 import { SIGNATURE_JEWELRY } from '@/config/site'
 
 export function SignatureJewelrySection() {
@@ -30,10 +31,10 @@ export function SignatureJewelrySection() {
                 {eyebrow}
               </p>
 
-              <h2 className="signature-jewelry__title">
+              <ScrollRevealText as="h2" className="signature-jewelry__title">
                 <span className="signature-jewelry__title-line">{titleLine1}</span>
                 <span className="signature-jewelry__title-accent">{titleLine2}</span>
-              </h2>
+              </ScrollRevealText>
 
               <div className="signature-jewelry__actions">
                 <Link to={ctaHref} className="signature-jewelry__cta">

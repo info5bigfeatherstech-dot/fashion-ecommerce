@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import Masonry from 'react-masonry-css'
 import { motion } from 'framer-motion'
+import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
 import { ReflectiveCard } from '@/components/ui/ReflectiveCard'
 import { AS_SEEN_ON_YOU } from '@/config/site'
@@ -132,22 +133,26 @@ export function AsSeenOnYouSection() {
     <section className="section container as-seen-section">
       <div className="section-header as-seen-section__header">
         <div>
-          <h2 className="display-md">
+          <ScrollRevealText as="h2" className="display-md">
             Jewellery <span className="heading-accent">Spotted</span>
-          </h2>
-          <p className="section-subheader">
-            Real people, real style. Tag <strong>#FABUNIQO</strong> for a chance to be featured in our gallery.
-          </p>
+          </ScrollRevealText>
+          <Reveal delay={0.08}>
+            <p className="section-subheader">
+              Real people, real style. Tag <strong>#FABUNIQO</strong> for a chance to be featured in our gallery.
+            </p>
+          </Reveal>
         </div>
-        <a
-          href={AS_SEEN_ON_YOU.instagramHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn btn--primary as-seen-section__cta"
-        >
-          Follow Our Journey
-          <InstagramIcon size={16} />
-        </a>
+        <Reveal delay={0.12}>
+          <a
+            href={AS_SEEN_ON_YOU.instagramHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn--primary as-seen-section__cta"
+          >
+            Follow Our Journey
+            <InstagramIcon size={16} />
+          </a>
+        </Reveal>
       </div>
 
       {isLoading && collageItems.length === 0 ? (
