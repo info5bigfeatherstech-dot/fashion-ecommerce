@@ -6268,6 +6268,71 @@ a.cart-item__name:hover {
   padding-top: var(--space-2);
 }
 
+.checkout-coupon {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: var(--space-2);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.checkout-coupon__head {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.checkout-coupon__row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.checkout-coupon__row .input {
+  min-height: 38px;
+  padding: 8px 10px;
+  font-size: 0.875rem;
+}
+
+.checkout-coupon__ok {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-success);
+}
+
+.checkout-coupon__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.checkout-coupon__chip {
+  border: 1px dashed var(--color-border);
+  background: transparent;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  color: var(--color-ink);
+}
+
+.checkout-coupon__chip:hover {
+  border-color: var(--color-ink);
+}
+
+.checkout-delivery-hint {
+  margin: 6px 0 0;
+  color: var(--color-muted);
+}
+
+.checkout-delivery-hint--warn {
+  color: var(--color-danger, #b42318);
+}
+
 .checkout-summary__row {
   display: flex;
   justify-content: space-between;

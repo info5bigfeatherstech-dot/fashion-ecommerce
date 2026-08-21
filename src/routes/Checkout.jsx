@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { toast } from 'sonner'
 import {
   ArrowLeft,
   Check,
@@ -11,6 +12,7 @@ import {
   MapPin,
   Package,
   ShieldCheck,
+  Tag,
   Truck,
   Wallet,
 } from 'lucide-react'
@@ -18,6 +20,9 @@ import { Button } from '@/components/ui/Button'
 import { Input, InputGroup } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { CheckoutAddressModal } from '@/components/checkout/CheckoutAddressModal'
+import { useCheckoutSettings } from '@/features/checkout/hooks'
+import { useDeliveryCheckQuery } from '@/features/delivery/hooks'
+import { useAvailableCoupons, useValidateCoupon } from '@/features/coupon/hooks'
 import { useAppStore } from '@/store'
 import { useCartTotal } from '@/store/selectors'
 import { formatPrice } from '@/lib/utils'
@@ -33,14 +38,29 @@ export default function Checkout() {
   const cartTotal = useCartTotal()
   const clearCart = useAppStore((s) => s.clearCart)
   const user = useAppStore((s) => s.user)
+  const isAuthenticated = useAppStore((s) => s.isAuthenticated)
   const checkoutAddress = useAppStore((s) => s.checkoutAddress)
   const clearCheckoutAddress = useAppStore((s) => s.clearCheckoutAddress)
   const [orderPlaced, setOrderPlaced] = useState(false)
   const [prepaidOption, setPrepaidOption] = useState('card')
   const [addressModalOpen, setAddressModalOpen] = useState(false)
+  const [couponInput, setCouponInput] = useState('')
+  const [appliedCoupon, setAppliedCoupon] = useState(null)
+
+  const { data: checkoutSettings } = useCheckoutSettings({ enabled: isAuthenticated })
+  const codEnabled = checkoutSettings?.codEnabled !== false
+  const partialPaymentEnabled = Boolean(checkoutSettings?.partialPaymentEnabled)
+  const partialPaymentPercent = checkoutSettings?.partialPaymentPercent || 0
+
+  const { data: availableCoupons = [] } = useAvailableCoupons({ enabled: isAuthenticated })
+  const validateCoupon = useValidateCoupon()
 
   const shipping = cartTotal >= 100 ? 0 : 9.95
-  const total = cartTotal + shipping
+  const couponDiscount = appliedCoupon?.valid ? (appliedCoupon.discountAmount || 0) : 0
+  const total = Math.max(0, cartTotal + shipping - couponDiscount)
+  const suggestedPartial = partialPaymentPercent > 0
+    ? Math.round((total * partialPaymentPercent) / 100)
+    : 0
   const itemCount = cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0)
 
   const checkoutSchema = useMemo(() => {
@@ -140,7 +160,21 @@ export default function Checkout() {
   })
 
   const paymentMethod = watch('paymentMethod')
+  const zipValue = watch('zip')
   const partialAmountNum = Number(watch('partialAmount') || 0)
+
+  const deliveryPincode = String(
+    checkoutAddress?.postalCode || checkoutAddress?.zip || zipValue || ''
+  ).trim()
+
+  const {
+    data: deliveryCheck,
+    isFetching: deliveryChecking,
+    isError: deliveryCheckFailed,
+    error: deliveryCheckError,
+  } = useDeliveryCheckQuery(deliveryPincode, {
+    enabled: isAuthenticated && deliveryPincode.length >= 6,
+  })
 
   useEffect(() => {
     if (!user && !checkoutAddress) return
@@ -164,6 +198,23 @@ export default function Checkout() {
       setValue('zip', checkoutAddress.postalCode || checkoutAddress.zip)
     }
   }, [user, checkoutAddress, setValue])
+
+  useEffect(() => {
+    if (paymentMethod === 'cod' && !codEnabled) {
+      setValue('paymentMethod', 'prepaid', { shouldValidate: true })
+    }
+    if (paymentMethod === 'partial' && !partialPaymentEnabled) {
+      setValue('paymentMethod', 'prepaid', { shouldValidate: true })
+    }
+  }, [codEnabled, partialPaymentEnabled, paymentMethod, setValue])
+
+  useEffect(() => {
+    if (paymentMethod !== 'partial' || !partialPaymentEnabled || !suggestedPartial) return
+    const current = watch('partialAmount')
+    if (!current) {
+      setValue('partialAmount', String(suggestedPartial), { shouldValidate: true })
+    }
+  }, [paymentMethod, partialPaymentEnabled, suggestedPartial, setValue, watch])
 
   if (cartItems.length === 0 && !orderPlaced) {
     return (
@@ -211,6 +262,40 @@ export default function Checkout() {
 
   const setPaymentMethod = (method) => {
     setValue('paymentMethod', method, { shouldValidate: true })
+    if (method === 'partial' && suggestedPartial) {
+      setValue('partialAmount', String(suggestedPartial), { shouldValidate: true })
+    }
+  }
+
+  const handleApplyCoupon = async (code) => {
+    const couponCode = String(code || couponInput || '').trim().toUpperCase()
+    if (!couponCode) {
+      toast.error('Enter a coupon code')
+      return
+    }
+
+    try {
+      const result = await validateCoupon.mutateAsync({
+        couponCode,
+        useServercart: true,
+      })
+      if (!result.valid) {
+        setAppliedCoupon(null)
+        toast.error(result.message || 'Invalid coupon')
+        return
+      }
+      setAppliedCoupon(result)
+      setCouponInput(result.couponCode || couponCode)
+      toast.success(result.message || 'Coupon applied')
+    } catch (err) {
+      setAppliedCoupon(null)
+      toast.error(err?.message || 'Could not validate coupon')
+    }
+  }
+
+  const handleClearCoupon = () => {
+    setAppliedCoupon(null)
+    setCouponInput('')
   }
 
   return (
@@ -338,6 +423,27 @@ export default function Checkout() {
                 <InputGroup label="PIN / ZIP" htmlFor="zip" required error={errors.zip?.message}>
                   <Input id="zip" error={errors.zip} {...register('zip')} />
                 </InputGroup>
+                {deliveryPincode.length >= 6 && (
+                  <p
+                    className={`body-sm checkout-delivery-hint${
+                      deliveryCheck && !deliveryCheck.isDeliverable ? ' checkout-delivery-hint--warn' : ''
+                    }`}
+                  >
+                    {deliveryChecking && 'Checking delivery for this PIN…'}
+                    {!deliveryChecking && deliveryCheckFailed && (
+                      deliveryCheckError?.message || 'Could not verify delivery for this PIN.'
+                    )}
+                    {!deliveryChecking && !deliveryCheckFailed && deliveryCheck && (
+                      deliveryCheck.isDeliverable
+                        ? [
+                            deliveryCheck.message || 'Deliverable to this PIN',
+                            deliveryCheck.estimatedDays && `ETA ${deliveryCheck.estimatedDays} days`,
+                            deliveryCheck.courierName,
+                          ].filter(Boolean).join(' · ')
+                        : (deliveryCheck.message || 'Not deliverable to this PIN')
+                    )}
+                  </p>
+                )}
               </div>
             </section>
 
@@ -370,32 +476,40 @@ export default function Checkout() {
                     <small>Pay now with card or Razorpay</small>
                   </span>
                 </button>
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={paymentMethod === 'cod'}
-                  className={`checkout-pay-option${paymentMethod === 'cod' ? ' checkout-pay-option--active' : ''}`}
-                  onClick={() => setPaymentMethod('cod')}
-                >
-                  <Truck size={18} />
-                  <span>
-                    <strong>Cash on delivery</strong>
-                    <small>Pay when your order arrives</small>
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={paymentMethod === 'partial'}
-                  className={`checkout-pay-option${paymentMethod === 'partial' ? ' checkout-pay-option--active' : ''}`}
-                  onClick={() => setPaymentMethod('partial')}
-                >
-                  <Wallet size={18} />
-                  <span>
-                    <strong>Partial payment</strong>
-                    <small>Pay a portion now, rest later</small>
-                  </span>
-                </button>
+                {codEnabled && (
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={paymentMethod === 'cod'}
+                    className={`checkout-pay-option${paymentMethod === 'cod' ? ' checkout-pay-option--active' : ''}`}
+                    onClick={() => setPaymentMethod('cod')}
+                  >
+                    <Truck size={18} />
+                    <span>
+                      <strong>Cash on delivery</strong>
+                      <small>Pay when your order arrives</small>
+                    </span>
+                  </button>
+                )}
+                {partialPaymentEnabled && (
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={paymentMethod === 'partial'}
+                    className={`checkout-pay-option${paymentMethod === 'partial' ? ' checkout-pay-option--active' : ''}`}
+                    onClick={() => setPaymentMethod('partial')}
+                  >
+                    <Wallet size={18} />
+                    <span>
+                      <strong>Partial payment</strong>
+                      <small>
+                        {partialPaymentPercent > 0
+                          ? `Pay ${partialPaymentPercent}% now (${formatPrice(suggestedPartial)})`
+                          : 'Pay a portion now, rest later'}
+                      </small>
+                    </span>
+                  </button>
+                )}
               </div>
 
               {paymentMethod === 'prepaid' && (
@@ -479,7 +593,9 @@ export default function Checkout() {
                     />
                   </InputGroup>
                   <p className="body-sm text-muted">
-                    Remaining balance will be collected before dispatch.
+                    {partialPaymentPercent > 0
+                      ? `Suggested advance: ${partialPaymentPercent}% (${formatPrice(suggestedPartial)}). Remaining balance will be collected before dispatch.`
+                      : 'Remaining balance will be collected before dispatch.'}
                   </p>
                 </div>
               )}
@@ -531,6 +647,59 @@ export default function Checkout() {
             </div>
 
             <div className="checkout-summary__rows">
+              <div className="checkout-coupon">
+                <div className="checkout-coupon__head">
+                  <Tag size={14} />
+                  <span>Coupon</span>
+                </div>
+                <div className="checkout-coupon__row">
+                  <Input
+                    value={couponInput}
+                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                    placeholder="Enter code"
+                    aria-label="Coupon code"
+                    disabled={Boolean(appliedCoupon?.valid)}
+                  />
+                  {appliedCoupon?.valid ? (
+                    <Button type="button" variant="secondary" size="sm" onClick={handleClearCoupon}>
+                      Remove
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleApplyCoupon()}
+                      disabled={validateCoupon.isPending}
+                    >
+                      {validateCoupon.isPending ? '…' : 'Apply'}
+                    </Button>
+                  )}
+                </div>
+                {appliedCoupon?.valid && (
+                  <p className="checkout-coupon__ok">
+                    {appliedCoupon.couponCode} · −{formatPrice(appliedCoupon.discountAmount || 0)}
+                  </p>
+                )}
+                {availableCoupons.length > 0 && !appliedCoupon?.valid && (
+                  <div className="checkout-coupon__list">
+                    {availableCoupons.slice(0, 4).map((coupon) => (
+                      <button
+                        key={coupon.id}
+                        type="button"
+                        className="checkout-coupon__chip"
+                        onClick={() => {
+                          setCouponInput(coupon.code)
+                          handleApplyCoupon(coupon.code)
+                        }}
+                      >
+                        {coupon.code}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="checkout-summary__row">
                 <span>Subtotal</span>
                 <span>{formatPrice(cartTotal)}</span>
@@ -539,6 +708,12 @@ export default function Checkout() {
                 <span>Shipping</span>
                 <span>{shipping === 0 ? 'Free' : formatPrice(shipping)}</span>
               </div>
+              {couponDiscount > 0 && (
+                <div className="checkout-summary__row">
+                  <span>Coupon</span>
+                  <span>−{formatPrice(couponDiscount)}</span>
+                </div>
+              )}
               {shipping === 0 && (
                 <p className="checkout-summary__perk">Complimentary shipping on this order</p>
               )}

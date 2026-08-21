@@ -47,6 +47,17 @@ export const API_ENDPOINTS = {
     merge: '/wishlist/merge',
     moveToCart: '/wishlist/move-to-cart',
   },
+  checkout: {
+    settings: '/checkout/settings',
+  },
+  delivery: {
+    check: '/delivery/check-delivery',
+    charges: (pincode) => `/delivery/delivery-charges/${encodeURIComponent(pincode)}`,
+  },
+  coupons: {
+    available: '/coupons/available',
+    validate: '/coupons/validate',
+  },
   search: {
     query: '/search',
   },
