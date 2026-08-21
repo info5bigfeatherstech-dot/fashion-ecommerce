@@ -23,7 +23,7 @@ export function useCart({ enabled = true } = {}) {
 
   useEffect(() => {
     if (query.data) replaceCartFromApi(query.data)
-  }, [query.data, replaceCartFromApi])
+  }, [query.dataUpdatedAt, query.data, replaceCartFromApi])
 
   return query
 }

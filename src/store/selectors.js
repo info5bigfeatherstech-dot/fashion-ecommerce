@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from '@/store'
 
 export function useCartTotal() {
@@ -20,8 +21,9 @@ export function useWishlistCount() {
   return useAppStore((s) => (s.isAuthenticated ? s.wishlistItems.length : 0))
 }
 
+/** Stable snapshot — must not allocate a new object on every getSnapshot call. */
 export function useCartDiscount() {
-  return useAppStore((s) => (
+  return useAppStore(useShallow((s) => (
     s.isAuthenticated
       ? {
           totalAmount: s.cartTotalAmount || 0,
@@ -35,5 +37,5 @@ export function useCartDiscount() {
           totalDiscountPercentage: 0,
           totalOriginalAmount: 0,
         }
-  ))
+  )))
 }

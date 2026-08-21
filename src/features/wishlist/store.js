@@ -27,10 +27,25 @@ export const wishlistSlice = (set, get) => ({
   wishlistItems: [],
 
   replaceWishlistFromApi: (wishlist) => {
-    set({
-      wishlistItems: Array.isArray(wishlist?.products) ? wishlist.products : [],
-    })
-    queryClient.setQueryData(wishlistKeys.detail(), wishlist)
+    const nextProducts = Array.isArray(wishlist?.products) ? wishlist.products : []
+    const normalized = wishlist && typeof wishlist === 'object'
+      ? { ...wishlist, products: nextProducts }
+      : { id: null, products: nextProducts }
+
+    // Always refresh the query cache so stale data cannot resurrect removed items.
+    queryClient.setQueryData(wishlistKeys.detail(), normalized)
+
+    const current = get().wishlistItems
+    const same = (
+      current.length === nextProducts.length
+      && current.every((item, index) => {
+        const next = nextProducts[index]
+        return next && String(item.id) === String(next.id) && item.variantId === next.variantId
+      })
+    )
+    if (same) return
+
+    set({ wishlistItems: nextProducts })
   },
 
   addToWishlist: async (product) => {
@@ -51,7 +66,14 @@ export const wishlistSlice = (set, get) => ({
       variantId: product.variantId || resolveVariantId(product, {}) || null,
     }
 
-    set({ wishlistItems: [...previous, optimistic] })
+    const nextItems = [...previous, optimistic]
+    set({ wishlistItems: nextItems })
+    queryClient.setQueryData(wishlistKeys.detail(), (old) => ({
+      id: old?.id ?? null,
+      products: nextItems,
+      userType: old?.userType ?? null,
+      storefront: old?.storefront ?? 'ecomm',
+    }))
 
     if (!get().accessToken) return
 
@@ -70,6 +92,12 @@ export const wishlistSlice = (set, get) => ({
       const already = String(error?.message || '').toLowerCase().includes('already')
       if (already) return
       set({ wishlistItems: previous })
+      queryClient.setQueryData(wishlistKeys.detail(), (old) => ({
+        id: old?.id ?? null,
+        products: previous,
+        userType: old?.userType ?? null,
+        storefront: old?.storefront ?? 'ecomm',
+      }))
       notifyWishlistError(error)
     }
   },
@@ -88,17 +116,42 @@ export const wishlistSlice = (set, get) => ({
     const target = previous.find((item) => String(item.id) === String(productId))
     if (!target) return
 
-    set({
-      wishlistItems: previous.filter((item) => String(item.id) !== String(productId)),
-    })
+    const nextItems = previous.filter((item) => String(item.id) !== String(productId))
+    set({ wishlistItems: nextItems })
+    queryClient.setQueryData(wishlistKeys.detail(), (old) => ({
+      id: old?.id ?? null,
+      products: nextItems,
+      userType: old?.userType ?? null,
+      storefront: old?.storefront ?? 'ecomm',
+    }))
 
-    if (!get().accessToken || !target.slug) return
+    const slug = target.slug
+    if (!get().accessToken) return
+
+    if (!slug) {
+      set({ wishlistItems: previous })
+      queryClient.setQueryData(wishlistKeys.detail(), (old) => ({
+        id: old?.id ?? null,
+        products: previous,
+        userType: old?.userType ?? null,
+        storefront: old?.storefront ?? 'ecomm',
+      }))
+      notifyWishlistError(new Error('Missing product slug — could not remove from wishlist'))
+      return
+    }
 
     try {
-      const result = await removeWishlistItemBySlug(target.slug)
-      if (result.wishlist) get().replaceWishlistFromApi(result.wishlist)
+      const result = await removeWishlistItemBySlug(slug)
+      get().replaceWishlistFromApi(result.wishlist || { products: nextItems })
+      queryClient.invalidateQueries({ queryKey: wishlistKeys.all })
     } catch (error) {
       set({ wishlistItems: previous })
+      queryClient.setQueryData(wishlistKeys.detail(), (old) => ({
+        id: old?.id ?? null,
+        products: previous,
+        userType: old?.userType ?? null,
+        storefront: old?.storefront ?? 'ecomm',
+      }))
       notifyWishlistError(error)
     }
   },

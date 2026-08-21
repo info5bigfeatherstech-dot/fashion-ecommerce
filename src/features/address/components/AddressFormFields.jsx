@@ -22,93 +22,123 @@ export function AddressFormFields({ register, control, errors, idPrefix = 'addr'
   const overLimit = courier.combinedLength > COURIER_MAX_LENGTH
 
   return (
-    <div className="form-grid" style={{ gap: 'var(--space-3)' }}>
-      <InputGroup label="Full name" htmlFor={`${idPrefix}-fullName`} error={errors.fullName?.message}>
-        <Input id={`${idPrefix}-fullName`} placeholder="Rahul Sharma" error={errors.fullName} {...register('fullName')} />
-      </InputGroup>
+    <div className="address-form">
+      <section className="address-form__section" aria-labelledby={`${idPrefix}-contact-heading`}>
+        <div className="address-form__section-head">
+          <h4 id={`${idPrefix}-contact-heading`} className="address-form__section-title">
+            Contact
+          </h4>
+          <p className="address-form__section-copy">Who should we deliver to?</p>
+        </div>
 
-      <InputGroup label="Phone" htmlFor={`${idPrefix}-phone`} error={errors.phone?.message}>
-        <Input
-          id={`${idPrefix}-phone`}
-          type="tel"
-          inputMode="numeric"
-          placeholder="10-digit mobile"
-          error={errors.phone}
-          {...register('phone')}
-        />
-      </InputGroup>
+        <div className="address-form__row">
+          <InputGroup label="Full name" htmlFor={`${idPrefix}-fullName`} error={errors.fullName?.message}>
+            <Input id={`${idPrefix}-fullName`} placeholder="Rahul Sharma" error={errors.fullName} {...register('fullName')} />
+          </InputGroup>
 
-      <div className="form-grid form-grid--2">
-        <InputGroup label="House / flat no." htmlFor={`${idPrefix}-house`} error={errors.houseNumber?.message}>
-          <Input id={`${idPrefix}-house`} placeholder="12-A" error={errors.houseNumber} {...register('houseNumber')} />
-        </InputGroup>
-        <InputGroup label="Building (optional)" htmlFor={`${idPrefix}-building`} error={errors.building?.message}>
-          <Input id={`${idPrefix}-building`} placeholder="Apartment / society" error={errors.building} {...register('building')} />
-        </InputGroup>
-      </div>
+          <InputGroup label="Phone" htmlFor={`${idPrefix}-phone`} error={errors.phone?.message}>
+            <Input
+              id={`${idPrefix}-phone`}
+              type="tel"
+              inputMode="numeric"
+              placeholder="10-digit mobile"
+              error={errors.phone}
+              {...register('phone')}
+            />
+          </InputGroup>
+        </div>
+      </section>
 
-      <div className="form-grid form-grid--2">
-        <InputGroup label="Floor (optional)" htmlFor={`${idPrefix}-floor`} error={errors.floor?.message}>
-          <Input id={`${idPrefix}-floor`} placeholder="3" error={errors.floor} {...register('floor')} />
-        </InputGroup>
-        <InputGroup label="Area / locality" htmlFor={`${idPrefix}-area`} error={errors.area?.message}>
-          <Input id={`${idPrefix}-area`} placeholder="Andheri West" error={errors.area} {...register('area')} />
-        </InputGroup>
-      </div>
+      <section className="address-form__section" aria-labelledby={`${idPrefix}-location-heading`}>
+        <div className="address-form__section-head">
+          <h4 id={`${idPrefix}-location-heading`} className="address-form__section-title">
+            Delivery location
+          </h4>
+          <p className="address-form__section-copy">Exact doorstep details for the courier</p>
+        </div>
 
-      <InputGroup label="Street address" htmlFor={`${idPrefix}-line1`} error={errors.addressLine1?.message}>
-        <Input
-          id={`${idPrefix}-line1`}
-          placeholder="Road, street, opposite landmark (min 10 chars)"
-          error={errors.addressLine1}
-          {...register('addressLine1')}
-        />
-      </InputGroup>
+        <div className="address-form__row">
+          <InputGroup label="House / flat no." htmlFor={`${idPrefix}-house`} error={errors.houseNumber?.message}>
+            <Input id={`${idPrefix}-house`} placeholder="12-A" error={errors.houseNumber} {...register('houseNumber')} />
+          </InputGroup>
+          <InputGroup label="Building (optional)" htmlFor={`${idPrefix}-building`} error={errors.building?.message}>
+            <Input id={`${idPrefix}-building`} placeholder="Apartment / society" error={errors.building} {...register('building')} />
+          </InputGroup>
+        </div>
 
-      <InputGroup label="Address line 2 (optional)" htmlFor={`${idPrefix}-line2`} error={errors.addressLine2?.message}>
-        <Input id={`${idPrefix}-line2`} placeholder="Lane / wing" error={errors.addressLine2} {...register('addressLine2')} />
-      </InputGroup>
+        <div className="address-form__row address-form__row--asymmetric">
+          <InputGroup label="Floor (optional)" htmlFor={`${idPrefix}-floor`} error={errors.floor?.message}>
+            <Input id={`${idPrefix}-floor`} placeholder="3" error={errors.floor} {...register('floor')} />
+          </InputGroup>
+          <InputGroup label="Area / locality" htmlFor={`${idPrefix}-area`} error={errors.area?.message}>
+            <Input id={`${idPrefix}-area`} placeholder="Andheri West" error={errors.area} {...register('area')} />
+          </InputGroup>
+        </div>
 
-      <InputGroup label="Landmark (optional)" htmlFor={`${idPrefix}-landmark`} error={errors.landmark?.message}>
-        <Input id={`${idPrefix}-landmark`} placeholder="Near metro station" error={errors.landmark} {...register('landmark')} />
-      </InputGroup>
+        <div className="address-form__row">
+          <InputGroup label="Street address" htmlFor={`${idPrefix}-line1`} error={errors.addressLine1?.message}>
+            <Input
+              id={`${idPrefix}-line1`}
+              placeholder="Road, street, landmark"
+              error={errors.addressLine1}
+              {...register('addressLine1')}
+            />
+          </InputGroup>
+          <InputGroup label="Address line 2 (optional)" htmlFor={`${idPrefix}-line2`} error={errors.addressLine2?.message}>
+            <Input id={`${idPrefix}-line2`} placeholder="Lane / wing" error={errors.addressLine2} {...register('addressLine2')} />
+          </InputGroup>
+        </div>
 
-      <div className="form-grid form-grid--2">
-        <InputGroup label="City" htmlFor={`${idPrefix}-city`} error={errors.city?.message}>
-          <Input id={`${idPrefix}-city`} placeholder="Mumbai" error={errors.city} {...register('city')} />
-        </InputGroup>
-        <InputGroup label="State" htmlFor={`${idPrefix}-state`} error={errors.state?.message}>
-          <Input id={`${idPrefix}-state`} placeholder="Maharashtra" error={errors.state} {...register('state')} />
-        </InputGroup>
-      </div>
+        <div className="address-form__row">
+          <InputGroup label="Landmark (optional)" htmlFor={`${idPrefix}-landmark`} error={errors.landmark?.message}>
+            <Input id={`${idPrefix}-landmark`} placeholder="Near metro" error={errors.landmark} {...register('landmark')} />
+          </InputGroup>
+          <InputGroup label="PIN code" htmlFor={`${idPrefix}-pin`} error={errors.postalCode?.message}>
+            <Input
+              id={`${idPrefix}-pin`}
+              inputMode="numeric"
+              placeholder="400053"
+              error={errors.postalCode}
+              {...register('postalCode')}
+            />
+          </InputGroup>
+        </div>
 
-      <div className="form-grid form-grid--2">
-        <InputGroup label="PIN code" htmlFor={`${idPrefix}-pin`} error={errors.postalCode?.message}>
-          <Input
-            id={`${idPrefix}-pin`}
-            inputMode="numeric"
-            placeholder="400053"
-            error={errors.postalCode}
-            {...register('postalCode')}
-          />
-        </InputGroup>
-        <InputGroup label="Country" htmlFor={`${idPrefix}-country`} error={errors.country?.message}>
-          <Input id={`${idPrefix}-country`} placeholder="India" error={errors.country} {...register('country')} />
-        </InputGroup>
-      </div>
+        <div className="address-form__row">
+          <InputGroup label="City" htmlFor={`${idPrefix}-city`} error={errors.city?.message}>
+            <Input id={`${idPrefix}-city`} placeholder="Mumbai" error={errors.city} {...register('city')} />
+          </InputGroup>
+          <InputGroup label="State" htmlFor={`${idPrefix}-state`} error={errors.state?.message}>
+            <Input id={`${idPrefix}-state`} placeholder="Maharashtra" error={errors.state} {...register('state')} />
+          </InputGroup>
+        </div>
 
-      <div className="form-grid form-grid--2">
-        <InputGroup label="Address type" htmlFor={`${idPrefix}-type`} error={errors.addressType?.message}>
-          <select
-            id={`${idPrefix}-type`}
-            className="input"
-            {...register('addressType')}
-          >
-            <option value="home">Home</option>
-            <option value="work">Work</option>
-            <option value="other">Other</option>
-          </select>
-        </InputGroup>
+        <div className="address-form__row">
+          <InputGroup label="Country" htmlFor={`${idPrefix}-country`} error={errors.country?.message}>
+            <Input id={`${idPrefix}-country`} placeholder="India" error={errors.country} {...register('country')} />
+          </InputGroup>
+          <InputGroup label="Address type" htmlFor={`${idPrefix}-type`} error={errors.addressType?.message}>
+            <select
+              id={`${idPrefix}-type`}
+              className="input address-form__select"
+              {...register('addressType')}
+            >
+              <option value="home">Home</option>
+              <option value="work">Work</option>
+              <option value="other">Other</option>
+            </select>
+          </InputGroup>
+        </div>
+      </section>
+
+      <section className="address-form__section" aria-labelledby={`${idPrefix}-prefs-heading`}>
+        <div className="address-form__section-head">
+          <h4 id={`${idPrefix}-prefs-heading`} className="address-form__section-title">
+            Preferences
+          </h4>
+          <p className="address-form__section-copy">Optional notes for delivery day</p>
+        </div>
+
         <InputGroup label="Delivery notes (optional)" htmlFor={`${idPrefix}-notes`} error={errors.deliveryInstructions?.message}>
           <Input
             id={`${idPrefix}-notes`}
@@ -117,28 +147,26 @@ export function AddressFormFields({ register, control, errors, idPrefix = 'addr'
             {...register('deliveryInstructions')}
           />
         </InputGroup>
-      </div>
 
-      <label className="body-sm" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <input type="checkbox" {...register('isDefault')} />
-        Set as default address
-      </label>
+        <div className="address-form__checks">
+          <label className="address-form__check">
+            <input type="checkbox" {...register('isDefault')} />
+            <span>Set as default address</span>
+          </label>
 
-      <label className="body-sm" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <input type="checkbox" {...register('isGift')} />
-        This is a gift address
-      </label>
+          <label className="address-form__check">
+            <input type="checkbox" {...register('isGift')} />
+            <span>This is a gift address</span>
+          </label>
+        </div>
 
-      <p
-        className="body-sm"
-        style={{
-          margin: 0,
-          color: overLimit ? 'var(--color-danger, #b42318)' : 'var(--color-muted)',
-        }}
-      >
-        Courier address length: {courier.combinedLength}/{COURIER_MAX_LENGTH}
-        {overLimit ? ' — shorten street, area, or landmark' : ''}
-      </p>
+        <p
+          className={`address-form__hint${overLimit ? ' address-form__hint--warn' : ''}`}
+        >
+          Courier address length: {courier.combinedLength}/{COURIER_MAX_LENGTH}
+          {overLimit ? ' — shorten street, area, or landmark' : ''}
+        </p>
+      </section>
     </div>
   )
 }

@@ -176,16 +176,17 @@ export function CheckoutAddressModal({ open, onOpenChange, onProceed }) {
                   </p>
                 )}
 
-                <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                <div className="address-form__actions">
                   <Button
                     type="button"
                     variant="secondary"
+                    size="sm"
                     disabled={createAddress.isPending}
                     onClick={addressForm.handleSubmit((data) => handleCreate(data, { continueAfter: false }))}
                   >
                     Save address
                   </Button>
-                  <Button type="submit" variant="primary" disabled={createAddress.isPending}>
+                  <Button type="submit" variant="primary" size="sm" disabled={createAddress.isPending}>
                     Save & Continue
                   </Button>
                 </div>

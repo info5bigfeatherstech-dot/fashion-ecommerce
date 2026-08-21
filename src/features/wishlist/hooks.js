@@ -28,8 +28,12 @@ export function useWishlist({ enabled = true } = {}) {
   })
 
   useEffect(() => {
-    if (query.data) replaceWishlistFromApi(query.data)
-  }, [query.data, replaceWishlistFromApi])
+    // Only mirror when the server query actually resolves/updates —
+    // avoid pushing a cached snapshot over a newer optimistic remove.
+    if (query.isSuccess && query.data && query.fetchStatus === 'idle') {
+      replaceWishlistFromApi(query.data)
+    }
+  }, [query.isSuccess, query.dataUpdatedAt, query.fetchStatus, query.data, replaceWishlistFromApi])
 
   return query
 }

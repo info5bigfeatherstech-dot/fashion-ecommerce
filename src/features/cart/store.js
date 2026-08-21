@@ -73,20 +73,48 @@ export const cartSlice = (set, get) => ({
 
   replaceCartFromApi: (cart) => {
     if (!cart) {
+      const empty = { items: [], totalAmount: 0, id: null }
+      queryClient.setQueryData(cartKeys.detail(), empty)
+      const current = get()
+      if (current.cartItems.length === 0 && !current.cartId) return
       set({ cartItems: [], ...emptyCartMeta() })
-      queryClient.setQueryData(cartKeys.detail(), cart)
       return
     }
 
-    set({
-      cartItems: Array.isArray(cart.items) ? cart.items : [],
+    const nextItems = Array.isArray(cart.items) ? cart.items : []
+    const nextMeta = {
       cartId: cart.id || null,
       cartTotalAmount: cart.totalAmount ?? 0,
       cartTotalOriginalAmount: cart.totalOriginalAmount ?? 0,
       cartTotalDiscount: cart.totalDiscount ?? 0,
       cartTotalDiscountPercentage: cart.totalDiscountPercentage ?? 0,
-    })
+    }
+
     queryClient.setQueryData(cartKeys.detail(), cart)
+
+    const current = get()
+    const sameMeta = (
+      current.cartId === nextMeta.cartId
+      && current.cartTotalAmount === nextMeta.cartTotalAmount
+      && current.cartTotalOriginalAmount === nextMeta.cartTotalOriginalAmount
+      && current.cartTotalDiscount === nextMeta.cartTotalDiscount
+      && current.cartTotalDiscountPercentage === nextMeta.cartTotalDiscountPercentage
+    )
+    const sameItems = (
+      current.cartItems.length === nextItems.length
+      && current.cartItems.every((item, index) => {
+        const next = nextItems[index]
+        return next
+          && item.id === next.id
+          && item.quantity === next.quantity
+          && item.price === next.price
+          && item.variantId === next.variantId
+      })
+    )
+
+    if (sameMeta && sameItems) return
+
+    set({ cartItems: nextItems, ...nextMeta })
   },
 
   addItem: async (product, options = {}) => {

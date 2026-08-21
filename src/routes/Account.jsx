@@ -610,20 +610,24 @@ export default function Account({
                 </p>
               </div>
             ) : showAddressForm ? (
-              <div className="account-panel">
-                <div className="account-panel__header">
+              <div className="account-panel account-panel--address-form">
+                <div className="account-panel__header account-address-form__header">
                   <div>
                     <p className="heading-sm text-accent">New address</p>
                     <h3 className="display-md">
                       {addresses.length === 0 ? 'Add your address' : 'Add a new address'}
                     </h3>
-                    <p className="body-sm text-muted" style={{ marginTop: 'var(--space-1)' }}>
+                    <p className="body-sm text-muted account-address-form__lede">
                       Enter your delivery details so checkout is faster next time.
                     </p>
                   </div>
                 </div>
 
-                <form onSubmit={addressForm.handleSubmit(handleAddAddress)} noValidate>
+                <form
+                  className="account-address-form"
+                  onSubmit={addressForm.handleSubmit(handleAddAddress)}
+                  noValidate
+                >
                   <AddressFormFields
                     register={addressForm.register}
                     control={addressForm.control}
@@ -632,22 +636,16 @@ export default function Account({
                   />
 
                   {addressFormError && (
-                    <p className="body-sm" style={{ color: 'var(--color-danger, #b42318)', marginTop: 'var(--space-3)' }}>
+                    <p className="body-sm account-address-form__error">
                       {addressFormError}
                     </p>
                   )}
 
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: 'var(--space-2)',
-                      flexWrap: 'wrap',
-                      marginTop: 'var(--space-3)',
-                    }}
-                  >
+                  <div className="address-form__actions">
                     <Button
                       type="button"
                       variant="secondary"
+                      size="sm"
                       onClick={closeAddressForm}
                       disabled={createAddress.isPending || addressForm.formState.isSubmitting}
                     >
@@ -656,8 +654,8 @@ export default function Account({
                     <Button
                       type="submit"
                       variant="primary"
+                      size="sm"
                       disabled={createAddress.isPending || addressForm.formState.isSubmitting}
-                      style={{ flex: 1, minWidth: '10rem' }}
                     >
                       {createAddress.isPending ? 'Saving…' : 'Save address'}
                     </Button>
