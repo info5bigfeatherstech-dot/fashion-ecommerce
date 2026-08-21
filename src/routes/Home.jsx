@@ -36,7 +36,7 @@ export default function Home() {
       <BestsellersSection />
       {/* <MostLovedSection /> */}
       {/* <BeautySpotlightSection /> */}
-      <ShopByCategorySection />
+      {/* <ShopByCategorySection /> */}
       {/* <EditorialSection /> */}
       {/* <DealsSection /> */}
       {/* <TrustStripSection /> */}
