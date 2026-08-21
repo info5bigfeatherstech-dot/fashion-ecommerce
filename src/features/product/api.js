@@ -1,7 +1,7 @@
 import { http } from '@/api/http'
 import { API_ENDPOINTS, PRODUCT_CATALOG_MAX_PAGES, PRODUCT_CATALOG_PAGE_SIZE } from '@/api/endpoints'
 import { ApiError } from '@/api/errors'
-import { extractProductList, mapPagination, mapProductList } from './mappers'
+import { extractProduct, extractProductList, mapPagination, mapProductList } from './mappers'
 
 export {
   PRICE_RANGES,
@@ -303,9 +303,67 @@ export async function getProducts(filters = {}) {
   }
 }
 
-export async function getProductBySlug(slug) {
+/**
+ * Fetch a single product by slug.
+ * GET /api/products/:slug
+ */
+export async function getProductBySlug(slug, { signal } = {}) {
+  const normalizedSlug = String(slug || '').trim()
+  if (!normalizedSlug) {
+    throw new ApiError({
+      message: 'Product not found',
+      status: 404,
+      code: 'PRODUCT_NOT_FOUND',
+    })
+  }
+
+  try {
+    const payload = await http.get(API_ENDPOINTS.products.bySlug(normalizedSlug), { signal })
+    const product = extractProduct(payload)
+    if (product) return product
+  } catch (error) {
+    if (error?.status === 404 || error?.code === 'PRODUCT_NOT_FOUND') {
+      throw error instanceof ApiError
+        ? error
+        : new ApiError({
+            message: 'Product not found',
+            status: 404,
+            code: 'PRODUCT_NOT_FOUND',
+          })
+    }
+    // Fall through to catalog lookup for transient/network issues
+  }
+
   const catalog = await getProductCatalog()
-  const product = catalog.products.find((item) => item.slug === slug)
+  const product = catalog.products.find((item) => item.slug === normalizedSlug)
+
+  if (!product) {
+    throw new ApiError({
+      message: 'Product not found',
+      status: 404,
+      code: 'PRODUCT_NOT_FOUND',
+    })
+  }
+
+  return product
+}
+
+/**
+ * Fetch a detailed product by id.
+ * GET /api/products/detailed/:id
+ */
+export async function getProductDetailedById(id, { signal } = {}) {
+  const normalizedId = String(id || '').trim()
+  if (!normalizedId) {
+    throw new ApiError({
+      message: 'Product not found',
+      status: 404,
+      code: 'PRODUCT_NOT_FOUND',
+    })
+  }
+
+  const payload = await http.get(API_ENDPOINTS.products.detailedById(normalizedId), { signal })
+  const product = extractProduct(payload)
 
   if (!product) {
     throw new ApiError({

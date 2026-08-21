@@ -7,6 +7,7 @@ export const API_ENDPOINTS = {
     all: '/products/all',
     featured: '/products/featured',
     bySlug: (slug) => `/products/${encodeURIComponent(slug)}`,
+    detailedById: (id) => `/products/detailed/${encodeURIComponent(id)}`,
     byId: (id) => `/products/id/${encodeURIComponent(id)}`,
     byCategory: (slug) => `/products/category/${encodeURIComponent(slug)}`,
     related: (slug) => `/products/${encodeURIComponent(slug)}/related`,

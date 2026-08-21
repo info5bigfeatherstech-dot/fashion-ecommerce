@@ -4,6 +4,7 @@ export const productKeys = {
   list: (filters) => [...productKeys.lists(), filters],
   details: () => [...productKeys.all, 'detail'],
   detail: (slug) => [...productKeys.details(), slug],
+  detailedById: (id) => [...productKeys.all, 'detailed', id],
   byCategory: (slug, params = {}) => [...productKeys.all, 'category', slug, params],
   related: (slug) => [...productKeys.all, 'related', slug],
   search: (q, params = {}) => [...productKeys.all, 'search', String(q || '').trim().toLowerCase(), params],

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import {
   getProducts,
   getProductBySlug,
+  getProductDetailedById,
   getBestsellers,
   getNewArrivals,
   getBeautyProducts,
@@ -22,8 +23,16 @@ export function useProductListing(filters = {}) {
 export function useProductDetail(slug) {
   return useQuery({
     queryKey: productKeys.detail(slug),
-    queryFn: () => getProductBySlug(slug),
+    queryFn: ({ signal }) => getProductBySlug(slug, { signal }),
     enabled: !!slug,
+  })
+}
+
+export function useProductDetailedById(id) {
+  return useQuery({
+    queryKey: productKeys.detailedById(id),
+    queryFn: ({ signal }) => getProductDetailedById(id, { signal }),
+    enabled: !!id,
   })
 }
 

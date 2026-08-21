@@ -145,6 +145,29 @@ export function mapProductList(items) {
   return asArray(items).map(mapProduct).filter(Boolean)
 }
 
+/** Normalize a single product payload from by-slug / detailed-by-id routes. */
+export function extractProduct(payload) {
+  if (!payload) return null
+  if (Array.isArray(payload)) return mapProduct(payload[0]) || null
+  if (typeof payload !== 'object') return null
+
+  const candidates = [
+    payload.product,
+    payload.data?.product,
+    payload.data,
+    payload,
+  ]
+
+  for (const candidate of candidates) {
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) continue
+    if (candidate.slug || candidate._id || candidate.id || candidate.name) {
+      return mapProduct(candidate)
+    }
+  }
+
+  return null
+}
+
 /** Normalize list payloads from category / related / catalog routes. */
 export function extractProductList(payload) {
   if (Array.isArray(payload)) return mapProductList(payload)
