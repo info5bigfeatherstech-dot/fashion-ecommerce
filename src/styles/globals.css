@@ -5941,6 +5941,7 @@ textarea {
   top: calc(100% + var(--space-1));
   left: 0;
   right: 0;
+  width: 100%;
   background-color: var(--color-white);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -5949,24 +5950,44 @@ textarea {
   max-height: min(360px, 60vh);
   overflow-y: auto;
   overflow-x: hidden;
-  width: 100%;
+  padding-block: var(--space-1);
 }
 
 .search-suggest__item {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2);
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  color: var(--color-ink);
   transition: background-color var(--transition-fast);
 }
 
-.search-suggest__item:hover {
+.search-suggest__item:hover,
+.search-suggest__item:focus-visible {
   background-color: var(--color-neutral);
+  outline: none;
+}
+
+.search-suggest__item > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.search-suggest__item > div p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .search-suggest__thumb {
-  width: var(--space-5);
-  height: calc(var(--space-5) * 1.25);
+  width: 40px;
+  height: 50px;
+  flex-shrink: 0;
   object-fit: cover;
   border-radius: var(--radius-sm);
 }
