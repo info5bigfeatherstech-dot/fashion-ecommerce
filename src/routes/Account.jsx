@@ -377,10 +377,10 @@ export default function Account({
 
               <Separator style={{ marginBlock: 'var(--space-4)' }} />
 
-              <div className="account-note">
-                <Sparkles size={16} />
-                <p className="body-sm text-muted">Profile UI is ready. Later, we can connect editing and real customer data through your backend.</p>
-              </div>
+                {/* <div className="account-note">
+                  <Sparkles size={16} />
+                  <p className="body-sm text-muted">Profile UI is ready. Later, we can connect editing and real customer data through your backend.</p>
+                </div> */}
             </div>
           </div>
         )}
