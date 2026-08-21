@@ -24,34 +24,12 @@ export const authSlice = (set, get) => ({
     set({
       user,
       isAuthenticated: !!user,
-      // Keep existing accessToken when only profile is updated
       accessToken: user ? get().accessToken : null,
     })
   },
 
-  addresses: [],
+  /** Selected delivery address for the current checkout flow (API-shaped). */
   checkoutAddress: null,
-
-  addAddress: (address) => {
-    const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`
-    set((state) => ({
-      addresses: [
-        ...state.addresses,
-        {
-          id,
-          ...address,
-        },
-      ],
-    }))
-
-    return id
-  },
-
-  removeAddress: (addressId) => {
-    set((state) => ({
-      addresses: state.addresses.filter((a) => a.id !== addressId),
-    }))
-  },
 
   setCheckoutAddress: (address) => set({ checkoutAddress: address }),
   clearCheckoutAddress: () => set({ checkoutAddress: null }),
@@ -62,7 +40,6 @@ export const authSlice = (set, get) => ({
       user: null,
       accessToken: null,
       isAuthenticated: false,
-      addresses: [],
       checkoutAddress: null,
       cartItems: [],
       wishlistItems: [],

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+import { toast } from 'sonner'
 import { ChevronRight, Heart, MapPin, Package, ShoppingBag, Sparkles, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
@@ -14,22 +14,19 @@ import { CartItem } from '@/features/cart/components/CartItem'
 import { ProductCard } from '@/features/product/components/ProductCard'
 import { AuthForms } from '@/features/auth/components/AuthForms'
 import { logout } from '@/features/auth/api'
+import { AddressFormFields } from '@/features/address/components/AddressFormFields'
+import {
+  useAddresses,
+  useCreateAddress,
+  useDeleteAddress,
+  useSetDefaultAddress,
+} from '@/features/address/hooks'
+import { applyFieldErrors } from '@/features/address/mappers'
+import { ADDRESS_FORM_DEFAULTS, addressFormSchema } from '@/features/address/schema'
 import { useAppStore } from '@/store'
 import { useCartTotal } from '@/store/selectors'
 import { formatPrice } from '@/lib/utils'
 import { showAddedToCartToast } from '@/lib/cart-toast'
-
-const addressSchema = z
-  .object({
-    fullAddress: z.string().min(3, 'Address required'),
-    city: z.string().min(1, 'City required'),
-    state: z.string().min(1, 'State required'),
-    zip: z.string().min(3, 'ZIP code required').max(10, 'ZIP code too long'),
-    phone: z
-      .string()
-      .optional()
-      .refine((v) => !v || v.replace(/\D/g, '').length >= 8, 'Phone number looks too short'),
-  })
 
 const ACCOUNT_QUICK_LINKS = [
   { id: 'orders', label: 'Orders', icon: Package },
@@ -51,9 +48,6 @@ export default function Account({
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
   const setSession = useAppStore((s) => s.setSession)
   const clearUser = useAppStore((s) => s.clearUser)
-  const addresses = useAppStore((s) => s.addresses)
-  const addAddress = useAppStore((s) => s.addAddress)
-  const removeAddress = useAppStore((s) => s.removeAddress)
   const cartItems = useAppStore((s) => s.cartItems)
   const wishlistItems = useAppStore((s) => s.wishlistItems)
   const addItem = useAppStore((s) => s.addItem)
@@ -67,8 +61,28 @@ export default function Account({
   const [authError, setAuthError] = useState('')
   const [authModalOpen, setAuthModalOpen] = useState(true)
   const [checkoutAddressOpen, setCheckoutAddressOpen] = useState(false)
+  const [addressFormError, setAddressFormError] = useState('')
 
-  const addressForm = useForm({ resolver: zodResolver(addressSchema) })
+  const {
+    data: addressData,
+    isLoading: addressesLoading,
+    isError: addressesFailed,
+    error: addressesError,
+  } = useAddresses({ enabled: isAuthenticated })
+  const createAddress = useCreateAddress()
+  const deleteAddress = useDeleteAddress()
+  const setDefaultAddress = useSetDefaultAddress()
+
+  const addresses = addressData?.all || []
+
+  const addressForm = useForm({
+    resolver: zodResolver(addressFormSchema),
+    defaultValues: {
+      ...ADDRESS_FORM_DEFAULTS,
+      fullName: user?.name || '',
+      phone: user?.phone || '',
+    },
+  })
 
   const handleAuthenticated = (session) => {
     // API layer already wrote accessToken into Zustand memory; ensure session is synced.
@@ -88,14 +102,44 @@ export default function Account({
   }
 
   const handleAddAddress = async (data) => {
-    addAddress({
-      fullAddress: data.fullAddress,
-      city: data.city,
-      state: data.state,
-      zip: data.zip,
-      phone: data.phone || undefined,
-    })
-    addressForm.reset()
+    setAddressFormError('')
+    try {
+      const result = await createAddress.mutateAsync(data)
+      toast.success(result.message || 'Address saved')
+      addressForm.reset({
+        ...ADDRESS_FORM_DEFAULTS,
+        fullName: user?.name || data.fullName || '',
+        phone: user?.phone || '',
+      })
+    } catch (err) {
+      const applied = applyFieldErrors(err, addressForm.setError)
+      if (!applied) {
+        setAddressFormError(err?.message || 'Could not save address')
+        toast.error(err?.message || 'Could not save address')
+      }
+    }
+  }
+
+  const handleRemoveAddress = async (id) => {
+    try {
+      const result = await deleteAddress.mutateAsync(id)
+      const checkout = useAppStore.getState().checkoutAddress
+      if (checkout?.id === id) {
+        useAppStore.getState().clearCheckoutAddress()
+      }
+      toast.success(result.message || 'Address removed')
+    } catch (err) {
+      toast.error(err?.message || 'Could not remove address')
+    }
+  }
+
+  const handleSetDefault = async (id) => {
+    try {
+      const result = await setDefaultAddress.mutateAsync(id)
+      toast.success(result.message || 'Default address updated')
+    } catch (err) {
+      toast.error(err?.message || 'Could not update default address')
+    }
   }
 
   useEffect(() => {
@@ -112,6 +156,15 @@ export default function Account({
       setAuthModalOpen(true)
     }
   }, [authGateMode, location.pathname])
+
+  useEffect(() => {
+    if (!user) return
+    addressForm.reset({
+      ...ADDRESS_FORM_DEFAULTS,
+      fullName: user.name || '',
+      phone: user.phone || '',
+    })
+  }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!isAuthenticated) {
     if (authGateMode === 'modal') {
@@ -522,79 +575,47 @@ export default function Account({
             <div className="account-panel" style={{ marginBottom: 'var(--space-4)' }}>
               <div className="account-panel__header">
                 <div>
-                  {/* <p className="heading-sm text-accent">Add</p> */}
                   <h3 className="display-md">Add a new address</h3>
                 </div>
               </div>
 
               <form onSubmit={addressForm.handleSubmit(handleAddAddress)} noValidate>
-                <div className="form-grid" style={{ gap: 'var(--space-3)' }}>
-                  <InputGroup
-                    label="Full address"
-                    htmlFor="addr-full"
-                    error={addressForm.formState.errors.fullAddress?.message}
-                  >
-                    <Input
-                      id="addr-full"
-                      placeholder="House no, street, apartment, etc."
-                      error={addressForm.formState.errors.fullAddress}
-                      {...addressForm.register('fullAddress')}
-                    />
-                  </InputGroup>
+                <AddressFormFields
+                  register={addressForm.register}
+                  control={addressForm.control}
+                  errors={addressForm.formState.errors}
+                  idPrefix="account-addr"
+                />
 
-                  <div className="form-grid form-grid--2">
-                    <InputGroup
-                      label="City"
-                      htmlFor="addr-city"
-                      error={addressForm.formState.errors.city?.message}
-                    >
-                      <Input id="addr-city" placeholder="City" error={addressForm.formState.errors.city} {...addressForm.register('city')} />
-                    </InputGroup>
-                    <InputGroup
-                      label="State"
-                      htmlFor="addr-state"
-                      error={addressForm.formState.errors.state?.message}
-                    >
-                      <Input id="addr-state" placeholder="State" error={addressForm.formState.errors.state} {...addressForm.register('state')} />
-                    </InputGroup>
-                  </div>
+                {addressFormError && (
+                  <p className="body-sm" style={{ color: 'var(--color-danger, #b42318)', marginTop: 'var(--space-3)' }}>
+                    {addressFormError}
+                  </p>
+                )}
 
-                  <div className="form-grid form-grid--2">
-                    <InputGroup
-                      label="ZIP Code"
-                      htmlFor="addr-zip"
-                      error={addressForm.formState.errors.zip?.message}
-                    >
-                      <Input id="addr-zip" placeholder="ZIP" error={addressForm.formState.errors.zip} {...addressForm.register('zip')} />
-                    </InputGroup>
-                    <InputGroup
-                      label="Phone (optional)"
-                      htmlFor="addr-phone"
-                      error={addressForm.formState.errors.phone?.message}
-                    >
-                      <Input
-                        id="addr-phone"
-                        type="tel"
-                        placeholder="+1 555 123 4567"
-                        error={addressForm.formState.errors.phone}
-                        {...addressForm.register('phone')}
-                      />
-                    </InputGroup>
-                  </div>
-
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    fullWidth
-                    disabled={addressForm.formState.isSubmitting}
-                  >
-                    Save address
-                  </Button>
-                </div>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  fullWidth
+                  style={{ marginTop: 'var(--space-3)' }}
+                  disabled={createAddress.isPending || addressForm.formState.isSubmitting}
+                >
+                  {createAddress.isPending ? 'Saving…' : 'Save address'}
+                </Button>
               </form>
             </div>
 
-            {addresses.length === 0 ? (
+            {addressesLoading ? (
+              <div className="account-panel">
+                <p className="body-lg text-muted">Loading addresses…</p>
+              </div>
+            ) : addressesFailed ? (
+              <div className="account-panel">
+                <p className="body-lg" style={{ color: 'var(--color-danger, #b42318)' }}>
+                  {addressesError?.message || 'Could not load addresses.'}
+                </p>
+              </div>
+            ) : addresses.length === 0 ? (
               <div className="account-panel">
                 <div className="account-empty">
                   <div className="account-empty__icon"><MapPin size={22} /></div>
@@ -607,21 +628,45 @@ export default function Account({
                 {addresses.map((addr) => (
                   <div key={addr.id} className="account-address-card">
                     <div className="account-address-card__head">
-                      <p className="heading-sm" style={{ marginBottom: 0 }}>Delivery address</p>
-                      <Badge className="account-badge">Saved</Badge>
+                      <p className="heading-sm" style={{ marginBottom: 0 }}>{addr.fullName}</p>
+                      <Badge className="account-badge">{addr.isDefault ? 'Default' : addr.addressType || 'Saved'}</Badge>
                     </div>
-                    <p className="body-lg" style={{ marginBottom: 'var(--space-2)' }}>{addr.fullAddress}</p>
-                    <p className="body-sm text-muted" style={{ marginBottom: 'var(--space-2)' }}>
-                      {addr.city}, {addr.state} · {addr.zip}
+                    <p className="body-lg" style={{ marginBottom: 'var(--space-2)' }}>
+                      {addr.displayLine1 || addr.fullAddress}
                     </p>
-                    {addr.phone && <p className="body-sm text-muted" style={{ marginBottom: 'var(--space-2)' }}>Phone: {addr.phone}</p>}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeAddress(addr.id)}
-                    >
-                      Remove
-                    </Button>
+                    {addr.displayLine2 && (
+                      <p className="body-sm text-muted" style={{ marginBottom: 'var(--space-2)' }}>
+                        {addr.displayLine2}
+                      </p>
+                    )}
+                    <p className="body-sm text-muted" style={{ marginBottom: 'var(--space-2)' }}>
+                      {addr.city}, {addr.state} · {addr.postalCode || addr.zip}
+                    </p>
+                    {addr.phone && (
+                      <p className="body-sm text-muted" style={{ marginBottom: 'var(--space-2)' }}>
+                        Phone: {addr.phone}
+                      </p>
+                    )}
+                    <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                      {!addr.isDefault && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          disabled={setDefaultAddress.isPending}
+                          onClick={() => handleSetDefault(addr.id)}
+                        >
+                          Set default
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={deleteAddress.isPending}
+                        onClick={() => handleRemoveAddress(addr.id)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>

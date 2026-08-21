@@ -30,7 +30,7 @@ export const useAppStore = create(
         wishlistItems: state.wishlistItems,
         user: state.user,
         // accessToken intentionally excluded — memory only
-        addresses: state.addresses,
+        // addresses come from the API — not persisted locally
         checkoutAddress: state.checkoutAddress,
       }),
       merge: (persistedState, currentState) => {

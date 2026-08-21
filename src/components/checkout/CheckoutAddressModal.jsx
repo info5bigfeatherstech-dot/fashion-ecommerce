@@ -1,31 +1,31 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/Button'
-import { Input, InputGroup } from '@/components/ui/Input'
+import { Badge } from '@/components/ui/Badge'
 import { Separator } from '@/components/ui/Separator'
 import { Modal } from '@/components/ui/Modal'
 import { useAppStore } from '@/store'
-
-const addressSchema = z.object({
-  fullAddress: z.string().min(3, 'Address required'),
-  city: z.string().min(1, 'City required'),
-  state: z.string().min(1, 'State required'),
-  zip: z.string().min(3, 'ZIP code required').max(10, 'ZIP code too long'),
-  phone: z
-    .string()
-    .optional()
-    .refine((v) => !v || v.replace(/\D/g, '').length >= 8, 'Phone number looks too short'),
-})
+import { AddressFormFields } from '@/features/address/components/AddressFormFields'
+import { useAddresses, useCreateAddress } from '@/features/address/hooks'
+import { applyFieldErrors } from '@/features/address/mappers'
+import { ADDRESS_FORM_DEFAULTS, addressFormSchema } from '@/features/address/schema'
 
 export function CheckoutAddressModal({ open, onOpenChange, onProceed }) {
-  const addresses = useAppStore((s) => s.addresses)
+  const isAuthenticated = useAppStore((s) => s.isAuthenticated)
   const checkoutAddress = useAppStore((s) => s.checkoutAddress)
-  const addAddress = useAppStore((s) => s.addAddress)
   const setCheckoutAddress = useAppStore((s) => s.setCheckoutAddress)
 
+  const { data, isLoading, isError, error, refetch } = useAddresses({
+    enabled: open && isAuthenticated,
+  })
+  const createAddress = useCreateAddress()
+
+  const addresses = data?.all || []
   const [selectedAddressId, setSelectedAddressId] = useState(null)
+  const [formError, setFormError] = useState('')
 
   const selectedAddress = useMemo(() => {
     if (!selectedAddressId) return null
@@ -33,27 +33,22 @@ export function CheckoutAddressModal({ open, onOpenChange, onProceed }) {
   }, [addresses, selectedAddressId])
 
   const addressForm = useForm({
-    resolver: zodResolver(addressSchema),
-    defaultValues: {
-      fullAddress: '',
-      city: '',
-      state: '',
-      zip: '',
-      phone: '',
-    },
+    resolver: zodResolver(addressFormSchema),
+    defaultValues: ADDRESS_FORM_DEFAULTS,
   })
 
   useEffect(() => {
     if (!open) return
 
     const preferredId = checkoutAddress?.id
-    if (preferredId) {
+    if (preferredId && addresses.some((a) => a.id === preferredId)) {
       setSelectedAddressId(preferredId)
       return
     }
 
-    setSelectedAddressId(addresses[0]?.id ?? null)
-  }, [open, addresses, checkoutAddress?.id])
+    const defaultId = data?.defaultAddress?.id || addresses[0]?.id || null
+    setSelectedAddressId(defaultId)
+  }, [open, addresses, checkoutAddress?.id, data?.defaultAddress?.id])
 
   const handleProceed = () => {
     if (!selectedAddress) return
@@ -62,159 +57,155 @@ export function CheckoutAddressModal({ open, onOpenChange, onProceed }) {
     onOpenChange?.(false)
   }
 
-  const handleSaveAndContinue = async (data) => {
-    const newId = addAddress({
-      fullAddress: data.fullAddress,
-      city: data.city,
-      state: data.state,
-      zip: data.zip,
-      phone: data.phone || undefined,
-    })
-
-    const newAddress = {
-      id: newId,
-      fullAddress: data.fullAddress,
-      city: data.city,
-      state: data.state,
-      zip: data.zip,
-      phone: data.phone || undefined,
+  const handleCreate = async (formData, { continueAfter } = {}) => {
+    setFormError('')
+    try {
+      const result = await createAddress.mutateAsync(formData)
+      toast.success(result.message || 'Address saved')
+      setSelectedAddressId(result.address?.id || null)
+      if (continueAfter && result.address) {
+        setCheckoutAddress(result.address)
+        onProceed?.()
+        onOpenChange?.(false)
+      }
+      addressForm.reset({
+        ...ADDRESS_FORM_DEFAULTS,
+        fullName: formData.fullName,
+        phone: formData.phone,
+      })
+      await refetch()
+    } catch (err) {
+      const applied = applyFieldErrors(err, addressForm.setError)
+      if (!applied) {
+        setFormError(err?.message || 'Could not save address')
+        toast.error(err?.message || 'Could not save address')
+      }
     }
-
-    setSelectedAddressId(newId)
-    setCheckoutAddress(newAddress)
-    onProceed?.()
-    onOpenChange?.(false)
-    addressForm.reset()
-  }
-
-  const handleSaveOnly = async (data) => {
-    const newId = addAddress({
-      fullAddress: data.fullAddress,
-      city: data.city,
-      state: data.state,
-      zip: data.zip,
-      phone: data.phone || undefined,
-    })
-
-    // Select the newly-added address so user can immediately continue.
-    setSelectedAddressId(newId)
-    addressForm.reset()
   }
 
   return (
-    <Modal
-      open={open}
-      onOpenChange={onOpenChange}
-      title="Delivery Address"
-    >
+    <Modal open={open} onOpenChange={onOpenChange} title="Delivery Address">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-        <div>
-          <h2 className="heading-sm" style={{ marginBottom: 'var(--space-2)' }}>
-            Choose a saved address
-          </h2>
-
-          {addresses.length === 0 ? (
+        {!isAuthenticated ? (
+          <div>
             <p className="body-sm text-muted" style={{ marginBottom: 'var(--space-3)' }}>
-              No saved addresses yet. Add your first delivery address below.
+              Sign in to choose a saved delivery address or add a new one.
             </p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-              {addresses.map((addr) => {
-                const isSelected = addr.id === selectedAddressId
-                return (
-                  <button
-                    key={addr.id}
+            <Button asChild variant="primary">
+              <Link to="/login" state={{ redirectTo: '/cart' }}>
+                Sign in
+              </Link>
+            </Button>
+          </div>
+        ) : (
+          <>
+            <div>
+              <h2 className="heading-sm" style={{ marginBottom: 'var(--space-2)' }}>
+                Choose a saved address
+              </h2>
+
+              {isLoading ? (
+                <p className="body-sm text-muted">Loading addresses…</p>
+              ) : isError ? (
+                <p className="body-sm" style={{ color: 'var(--color-danger, #b42318)' }}>
+                  {error?.message || 'Could not load addresses.'}
+                </p>
+              ) : addresses.length === 0 ? (
+                <p className="body-sm text-muted" style={{ marginBottom: 'var(--space-3)' }}>
+                  No saved addresses yet. Add your first delivery address below.
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                  {addresses.map((addr) => {
+                    const isSelected = addr.id === selectedAddressId
+                    return (
+                      <button
+                        key={addr.id}
+                        type="button"
+                        onClick={() => setSelectedAddressId(addr.id)}
+                        className="card"
+                        style={{
+                          padding: 'var(--space-3)',
+                          textAlign: 'left',
+                          borderColor: isSelected ? 'var(--color-accent)' : 'var(--color-border)',
+                          cursor: 'pointer',
+                          background: isSelected ? 'rgba(197,162,109,0.08)' : 'var(--color-white)',
+                        }}
+                        aria-label={`Select address: ${addr.fullAddress}`}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
+                          <p className="body-sm" style={{ fontWeight: 'var(--weight-semibold)', margin: 0 }}>
+                            {addr.fullName}
+                          </p>
+                          {addr.isDefault && <Badge>Default</Badge>}
+                        </div>
+                        <p className="body-sm" style={{ marginBottom: 4 }}>{addr.displayLine1 || addr.fullAddress}</p>
+                        {addr.displayLine2 && (
+                          <p className="body-sm text-muted" style={{ marginBottom: 4 }}>{addr.displayLine2}</p>
+                        )}
+                        <p className="body-sm text-muted">
+                          {addr.city}, {addr.state} · {addr.postalCode || addr.zip}
+                        </p>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <h2 className="heading-sm" style={{ marginBottom: 'var(--space-2)' }}>
+                Add a new address
+              </h2>
+
+              <form
+                onSubmit={addressForm.handleSubmit((data) => handleCreate(data, { continueAfter: true }))}
+                noValidate
+                style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}
+              >
+                <AddressFormFields
+                  register={addressForm.register}
+                  control={addressForm.control}
+                  errors={addressForm.formState.errors}
+                  idPrefix="checkout-addr"
+                />
+
+                {formError && (
+                  <p className="body-sm" style={{ color: 'var(--color-danger, #b42318)', margin: 0 }}>
+                    {formError}
+                  </p>
+                )}
+
+                <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                  <Button
                     type="button"
-                    onClick={() => setSelectedAddressId(addr.id)}
-                    className="card"
-                    style={{
-                      padding: 'var(--space-3)',
-                      textAlign: 'left',
-                      borderColor: isSelected ? 'var(--color-accent)' : 'var(--color-border)',
-                      cursor: 'pointer',
-                      background: isSelected ? 'rgba(197,162,109,0.08)' : 'var(--color-white)',
-                    }}
-                    aria-label={`Select address: ${addr.fullAddress}`}
+                    variant="secondary"
+                    disabled={createAddress.isPending}
+                    onClick={addressForm.handleSubmit((data) => handleCreate(data, { continueAfter: false }))}
                   >
-                    <p className="body-sm" style={{ fontWeight: 'var(--weight-semibold)', marginBottom: 'var(--space-1)' }}>
-                      {addr.fullAddress}
-                    </p>
-                    <p className="body-sm text-muted">
-                      {addr.city}, {addr.state} · {addr.zip}
-                    </p>
-                  </button>
-                )
-              })}
-            </div>
-          )}
-        </div>
-
-        <div>
-          <h2 className="heading-sm" style={{ marginBottom: 'var(--space-2)' }}>
-            Add a new address
-          </h2>
-
-          <form
-            onSubmit={addressForm.handleSubmit(handleSaveAndContinue)}
-            noValidate
-            style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}
-          >
-            <InputGroup label="Full address" htmlFor="addr-full" error={addressForm.formState.errors.fullAddress?.message}>
-              <Input id="addr-full" placeholder="House / Street / Area" {...addressForm.register('fullAddress')} />
-            </InputGroup>
-
-            <div className="form-grid form-grid--2">
-              <InputGroup label="City" htmlFor="addr-city" error={addressForm.formState.errors.city?.message}>
-                <Input id="addr-city" placeholder="City" {...addressForm.register('city')} />
-              </InputGroup>
-
-              <InputGroup label="State" htmlFor="addr-state" error={addressForm.formState.errors.state?.message}>
-                <Input id="addr-state" placeholder="State" {...addressForm.register('state')} />
-              </InputGroup>
+                    Save address
+                  </Button>
+                  <Button type="submit" variant="primary" disabled={createAddress.isPending}>
+                    Save & Continue
+                  </Button>
+                </div>
+              </form>
             </div>
 
-            <InputGroup label="ZIP Code" htmlFor="addr-zip" error={addressForm.formState.errors.zip?.message}>
-              <Input id="addr-zip" placeholder="ZIP" {...addressForm.register('zip')} />
-            </InputGroup>
+            <Separator />
 
-            <InputGroup label="Phone (optional)" htmlFor="addr-phone" error={addressForm.formState.errors.phone?.message}>
-              <Input id="addr-phone" placeholder="Phone number" {...addressForm.register('phone')} />
-            </InputGroup>
-
-            <div style={{ display: 'flex', gap: 'var(--space-2)', flexDirection: 'row', flexWrap: 'wrap' }}>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={addressForm.handleSubmit(handleSaveOnly)}
-              >
-                Save address
-              </Button>
-
-              <Button
-                type="submit"
-                variant="primary"
-              >
-                Save & Continue
-              </Button>
-            </div>
-          </form>
-        </div>
-
-        <Separator />
-
-        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-          <Button
-            variant="primary"
-            fullWidth
-            type="button"
-            onClick={handleProceed}
-            disabled={!selectedAddress}
-          >
-            Continue to checkout
-          </Button>
-        </div>
+            <Button
+              variant="primary"
+              fullWidth
+              type="button"
+              onClick={handleProceed}
+              disabled={!selectedAddress}
+            >
+              Continue to checkout
+            </Button>
+          </>
+        )}
       </div>
     </Modal>
   )
 }
-

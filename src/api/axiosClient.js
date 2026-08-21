@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { apiConfig } from './config'
+import { STOREFRONT } from './endpoints'
 
 const axiosClient = axios.create({
   baseURL: apiConfig.baseURL,
@@ -8,6 +9,7 @@ const axiosClient = axios.create({
   headers: {
     Accept: 'application/json',
     'Content-Type': 'application/json',
+    'x-storefront': STOREFRONT,
   },
 })
 
