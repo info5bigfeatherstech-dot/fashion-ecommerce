@@ -12,7 +12,7 @@ function compactParams(params) {
   )
 }
 
-function request(method, url, { params, data, signal, headers, timeout } = {}) {
+function request(method, url, { params, data, signal, headers, timeout, skipAuthRefresh } = {}) {
   return axiosClient.request({
     method,
     url,
@@ -21,6 +21,7 @@ function request(method, url, { params, data, signal, headers, timeout } = {}) {
     signal,
     headers,
     timeout,
+    skipAuthRefresh: Boolean(skipAuthRefresh),
   }).then((response) => response.data)
 }
 

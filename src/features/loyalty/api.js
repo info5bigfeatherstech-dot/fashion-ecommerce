@@ -1,8 +1,10 @@
+import { useAppStore } from '@/store'
+
 const delay = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export async function getMemberStatus() {
   await delay()
-  const token = localStorage.getItem('verao_token')
+  const token = useAppStore.getState().accessToken
   if (!token) {
     return { isMember: false, points: 0, tier: null, nextTier: 'Member', pointsToNext: 500 }
   }

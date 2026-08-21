@@ -1,14 +1,35 @@
-import { getStoredUser } from './api'
+import { clearAuthSession } from '@/api/config'
 
 export const authSlice = (set, get) => ({
-  user: getStoredUser(),
-  isAuthenticated: !!getStoredUser(),
+  user: null,
+  accessToken: null,
+  isAuthenticated: false,
+  authReady: false,
 
-  setUser: (user) => set({ user, isAuthenticated: !!user }),
+  setAuthReady: (authReady) => set({ authReady: Boolean(authReady) }),
+
+  setSession: ({ user = null, accessToken = null } = {}) => {
+    set({
+      user,
+      accessToken: accessToken || null,
+      isAuthenticated: !!user,
+    })
+  },
+
+  setAccessToken: (accessToken) => {
+    set({ accessToken: accessToken || null })
+  },
+
+  setUser: (user) => {
+    set({
+      user,
+      isAuthenticated: !!user,
+      // Keep existing accessToken when only profile is updated
+      accessToken: user ? get().accessToken : null,
+    })
+  },
 
   addresses: [],
-
-  // Address selected in the checkout flow (set from the checkout address popup).
   checkoutAddress: null,
 
   addAddress: (address) => {
@@ -35,14 +56,17 @@ export const authSlice = (set, get) => ({
   setCheckoutAddress: (address) => set({ checkoutAddress: address }),
   clearCheckoutAddress: () => set({ checkoutAddress: null }),
 
-  clearUser: () =>
+  clearUser: () => {
+    clearAuthSession()
     set({
       user: null,
+      accessToken: null,
       isAuthenticated: false,
       addresses: [],
       checkoutAddress: null,
       cartItems: [],
       wishlistItems: [],
       isCartOpen: false,
-    }),
+    })
+  },
 })

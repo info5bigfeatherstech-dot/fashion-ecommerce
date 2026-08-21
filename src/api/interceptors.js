@@ -1,6 +1,7 @@
 import axiosClient from './axiosClient'
-import { getAuthToken } from './config'
 import { normalizeApiError } from './errors'
+import { useAppStore } from '@/store'
+import { refreshSession } from '@/features/auth/api'
 
 let interceptorsInstalled = false
 
@@ -10,7 +11,7 @@ export function setupInterceptors() {
 
   axiosClient.interceptors.request.use(
     (config) => {
-      const token = getAuthToken()
+      const token = useAppStore.getState().accessToken
       if (token) {
         config.headers.Authorization = `Bearer ${token}`
       }
@@ -35,6 +36,25 @@ export function setupInterceptors() {
       }
       return response
     },
-    (error) => Promise.reject(normalizeApiError(error))
+    async (error) => {
+      const original = error.config
+      const status = error.response?.status
+      const skipRefresh = original?.skipAuthRefresh || original?._retry
+
+      if (status === 401 && original && !skipRefresh) {
+        original._retry = true
+        try {
+          const session = await refreshSession()
+          original.headers = original.headers || {}
+          original.headers.Authorization = `Bearer ${session.accessToken}`
+          return axiosClient(original)
+        } catch (refreshError) {
+          useAppStore.getState().clearUser()
+          return Promise.reject(normalizeApiError(refreshError))
+        }
+      }
+
+      return Promise.reject(normalizeApiError(error))
+    }
   )
 }

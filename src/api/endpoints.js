@@ -14,10 +14,17 @@ export const API_ENDPOINTS = {
     search: '/products/search',
   },
   auth: {
-    login: '/auth/login',
+    securityQuestions: '/auth/security-questions',
     register: '/auth/register',
+    otpVerifyLogin: '/auth/otp-verify-login',
+    login: '/auth/login',
     logout: '/auth/logout',
     me: '/auth/me',
+    refresh: '/auth/refresh',
+    forgotFindUser: '/auth/forgot-password/find-user',
+    forgotVerifyAnswers: '/auth/forgot-password/verify-answers',
+    forgotVerifyOtpFallback: '/auth/forgot-password/verify-otp-fallback',
+    forgotResetDirect: '/auth/forgot-password/reset-direct',
   },
   search: {
     query: '/search',
@@ -26,3 +33,4 @@ export const API_ENDPOINTS = {
 
 export const PRODUCT_CATALOG_PAGE_SIZE = 50
 export const PRODUCT_CATALOG_MAX_PAGES = 20
+export const AUTH_PORTAL = 'ecomm'

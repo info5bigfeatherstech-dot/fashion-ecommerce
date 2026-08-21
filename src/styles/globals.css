@@ -820,7 +820,7 @@ textarea {
 }
 
 .select-content {
-  z-index: var(--z-modal);
+  z-index: calc(var(--z-modal) + 10);
   min-width: var(--radix-select-trigger-width);
   background-color: var(--color-paper);
   border: 1px solid var(--color-border);
@@ -1140,6 +1140,80 @@ textarea {
   border-radius: var(--radius-lg);
   background: var(--color-white);
   box-shadow: var(--shadow-subtle);
+}
+
+.auth-flow {
+  padding: var(--space-3);
+  border: 1px solid rgba(221, 215, 204, 0.8);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  box-shadow: var(--shadow-subtle);
+}
+
+.auth-flow .section-header__link {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-align: center;
+  width: 100%;
+}
+
+.otp-input {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.otp-input__hidden {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.otp-slot {
+  position: relative;
+  width: 2.75rem;
+  height: 3.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(221, 215, 204, 0.95);
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
+  font-family: var(--font-sans);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.otp-slot--active {
+  border-color: var(--color-ink);
+  box-shadow: 0 0 0 2px rgba(26, 26, 26, 0.08);
+}
+
+.otp-slot__caret {
+  width: 1px;
+  height: 1.25rem;
+  background: var(--color-ink);
+  animation: otp-caret-blink 1s steps(1) infinite;
+}
+
+@keyframes otp-caret-blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  50.01%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.select-trigger--full {
+  width: 100%;
 }
 
 /* Register modal: more “page-like” */

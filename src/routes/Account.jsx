@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { CalendarDays, ChevronRight, Heart, Mail, MapPin, Package, Phone, ShoppingBag, Sparkles, UserRound } from 'lucide-react'
+import { ChevronRight, Heart, MapPin, Package, ShoppingBag, Sparkles, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Input, InputGroup } from '@/components/ui/Input'
@@ -12,32 +12,12 @@ import { Modal } from '@/components/ui/Modal'
 import { CheckoutAddressModal } from '@/components/checkout/CheckoutAddressModal'
 import { CartItem } from '@/features/cart/components/CartItem'
 import { ProductCard } from '@/features/product/components/ProductCard'
-import { login, register as registerUser, logout } from '@/features/auth/api'
+import { AuthForms } from '@/features/auth/components/AuthForms'
+import { logout } from '@/features/auth/api'
 import { useAppStore } from '@/store'
 import { useCartTotal } from '@/store/selectors'
 import { formatPrice } from '@/lib/utils'
 import { showAddedToCartToast } from '@/lib/cart-toast'
-
-const loginSchema = z.object({
-  email: z.string().email('Valid email required'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-})
-
-const registerSchema = z
-  .object({
-    fullName: z.string().min(2, 'Full name is required'),
-    email: z.string().email('Valid email required'),
-    phone: z
-      .string()
-      .min(8, 'Phone number is required')
-      .max(20, 'Phone number looks too long'),
-    password: z.string().min(6, 'Password must be at least 6 characters'),
-    confirmPassword: z.string().min(6, 'Confirm your password'),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    path: ['confirmPassword'],
-    message: 'Passwords do not match',
-})
 
 const addressSchema = z
   .object({
@@ -69,7 +49,7 @@ export default function Account({
 } = {}) {
   const user = useAppStore((s) => s.user)
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
-  const setUser = useAppStore((s) => s.setUser)
+  const setSession = useAppStore((s) => s.setSession)
   const clearUser = useAppStore((s) => s.clearUser)
   const addresses = useAppStore((s) => s.addresses)
   const addAddress = useAppStore((s) => s.addAddress)
@@ -88,40 +68,18 @@ export default function Account({
   const [authModalOpen, setAuthModalOpen] = useState(true)
   const [checkoutAddressOpen, setCheckoutAddressOpen] = useState(false)
 
-  const loginForm = useForm({ resolver: zodResolver(loginSchema) })
-  const registerForm = useForm({ resolver: zodResolver(registerSchema) })
   const addressForm = useForm({ resolver: zodResolver(addressSchema) })
 
-  const handleLogin = async (data) => {
-    try {
-      setAuthError('')
-      const userData = await login(data)
-      setUser(userData)
-      navigate(redirectTo || '/profile', { replace: true })
-    } catch {
-      setAuthError('Invalid email or password')
-    }
-  }
-
-  const handleRegister = async (data) => {
-    try {
-      setAuthError('')
-      // Backend/API still expects first/last name (for now); derive them from full name.
-      const parts = data.fullName.trim().split(/\s+/)
-      const firstName = parts[0] ?? ''
-      const lastName = parts.slice(1).join(' ')
-
-      const userData = await registerUser({
-        firstName,
-        lastName,
-        email: data.email,
-        password: data.password,
+  const handleAuthenticated = (session) => {
+    // API layer already wrote accessToken into Zustand memory; ensure session is synced.
+    if (session?.user) {
+      setSession({
+        user: session.user,
+        accessToken: session.accessToken || useAppStore.getState().accessToken,
       })
-      setUser(userData)
-      navigate(redirectTo || '/profile', { replace: true })
-    } catch {
-      setAuthError('Registration failed. Please try again.')
     }
+    setAuthError('')
+    navigate(redirectTo || '/profile', { replace: true })
   }
 
   const handleLogout = async () => {
@@ -157,6 +115,7 @@ export default function Account({
 
   if (!isAuthenticated) {
     if (authGateMode === 'modal') {
+      const isRegisterLayout = authMode === 'register'
       return (
         <Modal
           open={authModalOpen}
@@ -165,10 +124,10 @@ export default function Account({
             if (!open) navigate('/')
           }}
           title={authMode === 'login' ? 'Sign In' : 'Create Account'}
-          className={authMode === 'register' ? 'modal-content--auth modal-content--auth-register' : 'modal-content--auth'}
+          className={isRegisterLayout ? 'modal-content--auth modal-content--auth-register' : 'modal-content--auth'}
         >
-          <div className={authMode === 'register' ? 'auth-modal auth-modal--register' : 'auth-modal'}>
-            {authMode === 'register' ? (
+          <div className={isRegisterLayout ? 'auth-modal auth-modal--register' : 'auth-modal'}>
+            {isRegisterLayout ? (
               <>
                 <div className="auth-modal__register-hero" aria-hidden="true">
                   <div className="auth-modal__register-hero-inner">
@@ -191,90 +150,13 @@ export default function Account({
                 </div>
 
                 <div className="auth-modal__register-body">
-                  <div className="auth-modal__register-form">
-                    {authError && (
-                      <p className="text-error body-sm" style={{ marginBottom: 'var(--space-3)' }} role="alert">
-                        {authError}
-                      </p>
-                    )}
-
-                    <form onSubmit={registerForm.handleSubmit(handleRegister)} noValidate>
-                      <div className="form-grid" style={{ gap: 'var(--space-3)' }}>
-                        <div className="form-grid form-grid--2">
-                          <InputGroup label="Full Name" htmlFor="reg-full-name" error={registerForm.formState.errors.fullName?.message}>
-                            <Input
-                              id="reg-full-name"
-                              placeholder="Alex Chen"
-                              error={registerForm.formState.errors.fullName}
-                              {...registerForm.register('fullName')}
-                            />
-                          </InputGroup>
-                          <InputGroup label="Phone Number" htmlFor="reg-phone" error={registerForm.formState.errors.phone?.message}>
-                            <Input
-                              id="reg-phone"
-                              type="tel"
-                              placeholder="+1 555 123 4567"
-                              error={registerForm.formState.errors.phone}
-                              {...registerForm.register('phone')}
-                            />
-                          </InputGroup>
-                        </div>
-
-                        <InputGroup label="Email" htmlFor="reg-email" error={registerForm.formState.errors.email?.message}>
-                          <Input
-                            id="reg-email"
-                            type="email"
-                            placeholder="you@example.com"
-                            error={registerForm.formState.errors.email}
-                            {...registerForm.register('email')}
-                          />
-                        </InputGroup>
-
-                        <div className="form-grid form-grid--2">
-                          <InputGroup label="Password" htmlFor="reg-password" error={registerForm.formState.errors.password?.message}>
-                            <Input
-                              id="reg-password"
-                              type="password"
-                              placeholder="Create a password"
-                              error={registerForm.formState.errors.password}
-                              {...registerForm.register('password')}
-                            />
-                          </InputGroup>
-                          <InputGroup
-                            label="Confirm Password"
-                            htmlFor="reg-confirm-password"
-                            error={registerForm.formState.errors.confirmPassword?.message}
-                          >
-                            <Input
-                              id="reg-confirm-password"
-                              type="password"
-                              placeholder="Re-enter your password"
-                              error={registerForm.formState.errors.confirmPassword}
-                              {...registerForm.register('confirmPassword')}
-                            />
-                          </InputGroup>
-                        </div>
-
-                        <Button type="submit" variant="accent" fullWidth disabled={registerForm.formState.isSubmitting}>
-                          Create Account
-                        </Button>
-
-                        <p className="body-sm text-muted" style={{ textAlign: 'center' }}>
-                          Already have an account?{' '}
-                          <button
-                            className="section-header__link"
-                            type="button"
-                            onClick={() => {
-                              setAuthMode('login')
-                              setAuthError('')
-                            }}
-                          >
-                            Sign in
-                          </button>
-                        </p>
-                      </div>
-                    </form>
-                  </div>
+                  <AuthForms
+                    mode={authMode}
+                    onModeChange={setAuthMode}
+                    onAuthenticated={handleAuthenticated}
+                    error={authError}
+                    setError={setAuthError}
+                  />
 
                   <div className="auth-modal__register-side">
                     <div className="card" style={{ padding: 'var(--space-4)' }}>
@@ -285,9 +167,6 @@ export default function Account({
                         <li className="body-sm" style={{ marginBottom: 'var(--space-1)' }}>Save wishlist items</li>
                         <li className="body-sm" style={{ marginBottom: 'var(--space-1)' }}>Quick checkout </li>
                       </ul>
-                      {/* <p className="body-sm text-muted" style={{ marginTop: 'var(--space-3)' }}>
-                        UI is ready now; authentication API can be added later.
-                      </p> */}
                     </div>
                   </div>
                 </div>
@@ -296,7 +175,7 @@ export default function Account({
               <div className="auth-modal__grid">
                 <div className="auth-modal__side">
                   <p className="heading-sm text-accent" style={{ marginBottom: 'var(--space-2)' }}>
-                  Fashion 
+                    Fashion
                   </p>
                   <h3 className="display-md" style={{ marginBottom: 'var(--space-1)' }}>
                     Shine with pieces made to wear daily.
@@ -308,53 +187,13 @@ export default function Account({
                   </div>
                 </div>
 
-                <div className="auth-modal__form">
-                  {authError && (
-                    <p className="text-error body-sm" style={{ marginBottom: 'var(--space-3)' }} role="alert">
-                      {authError}
-                    </p>
-                  )}
-
-                  <form onSubmit={loginForm.handleSubmit(handleLogin)} noValidate>
-                    <div className="form-grid" style={{ gap: 'var(--space-3)' }}>
-                      <InputGroup label="Email" htmlFor="login-email" error={loginForm.formState.errors.email?.message}>
-                        <Input
-                          id="login-email"
-                          type="email"
-                          placeholder="you@example.com"
-                          error={loginForm.formState.errors.email}
-                          {...loginForm.register('email')}
-                        />
-                      </InputGroup>
-                      <InputGroup label="Password" htmlFor="login-password" error={loginForm.formState.errors.password?.message}>
-                        <Input
-                          id="login-password"
-                          type="password"
-                          placeholder="Your password"
-                          error={loginForm.formState.errors.password}
-                          {...loginForm.register('password')}
-                        />
-                      </InputGroup>
-
-                      <Button type="submit" variant="primary" fullWidth disabled={loginForm.formState.isSubmitting}>
-                        Sign In
-                      </Button>
-                    </div>
-
-                    <p className="body-sm text-muted" style={{ textAlign: 'center', marginTop: 'var(--space-3)' }}>
-                      <button
-                        className="section-header__link"
-                        type="button"
-                        onClick={() => {
-                          setAuthMode('register')
-                          setAuthError('')
-                        }}
-                      >
-                        Create an account
-                      </button>
-                    </p>
-                  </form>
-                </div>
+                <AuthForms
+                  mode={authMode}
+                  onModeChange={setAuthMode}
+                  onAuthenticated={handleAuthenticated}
+                  error={authError}
+                  setError={setAuthError}
+                />
               </div>
             )}
           </div>
@@ -394,7 +233,7 @@ export default function Account({
           </div>
           <div className="account-sidebar__identity">
             <p className="account-sidebar__hello">Hello,</p>
-            <p className="account-sidebar__name">{user.firstName} {user.lastName}</p>
+            <p className="account-sidebar__name">{user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim()}</p>
             <p className="account-sidebar__email">{user.email}</p>
           </div>
         </div>
@@ -477,7 +316,7 @@ export default function Account({
             <div className="account-hero">
               <div>
                 <p className="heading-sm">FABUNIQO Customer</p>
-                <h3 className="display-md account-hero__title">{user.firstName} {user.lastName}</h3>
+                <h3 className="display-md account-hero__title">{user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim()}</h3>
                 <p className="body-lg text-muted">Manage your details, delivery addresses, and upcoming orders from one place.</p>
               </div>
             </div>
@@ -523,7 +362,7 @@ export default function Account({
 
               <div className="form-grid form-grid--2">
                 <InputGroup label="Full name">
-                  <Input readOnly defaultValue={`${user.firstName} ${user.lastName}`} />
+                  <Input readOnly defaultValue={user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim()} />
                 </InputGroup>
                 <InputGroup label="Email">
                   <Input readOnly defaultValue={user.email} />

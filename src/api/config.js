@@ -19,23 +19,39 @@ export const apiConfig = {
   userStorageKey: USER_STORAGE_KEY,
 }
 
+/** @deprecated Access token is memory-only in Zustand — kept for cleanup only */
 export function getAuthToken() {
+  return null
+}
+
+/** @deprecated */
+export function setAuthToken() {
+  // no-op: access token lives in Zustand memory
+}
+
+export function getStoredUser() {
   try {
-    return localStorage.getItem(apiConfig.tokenStorageKey)
+    const raw = localStorage.getItem(apiConfig.userStorageKey)
+    return raw ? JSON.parse(raw) : null
   } catch {
     return null
   }
 }
 
-export function setAuthToken(token) {
-  if (!token) {
-    localStorage.removeItem(apiConfig.tokenStorageKey)
+export function setStoredUser(user) {
+  if (!user) {
+    localStorage.removeItem(apiConfig.userStorageKey)
     return
   }
-  localStorage.setItem(apiConfig.tokenStorageKey, token)
+  localStorage.setItem(apiConfig.userStorageKey, JSON.stringify(user))
 }
 
+/** Clears legacy localStorage auth keys (token is no longer persisted). */
 export function clearAuthSession() {
-  localStorage.removeItem(apiConfig.tokenStorageKey)
-  localStorage.removeItem(apiConfig.userStorageKey)
+  try {
+    localStorage.removeItem(apiConfig.tokenStorageKey)
+    localStorage.removeItem(apiConfig.userStorageKey)
+  } catch {
+    // ignore
+  }
 }
