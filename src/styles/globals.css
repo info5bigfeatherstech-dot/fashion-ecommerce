@@ -1109,7 +1109,21 @@ select.input {
   max-height: min(90vh, calc(100dvh - 24px));
   overflow-y: auto;
   overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   box-shadow: var(--shadow-lg);
+}
+
+html.modal-open,
+html.modal-open body {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+
+html.modal-open.lenis,
+html.modal-open.lenis body {
+  overflow: hidden !important;
 }
 
 .modal-content--auth {

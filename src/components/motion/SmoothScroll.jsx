@@ -1,8 +1,9 @@
 import { useEffect } from 'react'
+import { setLenisInstance } from '@/lib/lenis'
 
 /**
- * Slow, smooth page scrolling (Lenis).
- * Disabled when the user prefers reduced motion.
+ * Smooth page scrolling (Lenis).
+ * Pauses when a modal is open so nested scroll works.
  */
 export function SmoothScroll() {
   useEffect(() => {
@@ -15,15 +16,27 @@ export function SmoothScroll() {
     async function start() {
       const { default: Lenis } = await import('lenis')
       lenis = new Lenis({
-        duration: 1.55,
+        duration: 1.15,
         easing: (t) => Math.min(1, 1.001 - 2 ** (-10 * t)),
         smoothWheel: true,
-        wheelMultiplier: 0.72,
-        touchMultiplier: 0.9,
+        wheelMultiplier: 0.85,
+        touchMultiplier: 1,
+        autoRaf: false,
+        // Let dialogs / modals own the wheel scroll
+        prevent: (node) =>
+          Boolean(
+            node?.closest?.(
+              '.modal-content, [role="dialog"], [data-lenis-prevent], [data-radix-dialog-content]'
+            )
+          ),
       })
 
+      setLenisInstance(lenis)
+
       const raf = (time) => {
-        lenis?.raf(time)
+        if (document.visibilityState === 'visible') {
+          lenis?.raf(time)
+        }
         rafId = requestAnimationFrame(raf)
       }
       rafId = requestAnimationFrame(raf)
@@ -34,6 +47,7 @@ export function SmoothScroll() {
     return () => {
       cancelAnimationFrame(rafId)
       lenis?.destroy()
+      setLenisInstance(null)
     }
   }, [])
 
