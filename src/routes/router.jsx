@@ -13,8 +13,21 @@ import Profile from './Profile'
 import AddToCart from './AddToCart'
 import Wholesale from './Wholesale'
 import AdminLogin from './admin/AdminLogin'
+import AdminDashboardPage from './admin/AdminDashboardPage'
 import AdminOrdersPage from './admin/AdminOrdersPage'
+import AdminReturnsPage from './admin/AdminReturnsPage'
+import AdminRtoPage from './admin/AdminRtoPage'
+import AdminProductsPage from './admin/AdminProductsPage'
+import AdminArchivedPage from './admin/AdminArchivedPage'
+import AdminAnalyticsPage from './admin/AdminAnalyticsPage'
+import AdminOutOfStockPage from './admin/AdminOutOfStockPage'
+import AdminCustomersPage from './admin/AdminCustomersPage'
+import AdminCartsPage from './admin/AdminCartsPage'
+import AdminWishlistsPage from './admin/AdminWishlistsPage'
+import AdminCouponsPage from './admin/AdminCouponsPage'
+import AdminStaffPage from './admin/AdminStaffPage'
 import AdminPaymentSettingsPage from './admin/AdminPaymentSettingsPage'
+import AdminDeliverySettingsPage from './admin/AdminDeliverySettingsPage'
 import { AdminShell } from '@/features/admin/components/AdminShell'
 
 export const router = createBrowserRouter([
@@ -42,9 +55,22 @@ export const router = createBrowserRouter([
     path: '/admin',
     element: <AdminShell />,
     children: [
-      { index: true, element: <Navigate to="orders" replace /> },
+      { index: true, element: <Navigate to="dashboard" replace /> },
+      { path: 'dashboard', element: <AdminDashboardPage /> },
       { path: 'orders', element: <AdminOrdersPage /> },
+      { path: 'returns', element: <AdminReturnsPage /> },
+      { path: 'rto', element: <AdminRtoPage /> },
+      { path: 'products', element: <AdminProductsPage /> },
+      { path: 'archived', element: <AdminArchivedPage /> },
+      { path: 'analytics', element: <AdminAnalyticsPage /> },
+      { path: 'out-of-stock', element: <AdminOutOfStockPage /> },
+      { path: 'customers', element: <AdminCustomersPage /> },
+      { path: 'carts', element: <AdminCartsPage /> },
+      { path: 'wishlists', element: <AdminWishlistsPage /> },
+      { path: 'coupons', element: <AdminCouponsPage /> },
+      { path: 'staff', element: <AdminStaffPage /> },
       { path: 'settings/payment', element: <AdminPaymentSettingsPage /> },
+      { path: 'settings/delivery', element: <AdminDeliverySettingsPage /> },
     ],
   },
 ])

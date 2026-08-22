@@ -1,14 +1,43 @@
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { LogOut, Package, Settings } from 'lucide-react'
+import {
+  Archive,
+  BarChart3,
+  LayoutDashboard,
+  LogOut,
+  Package,
+  RotateCcw,
+  Settings,
+  ShoppingCart,
+  Tag,
+  Truck,
+  Users,
+  UserCog,
+  Heart,
+  AlertTriangle,
+} from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { SITE_NAME } from '@/config/site'
-import { useAdminStore, getAllowedAdminTabs, ADMIN_ROLE_LABELS } from '@/features/admin/store'
+import { useAdminStore, ADMIN_ROLE_LABELS } from '@/features/admin/store'
 import { useAdminLogout } from '@/features/admin/hooks'
+import { getVisibleAdminNav, groupAdminNav } from '@/features/admin/config/nav'
 
-const NAV_ITEMS = [
-  { id: 'orders', label: 'Orders', icon: Package, path: '/admin/orders' },
-  { id: 'settings-payment', label: 'Payment settings', icon: Settings, path: '/admin/settings/payment' },
-]
+const NAV_ICONS = {
+  dashboard: LayoutDashboard,
+  orders: Package,
+  returns: RotateCcw,
+  rto: Truck,
+  products: Package,
+  archived: Archive,
+  analytics: BarChart3,
+  outofstock: AlertTriangle,
+  customers: Users,
+  carts: ShoppingCart,
+  wishlists: Heart,
+  coupons: Tag,
+  staff: UserCog,
+  'settings-payment': Settings,
+  'settings-delivery': Truck,
+}
 
 export function AdminShell() {
   const location = useLocation()
@@ -30,8 +59,8 @@ export function AdminShell() {
     return <Navigate to="/admin/login" replace state={{ from: location.pathname }} />
   }
 
-  const allowedTabs = getAllowedAdminTabs(user?.role)
-  const visibleNav = NAV_ITEMS.filter((item) => allowedTabs.includes(item.id))
+  const visibleNav = getVisibleAdminNav(user?.role)
+  const navGroups = groupAdminNav(visibleNav)
 
   const handleLogout = async () => {
     try {
@@ -50,21 +79,27 @@ export function AdminShell() {
         </div>
 
         <nav className="admin-sidebar__nav" aria-label="Admin navigation">
-          {visibleNav.map((item) => {
-            const Icon = item.icon
-            const active = location.pathname.startsWith(item.path)
-            return (
-              <button
-                key={item.id}
-                type="button"
-                className={`admin-sidebar__link${active ? ' is-active' : ''}`}
-                onClick={() => navigate(item.path)}
-              >
-                <Icon size={16} />
-                <span>{item.label}</span>
-              </button>
-            )
-          })}
+          {Array.from(navGroups.entries()).map(([group, items]) => (
+            <div key={group} className="admin-sidebar__group">
+              <p className="admin-sidebar__group-label">{group}</p>
+              {items.map((item) => {
+                const Icon = NAV_ICONS[item.id] || Package
+                const active = location.pathname === item.path
+                  || (item.path !== '/admin/dashboard' && location.pathname.startsWith(item.path))
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`admin-sidebar__link${active ? ' is-active' : ''}`}
+                    onClick={() => navigate(item.path)}
+                  >
+                    <Icon size={16} />
+                    <span>{item.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          ))}
         </nav>
 
         <div className="admin-sidebar__footer">

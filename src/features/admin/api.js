@@ -1,5 +1,5 @@
 import { http } from '@/api/http'
-import { API_ENDPOINTS, ADMIN_AUTH_PORTAL, STOREFRONT } from '@/api/endpoints'
+import { API_ENDPOINTS, ADMIN_AUTH_PORTAL } from '@/api/endpoints'
 import { useAdminStore, isAdminRole } from './store'
 
 function mapAdminUser(user) {
@@ -93,49 +93,61 @@ export async function adminLogout() {
   }
 }
 
-export async function getAdminCheckoutSettings({ signal } = {}) {
-  const payload = await http.get(API_ENDPOINTS.checkout.adminSettings, {
-    signal,
-    useAdminAuth: true,
-    headers: { 'X-Storefront': STOREFRONT },
-  })
-  return payload?.data || payload
-}
+// Re-export domain APIs (orders, products, analytics, marketing, settings)
+export {
+  getAdminOrdersSummary,
+  getAdminOrdersList,
+  getAdminOrderDetail,
+  getAdminOrderTracking,
+  bulkConfirmOrders,
+  bulkCancelOrders,
+  autoSyncOrderStatuses,
+  getAdminReturnRequests,
+  getAdminReturnDetail,
+  getAdminRtoOrders,
+  getAdminRtoAnalytics,
+} from './api/orders'
 
-export async function updateAdminCheckoutSettings(body) {
-  const payload = await http.put(
-    API_ENDPOINTS.checkout.adminSettings,
-    body,
-    {
-      useAdminAuth: true,
-      headers: { 'X-Storefront': STOREFRONT },
-    }
-  )
-  return payload?.data || payload
-}
+export {
+  getAdminProductsAll,
+  getAdminProductsActiveCount,
+  getAdminProductsLowStock,
+  getAdminProductsArchived,
+  restoreAdminProduct,
+  hardDeleteAdminProduct,
+} from './api/products'
 
-export async function getAdminOrdersSummary({ signal } = {}) {
-  const payload = await http.get(API_ENDPOINTS.admin.ordersSummary, {
-    signal,
-    useAdminAuth: true,
-    params: { rangePreset: 'all' },
-  })
-  return payload?.data || payload
-}
+export {
+  getAdminUsers,
+  getAdminUserDetail,
+  getAdminCarts,
+  getAdminAbandonedCarts,
+  getAdminHighValueCarts,
+  getAdminWishlists,
+  getAdminStaleWishlists,
+  getAdminPopularWishlistProducts,
+  getAdminDashboardSummary,
+} from './api/analytics'
 
-export async function getAdminOrdersList({ signal, page = 1, limit = 20, bucket = 'Pending' } = {}) {
-  const payload = await http.get(API_ENDPOINTS.admin.ordersList, {
-    signal,
-    useAdminAuth: true,
-    params: { page, limit, bucket },
-  })
-  return payload
-}
+export {
+  getAdminCoupons,
+  createAdminCoupon,
+  updateAdminCoupon,
+  deleteAdminCoupon,
+  toggleAdminCoupon,
+  getAdminStaff,
+  getAdminStaffProfile,
+  createAdminStaff,
+  updateAdminStaff,
+  deleteAdminStaff,
+  getAdminOosInquiries,
+  updateAdminOosInquiryStatus,
+} from './api/marketing'
 
-export async function getAdminOrderDetail(orderId, { signal } = {}) {
-  const payload = await http.get(API_ENDPOINTS.admin.orderDetail(orderId), {
-    signal,
-    useAdminAuth: true,
-  })
-  return payload?.data || payload?.order || payload
-}
+export {
+  getAdminCheckoutSettings,
+  updateAdminCheckoutSettings,
+  getAdminShippingSettings,
+  updateAdminShippingSettings,
+  testAdminShippingConnection,
+} from './api/settings'

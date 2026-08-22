@@ -1,49 +1,103 @@
 import { useMemo, useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { formatPrice } from '@/lib/utils'
 import { OrderPaymentSummaryCard } from '@/features/admin/components/OrderPaymentSummaryCard'
-import { useAdminOrderDetail, useAdminOrdersList, useAdminOrdersSummary } from '@/features/admin/hooks'
+import {
+  AdminEmpty,
+  AdminError,
+  AdminLoading,
+  AdminPageHeader,
+  AdminPagination,
+  AdminStatRow,
+  extractListPayload,
+} from '@/features/admin/components/AdminUi'
+import {
+  useAdminOrderDetail,
+  useAdminOrdersList,
+  useAdminOrdersSummary,
+  useAutoSyncOrderStatuses,
+  useBulkConfirmOrders,
+} from '@/features/admin/hooks'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 
-const BUCKETS = ['Pending', 'Confirmed', 'Processing', 'Delivered', 'Cancelled']
+const BUCKETS = ['Pending', 'Confirmed', 'Processing', 'Delivered', 'Cancelled', 'RTO']
 
 export default function AdminOrdersPage() {
   const [bucket, setBucket] = useState('Pending')
   const [page, setPage] = useState(1)
+  const [search, setSearch] = useState('')
+  const [searchInput, setSearchInput] = useState('')
   const [selectedOrderId, setSelectedOrderId] = useState(null)
 
   const { data: summary } = useAdminOrdersSummary()
-  const { data: listData, isLoading, isError, error } = useAdminOrdersList({ bucket, page })
+  const { data: listData, isLoading, isError, error, refetch } = useAdminOrdersList({
+    bucket,
+    page,
+    search,
+  })
   const { data: orderDetail, isFetching: detailLoading } = useAdminOrderDetail(selectedOrderId, {
     enabled: Boolean(selectedOrderId),
   })
+  const confirmOrders = useBulkConfirmOrders()
+  const syncStatuses = useAutoSyncOrderStatuses()
 
-  const orders = useMemo(() => {
-    const rows = listData?.data?.orders || listData?.orders || listData?.data || []
-    return Array.isArray(rows) ? rows : []
-  }, [listData])
+  const { items: orders, pagination } = useMemo(
+    () => extractListPayload(listData, ['orders']),
+    [listData]
+  )
 
-  const pagination = listData?.data?.pagination || listData?.pagination || {}
+  const totals = summary?.totals || summary?.buckets || {}
+
+  const handleConfirmSelected = async () => {
+    if (!selectedOrderId) return
+    try {
+      await confirmOrders.mutateAsync([selectedOrderId])
+      toast.success('Order confirmed')
+      refetch()
+    } catch (err) {
+      toast.error(err?.message || 'Could not confirm order')
+    }
+  }
+
+  const items = orderDetail?.items || orderDetail?.orderItems || []
 
   return (
     <div className="admin-page">
-      <header className="admin-page__head">
-        <div>
-          <p className="heading-sm text-accent">Operations</p>
-          <h1 className="display-md">Orders</h1>
-        </div>
-        {summary?.totals && (
-          <div className="admin-stat-row">
-            <div className="admin-stat">
-              <span>Pending</span>
-              <strong>{summary.totals.pending ?? '—'}</strong>
-            </div>
-            <div className="admin-stat">
-              <span>Confirmed</span>
-              <strong>{summary.totals.confirmed ?? '—'}</strong>
-            </div>
-          </div>
-        )}
-      </header>
+      <AdminPageHeader eyebrow="Operations" title="Orders">
+        <AdminStatRow stats={[
+          { label: 'Pending', value: totals.pending ?? totals.Pending ?? '—' },
+          { label: 'Confirmed', value: totals.confirmed ?? totals.Confirmed ?? '—' },
+          { label: 'Delivered', value: totals.delivered ?? totals.Delivered ?? '—' },
+        ]} />
+      </AdminPageHeader>
+
+      <div className="admin-toolbar">
+        <form
+          className="admin-toolbar__search"
+          onSubmit={(e) => {
+            e.preventDefault()
+            setSearch(searchInput.trim())
+            setPage(1)
+          }}
+        >
+          <Input
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search order ID, customer…"
+            aria-label="Search orders"
+          />
+          <Button type="submit" variant="secondary" size="sm">Search</Button>
+        </form>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={syncStatuses.isPending}
+          onClick={() => syncStatuses.mutateAsync({})}
+        >
+          {syncStatuses.isPending ? 'Syncing…' : 'Sync statuses'}
+        </Button>
+      </div>
 
       <div className="admin-tabs">
         {BUCKETS.map((tab) => (
@@ -64,21 +118,10 @@ export default function AdminOrdersPage() {
 
       <div className="admin-orders-layout">
         <section className="admin-card admin-card--flush">
-          {isLoading && (
-            <div className="admin-empty">
-              <Loader2 className="payment-overlay__spinner" size={22} />
-              <p>Loading orders…</p>
-            </div>
-          )}
-          {isError && (
-            <div className="admin-empty">
-              <p>{error?.message || 'Could not load orders'}</p>
-            </div>
-          )}
+          {isLoading && <AdminLoading label="Loading orders…" />}
+          {isError && <AdminError message={error?.message} onRetry={refetch} />}
           {!isLoading && !isError && orders.length === 0 && (
-            <div className="admin-empty">
-              <p>No orders in {bucket}.</p>
-            </div>
+            <AdminEmpty message={`No orders in ${bucket}.`} />
           )}
           {!isLoading && orders.length > 0 && (
             <ul className="admin-order-list">
@@ -97,7 +140,7 @@ export default function AdminOrdersPage() {
                         <p className="body-sm text-muted">{order.customerName || order.userEmail || 'Customer'}</p>
                       </div>
                       <div className="admin-order-row__meta">
-                        <span>{formatPrice(order.totalAmount)}</span>
+                        <span>{formatPrice(order.totalAmount ?? order.amountPayable)}</span>
                         <span className="admin-badge">{order.orderStatus || order.status || '—'}</span>
                       </div>
                     </button>
@@ -106,42 +149,16 @@ export default function AdminOrdersPage() {
               })}
             </ul>
           )}
-
-          {pagination?.totalPages > 1 && (
-            <div className="admin-pagination">
-              <button
-                type="button"
-                className="btn btn--ghost btn--sm"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-              >
-                Previous
-              </button>
-              <span className="body-sm text-muted">Page {page} of {pagination.totalPages}</span>
-              <button
-                type="button"
-                className="btn btn--ghost btn--sm"
-                disabled={page >= pagination.totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Next
-              </button>
-            </div>
-          )}
+          <AdminPagination
+            page={page}
+            totalPages={pagination?.totalPages}
+            onPageChange={setPage}
+          />
         </section>
 
         <aside className="admin-detail-panel">
-          {!selectedOrderId && (
-            <div className="admin-empty">
-              <p>Select an order to view payment details.</p>
-            </div>
-          )}
-          {selectedOrderId && detailLoading && (
-            <div className="admin-empty">
-              <Loader2 className="payment-overlay__spinner" size={22} />
-              <p>Loading order…</p>
-            </div>
-          )}
+          {!selectedOrderId && <AdminEmpty message="Select an order to view details." />}
+          {selectedOrderId && detailLoading && <AdminLoading label="Loading order…" />}
           {selectedOrderId && orderDetail && !detailLoading && (
             <>
               <div className="admin-card">
@@ -152,6 +169,16 @@ export default function AdminOrdersPage() {
                       {orderDetail.orderStatus || orderDetail.status || '—'}
                     </p>
                   </div>
+                  {bucket === 'Pending' && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={confirmOrders.isPending}
+                      onClick={handleConfirmSelected}
+                    >
+                      Confirm
+                    </Button>
+                  )}
                 </div>
                 <div className="admin-payment-grid">
                   <div className="admin-payment-row">
@@ -166,8 +193,36 @@ export default function AdminOrdersPage() {
                         : '—'}
                     </strong>
                   </div>
+                  {orderDetail.shippingAddress && (
+                    <div className="admin-payment-row">
+                      <span>Address</span>
+                      <strong>
+                        {[
+                          orderDetail.shippingAddress.fullAddress,
+                          orderDetail.shippingAddress.city,
+                          orderDetail.shippingAddress.postalCode,
+                        ].filter(Boolean).join(', ') || '—'}
+                      </strong>
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {items.length > 0 && (
+                <div className="admin-card">
+                  <h3 className="admin-card__title">Items</h3>
+                  <ul className="admin-item-list">
+                    {items.map((item, idx) => (
+                      <li key={item.id || item._id || idx} className="admin-item-row">
+                        <span>{item.name || item.productName || 'Item'}</span>
+                        <span>×{item.quantity || 1}</span>
+                        <span>{formatPrice(item.price || item.lineTotal)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               <OrderPaymentSummaryCard order={orderDetail} showRazorpayIds />
             </>
           )}

@@ -60,15 +60,4 @@ export const ADMIN_ROLE_LABELS = {
   marketing_manager: 'Marketing Manager',
 }
 
-/** Tab ids each role may access in the admin shell. */
-export const ADMIN_TAB_PERMISSIONS = {
-  admin: ['orders', 'settings-payment'],
-  product_manager: [],
-  order_manager: ['orders', 'settings-payment'],
-  marketing_manager: [],
-}
-
-export function getAllowedAdminTabs(role) {
-  const key = String(role || '').toLowerCase()
-  return ADMIN_TAB_PERMISSIONS[key] || []
-}
+export { getAllowedAdminTabs, ADMIN_TAB_PERMISSIONS } from './config/nav'

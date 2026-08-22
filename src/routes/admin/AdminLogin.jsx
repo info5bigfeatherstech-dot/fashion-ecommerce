@@ -16,7 +16,7 @@ export default function AdminLogin() {
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
 
-  const redirectTo = location.state?.from || '/admin/orders'
+  const redirectTo = location.state?.from || '/admin/dashboard'
 
   if (authReady && isAuthenticated) {
     return <Navigate to={redirectTo} replace />
