@@ -14,7 +14,47 @@ import { isCodPlacedOrder } from './mappers'
 import { getCart } from '@/features/cart/api'
 import { useAppStore } from '@/store'
 
-/** Stable key for quote cache — includes price so pricing drift invalidates quotes. */
+const CHECKOUT_QUOTE_STALE_MS = 1000 * 60
+const CHECKOUT_SETTINGS_STALE_MS = 1000 * 60 * 5
+
+/** Warm checkout settings + quote cache before navigating to /checkout. */
+export function prefetchCheckoutForAddress(
+  queryClient,
+  {
+    addressId,
+    couponCode = '',
+    cartKey,
+    paymentMethod = 'prepaid',
+  } = {}
+) {
+  const { isAuthenticated, accessToken, cartItems } = useAppStore.getState()
+  if (!isAuthenticated || !accessToken) return
+
+  const id = String(addressId || '').trim()
+  if (!id) return
+
+  const resolvedCartKey = cartKey ?? buildCheckoutCartKey(cartItems)
+  const quoteParams = quoteParamsForPaymentMethod(paymentMethod)
+  const paymentKey = `${quoteParams.paymentMethodHint}:${quoteParams.paymentPlan}:${quoteParams.balanceCollection}`
+
+  void queryClient.prefetchQuery({
+    queryKey: checkoutKeys.settings(),
+    queryFn: ({ signal }) => getCheckoutSettings({ signal }),
+    staleTime: CHECKOUT_SETTINGS_STALE_MS,
+  })
+
+  void queryClient.prefetchQuery({
+    queryKey: checkoutKeys.quote(id, couponCode, resolvedCartKey, paymentKey),
+    queryFn: ({ signal }) => createCheckoutQuote({
+      addressId: id,
+      couponCode,
+      ...quoteParams,
+      signal,
+    }),
+    staleTime: CHECKOUT_QUOTE_STALE_MS,
+  })
+}
+
 export function buildCheckoutCartKey(cartItems = []) {
   return cartItems
     .map((item) => `${item.id}:${item.quantity}:${item.variantId || ''}:${item.price ?? ''}`)
@@ -98,7 +138,7 @@ export function   useCheckoutQuote({
       signal,
     }),
     enabled: enabled && isAuthenticated && Boolean(accessToken) && Boolean(id),
-    staleTime: 0,
+    staleTime: CHECKOUT_QUOTE_STALE_MS,
     gcTime: 1000 * 60 * 5,
     retry: 1,
   })

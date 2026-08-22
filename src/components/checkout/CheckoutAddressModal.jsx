@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
@@ -13,6 +14,7 @@ import {
   AddressLocationFields,
 } from '@/features/address/components/AddressFormFields'
 import { useAddresses, useCreateAddress } from '@/features/address/hooks'
+import { prefetchCheckoutForAddress } from '@/features/checkout/hooks'
 import { applyFieldErrors } from '@/features/address/mappers'
 import {
   ADDRESS_CONTACT_FIELDS,
@@ -49,6 +51,7 @@ function AddressWizardSteps({ currentStep }) {
 }
 
 export function CheckoutAddressModal({ open, onOpenChange, onProceed }) {
+  const queryClient = useQueryClient()
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
   const checkoutAddress = useAppStore((s) => s.checkoutAddress)
   const setCheckoutAddress = useAppStore((s) => s.setCheckoutAddress)
@@ -100,9 +103,16 @@ export function CheckoutAddressModal({ open, onOpenChange, onProceed }) {
     setSelectedAddressId((current) => (current === nextId ? current : nextId))
   }, [open, addresses, checkoutAddress?.id, data?.defaultAddress?.id])
 
+  useEffect(() => {
+    if (!open || !selectedAddressId) return
+    prefetchCheckoutForAddress(queryClient, { addressId: selectedAddressId })
+  }, [open, queryClient, selectedAddressId])
+
   const handleProceed = () => {
     if (!selectedAddress) return
     setCheckoutAddress(selectedAddress)
+    prefetchCheckoutForAddress(queryClient, { addressId: selectedAddress.id })
+    void import('@/routes/Checkout')
     onProceed?.()
     onOpenChange?.(false)
   }
@@ -134,6 +144,8 @@ export function CheckoutAddressModal({ open, onOpenChange, onProceed }) {
       setSelectedAddressId(result.address?.id || null)
       if (continueAfter && result.address) {
         setCheckoutAddress(result.address)
+        prefetchCheckoutForAddress(queryClient, { addressId: result.address.id })
+        void import('@/routes/Checkout')
         onProceed?.()
         onOpenChange?.(false)
       } else {

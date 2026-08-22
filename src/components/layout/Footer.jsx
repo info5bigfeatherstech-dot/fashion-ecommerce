@@ -25,7 +25,7 @@ export function Footer() {
 
   return (
     <footer className="footer">
-      {!reduceMotion && (
+      {/* {!reduceMotion && (
         <div className="footer__scanner" aria-hidden="true">
           <Scanner
             color1="#14120F"
@@ -54,7 +54,7 @@ export function Footer() {
             mouseInteraction={false}
           />
         </div>
-      )}
+      )} */}
 
       <div className="container footer__content">
         <div className="footer__brand">

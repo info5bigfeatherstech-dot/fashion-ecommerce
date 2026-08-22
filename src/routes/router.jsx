@@ -1,34 +1,36 @@
+import { lazy } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { Layout } from '@/components/layout/Layout'
 import Home from './Home'
 import ProductListing from './ProductListing'
 import ProductDetail from './ProductDetail'
 import Cart from './Cart'
-import Checkout from './Checkout'
 import Wishlist from './Wishlist'
-import Account from './Account'
 import Login from './Login'
 import Register from './Register'
 import Profile from './Profile'
-import AddToCart from './AddToCart'
-import Wholesale from './Wholesale'
-import AdminLogin from './admin/AdminLogin'
-import AdminDashboardPage from './admin/AdminDashboardPage'
-import AdminOrdersPage from './admin/AdminOrdersPage'
-import AdminReturnsPage from './admin/AdminReturnsPage'
-import AdminRtoPage from './admin/AdminRtoPage'
-import AdminProductsPage from './admin/AdminProductsPage'
-import AdminArchivedPage from './admin/AdminArchivedPage'
-import AdminAnalyticsPage from './admin/AdminAnalyticsPage'
-import AdminOutOfStockPage from './admin/AdminOutOfStockPage'
-import AdminCustomersPage from './admin/AdminCustomersPage'
-import AdminCartsPage from './admin/AdminCartsPage'
-import AdminWishlistsPage from './admin/AdminWishlistsPage'
-import AdminCouponsPage from './admin/AdminCouponsPage'
-import AdminStaffPage from './admin/AdminStaffPage'
-import AdminPaymentSettingsPage from './admin/AdminPaymentSettingsPage'
-import AdminDeliverySettingsPage from './admin/AdminDeliverySettingsPage'
-import { AdminShell } from '@/features/admin/components/AdminShell'
+
+const Checkout = lazy(() => import('./Checkout'))
+const Account = lazy(() => import('./Account'))
+const AddToCart = lazy(() => import('./AddToCart'))
+const Wholesale = lazy(() => import('./Wholesale'))
+const AdminLogin = lazy(() => import('./admin/AdminLogin'))
+const AdminDashboardPage = lazy(() => import('./admin/AdminDashboardPage'))
+const AdminOrdersPage = lazy(() => import('./admin/AdminOrdersPage'))
+const AdminReturnsPage = lazy(() => import('./admin/AdminReturnsPage'))
+const AdminRtoPage = lazy(() => import('./admin/AdminRtoPage'))
+const AdminProductsPage = lazy(() => import('./admin/AdminProductsPage'))
+const AdminArchivedPage = lazy(() => import('./admin/AdminArchivedPage'))
+const AdminAnalyticsPage = lazy(() => import('./admin/AdminAnalyticsPage'))
+const AdminOutOfStockPage = lazy(() => import('./admin/AdminOutOfStockPage'))
+const AdminCustomersPage = lazy(() => import('./admin/AdminCustomersPage'))
+const AdminCartsPage = lazy(() => import('./admin/AdminCartsPage'))
+const AdminWishlistsPage = lazy(() => import('./admin/AdminWishlistsPage'))
+const AdminCouponsPage = lazy(() => import('./admin/AdminCouponsPage'))
+const AdminStaffPage = lazy(() => import('./admin/AdminStaffPage'))
+const AdminPaymentSettingsPage = lazy(() => import('./admin/AdminPaymentSettingsPage'))
+const AdminDeliverySettingsPage = lazy(() => import('./admin/AdminDeliverySettingsPage'))
+const AdminShell = lazy(() => import('@/features/admin/components/AdminShell').then((m) => ({ default: m.AdminShell })))
 
 export const router = createBrowserRouter([
   {

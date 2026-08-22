@@ -1,5 +1,6 @@
-import { useLayoutEffect } from 'react'
+import { Suspense, useLayoutEffect } from 'react'
 import { Outlet, useLocation, useNavigationType } from 'react-router-dom'
+import { PageLoader } from '@/components/ui/PageLoader'
 import { PromoBanner } from './PromoBanner'
 import { Header } from './Header'
 import { Footer } from './Footer'
@@ -33,7 +34,9 @@ export function Layout() {
         <Header />
       </div>
       <main className="page">
-        <Outlet />
+        <Suspense fallback={<PageLoader />}>
+          <Outlet />
+        </Suspense>
       </main>
       <Footer />
       <MobileBottomNav />

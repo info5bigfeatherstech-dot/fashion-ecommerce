@@ -32,6 +32,7 @@ import {
   useVerifyRazorpayPayment,
   fetchFreshCheckoutQuote,
   buildCheckoutCartKey,
+  prefetchCheckoutForAddress,
 } from '@/features/checkout/hooks'
 import { getRazorpayKey } from '@/features/checkout/api'
 import {
@@ -99,6 +100,7 @@ export default function Checkout() {
   const [isRecoveringCheckout, setIsRecoveringCheckout] = useState(false)
   const [paymentError, setPaymentError] = useState(null)
   const [showPaymentError, setShowPaymentError] = useState(false)
+  const [couponsEnabled, setCouponsEnabled] = useState(false)
   const checkoutAttemptKeyRef = useRef(null)
   const gatewayDismissRecoveryInFlight = useRef(false)
   const gatewayDismissHandlerRef = useRef(null)
@@ -221,7 +223,7 @@ export default function Checkout() {
   const partialPaymentPercent = policy?.partialPaymentPercent || 0
 
   const { data: availableCoupons = [] } = useAvailableCoupons({
-    enabled: isAuthenticated && isReviewStep,
+    enabled: isAuthenticated && isReviewStep && couponsEnabled,
   })
   const validateCoupon = useValidateCoupon()
 
@@ -254,6 +256,22 @@ export default function Checkout() {
     && !(placedOrder?.order?.orderId && paymentMethod !== 'cod')
     && !razorpayKeyUnavailable
   )
+
+  useEffect(() => {
+    if (!isAuthenticated || !checkoutAddress?.id || hasPendingOnlineOrder) return
+    prefetchCheckoutForAddress(queryClient, {
+      addressId: checkoutAddress.id,
+      couponCode: appliedCouponCode,
+      cartKey,
+    })
+  }, [
+    queryClient,
+    isAuthenticated,
+    checkoutAddress?.id,
+    appliedCouponCode,
+    cartKey,
+    hasPendingOnlineOrder,
+  ])
 
   useEffect(() => {
     if (isDeliveryStep && !checkoutAddress?.id) {
@@ -801,6 +819,7 @@ export default function Checkout() {
                     <Input
                       value={couponInput}
                       onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                      onFocus={() => setCouponsEnabled(true)}
                       placeholder="Enter code"
                       aria-label="Coupon code"
                       disabled={Boolean(appliedCouponCode)}

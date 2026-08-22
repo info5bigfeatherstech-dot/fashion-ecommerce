@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Lock, ShoppingBag, Sparkles, Truck } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -22,6 +22,11 @@ export default function Cart() {
   const [checkoutAddressOpen, setCheckoutAddressOpen] = useState(false)
 
   const { isFetching: cartSyncing } = useCart({ enabled: isAuthenticated })
+
+  useEffect(() => {
+    if (!isAuthenticated || cartItems.length === 0) return
+    void import('./Checkout')
+  }, [isAuthenticated, cartItems.length])
 
   const itemCount = cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0)
   const shipping = cartTotal >= FREE_SHIPPING_THRESHOLD ? 0 : 9.95

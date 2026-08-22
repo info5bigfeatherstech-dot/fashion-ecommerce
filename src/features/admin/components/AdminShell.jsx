@@ -1,4 +1,5 @@
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Suspense } from 'react'
 import {
   Archive,
   BarChart3,
@@ -16,6 +17,7 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { PageLoader } from '@/components/ui/PageLoader'
 import { SITE_NAME } from '@/config/site'
 import { useAdminStore, ADMIN_ROLE_LABELS } from '@/features/admin/store'
 import { useAdminLogout } from '@/features/admin/hooks'
@@ -115,7 +117,9 @@ export function AdminShell() {
       </aside>
 
       <main className="admin-main">
-        <Outlet />
+        <Suspense fallback={<PageLoader label="Loading admin page…" />}>
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   )
