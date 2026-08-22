@@ -21,7 +21,10 @@ export function isQuoteRefreshError(code, message = '') {
     code === 'QUOTE_STALE'
     || code === 'QUOTE_EXPIRED'
     || code === 'QUOTE_NOT_FOUND'
+    || code === 'QUOTE_NOT_CONFIRMED'
     || code === 'CART_CHANGED'
+    || text.includes('quote not confirmed')
+    || text.includes('confirm quote')
     || text.includes('pricing changed')
     || text.includes('refresh quote')
   )

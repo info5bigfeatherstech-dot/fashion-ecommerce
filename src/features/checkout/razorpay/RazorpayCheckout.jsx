@@ -169,11 +169,14 @@ const RazorpayCheckout = forwardRef(({
   onFailure,
   onClose,
   onRecoveryStart,
+  onNaturalDismiss,
 }, ref) => {
   const razorpayInitialized = useRef(false)
   const razorpayInstance = useRef(null)
   const paymentStateRef = useRef(paymentState || 'idle')
   const onRecoveryStartRef = useRef(onRecoveryStart)
+  const onNaturalDismissRef = useRef(onNaturalDismiss)
+  const naturalDismissHandledRef = useRef(false)
 
   useEffect(() => {
     paymentStateRef.current = paymentState
@@ -182,6 +185,19 @@ const RazorpayCheckout = forwardRef(({
   useEffect(() => {
     onRecoveryStartRef.current = onRecoveryStart
   }, [onRecoveryStart])
+
+  useEffect(() => {
+    onNaturalDismissRef.current = onNaturalDismiss
+  }, [onNaturalDismiss])
+
+  const emitNaturalDismiss = (reason) => {
+    if (naturalDismissHandledRef.current) return
+    naturalDismissHandledRef.current = true
+    razorpayInstance.current = null
+    activeRazorpayInstance = null
+    markRazorpaySessionClosed()
+    onNaturalDismissRef.current?.(reason)
+  }
 
   useImperativeHandle(ref, () => ({
     closeModal: () => {
@@ -229,12 +245,17 @@ const RazorpayCheckout = forwardRef(({
         description: `Payment for Order ${orderId}`,
         order_id: razorpayOrder.id,
         handler: (response) => {
+          // Let Razorpay close the modal itself — no manual .close() or DOM removal.
           paymentStateRef.current = 'success'
           onPaymentStateChange?.('success')
-          try { razorpayInstance.current?.close() } catch { /* ignore */ }
-          razorpayInstance.current = null
-          markRazorpaySessionClosed()
           onSuccess?.(response)
+
+          // If ondismiss does not fire after auto-close, unmount once SDK DOM is gone.
+          void waitForRazorpayDomGone().then(() => {
+            if (paymentStateRef.current === 'success') {
+              emitNaturalDismiss('success')
+            }
+          })
         },
         prefill: {
           name: customerName,
@@ -247,7 +268,13 @@ const RazorpayCheckout = forwardRef(({
           ondismiss: () => {
             const currentState = paymentStateRef.current
 
-            if (currentState === 'success' || currentState === 'failed') {
+            if (currentState === 'success') {
+              emitNaturalDismiss('success')
+              return
+            }
+
+            if (currentState === 'failed') {
+              emitNaturalDismiss('failed')
               return
             }
 
@@ -284,10 +311,12 @@ const RazorpayCheckout = forwardRef(({
             response.error?.description
             || response.error?.reason
             || 'Payment failed. Please try again.'
-          try { razorpayInstance.current?.close() } catch { /* ignore */ }
-          razorpayInstance.current = null
-          markRazorpaySessionClosed()
           onFailure?.(errorMessage)
+          void waitForRazorpayDomGone().then(() => {
+            if (paymentStateRef.current === 'failed') {
+              emitNaturalDismiss('failed')
+            }
+          })
         })
 
         paymentStateRef.current = 'initiated'
@@ -304,7 +333,9 @@ const RazorpayCheckout = forwardRef(({
 
     return () => {
       razorpayInitialized.current = false
-      razorpayInstance.current = null
+      if (paymentStateRef.current !== 'success' && paymentStateRef.current !== 'failed') {
+        razorpayInstance.current = null
+      }
     }
   }, [razorpayOrder?.id, razorpayKey]) // eslint-disable-line react-hooks/exhaustive-deps
 

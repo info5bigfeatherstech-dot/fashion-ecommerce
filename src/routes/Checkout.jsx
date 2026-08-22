@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import {
+  AlertCircle,
   ArrowLeft,
   Check,
   CreditCard,
@@ -27,6 +28,7 @@ import {
   useCheckoutSettings,
   useConfirmCheckout,
   useCreateOrderFromConfirm,
+  useRazorpayKey,
   useVerifyRazorpayPayment,
   fetchFreshCheckoutQuote,
   buildCheckoutCartKey,
@@ -38,7 +40,7 @@ import {
   PAYMENT_STATE,
 } from '@/features/checkout/constants'
 import { isCodPlacedOrder, isQuoteExpired, toConfirmPaymentBody } from '@/features/checkout/mappers'
-import RazorpayCheckout, { markRazorpaySessionClosed } from '@/features/checkout/razorpay/RazorpayCheckout'
+import RazorpayCheckout from '@/features/checkout/razorpay/RazorpayCheckout'
 import { PaymentErrorOverlay } from '@/features/checkout/razorpay/PaymentErrorOverlay'
 import { PaymentLoadingOverlay } from '@/features/checkout/razorpay/PaymentLoadingOverlay'
 import { getCart } from '@/features/cart/api'
@@ -124,6 +126,22 @@ export default function Checkout() {
 
   const paymentMethod = watch('paymentMethod')
   const zipValue = watch('zip')
+  const needsRazorpayKey = paymentMethod === 'prepaid' || paymentMethod === 'partial'
+
+  const {
+    data: prefetchedRazorpayKey,
+    isLoading: razorpayKeyLoading,
+    isError: razorpayKeyError,
+    error: razorpayKeyFetchError,
+  } = useRazorpayKey({
+    enabled: isAuthenticated && needsRazorpayKey,
+  })
+
+  useEffect(() => {
+    if (prefetchedRazorpayKey) {
+      setRazorpayKey(prefetchedRazorpayKey)
+    }
+  }, [prefetchedRazorpayKey])
 
   const {
     data: quote,
@@ -174,6 +192,8 @@ export default function Checkout() {
     || cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0)
 
   const quoteExpired = isQuoteExpired(quote)
+  const razorpayKeyUnavailable = needsRazorpayKey
+    && (razorpayKeyLoading || razorpayKeyError || (!prefetchedRazorpayKey && !razorpayKey))
   const canPlaceOrder = Boolean(
     checkoutAddress?.id
     && quote?.quoteId
@@ -183,6 +203,7 @@ export default function Checkout() {
     && !isRecoveringCheckout
     && !gatewayDismissRecoveryInFlight.current
     && !(placedOrder?.order?.orderId && paymentMethod !== 'cod')
+    && !razorpayKeyUnavailable
   )
 
   const deliveryPincode = String(
@@ -306,7 +327,6 @@ export default function Checkout() {
   }, [clearCart, clearCheckoutAddress])
 
   const handleRazorpaySuccess = useCallback(async (response) => {
-    setShowRazorpay(false)
     try {
       const currentOrderId =
         placedOrder?.order?.orderId
@@ -324,6 +344,8 @@ export default function Checkout() {
       setRazorpayPaymentState(PAYMENT_STATE.VERIFIED)
       finishOrderSuccess(true)
     } catch (err) {
+      setShowRazorpay(false)
+      setRazorpayOrderData(null)
       setRazorpayPaymentState(PAYMENT_STATE.FAILED)
       const verificationMessage = err?.code === 'PAYMENT_NOT_CAPTURED_YET'
         ? 'Payment is received but capture is still pending. Check your orders in a moment.'
@@ -333,10 +355,12 @@ export default function Checkout() {
     }
   }, [finishOrderSuccess, placedOrder, verifyPayment])
 
-  const handleRazorpayFailure = useCallback((error) => {
-    markRazorpaySessionClosed()
+  const handleRazorpayNaturalDismiss = useCallback(() => {
     setShowRazorpay(false)
     setRazorpayOrderData(null)
+  }, [])
+
+  const handleRazorpayFailure = useCallback((error) => {
     setRazorpayPaymentState(PAYMENT_STATE.FAILED)
     setShowPaymentError(false)
     setPaymentError(null)
@@ -446,13 +470,19 @@ export default function Checkout() {
       }
 
       const confirmed = await confirmCheckout.mutateAsync(confirmBody)
-      if (!confirmed?.next?.payload) {
-        throw new Error('Confirm did not return create-order payload')
+      if (!confirmed?.validated && confirmed?.success === false) {
+        throw Object.assign(new Error(confirmed?.message || 'Could not confirm checkout quote'), {
+          code: 'QUOTE_NOT_CONFIRMED',
+        })
       }
 
       const orderResult = await createOrder.mutateAsync({
-        next: confirmed.next,
         idempotencyKey,
+        addressId: checkoutAddress.id,
+        confirmBody,
+        confirmed,
+        activeQuote,
+        couponCode: appliedCouponCode,
       })
 
       setPlacedOrder(orderResult)
@@ -475,7 +505,7 @@ export default function Checkout() {
         )
       }
 
-      let gatewayKey = razorpayKey
+      let gatewayKey = prefetchedRazorpayKey || razorpayKey
       if (!gatewayKey) {
         gatewayKey = await getRazorpayKey()
         setRazorpayKey(gatewayKey)
@@ -852,6 +882,15 @@ export default function Checkout() {
                   </div>
                 </div>
               )}
+
+              {needsRazorpayKey && razorpayKeyError && (
+                <div className="checkout-info-card" style={{ borderColor: '#fde68a', background: '#fefce8' }}>
+                  <AlertCircle size={18} style={{ color: '#d97706', flexShrink: 0 }} />
+                  <p className="body-sm" style={{ color: '#b45309', margin: 0 }}>
+                    {razorpayKeyFetchError?.message || 'Payment gateway unavailable'}. Please use COD or try again later.
+                  </p>
+                </div>
+              )}
             </section>
 
             <div className="checkout-submit-bar">
@@ -868,7 +907,9 @@ export default function Checkout() {
                     ? 'Select address to continue'
                     : quoteLoading
                       ? 'Updating quote…'
-                      : paymentMethod === 'cod'
+                      : needsRazorpayKey && razorpayKeyLoading
+                        ? 'Loading payment gateway…'
+                        : paymentMethod === 'cod'
                         ? 'Place order'
                         : paymentMethod === 'partial'
                           ? `Pay ${formatPrice(suggestedPartial)} now`
@@ -1011,11 +1052,11 @@ export default function Checkout() {
         onOpenChange={setAddressModalOpen}
       />
 
-      {showRazorpay && razorpayOrderData && razorpayKey && (
+      {showRazorpay && razorpayOrderData && (prefetchedRazorpayKey || razorpayKey) && (
         <RazorpayCheckout
           key={razorpayOrderData.id}
           razorpayOrder={razorpayOrderData}
-          razorpayKey={razorpayKey}
+          razorpayKey={prefetchedRazorpayKey || razorpayKey}
           orderId={placedOrder?.order?.orderId || placedOrder?.order?.id}
           userEmail={user?.email}
           userName={user?.name || `${watch('firstName')} ${watch('lastName')}`.trim()}
@@ -1026,6 +1067,7 @@ export default function Checkout() {
           onFailure={handleRazorpayFailure}
           onClose={handleRazorpayClose}
           onRecoveryStart={handleRazorpayRecoveryStart}
+          onNaturalDismiss={handleRazorpayNaturalDismiss}
         />
       )}
 

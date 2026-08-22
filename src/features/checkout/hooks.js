@@ -3,7 +3,7 @@ import {
   abandonOnlineCheckout,
   confirmCheckoutQuote,
   createCheckoutQuote,
-  createOrderFromConfirm,
+  createOrder,
   getCheckoutSettings,
   getRazorpayKey,
   verifyRazorpayPayment,
@@ -46,7 +46,8 @@ export async function fetchFreshCheckoutQuote({
   const paymentKey = `${quoteParams.paymentMethodHint}:${quoteParams.paymentPlan}:${quoteParams.balanceCollection}`
   const queryKey = checkoutKeys.quote(id, couponCode, cartKey, paymentKey)
 
-  await queryClient.removeQueries({ queryKey, exact: true })
+  // Cancel in-flight quote fetches (removeQueries would trigger useCheckoutQuote to create a second quote).
+  await queryClient.cancelQueries({ queryKey: checkoutKeys.all })
 
   const quote = await createCheckoutQuote({
     addressId: id,
@@ -122,7 +123,7 @@ export function useCreateOrderFromConfirm() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ next, idempotencyKey }) => createOrderFromConfirm(next, { idempotencyKey }),
+    mutationFn: (args) => createOrder(args),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: checkoutKeys.all })
       queryClient.invalidateQueries({ queryKey: ['cart'] })

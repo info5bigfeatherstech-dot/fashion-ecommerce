@@ -15,9 +15,9 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://owbtu.onrender.com',
+        target: 'http://localhost:8081',
         changeOrigin: true,
-        secure: true,
+        secure: false,
       },
     },
   },

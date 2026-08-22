@@ -60,6 +60,8 @@ export const API_ENDPOINTS = {
   orders: {
     items: '/orders/items',
     verifyPayment: '/orders/items/verify-payment',
+    initiatePayment: (orderId) =>
+      `/orders/items/${encodeURIComponent(String(orderId))}/initiate-payment`,
     abandonOnlineCheckout: (orderId) =>
       `/orders/items/${encodeURIComponent(String(orderId))}/abandon-online-checkout`,
   },

@@ -1,12 +1,12 @@
 import { http } from '@/api/http'
 import { API_ENDPOINTS } from '@/api/endpoints'
 import {
+  buildPlaceOrderPayload,
   mapCheckoutConfirm,
   mapCheckoutQuote,
   mapCheckoutSettings,
   mapPlacedOrder,
   mapVerifyPayment,
-  resolveOrderEndpoint,
 } from './mappers'
 
 /** GET /api/checkout/settings */
@@ -50,32 +50,47 @@ export async function confirmCheckoutQuote(body) {
 }
 
 /**
- * POST /api/orders/items
- * Body must come from confirm.next.payload — do not invent fields.
- * Requires Idempotency-Key per checkout attempt (same key + same body = safe replay).
+ * POST /api/orders/items — fabFE-style body (same quoteId confirmed in prior step).
  */
-export async function createOrderFromConfirm(next, { idempotencyKey } = {}) {
-  if (!next?.payload || typeof next.payload !== 'object') {
-    throw new Error('Missing create-order payload from confirm')
-  }
-
-  const endpoint = resolveOrderEndpoint(
-    next.createOrderEndpoint || API_ENDPOINTS.orders.items
-  )
-
+export async function placeOrder(payload, { idempotencyKey } = {}) {
   const key = String(idempotencyKey || '').trim()
   if (!key) {
     throw new Error('Missing Idempotency-Key for order creation')
   }
+  if (!payload || typeof payload !== 'object' || Object.keys(payload).length === 0) {
+    throw new Error('Missing create-order payload')
+  }
 
-  const payload = await http.post(endpoint, next.payload, {
+  const response = await http.post(API_ENDPOINTS.orders.items, payload, {
     headers: { 'Idempotency-Key': key },
   })
-  return mapPlacedOrder(payload)
+  return mapPlacedOrder(response)
 }
 
-/** Alias for createOrderFromConfirm — POST /api/orders/items */
-export const createOrder = createOrderFromConfirm
+/** Create order after confirm — always builds payload client-side like fabFE. */
+export async function createOrder({
+  idempotencyKey,
+  addressId,
+  confirmBody,
+  confirmed,
+  activeQuote,
+  couponCode,
+} = {}) {
+  const resolvedPayload = buildPlaceOrderPayload({
+    addressId,
+    confirmBody,
+    confirmed,
+    activeQuote,
+    couponCode,
+  })
+  if (!resolvedPayload) {
+    throw new Error('Missing create-order payload')
+  }
+
+  return placeOrder(resolvedPayload, { idempotencyKey })
+}
+
+export { buildPlaceOrderPayload }
 
 /** GET /api/public/razorpay-key */
 export async function getRazorpayKey({ signal } = {}) {

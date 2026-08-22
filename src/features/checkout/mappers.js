@@ -126,6 +126,44 @@ export function toConfirmPaymentBody(uiMethod, quote) {
   return body
 }
 
+/**
+ * fabFE-style POST /orders/items body when confirm does not return next.payload.
+ */
+export function buildPlaceOrderPayload({
+  addressId,
+  confirmBody,
+  confirmed,
+  activeQuote,
+  couponCode,
+} = {}) {
+  // Must match the quoteId sent to POST /checkout/confirm (fabFE: confirmResult.quoteId || quoteId).
+  const quoteId = confirmed?.quoteId || confirmBody?.quoteId || activeQuote?.quoteId
+  if (!quoteId || !addressId || !confirmBody) return null
+
+  const payload = {
+    addressId: String(addressId).trim(),
+    paymentMethod: confirmBody.paymentMethod,
+    quoteId,
+    balanceCollection: confirmBody.balanceCollection || 'online',
+  }
+
+  const code = String(couponCode || '').trim()
+  if (code) payload.couponCode = code
+
+  if (confirmBody.paymentMethod === 'online') {
+    payload.onlinePaymentMode = confirmBody.paymentPlan === 'advance' ? 'advance' : 'full'
+    if (
+      confirmBody.paymentAdvancePercent !== undefined
+      && confirmBody.paymentAdvancePercent !== null
+      && confirmBody.paymentPlan !== 'full'
+    ) {
+      payload.paymentAdvancePercent = confirmBody.paymentAdvancePercent
+    }
+  }
+
+  return payload
+}
+
 function mapPlacedOrderSummary(order) {
   if (!order || typeof order !== 'object') return null
 
