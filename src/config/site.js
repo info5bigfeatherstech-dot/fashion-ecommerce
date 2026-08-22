@@ -161,6 +161,58 @@ export const LATEST_COLLECTIONS = [
   },
 ]
 
+export const SHOP_BY_OCCASION = {
+  eyebrow: 'The Atelier',
+  title: 'Shop By Occasion',
+  panels: [
+    {
+      id: 'everyday',
+      // number: '01',
+      label: 'Everyday Elegance',
+      title: 'Everyday Elegance',
+      href: '/shop/women',
+      image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=900&h=1200&q=80',
+      alt: 'Delicate jewelry for everyday wear',
+    },
+    {
+      id: 'office',
+      // number: '02',
+      label: 'Office',
+      title: 'Office',
+      href: '/shop/women',
+      image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=900&h=1200&q=80',
+      alt: 'Minimal jewelry styled for the workplace',
+    },
+    {
+      id: 'party',
+      // number: '03',
+      label: 'Party & Night Out Glamour',
+      title: 'Party & Night Out Glamour',
+      href: '/shop/new-arrivals',
+      image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=900&h=1200&q=80',
+      alt: 'Statement jewelry for evening occasions',
+    },
+    {
+      id: 'festival',
+      // number: '04',
+      label: 'Festival Radiance',
+      title: 'Festival Radiance',
+      href: '/shop/women',
+      image: 'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=900&h=1200&q=80',
+      alt: 'Festive jewelry for celebrations',
+    },
+    {
+      id: 'wedding',
+      // number: '05',
+      label: 'Wedding Royalty',
+      title: 'Wedding Royalty',
+      href: '/shop/women',
+      image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=900&h=1200&q=80',
+      alt: 'Bridal and wedding jewelry collection',
+    },
+  ],
+}
+
 export const SIGNATURE_JEWELRY = {
   eyebrow: 'Signature Jewelry',
   titleLine1: 'Timeless',

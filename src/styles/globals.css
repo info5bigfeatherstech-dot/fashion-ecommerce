@@ -4223,6 +4223,205 @@ html.modal-open.lenis body {
   }
 }
 
+/* ─── Shop By Occasion accordion ─── */
+
+.shop-occasion {
+  padding-block: clamp(var(--space-4), 5vw, var(--space-6));
+}
+
+.shop-occasion__inner {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(var(--space-2), 2.5vw, var(--space-3));
+}
+
+.shop-occasion__header {
+  margin-bottom: 0;
+}
+
+.shop-occasion__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 0 var(--space-1);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.6875rem;
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.shop-occasion__eyebrow-rule {
+  display: block;
+  width: 32px;
+  height: 1px;
+  flex-shrink: 0;
+  background: linear-gradient(
+    90deg,
+    rgb(168, 132, 48) 0%,
+    rgb(232, 218, 186) 100%
+  );
+}
+
+.occasion-accordion {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+  height: clamp(380px, 48vw, 540px);
+}
+
+.occasion-accordion__panel-wrap {
+  flex-shrink: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.occasion-accordion__panel {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  background: var(--color-ink);
+}
+
+.occasion-accordion__media {
+  position: absolute;
+  inset: 0;
+}
+
+.occasion-accordion__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+  will-change: transform, filter;
+}
+
+.occasion-accordion__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(20, 18, 15, 0.12) 0%,
+      rgba(20, 18, 15, 0.04) 40%,
+      rgba(20, 18, 15, 0.72) 100%
+    );
+}
+
+.occasion-accordion__panel:not(.is-active) .occasion-accordion__overlay {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(20, 18, 15, 0.28) 0%,
+      rgba(20, 18, 15, 0.08) 38%,
+      rgba(20, 18, 15, 0.62) 100%
+    );
+}
+
+.occasion-accordion__index {
+  position: absolute;
+  top: clamp(12px, 1.8vw, 18px);
+  left: clamp(12px, 1.8vw, 18px);
+  z-index: 2;
+  font-family: var(--font-ui);
+  font-size: 0.6875rem;
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.occasion-accordion__label-vertical {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-block: 3rem;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-family: 'Montserrat', sans-serif;
+  font-size: clamp(0.625rem, 1.1vw, 0.6875rem);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+}
+
+.occasion-accordion__expanded {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: flex-end;
+  padding: clamp(16px, 2.5vw, 28px);
+  pointer-events: none;
+}
+
+.occasion-accordion__title {
+  margin: 0;
+  max-width: min(22ch, 85%);
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 2.4vw, 2.25rem);
+  font-weight: var(--weight-regular);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: var(--color-white);
+}
+
+.occasion-accordion__panel:focus-visible {
+  outline: none;
+}
+
+.occasion-accordion__panel:focus-visible::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  outline: 2px solid var(--color-gold);
+  outline-offset: -4px;
+  pointer-events: none;
+}
+
+@media (max-width: 767px) {
+  .occasion-accordion {
+    flex-direction: column;
+    height: auto;
+    gap: 6px;
+  }
+
+  .occasion-accordion__label-vertical {
+    writing-mode: horizontal-tb;
+    transform: none;
+    justify-content: flex-end;
+    align-items: flex-start;
+    padding: 14px 16px 14px 44px;
+    font-size: 0.625rem;
+    letter-spacing: 0.14em;
+  }
+
+  .occasion-accordion__title {
+    max-width: 100%;
+    font-size: clamp(1.1rem, 5vw, 1.5rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .occasion-accordion__media img {
+    will-change: auto;
+  }
+}
+
 /* ─── Category Strip ─── */
 
 .category-strip-wrap {

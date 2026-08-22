@@ -1,4 +1,5 @@
 import { HeroSection } from '@/components/home/HeroSection'
+import { ShopByOccasionSection } from '@/components/home/ShopByOccasionSection'
 import { CircularCategoriesSection } from '@/components/home/CircularCategoriesSection'
 import { CategoryStripSection } from '@/components/home/CategoryStripSection'
 import { NewArrivalsSection } from '@/components/home/NewArrivalsSection'
@@ -24,6 +25,7 @@ export default function Home() {
   return (
     <>
       <HeroSection />
+      <ShopByOccasionSection />
       <CircularCategoriesSection />
       <JewelleryFestSection />
       <SignatureJewelrySection />
