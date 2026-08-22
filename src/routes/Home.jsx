@@ -1,4 +1,5 @@
 import { HeroSection } from '@/components/home/HeroSection'
+import { CircularCategoriesSection } from '@/components/home/CircularCategoriesSection'
 import { CategoryStripSection } from '@/components/home/CategoryStripSection'
 import { NewArrivalsSection } from '@/components/home/NewArrivalsSection'
 import { LatestCollectionsSection } from '@/components/home/LatestCollectionsSection'
@@ -23,16 +24,17 @@ export default function Home() {
   return (
     <>
       <HeroSection />
-      <NewArrivalsSection />
+      <CircularCategoriesSection />
       <JewelleryFestSection />
       <SignatureJewelrySection />
       <CraftsmanshipSection />
       <TheArchiveSection />
+      <NewArrivalsSection />
       <TrendingNowFastSection />
       <AsSeenOnYouSection />
       {/* <CategoryStripSection /> */}
       {/* <LatestCollectionsSection /> */}
-      <NewDropsSection />
+      {/* <NewDropsSection /> */}
       <BestsellersSection />
       {/* <MostLovedSection /> */}
       {/* <BeautySpotlightSection /> */}

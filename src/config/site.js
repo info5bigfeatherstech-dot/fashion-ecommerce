@@ -15,12 +15,14 @@ export const PRODUCT_OFFER = {
 }
 
 export const TOP_BANNER = {
-  badge: 'Season Edit',
-  lead: 'Use code',
-  code: 'VERA26',
-  message: 'Artificial jewelry styles for every occasion · Free shipping over $100',
-  terms: 'See terms in FAQ',
-  href: '/shop/new-arrivals',
+  headline: 'Get Every Gift with your EVERY Purchase',
+  message: 'Free Shipping — Above ₹1099',
+  href: '/shop/women',
+}
+
+export const SALE_LIVE = {
+  label: 'Sale is live',
+  href: '/shop/sale',
 }
 
 export const NAV_ITEMS = [
@@ -29,6 +31,50 @@ export const NAV_ITEMS = [
   { label: 'Men', slug: 'men', megaMenu: false },
   { label: 'Youth', slug: 'youth', megaMenu: false },
   { label: 'Kids', slug: 'kids', megaMenu: false },
+]
+
+/** Circular category chips on the homepage (below hero). */
+export const HOME_CIRCLE_CATEGORIES = [
+  {
+    label: 'Earrings',
+    href: '/shop/watches-accessories/jewelry',
+    image: 'https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&w=400&h=400&q=80',
+  },
+  {
+    label: 'Necklaces',
+    href: '/shop/watches-accessories/jewelry',
+    image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=400&h=400&q=80',
+  },
+  {
+    label: 'Rings',
+    href: '/shop/watches-accessories/jewelry',
+    image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557c?auto=format&fit=crop&w=400&h=400&q=80',
+  },
+  {
+    label: 'Bracelets',
+    href: '/shop/watches-accessories/jewelry',
+    image: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?auto=format&fit=crop&w=400&h=400&q=80',
+  },
+  {
+    label: 'Pendants',
+    href: '/shop/watches-accessories/jewelry',
+    image: 'https://images.unsplash.com/photo-1611107683227-e9060eccd846?auto=format&fit=crop&w=400&h=400&q=80',
+  },
+  {
+    label: 'Sets',
+    href: '/shop/watches-accessories/jewelry',
+    image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=400&h=400&q=80',
+  },
+  {
+    label: 'Mangalsutras',
+    href: '/shop/watches-accessories/jewelry',
+    image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=400&h=400&q=80',
+  },
+  {
+    label: 'Gifting',
+    href: '/shop/sale',
+    image: 'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=400&h=400&q=80',
+  },
 ]
 
 export const CATEGORY_STRIP = [

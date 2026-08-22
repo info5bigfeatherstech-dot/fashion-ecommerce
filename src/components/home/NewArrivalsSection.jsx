@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { NEW_ARRIVALS_SLIDES } from '@/config/site'
 import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
+import { ReflectiveCard } from '@/components/ui/ReflectiveCard'
 import { useBestsellers } from '@/features/product/hooks'
 
 const AUTO_SLIDE_MS = 3500
@@ -92,10 +93,14 @@ export function NewArrivalsSection() {
       >
         <div className="new-arrivals-slider__track" ref={trackRef}>
           {slides.map((slide, index) => (
-            <Link
+            <ReflectiveCard
               key={slide.id}
+              as={Link}
               to={slide.href}
               className="new-arrivals-slide"
+              maxTilt={6}
+              glareOpacity={0.4}
+              aria-label={slide.title}
             >
               <img
                 src={slide.image}
@@ -103,6 +108,7 @@ export function NewArrivalsSection() {
                 className="new-arrivals-slide__image"
                 loading="lazy"
               />
+              <span className="new-arrivals-slide__shine" aria-hidden="true" />
               <div className="new-arrivals-slide__overlay" />
               <div className="new-arrivals-slide__copy">
                 <h3 className="new-arrivals-slide__title">{slide.title}</h3>
@@ -111,7 +117,7 @@ export function NewArrivalsSection() {
                   <span className="new-arrivals-slide__shop">Shop Now</span>
                 )}
               </div>
-            </Link>
+            </ReflectiveCard>
           ))}
         </div>
       </div>

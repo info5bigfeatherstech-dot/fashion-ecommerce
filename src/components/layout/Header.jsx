@@ -10,6 +10,7 @@ import { useCartCount, useWishlistCount } from '@/store/selectors'
 import { SITE_NAME, NAV_ITEMS } from '@/config/site'
 import { MEGA_MENUS } from '@/features/category/api'
 import { BrandLogo } from './BrandLogo'
+import { SaleLiveBadge } from './SaleLiveBadge'
 import { getUserFirstName } from '@/lib/utils'
 import { MEDIA_QUERIES } from '@/config/breakpoints'
 
@@ -239,6 +240,7 @@ export function Header() {
                   </Link>
                 </div>
               ))}
+              <SaleLiveBadge />
             </nav>
           </div>
 
@@ -355,6 +357,10 @@ export function Header() {
                     </Link>
                   )
                 })}
+
+                <div className="header__mobile-sale">
+                  <SaleLiveBadge />
+                </div>
 
                 <div className="header__mobile-extras">
                   <Link to="/profile" onClick={handleMyAccountClick} aria-label="My Account">
