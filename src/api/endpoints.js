@@ -59,6 +59,8 @@ export const API_ENDPOINTS = {
   },
   orders: {
     items: '/orders/items',
+    byId: (orderId) => `/orders/items/${encodeURIComponent(String(orderId))}`,
+    track: (orderId) => `/orders/items/${encodeURIComponent(String(orderId))}/track`,
     verifyPayment: '/orders/items/verify-payment',
     initiatePayment: (orderId) =>
       `/orders/items/${encodeURIComponent(String(orderId))}/initiate-payment`,

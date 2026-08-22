@@ -10,6 +10,7 @@ import {
 } from './api'
 import { checkoutKeys } from './queryKeys'
 import { quoteParamsForPaymentMethod } from './constants'
+import { isCodPlacedOrder } from './mappers'
 import { getCart } from '@/features/cart/api'
 import { useAppStore } from '@/store'
 
@@ -124,9 +125,13 @@ export function useCreateOrderFromConfirm() {
 
   return useMutation({
     mutationFn: (args) => createOrder(args),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: checkoutKeys.all })
-      queryClient.invalidateQueries({ queryKey: ['cart'] })
+    onSuccess: (result) => {
+      // Online orders consume the server cart until payment completes or is abandoned.
+      // Invalidating checkout/cart here races with Razorpay and triggers CART_EMPTY quotes.
+      if (isCodPlacedOrder(result)) {
+        queryClient.invalidateQueries({ queryKey: checkoutKeys.all })
+        queryClient.invalidateQueries({ queryKey: ['cart'] })
+      }
     },
   })
 }
@@ -145,13 +150,7 @@ export function useVerifyRazorpayPayment() {
 }
 
 export function useAbandonOnlineCheckout() {
-  const queryClient = useQueryClient()
-
   return useMutation({
     mutationFn: abandonOnlineCheckout,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: checkoutKeys.all })
-      queryClient.invalidateQueries({ queryKey: ['cart'] })
-    },
   })
 }

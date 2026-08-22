@@ -7,7 +7,7 @@ export function CartItem({ item, showLink = true, layout = 'drawer' }) {
   const updateQuantity = useAppStore((s) => s.updateQuantity)
   const removeItem = useAppStore((s) => s.removeItem)
   const lineTotal = item.price * item.quantity
-  const productCode = item.productCode || item.sku || null
+  const productCode = item.productCode || null
   const isAccount = layout === 'account'
   const isPage = layout === 'page' || isAccount
 
@@ -36,7 +36,7 @@ export function CartItem({ item, showLink = true, layout = 'drawer' }) {
           {name}
 
           <div className="cart-item__tags">
-            {productCode && <span className="cart-item__tag">Code {productCode}</span>}
+            {productCode && <span className="cart-item__tag">{productCode}</span>}
             {item.size && <span className="cart-item__tag">Size {item.size}</span>}
             {item.color && <span className="cart-item__tag">{item.color}</span>}
           </div>

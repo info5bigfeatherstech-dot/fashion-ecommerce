@@ -44,18 +44,37 @@ import RazorpayCheckout from '@/features/checkout/razorpay/RazorpayCheckout'
 import { PaymentErrorOverlay } from '@/features/checkout/razorpay/PaymentErrorOverlay'
 import { PaymentLoadingOverlay } from '@/features/checkout/razorpay/PaymentLoadingOverlay'
 import { getCart } from '@/features/cart/api'
-import { useDeliveryCheckQuery } from '@/features/delivery/hooks'
 import { useAvailableCoupons, useValidateCoupon } from '@/features/coupon/hooks'
 import { useAppStore } from '@/store'
 import { useCartTotal } from '@/store/selectors'
 import { formatPrice } from '@/lib/utils'
 import { SITE_NAME } from '@/config/site'
 
+const CHECKOUT_STEP = {
+  REVIEW: 0,
+  DELIVERY: 1,
+  PAYMENT: 2,
+}
+
 const STEPS = [
-  { id: 'contact', label: 'Contact', icon: Package },
-  { id: 'shipping', label: 'Shipping', icon: Truck },
+  { id: 'review', label: 'Order', icon: Package },
+  { id: 'delivery', label: 'Delivery', icon: Truck },
   { id: 'payment', label: 'Payment', icon: CreditCard },
 ]
+
+function normalizeCouponCode(code) {
+  return String(code || '').trim().toUpperCase()
+}
+
+function removeCachedCheckoutQuotes(queryClient) {
+  return queryClient.removeQueries({
+    predicate: (query) => (
+      Array.isArray(query.queryKey)
+      && query.queryKey[0] === 'checkout'
+      && query.queryKey[1] === 'quote'
+    ),
+  })
+}
 
 export default function Checkout() {
   const queryClient = useQueryClient()
@@ -68,6 +87,7 @@ export default function Checkout() {
   const checkoutAddress = useAppStore((s) => s.checkoutAddress)
   const clearCheckoutAddress = useAppStore((s) => s.clearCheckoutAddress)
   const [orderPlaced, setOrderPlaced] = useState(false)
+  const [checkoutStep, setCheckoutStep] = useState(CHECKOUT_STEP.REVIEW)
   const [addressModalOpen, setAddressModalOpen] = useState(false)
   const [couponInput, setCouponInput] = useState('')
   const [appliedCouponCode, setAppliedCouponCode] = useState('')
@@ -86,7 +106,18 @@ export default function Checkout() {
 
   const cartKey = useMemo(() => buildCheckoutCartKey(cartItems), [cartItems])
 
-  const { data: checkoutSettings } = useCheckoutSettings({ enabled: isAuthenticated })
+  const hasPendingOnlineOrder = Boolean(
+    placedOrder?.order?.orderId
+    && !isCodPlacedOrder(placedOrder)
+  )
+
+  const isReviewStep = checkoutStep === CHECKOUT_STEP.REVIEW
+  const isDeliveryStep = checkoutStep === CHECKOUT_STEP.DELIVERY
+  const isPaymentStep = checkoutStep === CHECKOUT_STEP.PAYMENT
+
+  const { data: checkoutSettings } = useCheckoutSettings({
+    enabled: isAuthenticated && checkoutStep >= CHECKOUT_STEP.DELIVERY,
+  })
 
   const checkoutSchema = useMemo(() => (
     z.object({
@@ -125,7 +156,7 @@ export default function Checkout() {
   })
 
   const paymentMethod = watch('paymentMethod')
-  const zipValue = watch('zip')
+
   const needsRazorpayKey = paymentMethod === 'prepaid' || paymentMethod === 'partial'
 
   const {
@@ -134,7 +165,7 @@ export default function Checkout() {
     isError: razorpayKeyError,
     error: razorpayKeyFetchError,
   } = useRazorpayKey({
-    enabled: isAuthenticated && needsRazorpayKey,
+    enabled: isAuthenticated && isPaymentStep && needsRazorpayKey,
   })
 
   useEffect(() => {
@@ -154,50 +185,68 @@ export default function Checkout() {
     couponCode: appliedCouponCode,
     cartKey,
     paymentMethod,
-    enabled: isAuthenticated && Boolean(checkoutAddress?.id),
+    enabled:
+      isAuthenticated
+      && checkoutStep >= CHECKOUT_STEP.DELIVERY
+      && Boolean(checkoutAddress?.id)
+      && !hasPendingOnlineOrder
+      && !isRecoveringCheckout,
   })
+
+  /** Ignore cached quotes that still carry a coupon after the user removed it. */
+  const activeQuote = useMemo(() => {
+    if (!quote) return null
+    const quoteCoupon = normalizeCouponCode(quote.couponApplied)
+    const desiredCoupon = normalizeCouponCode(appliedCouponCode)
+    if (quoteCoupon !== desiredCoupon) return null
+    return quote
+  }, [quote, appliedCouponCode])
 
   const confirmCheckout = useConfirmCheckout()
   const createOrder = useCreateOrderFromConfirm()
   const verifyPayment = useVerifyRazorpayPayment()
   const abandonCheckout = useAbandonOnlineCheckout()
 
-  const policy = quote?.checkoutPolicy || checkoutSettings
+  const policy = activeQuote?.checkoutPolicy || checkoutSettings
   const codEnabled = Boolean(
-    quote
-      ? quote.fullCodAvailable
+    activeQuote
+      ? activeQuote.fullCodAvailable
       : checkoutSettings?.codEnabled !== false
   )
   const partialPaymentEnabled = Boolean(
-    quote
-      ? quote.checkoutPolicy?.partialPaymentEnabled
+    activeQuote
+      ? activeQuote.checkoutPolicy?.partialPaymentEnabled
       : checkoutSettings?.partialPaymentEnabled
   )
   const partialPaymentPercent = policy?.partialPaymentPercent || 0
 
-  const { data: availableCoupons = [] } = useAvailableCoupons({ enabled: isAuthenticated })
+  const { data: availableCoupons = [] } = useAvailableCoupons({
+    enabled: isAuthenticated && isReviewStep,
+  })
   const validateCoupon = useValidateCoupon()
 
-  const itemsSubtotal = quote ? quote.itemsSubtotal : cartTotal
-  const promotionDiscount = quote ? quote.promotionDiscount : 0
-  const deliveryCharges = quote ? quote.deliveryCharges : (cartTotal >= 100 ? 0 : 9.95)
-  const taxes = quote ? quote.taxes : 0
-  const total = quote
-    ? quote.amountPayable
-    : Math.max(0, cartTotal + deliveryCharges)
+  const itemsSubtotal = activeQuote ? activeQuote.itemsSubtotal : cartTotal
+  const promotionDiscount = activeQuote ? activeQuote.promotionDiscount : 0
+  const deliveryCharges = activeQuote
+    ? activeQuote.deliveryCharges
+    : (isReviewStep ? null : (cartTotal >= 100 ? 0 : 9.95))
+  const taxes = activeQuote ? activeQuote.taxes : 0
+  const total = activeQuote
+    ? activeQuote.amountPayable
+    : Math.max(0, cartTotal + (deliveryCharges ?? 0))
   const suggestedPartial = partialPaymentPercent > 0
     ? Math.round((total * partialPaymentPercent) / 100)
     : 0
-  const itemCount = quote?.itemCount
+  const itemCount = activeQuote?.itemCount
     || cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0)
 
-  const quoteExpired = isQuoteExpired(quote)
+  const quoteExpired = isQuoteExpired(activeQuote)
   const razorpayKeyUnavailable = needsRazorpayKey
     && (razorpayKeyLoading || razorpayKeyError || (!prefetchedRazorpayKey && !razorpayKey))
-  const canPlaceOrder = Boolean(
+  const canPlaceOrder = isPaymentStep && Boolean(
     checkoutAddress?.id
-    && quote?.quoteId
-    && quote.isDeliverable
+    && activeQuote?.quoteId
+    && activeQuote.isDeliverable
     && !quoteExpired
     && !quoteLoading
     && !isRecoveringCheckout
@@ -206,18 +255,11 @@ export default function Checkout() {
     && !razorpayKeyUnavailable
   )
 
-  const deliveryPincode = String(
-    checkoutAddress?.postalCode || checkoutAddress?.zip || zipValue || ''
-  ).trim()
-
-  const {
-    data: deliveryCheck,
-    isFetching: deliveryChecking,
-    isError: deliveryCheckFailed,
-    error: deliveryCheckError,
-  } = useDeliveryCheckQuery(deliveryPincode, {
-    enabled: isAuthenticated && deliveryPincode.length >= 6 && !quote,
-  })
+  useEffect(() => {
+    if (isDeliveryStep && !checkoutAddress?.id) {
+      setAddressModalOpen(true)
+    }
+  }, [isDeliveryStep, checkoutAddress?.id])
 
   useEffect(() => {
     if (!user && !checkoutAddress) return
@@ -252,21 +294,20 @@ export default function Checkout() {
   }, [codEnabled, partialPaymentEnabled, paymentMethod, setValue])
 
   useEffect(() => {
-    if (quote?.couponApplied) {
-      setCouponInput(String(quote.couponApplied).toUpperCase())
-      setAppliedCouponCode(String(quote.couponApplied).toUpperCase())
-    }
-  }, [quote?.couponApplied])
-
-  useEffect(() => {
     if (!quoteFailed || !quoteError?.message) {
       lastQuoteErrorToastRef.current = ''
+      return
+    }
+    if (
+      quoteError.code === 'CART_EMPTY'
+      && (hasPendingOnlineOrder || isRecoveringCheckout)
+    ) {
       return
     }
     if (quoteError.message === lastQuoteErrorToastRef.current) return
     lastQuoteErrorToastRef.current = quoteError.message
     toast.error(quoteError.message)
-  }, [quoteFailed, quoteError?.message])
+  }, [quoteFailed, quoteError?.message, quoteError?.code, hasPendingOnlineOrder, isRecoveringCheckout])
 
   useEffect(() => {
     gatewayDismissHandlerRef.current = async () => {
@@ -277,6 +318,7 @@ export default function Checkout() {
         setShowRazorpay(false)
         setRazorpayOrderData(null)
         setRazorpayPaymentState(PAYMENT_STATE.CANCELLED)
+        await queryClient.cancelQueries({ queryKey: ['checkout'] })
 
         const oid = placedOrder?.order?.orderId || placedOrder?.order?.id
         if (!oid) {
@@ -293,7 +335,6 @@ export default function Checkout() {
         }
 
         checkoutAttemptKeyRef.current = null
-        setPlacedOrder(null)
 
         try {
           const cart = await getCart()
@@ -304,7 +345,9 @@ export default function Checkout() {
           return
         }
 
+        setPlacedOrder(null)
         await queryClient.invalidateQueries({ queryKey: ['checkout'] })
+        await queryClient.invalidateQueries({ queryKey: ['cart'] })
         setRazorpayPaymentState(PAYMENT_STATE.IDLE)
         toast.success('Payment closed. Your bag was restored — you can place the order again.')
       } finally {
@@ -392,7 +435,7 @@ export default function Checkout() {
     void gatewayDismissHandlerRef.current?.()
   }, [])
 
-  if (cartItems.length === 0 && !orderPlaced && !placedOrder) {
+  if (cartItems.length === 0 && !orderPlaced && !placedOrder && !isRecoveringCheckout) {
     return (
       <div className="container empty-state">
         <h1 className="empty-state__title">Nothing to checkout</h1>
@@ -430,6 +473,7 @@ export default function Checkout() {
   }
 
   const onSubmit = async (formData) => {
+    if (!isPaymentStep) return
     if (isRecoveringCheckout || gatewayDismissRecoveryInFlight.current) {
       toast.info('Restoring your bag after payment was closed. Please wait.')
       return
@@ -579,10 +623,6 @@ export default function Checkout() {
       toast.error('Enter a coupon code')
       return
     }
-    if (!checkoutAddress?.id) {
-      toast.error('Select an address before applying a coupon')
-      return
-    }
 
     try {
       const result = await validateCoupon.mutateAsync({
@@ -594,6 +634,7 @@ export default function Checkout() {
         return
       }
       // Quote locks the discount — validation alone does not.
+      await removeCachedCheckoutQuotes(queryClient)
       setAppliedCouponCode(result.couponCode || couponCode)
       setCouponInput(result.couponCode || couponCode)
       toast.success(result.message || 'Coupon applied — updating quote…')
@@ -602,9 +643,55 @@ export default function Checkout() {
     }
   }
 
-  const handleClearCoupon = () => {
+  const handleClearCoupon = async () => {
     setAppliedCouponCode('')
     setCouponInput('')
+    await removeCachedCheckoutQuotes(queryClient)
+    if (
+      checkoutStep >= CHECKOUT_STEP.DELIVERY
+      && checkoutAddress?.id
+      && isAuthenticated
+    ) {
+      refetchQuote()
+    }
+    toast.success('Coupon removed')
+  }
+
+  const goToDeliveryStep = () => {
+    if (cartItems.length === 0) {
+      toast.error('Your bag is empty')
+      return
+    }
+    setCheckoutStep(CHECKOUT_STEP.DELIVERY)
+  }
+
+  const goToReviewStep = () => {
+    setCheckoutStep(CHECKOUT_STEP.REVIEW)
+  }
+
+  const goToPaymentStep = () => {
+    if (!checkoutAddress?.id) {
+      toast.error('Select a delivery address')
+      setAddressModalOpen(true)
+      return
+    }
+    if (quoteLoading) {
+      toast.info('Calculating shipping and totals…')
+      return
+    }
+    if (!activeQuote?.quoteId) {
+      toast.info('Waiting for checkout quote…')
+      return
+    }
+    if (!activeQuote.isDeliverable) {
+      toast.error('This address is not deliverable for your bag')
+      return
+    }
+    if (quoteExpired) {
+      toast.error('Quote expired — refresh and try again')
+      return
+    }
+    setCheckoutStep(CHECKOUT_STEP.PAYMENT)
   }
 
   const submitting = isSubmitting
@@ -612,14 +699,27 @@ export default function Checkout() {
     || createOrder.isPending
     || verifyPayment.isPending
     || isRecoveringCheckout
-  const deliveryHint = quote
+  const deliveryHint = activeQuote
     ? [
-        quote.isDeliverable
-          ? (quote.deliveryEstimate || 'Deliverable to this PIN')
-          : 'Not deliverable to this PIN',
-        quote.courierName,
+        activeQuote.isDeliverable
+          ? (activeQuote.deliveryEstimate || 'Deliverable to this address')
+          : 'Not deliverable to this address',
+        activeQuote.courierName,
       ].filter(Boolean).join(' · ')
     : null
+
+  const checkoutUserName = user?.name
+    || checkoutAddress?.fullName
+    || `${watch('firstName')} ${watch('lastName')}`.trim()
+    || 'Customer'
+
+  const shippingLabel = activeQuote
+    ? (deliveryCharges === 0 ? 'Free' : formatPrice(deliveryCharges))
+    : isReviewStep
+      ? 'Calculated next step'
+      : quoteLoading
+        ? 'Calculating…'
+        : 'Select address'
 
   return (
     <div className="checkout-page">
@@ -642,10 +742,15 @@ export default function Checkout() {
         <nav className="checkout-steps" aria-label="Checkout progress">
           {STEPS.map((step, index) => {
             const Icon = step.icon
+            const isActive = checkoutStep === index
+            const isComplete = checkoutStep > index
             return (
-              <div key={step.id} className="checkout-steps__item">
+              <div
+                key={step.id}
+                className={`checkout-steps__item${isActive ? ' checkout-steps__item--active' : ''}${isComplete ? ' checkout-steps__item--complete' : ''}`}
+              >
                 <span className="checkout-steps__index">
-                  <Icon size={14} />
+                  {isComplete ? <Check size={14} /> : <Icon size={14} />}
                   <span>{index + 1}</span>
                 </span>
                 <span className="checkout-steps__label">{step.label}</span>
@@ -657,120 +762,161 @@ export default function Checkout() {
 
         <div className="checkout">
           <form className="checkout-main" onSubmit={handleSubmit(onSubmit)} noValidate>
-            <section className="checkout-panel">
-              <div className="checkout-panel__head">
-                <div>
-                  <p className="heading-sm text-accent">01</p>
-                  <h2 className="checkout-panel__title">Contact</h2>
-                </div>
-              </div>
-              <InputGroup label="Email" htmlFor="email" required error={errors.email?.message}>
-                <Input id="email" type="email" error={errors.email} {...register('email')} />
-              </InputGroup>
-              <p className="body-sm text-muted checkout-panel__hint">
-                Order updates and shipping notifications go here.
-              </p>
-            </section>
-
-            <section className="checkout-panel">
-              <div className="checkout-panel__head">
-                <div>
-                  <p className="heading-sm text-accent">02</p>
-                  <h2 className="checkout-panel__title">Shipping address</h2>
-                </div>
-                <Button type="button" variant="ghost" size="sm" onClick={() => setAddressModalOpen(true)}>
-                  {checkoutAddress ? 'Change' : 'Choose address'}
-                </Button>
-              </div>
-
-              {checkoutAddress ? (
-                <div className="checkout-address-card">
-                  <div className="checkout-address-card__icon" aria-hidden="true">
-                    <MapPin size={18} />
-                  </div>
-                  <div className="checkout-address-card__body">
-                    <div className="checkout-address-card__top">
-                      <p className="heading-sm" style={{ margin: 0 }}>
-                        {checkoutAddress.fullName || `${watch('firstName')} ${watch('lastName')}`.trim()}
-                      </p>
-                      {checkoutAddress.isDefault && <Badge>Default</Badge>}
-                    </div>
-                    <p className="body-sm">{checkoutAddress.displayLine1 || checkoutAddress.fullAddress}</p>
-                    {checkoutAddress.displayLine2 && (
-                      <p className="body-sm text-muted">{checkoutAddress.displayLine2}</p>
-                    )}
-                    <p className="body-sm text-muted">
-                      {[checkoutAddress.city, checkoutAddress.state, checkoutAddress.postalCode || checkoutAddress.zip]
-                        .filter(Boolean)
-                        .join(', ')}
-                    </p>
-                    {checkoutAddress.phone && (
-                      <p className="body-sm text-muted">Phone: {checkoutAddress.phone}</p>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="checkout-address-empty">
-                  <MapPin size={20} />
+            {isReviewStep && (
+              <section className="checkout-panel">
+                <div className="checkout-panel__head">
                   <div>
-                    <p className="body-sm" style={{ fontWeight: 'var(--weight-semibold)', marginBottom: 4 }}>
-                      No delivery address selected
-                    </p>
-                    <p className="body-sm text-muted">Choose a saved address or add a new one to continue.</p>
+                    <p className="heading-sm text-accent">Step 1</p>
+                    <h2 className="checkout-panel__title">Review your order</h2>
                   </div>
-                  <Button type="button" variant="secondary" size="sm" onClick={() => setAddressModalOpen(true)}>
-                    Select address
+                </div>
+                <p className="body-sm text-muted checkout-panel__hint">
+                  Check items and apply a coupon. Shipping is calculated after you choose a delivery address.
+                </p>
+                <div className="checkout-review-items">
+                  {cartItems.map((item) => (
+                    <div key={item.id} className="checkout-summary__item">
+                      <div className="checkout-summary__thumb">
+                        <img src={item.image} alt="" />
+                        <span>{item.quantity}</span>
+                      </div>
+                      <div className="checkout-summary__item-meta">
+                        <p className="checkout-summary__item-name">{item.name}</p>
+                        {item.productCode && (
+                          <p className="body-sm text-muted">{item.productCode}</p>
+                        )}
+                      </div>
+                      <p className="checkout-summary__item-price">
+                        {formatPrice(item.price * item.quantity)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <div className="checkout-coupon checkout-coupon--inline">
+                  <div className="checkout-coupon__head">
+                    <Tag size={14} />
+                    <span>Coupon</span>
+                  </div>
+                  <div className="checkout-coupon__row">
+                    <Input
+                      value={couponInput}
+                      onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                      placeholder="Enter code"
+                      aria-label="Coupon code"
+                      disabled={Boolean(appliedCouponCode)}
+                    />
+                    {appliedCouponCode ? (
+                      <Button type="button" variant="secondary" size="sm" onClick={handleClearCoupon}>
+                        Remove
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleApplyCoupon()}
+                        disabled={validateCoupon.isPending}
+                      >
+                        {validateCoupon.isPending ? '…' : 'Apply'}
+                      </Button>
+                    )}
+                  </div>
+                  {appliedCouponCode && (
+                    <p className="checkout-coupon__ok">{appliedCouponCode} will apply at delivery step</p>
+                  )}
+                  {availableCoupons.length > 0 && !appliedCouponCode && (
+                    <div className="checkout-coupon__list">
+                      {availableCoupons.slice(0, 4).map((coupon) => (
+                        <button
+                          key={coupon.id}
+                          type="button"
+                          className="checkout-coupon__chip"
+                          onClick={() => {
+                            setCouponInput(coupon.code)
+                            handleApplyCoupon(coupon.code)
+                          }}
+                        >
+                          {coupon.code}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="checkout-step-actions">
+                  <Button type="button" variant="primary" size="lg" fullWidth onClick={goToDeliveryStep}>
+                    Continue to delivery
                   </Button>
                 </div>
-              )}
+              </section>
+            )}
 
-              <div className="form-grid" style={{ marginTop: 'var(--space-3)' }}>
-                <div className="form-grid form-grid--2">
-                  <InputGroup label="First Name" htmlFor="firstName" required error={errors.firstName?.message}>
-                    <Input id="firstName" error={errors.firstName} {...register('firstName')} />
-                  </InputGroup>
-                  <InputGroup label="Last Name" htmlFor="lastName" required error={errors.lastName?.message}>
-                    <Input id="lastName" error={errors.lastName} {...register('lastName')} />
-                  </InputGroup>
+            {isDeliveryStep && (
+              <section className="checkout-panel">
+                <div className="checkout-panel__head">
+                  <div>
+                    <p className="heading-sm text-accent">Step 2</p>
+                    <h2 className="checkout-panel__title">Delivery address</h2>
+                  </div>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setAddressModalOpen(true)}>
+                    {checkoutAddress ? 'Change' : 'Choose address'}
+                  </Button>
                 </div>
-                <InputGroup label="Address" htmlFor="address" required error={errors.address?.message}>
-                  <Input id="address" error={errors.address} {...register('address')} />
+                <InputGroup label="Email" htmlFor="email" required error={errors.email?.message}>
+                  <Input id="email" type="email" error={errors.email} {...register('email')} />
                 </InputGroup>
-                <div className="form-grid form-grid--2">
-                  <InputGroup label="City" htmlFor="city" required error={errors.city?.message}>
-                    <Input id="city" error={errors.city} {...register('city')} />
-                  </InputGroup>
-                  <InputGroup label="State" htmlFor="state" required error={errors.state?.message}>
-                    <Input id="state" error={errors.state} {...register('state')} />
-                  </InputGroup>
-                </div>
-                <InputGroup label="PIN / ZIP" htmlFor="zip" required error={errors.zip?.message}>
-                  <Input id="zip" error={errors.zip} {...register('zip')} />
-                </InputGroup>
-                {(deliveryHint || deliveryPincode.length >= 6) && (
+                <p className="body-sm text-muted checkout-panel__hint">
+                  Order updates and shipping notifications go here.
+                </p>
+
+                {checkoutAddress ? (
+                  <div className="checkout-address-card">
+                    <div className="checkout-address-card__icon" aria-hidden="true">
+                      <MapPin size={18} />
+                    </div>
+                    <div className="checkout-address-card__body">
+                      <div className="checkout-address-card__top">
+                        <p className="heading-sm" style={{ margin: 0 }}>
+                          {checkoutAddress.fullName || checkoutUserName}
+                        </p>
+                        {checkoutAddress.isDefault && <Badge>Default</Badge>}
+                      </div>
+                      <p className="body-sm">{checkoutAddress.displayLine1 || checkoutAddress.fullAddress}</p>
+                      {checkoutAddress.displayLine2 && (
+                        <p className="body-sm text-muted">{checkoutAddress.displayLine2}</p>
+                      )}
+                      <p className="body-sm text-muted">
+                        {[checkoutAddress.city, checkoutAddress.state, checkoutAddress.postalCode || checkoutAddress.zip]
+                          .filter(Boolean)
+                          .join(', ')}
+                      </p>
+                      {checkoutAddress.phone && (
+                        <p className="body-sm text-muted">Phone: {checkoutAddress.phone}</p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="checkout-address-empty">
+                    <MapPin size={20} />
+                    <div>
+                      <p className="body-sm" style={{ fontWeight: 'var(--weight-semibold)', marginBottom: 4 }}>
+                        No delivery address selected
+                      </p>
+                      <p className="body-sm text-muted">Choose a saved address or add a new one to continue.</p>
+                    </div>
+                    <Button type="button" variant="secondary" size="sm" onClick={() => setAddressModalOpen(true)}>
+                      Select address
+                    </Button>
+                  </div>
+                )}
+
+                {(deliveryHint || quoteLoading) && (
                   <p
                     className={`body-sm checkout-delivery-hint${
-                      (quote && !quote.isDeliverable)
-                      || (deliveryCheck && !deliveryCheck.isDeliverable)
-                        ? ' checkout-delivery-hint--warn'
-                        : ''
+                      activeQuote && !activeQuote.isDeliverable ? ' checkout-delivery-hint--warn' : ''
                     }`}
                   >
-                    {quoteLoading && 'Getting delivery quote…'}
+                    {quoteLoading && 'Calculating shipping and totals…'}
                     {!quoteLoading && deliveryHint}
-                    {!quote && !quoteLoading && deliveryChecking && 'Checking delivery for this PIN…'}
-                    {!quote && !quoteLoading && !deliveryChecking && deliveryCheckFailed && (
-                      deliveryCheckError?.message || 'Could not verify delivery for this PIN.'
-                    )}
-                    {!quote && !quoteLoading && !deliveryChecking && !deliveryCheckFailed && deliveryCheck && (
-                      deliveryCheck.isDeliverable
-                        ? [
-                            deliveryCheck.message || 'Deliverable to this PIN',
-                            deliveryCheck.estimatedDays && `ETA ${deliveryCheck.estimatedDays} days`,
-                            deliveryCheck.courierName,
-                          ].filter(Boolean).join(' · ')
-                        : (deliveryCheck.message || 'Not deliverable to this PIN')
-                    )}
                   </p>
                 )}
                 {quoteExpired && (
@@ -781,147 +927,168 @@ export default function Checkout() {
                     </button>
                   </p>
                 )}
-              </div>
-            </section>
 
-            <section className="checkout-panel">
-              <div className="checkout-panel__head">
-                <div>
-                  <p className="heading-sm text-accent">03</p>
-                  <h2 className="checkout-panel__title">Payment</h2>
+                <div className="checkout-step-actions checkout-step-actions--split">
+                  <Button type="button" variant="secondary" size="lg" onClick={goToReviewStep}>
+                    Back
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="lg"
+                    onClick={goToPaymentStep}
+                    disabled={!checkoutAddress?.id || quoteLoading || Boolean(activeQuote && !activeQuote.isDeliverable)}
+                  >
+                    {quoteLoading ? 'Calculating…' : 'Continue to payment'}
+                  </Button>
                 </div>
-                <span className="checkout-secure">
-                  <Lock size={14} />
-                  Encrypted
-                </span>
-              </div>
+              </section>
+            )}
 
-              <input type="hidden" {...register('paymentMethod')} />
-
-              <div className="checkout-pay-options" role="radiogroup" aria-label="Payment method">
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={paymentMethod === 'prepaid'}
-                  className={`checkout-pay-option${paymentMethod === 'prepaid' ? ' checkout-pay-option--active' : ''}`}
-                  onClick={() => setPaymentMethod('prepaid')}
-                >
-                  <CreditCard size={18} />
-                  <span>
-                    <strong>Pay online</strong>
-                    <small>Secure checkout via Razorpay</small>
-                  </span>
-                </button>
-                {codEnabled && (
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={paymentMethod === 'cod'}
-                    className={`checkout-pay-option${paymentMethod === 'cod' ? ' checkout-pay-option--active' : ''}`}
-                    onClick={() => setPaymentMethod('cod')}
-                  >
-                    <Truck size={18} />
-                    <span>
-                      <strong>Cash on delivery</strong>
-                      <small>Pay when your order arrives</small>
+            {isPaymentStep && (
+              <>
+                <section className="checkout-panel">
+                  <div className="checkout-panel__head">
+                    <div>
+                      <p className="heading-sm text-accent">Step 3</p>
+                      <h2 className="checkout-panel__title">Payment</h2>
+                    </div>
+                    <span className="checkout-secure">
+                      <Lock size={14} />
+                      Encrypted
                     </span>
-                  </button>
-                )}
-                {partialPaymentEnabled && (
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={paymentMethod === 'partial'}
-                    className={`checkout-pay-option${paymentMethod === 'partial' ? ' checkout-pay-option--active' : ''}`}
-                    onClick={() => setPaymentMethod('partial')}
-                  >
-                    <Wallet size={18} />
-                    <span>
-                      <strong>Partial payment</strong>
-                      <small>
-                        {partialPaymentPercent > 0
-                          ? `Pay ${partialPaymentPercent}% now (${formatPrice(suggestedPartial)})`
-                          : 'Pay a portion now, rest later'}
-                      </small>
-                    </span>
-                  </button>
-                )}
-              </div>
-
-              {paymentMethod === 'prepaid' && (
-                <div className="checkout-pay-panel">
-                  <div className="checkout-info-card">
-                    <ShieldCheck size={18} />
-                    <p className="body-sm">
-                      You&apos;ll complete payment securely through Razorpay for{' '}
-                      <strong>{formatPrice(total)}</strong>.
-                    </p>
                   </div>
-                </div>
-              )}
 
-              {paymentMethod === 'cod' && (
-                <div className="checkout-info-card">
-                  <Truck size={18} />
-                  <p className="body-sm">
-                    Pay in cash or UPI when your order is delivered. No card details needed now.
+                  <input type="hidden" {...register('paymentMethod')} />
+
+                  <div className="checkout-pay-options" role="radiogroup" aria-label="Payment method">
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={paymentMethod === 'prepaid'}
+                      className={`checkout-pay-option${paymentMethod === 'prepaid' ? ' checkout-pay-option--active' : ''}`}
+                      onClick={() => setPaymentMethod('prepaid')}
+                    >
+                      <CreditCard size={18} />
+                      <span>
+                        <strong>Pay online</strong>
+                        <small>Secure checkout via Razorpay</small>
+                      </span>
+                    </button>
+                    {codEnabled && (
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={paymentMethod === 'cod'}
+                        className={`checkout-pay-option${paymentMethod === 'cod' ? ' checkout-pay-option--active' : ''}`}
+                        onClick={() => setPaymentMethod('cod')}
+                      >
+                        <Truck size={18} />
+                        <span>
+                          <strong>Cash on delivery</strong>
+                          <small>Pay when your order arrives</small>
+                        </span>
+                      </button>
+                    )}
+                    {partialPaymentEnabled && (
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={paymentMethod === 'partial'}
+                        className={`checkout-pay-option${paymentMethod === 'partial' ? ' checkout-pay-option--active' : ''}`}
+                        onClick={() => setPaymentMethod('partial')}
+                      >
+                        <Wallet size={18} />
+                        <span>
+                          <strong>Partial payment</strong>
+                          <small>
+                            {partialPaymentPercent > 0
+                              ? `Pay ${partialPaymentPercent}% now (${formatPrice(suggestedPartial)})`
+                              : 'Pay a portion now, rest later'}
+                          </small>
+                        </span>
+                      </button>
+                    )}
+                  </div>
+
+                  {paymentMethod === 'prepaid' && (
+                    <div className="checkout-pay-panel">
+                      <div className="checkout-info-card">
+                        <ShieldCheck size={18} />
+                        <p className="body-sm">
+                          You&apos;ll complete payment securely through Razorpay for{' '}
+                          <strong>{formatPrice(total)}</strong>.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {paymentMethod === 'cod' && (
+                    <div className="checkout-info-card">
+                      <Truck size={18} />
+                      <p className="body-sm">
+                        Pay in cash or UPI when your order is delivered. No card details needed now.
+                      </p>
+                    </div>
+                  )}
+
+                  {paymentMethod === 'partial' && (
+                    <div className="checkout-pay-panel">
+                      <div className="checkout-info-card">
+                        <Wallet size={18} />
+                        <p className="body-sm">
+                          Pay <strong>{formatPrice(suggestedPartial)}</strong> now
+                          {partialPaymentPercent > 0 ? ` (${partialPaymentPercent}% advance)` : ''}.
+                          Remaining balance will be collected
+                          {activeQuote?.partialBalanceCodAvailable ? ' on delivery' : ' online'} before dispatch.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {needsRazorpayKey && razorpayKeyError && (
+                    <div className="checkout-info-card" style={{ borderColor: '#fde68a', background: '#fefce8' }}>
+                      <AlertCircle size={18} style={{ color: '#d97706', flexShrink: 0 }} />
+                      <p className="body-sm" style={{ color: '#b45309', margin: 0 }}>
+                        {razorpayKeyFetchError?.message || 'Payment gateway unavailable'}. Please use COD or try again later.
+                      </p>
+                    </div>
+                  )}
+                </section>
+
+                <div className="checkout-submit-bar">
+                  <div className="checkout-step-actions checkout-step-actions--split">
+                    <Button type="button" variant="secondary" size="lg" onClick={() => setCheckoutStep(CHECKOUT_STEP.DELIVERY)}>
+                      Back
+                    </Button>
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      size="lg"
+                      disabled={submitting || !canPlaceOrder}
+                    >
+                      {submitting
+                        ? 'Processing…'
+                        : quoteLoading
+                          ? 'Updating quote…'
+                          : needsRazorpayKey && razorpayKeyLoading
+                            ? 'Loading payment gateway…'
+                            : paymentMethod === 'cod'
+                              ? 'Place order'
+                              : paymentMethod === 'partial'
+                                ? `Pay ${formatPrice(suggestedPartial)} now`
+                                : `Pay ${formatPrice(total)}`}
+                    </Button>
+                  </div>
+                  <p className="checkout-submit-note">
+                    <Lock size={12} />
+                    {paymentMethod === 'cod'
+                      ? 'Pay when your order arrives — no online payment now.'
+                      : 'Secured by Razorpay · your card details never touch our servers.'}
                   </p>
                 </div>
-              )}
-
-              {paymentMethod === 'partial' && (
-                <div className="checkout-pay-panel">
-                  <div className="checkout-info-card">
-                    <Wallet size={18} />
-                    <p className="body-sm">
-                      Pay <strong>{formatPrice(suggestedPartial)}</strong> now
-                      {partialPaymentPercent > 0 ? ` (${partialPaymentPercent}% advance)` : ''}.
-                      Remaining balance will be collected
-                      {quote?.partialBalanceCodAvailable ? ' on delivery' : ' online'} before dispatch.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {needsRazorpayKey && razorpayKeyError && (
-                <div className="checkout-info-card" style={{ borderColor: '#fde68a', background: '#fefce8' }}>
-                  <AlertCircle size={18} style={{ color: '#d97706', flexShrink: 0 }} />
-                  <p className="body-sm" style={{ color: '#b45309', margin: 0 }}>
-                    {razorpayKeyFetchError?.message || 'Payment gateway unavailable'}. Please use COD or try again later.
-                  </p>
-                </div>
-              )}
-            </section>
-
-            <div className="checkout-submit-bar">
-              <Button
-                type="submit"
-                variant="primary"
-                size="lg"
-                fullWidth
-                disabled={submitting || !canPlaceOrder}
-              >
-                {submitting
-                  ? 'Processing…'
-                  : !checkoutAddress?.id
-                    ? 'Select address to continue'
-                    : quoteLoading
-                      ? 'Updating quote…'
-                      : needsRazorpayKey && razorpayKeyLoading
-                        ? 'Loading payment gateway…'
-                        : paymentMethod === 'cod'
-                        ? 'Place order'
-                        : paymentMethod === 'partial'
-                          ? `Pay ${formatPrice(suggestedPartial)} now`
-                          : `Pay ${formatPrice(total)}`}
-              </Button>
-              <p className="checkout-submit-note">
-                <Lock size={12} />
-                {paymentMethod === 'cod'
-                  ? 'Pay when your order arrives — no online payment now.'
-                  : 'Secured by Razorpay · your card details never touch our servers.'}
-              </p>
-            </div>
+              </>
+            )}
           </form>
 
           <aside className="checkout-summary">
@@ -953,59 +1120,12 @@ export default function Checkout() {
             </div>
 
             <div className="checkout-summary__rows">
-              <div className="checkout-coupon">
-                <div className="checkout-coupon__head">
-                  <Tag size={14} />
-                  <span>Coupon</span>
-                </div>
-                <div className="checkout-coupon__row">
-                  <Input
-                    value={couponInput}
-                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                    placeholder="Enter code"
-                    aria-label="Coupon code"
-                    disabled={Boolean(appliedCouponCode)}
-                  />
-                  {appliedCouponCode ? (
-                    <Button type="button" variant="secondary" size="sm" onClick={handleClearCoupon}>
-                      Remove
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => handleApplyCoupon()}
-                      disabled={validateCoupon.isPending || !checkoutAddress?.id}
-                    >
-                      {validateCoupon.isPending ? '…' : 'Apply'}
-                    </Button>
-                  )}
-                </div>
-                {appliedCouponCode && (
-                  <p className="checkout-coupon__ok">
-                    {appliedCouponCode}
-                    {promotionDiscount > 0 ? ` · −${formatPrice(promotionDiscount)}` : ''}
-                  </p>
-                )}
-                {availableCoupons.length > 0 && !appliedCouponCode && (
-                  <div className="checkout-coupon__list">
-                    {availableCoupons.slice(0, 4).map((coupon) => (
-                      <button
-                        key={coupon.id}
-                        type="button"
-                        className="checkout-coupon__chip"
-                        onClick={() => {
-                          setCouponInput(coupon.code)
-                          handleApplyCoupon(coupon.code)
-                        }}
-                      >
-                        {coupon.code}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              {!isReviewStep && appliedCouponCode && (
+                <p className="checkout-coupon__ok" style={{ marginBottom: 8 }}>
+                  Coupon {appliedCouponCode}
+                  {promotionDiscount > 0 ? ` · −${formatPrice(promotionDiscount)}` : ''}
+                </p>
+              )}
 
               <div className="checkout-summary__row">
                 <span>Subtotal</span>
@@ -1019,7 +1139,7 @@ export default function Checkout() {
               )}
               <div className="checkout-summary__row">
                 <span>Shipping</span>
-                <span>{deliveryCharges === 0 ? 'Free' : formatPrice(deliveryCharges)}</span>
+                <span>{shippingLabel}</span>
               </div>
               {taxes > 0 && (
                 <div className="checkout-summary__row">
@@ -1027,18 +1147,18 @@ export default function Checkout() {
                   <span>{formatPrice(taxes)}</span>
                 </div>
               )}
-              {deliveryCharges === 0 && quote?.includesShippingAndHandling && (
+              {deliveryCharges === 0 && activeQuote?.includesShippingAndHandling && (
                 <p className="checkout-summary__perk">Complimentary shipping on this order</p>
               )}
               <div className="checkout-summary__total">
                 <span>Total</span>
                 <span>{formatPrice(total)}</span>
               </div>
-              {quote?.quoteId && (
+              {activeQuote?.quoteId && (
                 <p className="body-sm text-muted" style={{ marginTop: 8 }}>
                   Quote locked until{' '}
-                  {quote.quoteExpiresAt
-                    ? new Date(quote.quoteExpiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                  {activeQuote.quoteExpiresAt
+                    ? new Date(activeQuote.quoteExpiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                     : 'checkout completes'}
                 </p>
               )}
@@ -1059,7 +1179,7 @@ export default function Checkout() {
           razorpayKey={prefetchedRazorpayKey || razorpayKey}
           orderId={placedOrder?.order?.orderId || placedOrder?.order?.id}
           userEmail={user?.email}
-          userName={user?.name || `${watch('firstName')} ${watch('lastName')}`.trim()}
+          userName={checkoutUserName}
           userPhone={checkoutAddress?.phone}
           paymentState={razorpayPaymentState}
           onPaymentStateChange={setRazorpayPaymentState}

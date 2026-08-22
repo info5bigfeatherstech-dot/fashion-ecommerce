@@ -49,7 +49,7 @@ export function mapWishlistItem(raw) {
     badge: product.badge || null,
     rating: toNumber(product.rating?.value ?? product.rating, 0),
     reviewCount: toNumber(product.rating?.count ?? product.reviewCount, 0),
-    productCode: variant?.sku || product.productCode || null,
+    productCode: product.productCode || variant?.productCode || variant?.product_code || null,
     addedAt: raw.addedAt || null,
   }
 }

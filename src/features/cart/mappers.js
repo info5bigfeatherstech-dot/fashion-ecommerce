@@ -67,7 +67,7 @@ export function mapCartItem(raw) {
     price,
     originalPrice: originalPrice > price ? originalPrice : null,
     image: variantImage(variant) || product.images?.[0]?.url || product.images?.[0] || null,
-    productCode: variant?.sku || variant?.productCode || product.productCode || null,
+    productCode: product.productCode || variant?.productCode || variant?.product_code || null,
     size: attributeValue(attributes, SIZE_KEYS) || raw.size || null,
     color: attributeValue(attributes, COLOR_KEYS) || raw.color || null,
     quantity: Math.max(1, toNumber(raw.quantity, 1)),

@@ -9,6 +9,7 @@ import { useAppStore } from '@/store'
 import { useCartCount, useWishlistCount } from '@/store/selectors'
 import { AccountAddressesTab } from '@/routes/account/AccountAddressesTab'
 import { AccountCartTab } from '@/routes/account/AccountCartTab'
+import { AccountOrdersTab } from '@/routes/account/AccountOrdersTab'
 import { AccountWishlistTab } from '@/routes/account/AccountWishlistTab'
 
 const ACCOUNT_QUICK_LINKS = [
@@ -120,13 +121,7 @@ export default function Account({ initialActiveTab = 'orders' } = {}) {
                 <h2 className="display-md">Order History</h2>
               </div>
             </div>
-            <div className="account-panel">
-              <div className="account-empty">
-                <div className="account-empty__icon"><Package size={22} /></div>
-                <p className="body-lg">No orders yet</p>
-                <p className="body-sm text-muted">Start shopping to see your orders here.</p>
-              </div>
-            </div>
+            <AccountOrdersTab />
           </div>
         )}
 

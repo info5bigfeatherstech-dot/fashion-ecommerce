@@ -92,7 +92,7 @@ export function useCartProducts(cartItems = [], { enabled = true } = {}) {
       if (!live) {
         return {
           ...item,
-          productCode: item.productCode || item.sku || null,
+          productCode: item.productCode || null,
           _hydrated: false,
           _isLoading: Boolean(queries[index]?.isPending || queries[index]?.isFetching),
         }
@@ -105,7 +105,7 @@ export function useCartProducts(cartItems = [], { enabled = true } = {}) {
         price: item.price ?? live.price,
         originalPrice: item.originalPrice ?? live.originalPrice ?? null,
         image: item.image || live.images?.[0],
-        productCode: item.productCode || live.productCode || live.sku || null,
+        productCode: live.productCode || item.productCode || null,
         _hydrated: true,
         _isLoading: false,
       }

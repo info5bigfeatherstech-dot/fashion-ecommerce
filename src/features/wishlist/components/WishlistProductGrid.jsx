@@ -109,7 +109,7 @@ export function WishlistProductGrid({
                     {product.name}
                   </Link>
                   <div className="wishlist-row__meta">
-                    {code && <span>Code {code}</span>}
+                    {code && <span>{code}</span>}
                     <span>{formatPrice(product.price)}</span>
                     {product.originalPrice && (
                       <span className="wishlist-row__was">{formatPrice(product.originalPrice)}</span>
@@ -167,7 +167,7 @@ export function WishlistProductGrid({
               >
                 <ProductCard product={product} compact />
                 <div className="wishlist-item__footer">
-                  {code && <p className="wishlist-item__code">Code: {code}</p>}
+                  {code && <p className="wishlist-item__code">{code}</p>}
                   <div className="wishlist-item__actions">
                     <Button
                       variant={inBagQty > 0 ? 'secondary' : 'primary'}

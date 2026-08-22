@@ -62,7 +62,7 @@ export const wishlistSlice = (set, get) => ({
       badge: product.badge,
       rating: product.rating,
       reviewCount: product.reviewCount,
-      productCode: product.productCode || product.sku || null,
+      productCode: product.productCode || null,
       variantId: product.variantId || resolveVariantId(product, {}) || null,
     }
 

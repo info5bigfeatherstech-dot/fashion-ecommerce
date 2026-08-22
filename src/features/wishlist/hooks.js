@@ -112,7 +112,7 @@ export function useWishlistProducts(wishlistItems = [], { enabled = true } = {})
           slug: live.slug || item.slug,
           variantId: item.variantId || live.variants?.[0]?.id || null,
           image: item.image || live.images?.[0],
-          productCode: item.productCode || live.productCode || live.sku || null,
+          productCode: live.productCode || item.productCode || null,
           _hydrated: true,
           _isLoading: false,
           _isError: false,
@@ -122,7 +122,7 @@ export function useWishlistProducts(wishlistItems = [], { enabled = true } = {})
       return {
         ...item,
         images: item.images?.length ? item.images : [item.image, item.image].filter(Boolean),
-        productCode: item.productCode || item.sku || null,
+        productCode: item.productCode || null,
         _hydrated: false,
         _isLoading: Boolean(query?.isPending || query?.isFetching),
         _isError: Boolean(query?.isError),

@@ -142,7 +142,7 @@ export default function ProductDetail() {
           <h1 className="pdp-info__title">{product.name}</h1>
 
           {product.productCode && (
-            <p className="pdp-info__code">Code: {product.productCode}</p>
+            <p className="pdp-info__code">{product.productCode}</p>
           )}
 
           <div className="pdp-info__rating">
