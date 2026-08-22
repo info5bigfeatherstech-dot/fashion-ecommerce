@@ -1,36 +1,20 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { toast } from 'sonner'
-import { ChevronRight, Heart, MapPin, Package, Plus, ShoppingBag, UserRound } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
+import { useNavigate } from 'react-router-dom'
+import { ChevronRight, Heart, MapPin, Package, ShoppingBag, UserRound } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Input, InputGroup } from '@/components/ui/Input'
 import { Separator } from '@/components/ui/Separator'
-import { CheckoutAddressModal } from '@/components/checkout/CheckoutAddressModal'
-import { CartItem } from '@/features/cart/components/CartItem'
 import { logout } from '@/features/auth/api'
-import { AddressFormFields } from '@/features/address/components/AddressFormFields'
-import {
-  useAddresses,
-  useCreateAddress,
-  useDeleteAddress,
-  useSetDefaultAddress,
-} from '@/features/address/hooks'
-import { applyFieldErrors } from '@/features/address/mappers'
-import { ADDRESS_FORM_DEFAULTS, addressFormSchema } from '@/features/address/schema'
-import { WishlistProductGrid } from '@/features/wishlist/components/WishlistProductGrid'
-import { useCart, useCartProducts } from '@/features/cart/hooks'
-import { useWishlist } from '@/features/wishlist/hooks'
 import { useAppStore } from '@/store'
-import { useCartTotal } from '@/store/selectors'
-import { formatPrice } from '@/lib/utils'
+import { useCartCount, useWishlistCount } from '@/store/selectors'
+import { AccountAddressesTab } from '@/routes/account/AccountAddressesTab'
+import { AccountCartTab } from '@/routes/account/AccountCartTab'
+import { AccountWishlistTab } from '@/routes/account/AccountWishlistTab'
 
 const ACCOUNT_QUICK_LINKS = [
   { id: 'orders', label: 'Orders', icon: Package },
-  { id: 'wishlist', label: 'Wishlist', icon: Heart },
-  { id: 'cart', label: 'Cart', icon: ShoppingBag },
+  { id: 'wishlist', label: 'Wishlist', icon: Heart, badge: 'wishlist' },
+  { id: 'cart', label: 'Cart', icon: ShoppingBag, badge: 'cart' },
 ]
 
 const ACCOUNT_MENU_LINKS = [
@@ -43,103 +27,16 @@ export default function Account({ initialActiveTab = 'orders' } = {}) {
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
   const openAuthModal = useAppStore((s) => s.openAuthModal)
   const clearUser = useAppStore((s) => s.clearUser)
-  const cartItems = useAppStore((s) => s.cartItems)
-  const wishlistItems = useAppStore((s) => s.wishlistItems)
-  const cartTotal = useCartTotal()
+  const cartCount = useCartCount()
+  const wishlistCount = useWishlistCount()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState(initialActiveTab)
-  const [checkoutAddressOpen, setCheckoutAddressOpen] = useState(false)
-  const [addressFormError, setAddressFormError] = useState('')
-  const [showAddressForm, setShowAddressForm] = useState(false)
 
-  useCart({ enabled: isAuthenticated && (activeTab === 'cart' || activeTab === 'orders') })
-  useWishlist({ enabled: isAuthenticated && activeTab === 'wishlist' })
-
-  const { products: hydratedCartItems } = useCartProducts(cartItems, {
-    enabled: isAuthenticated && activeTab === 'cart' && cartItems.length > 0,
-  })
-
-  const {
-    data: addressData,
-    isLoading: addressesLoading,
-    isError: addressesFailed,
-    error: addressesError,
-  } = useAddresses({ enabled: isAuthenticated })
-  const createAddress = useCreateAddress()
-  const deleteAddress = useDeleteAddress()
-  const setDefaultAddress = useSetDefaultAddress()
-
-  const addresses = addressData?.all || []
-
-  const addressForm = useForm({
-    resolver: zodResolver(addressFormSchema),
-    defaultValues: {
-      ...ADDRESS_FORM_DEFAULTS,
-      fullName: user?.name || '',
-      phone: user?.phone || '',
-    },
-  })
+  const badgeCounts = { cart: cartCount, wishlist: wishlistCount }
 
   const handleLogout = async () => {
     await logout()
     clearUser()
-  }
-
-  const openAddressForm = () => {
-    setAddressFormError('')
-    addressForm.reset({
-      ...ADDRESS_FORM_DEFAULTS,
-      fullName: user?.name || '',
-      phone: user?.phone || '',
-    })
-    setShowAddressForm(true)
-  }
-
-  const closeAddressForm = () => {
-    setAddressFormError('')
-    setShowAddressForm(false)
-  }
-
-  const handleAddAddress = async (data) => {
-    setAddressFormError('')
-    try {
-      const result = await createAddress.mutateAsync(data)
-      toast.success(result.message || 'Address saved')
-      addressForm.reset({
-        ...ADDRESS_FORM_DEFAULTS,
-        fullName: user?.name || data.fullName || '',
-        phone: user?.phone || '',
-      })
-      setShowAddressForm(false)
-    } catch (err) {
-      const applied = applyFieldErrors(err, addressForm.setError)
-      if (!applied) {
-        setAddressFormError(err?.message || 'Could not save address')
-        toast.error(err?.message || 'Could not save address')
-      }
-    }
-  }
-
-  const handleRemoveAddress = async (id) => {
-    try {
-      const result = await deleteAddress.mutateAsync(id)
-      const checkout = useAppStore.getState().checkoutAddress
-      if (checkout?.id === id) {
-        useAppStore.getState().clearCheckoutAddress()
-      }
-      toast.success(result.message || 'Address removed')
-    } catch (err) {
-      toast.error(err?.message || 'Could not remove address')
-    }
-  }
-
-  const handleSetDefault = async (id) => {
-    try {
-      const result = await setDefaultAddress.mutateAsync(id)
-      toast.success(result.message || 'Default address updated')
-    } catch (err) {
-      toast.error(err?.message || 'Could not update default address')
-    }
   }
 
   useEffect(() => {
@@ -153,29 +50,12 @@ export default function Account({ initialActiveTab = 'orders' } = {}) {
     }
   }, [isAuthenticated, navigate, openAuthModal])
 
-  useEffect(() => {
-    if (activeTab !== 'addresses') {
-      setShowAddressForm(false)
-      setAddressFormError('')
-    }
-  }, [activeTab])
-
-  useEffect(() => {
-    if (!user) return
-    addressForm.reset({
-      ...ADDRESS_FORM_DEFAULTS,
-      fullName: user.name || '',
-      phone: user.phone || '',
-    })
-  }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
-
   if (!isAuthenticated) {
     return null
   }
 
   return (
-    <>
-      <div className="container account-layout">
+    <div className="container account-layout">
       <aside className="account-sidebar">
         <div className="account-sidebar__card">
           <div className="account-sidebar__avatar">
@@ -191,10 +71,7 @@ export default function Account({ initialActiveTab = 'orders' } = {}) {
         <div className="account-quick">
           {ACCOUNT_QUICK_LINKS.map((link) => {
             const Icon = link.icon
-            const count =
-              link.id === 'cart' ? cartItems.reduce((sum, item) => sum + item.quantity, 0)
-              : link.id === 'wishlist' ? wishlistItems.length
-              : 0
+            const count = link.badge ? badgeCounts[link.badge] : 0
 
             return (
               <button
@@ -271,37 +148,6 @@ export default function Account({ initialActiveTab = 'orders' } = {}) {
               </div>
             </div>
 
-            {/* <div className="account-stats">
-              <div className="account-stat-card">
-                <Mail size={18} />
-                <div>
-                  <p className="account-stat-card__label">Email</p>
-                  <p className="account-stat-card__value">{user.email}</p>
-                </div>
-              </div>
-              <div className="account-stat-card">
-                <Phone size={18} />
-                <div>
-                  <p className="account-stat-card__label">Phone</p>
-                  <p className="account-stat-card__value">Not provided</p>
-                </div>
-              </div>
-              <div className="account-stat-card">
-                <MapPin size={18} />
-                <div>
-                  <p className="account-stat-card__label">Saved addresses</p>
-                  <p className="account-stat-card__value">{addresses.length}</p>
-                </div>
-              </div>
-              <div className="account-stat-card">
-                <CalendarDays size={18} />
-                <div>
-                  <p className="account-stat-card__label">Member since</p>
-                  <p className="account-stat-card__value">Today</p>
-                </div>
-              </div>
-            </div> */}
-
             <div className="account-panel">
               <div className="account-panel__header">
                 <div>
@@ -318,7 +164,7 @@ export default function Account({ initialActiveTab = 'orders' } = {}) {
                   <Input readOnly defaultValue={user.email} />
                 </InputGroup>
                 <InputGroup label="Phone number">
-                  <Input readOnly defaultValue="Not provided" />
+                  <Input readOnly defaultValue={user.phone || 'Not provided'} />
                 </InputGroup>
                 <InputGroup label="Member since">
                   <Input readOnly defaultValue="Today" />
@@ -326,280 +172,14 @@ export default function Account({ initialActiveTab = 'orders' } = {}) {
               </div>
 
               <Separator style={{ marginBlock: 'var(--space-4)' }} />
-
-                {/* <div className="account-note">
-                  <Sparkles size={16} />
-                  <p className="body-sm text-muted">Profile UI is ready. Later, we can connect editing and real customer data through your backend.</p>
-                </div> */}
             </div>
           </div>
         )}
 
-        {activeTab === 'cart' && (() => {
-          const bagCount = cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0)
-
-          return (
-          <div className="account-section">
-            <div className="account-section__header">
-              <div>
-                <p className="heading-sm text-accent">Bag</p>
-                <h2 className="display-md">Shopping Bag</h2>
-                {cartItems.length > 0 && (
-                  <p className="body-sm text-muted" style={{ marginTop: 4 }}>
-                    {bagCount} {bagCount === 1 ? 'item' : 'items'} selected
-                  </p>
-                )}
-              </div>
-              {cartItems.length > 0 && (
-                <Link to="/cart">
-                  <Button variant="secondary" size="sm">Open full bag</Button>
-                </Link>
-              )}
-            </div>
-
-            {cartItems.length === 0 ? (
-              <div className="account-panel">
-                <div className="account-empty">
-                  <div className="account-empty__icon"><ShoppingBag size={22} /></div>
-                  <p className="body-lg">Your bag is empty</p>
-                  <p className="body-sm text-muted">Add jewelry you love and it will show up here.</p>
-                  <Link to="/shop/women" style={{ marginTop: 'var(--space-2)' }}>
-                    <Button variant="primary">Start shopping</Button>
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <div className="account-bag">
-                <section className="account-bag__list" aria-label="Bag items">
-                  {hydratedCartItems.map((item) => (
-                    <CartItem key={item.id} item={item} layout="account" />
-                  ))}
-                </section>
-
-                <aside className="account-bag__summary">
-                  <p className="account-bag__summary-label">Order summary</p>
-                  <div className="account-bag__summary-rows">
-                    <div className="account-bag__summary-row">
-                      <span>Subtotal</span>
-                      <span>{formatPrice(cartTotal)}</span>
-                    </div>
-                    <div className="account-bag__summary-row account-bag__summary-row--muted">
-                      <span>Shipping</span>
-                      <span>Calculated at checkout</span>
-                    </div>
-                    <div className="account-bag__summary-total">
-                      <span>Total</span>
-                      <span>{formatPrice(cartTotal)}</span>
-                    </div>
-                  </div>
-                  <Button
-                    variant="primary"
-                    fullWidth
-                    className="account-bag__cta"
-                    onClick={() => setCheckoutAddressOpen(true)}
-                  >
-                    Proceed to checkout
-                  </Button>
-                  <Link to="/shop/women" className="account-bag__continue">
-                    Continue shopping
-                  </Link>
-                </aside>
-              </div>
-            )}
-          </div>
-          )
-        })()}
-
-        {activeTab === 'wishlist' && (
-          <div className="account-section">
-            <div className="account-section__header">
-              <div>
-                <p className="heading-sm text-accent">Saved</p>
-                <h2 className="display-md">Wishlist</h2>
-                {wishlistItems.length > 0 && (
-                  <p className="body-sm text-muted" style={{ marginTop: 4 }}>
-                    {wishlistItems.length} {wishlistItems.length === 1 ? 'piece' : 'pieces'} saved
-                  </p>
-                )}
-              </div>
-              {wishlistItems.length > 0 && (
-                <Link to="/wishlist">
-                  <Button variant="secondary" size="sm">Open full wishlist</Button>
-                </Link>
-              )}
-            </div>
-
-            {wishlistItems.length === 0 ? (
-              <div className="account-panel">
-                <div className="account-empty">
-                  <div className="account-empty__icon"><Heart size={22} /></div>
-                  <p className="body-lg">Your wishlist is empty</p>
-                  <p className="body-sm text-muted">Tap the heart on any product and it will appear here.</p>
-                  <Link to="/shop/women" style={{ marginTop: 'var(--space-2)' }}>
-                    <Button variant="primary">Explore jewelry</Button>
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <WishlistProductGrid
-                wishlistItems={wishlistItems}
-                enabled={isAuthenticated && activeTab === 'wishlist' && wishlistItems.length > 0}
-                className="account-wishlist-grid"
-                defaultView="list"
-              />
-            )}
-          </div>
-        )}
-
-        {activeTab === 'addresses' && (
-          <div className="account-section">
-            <div className="account-section__header">
-              <div>
-                <p className="heading-sm text-accent">Addresses</p>
-                <h2 className="display-md">Saved Addresses</h2>
-              </div>
-              {!addressesLoading && !addressesFailed && !showAddressForm && addresses.length > 0 && (
-                <Button variant="secondary" size="sm" onClick={openAddressForm}>
-                  <Plus size={16} />
-                  Add address
-                </Button>
-              )}
-            </div>
-
-            {addressesLoading ? (
-              <div className="account-panel">
-                <p className="body-lg text-muted">Loading addresses…</p>
-              </div>
-            ) : addressesFailed ? (
-              <div className="account-panel">
-                <p className="body-lg" style={{ color: 'var(--color-danger, #b42318)' }}>
-                  {addressesError?.message || 'Could not load addresses.'}
-                </p>
-              </div>
-            ) : showAddressForm ? (
-              <div className="account-panel account-panel--address-form">
-                <div className="account-panel__header account-address-form__header">
-                  <div>
-                    <p className="heading-sm text-accent">New address</p>
-                    <h3 className="display-md">
-                      {addresses.length === 0 ? 'Add your address' : 'Add a new address'}
-                    </h3>
-                    <p className="body-sm text-muted account-address-form__lede">
-                      Enter your delivery details so checkout is faster next time.
-                    </p>
-                  </div>
-                </div>
-
-                <form
-                  className="account-address-form"
-                  onSubmit={addressForm.handleSubmit(handleAddAddress)}
-                  noValidate
-                >
-                  <AddressFormFields
-                    register={addressForm.register}
-                    control={addressForm.control}
-                    errors={addressForm.formState.errors}
-                    idPrefix="account-addr"
-                  />
-
-                  {addressFormError && (
-                    <p className="body-sm account-address-form__error">
-                      {addressFormError}
-                    </p>
-                  )}
-
-                  <div className="address-form__actions">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      onClick={closeAddressForm}
-                      disabled={createAddress.isPending || addressForm.formState.isSubmitting}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      size="sm"
-                      disabled={createAddress.isPending || addressForm.formState.isSubmitting}
-                    >
-                      {createAddress.isPending ? 'Saving…' : 'Save address'}
-                    </Button>
-                  </div>
-                </form>
-              </div>
-            ) : addresses.length === 0 ? (
-              <div className="account-panel">
-                <div className="account-empty">
-                  <div className="account-empty__icon"><MapPin size={22} /></div>
-                  <p className="body-lg">No saved addresses yet</p>
-                  <p className="body-sm text-muted">
-                    Add your first delivery address to speed up future checkout.
-                  </p>
-                  <Button
-                    variant="primary"
-                    style={{ marginTop: 'var(--space-3)' }}
-                    onClick={openAddressForm}
-                  >
-                    <Plus size={16} />
-                    Add address
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="account-address-list">
-                {addresses.map((addr) => (
-                  <article key={addr.id} className="account-address-card">
-                    <div className="account-address-card__head">
-                      <p className="account-address-card__name">{addr.fullName}</p>
-                      <Badge className="account-badge">
-                        {addr.isDefault ? 'Default' : addr.addressType || 'Saved'}
-                      </Badge>
-                    </div>
-                    <div className="account-address-card__body">
-                      <p>{addr.displayLine1 || addr.fullAddress}</p>
-                      {addr.displayLine2 && <p>{addr.displayLine2}</p>}
-                      <p>
-                        {[addr.city, addr.state].filter(Boolean).join(', ')}
-                        {(addr.postalCode || addr.zip) ? ` · ${addr.postalCode || addr.zip}` : ''}
-                      </p>
-                      {addr.phone && <p className="account-address-card__phone">Phone: {addr.phone}</p>}
-                    </div>
-                    <div className="account-address-card__actions">
-                      {!addr.isDefault && (
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          disabled={setDefaultAddress.isPending}
-                          onClick={() => handleSetDefault(addr.id)}
-                        >
-                          Set default
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={deleteAddress.isPending}
-                        onClick={() => handleRemoveAddress(addr.id)}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        {activeTab === 'cart' && <AccountCartTab />}
+        {activeTab === 'wishlist' && <AccountWishlistTab />}
+        {activeTab === 'addresses' && <AccountAddressesTab />}
       </div>
     </div>
-
-      <CheckoutAddressModal
-        open={checkoutAddressOpen}
-        onOpenChange={setCheckoutAddressOpen}
-        onProceed={() => navigate('/checkout')}
-      />
-    </>
   )
 }

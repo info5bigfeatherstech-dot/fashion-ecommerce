@@ -3,7 +3,7 @@ import { googleLogin } from '@/features/auth/api'
 import { GoogleIcon } from './GoogleIcon'
 
 const GSI_SCRIPT_SRC = 'https://accounts.google.com/gsi/client'
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'demo-client-id'
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim() || ''
 
 let gsiScriptLoadPromise = null
 
@@ -36,8 +36,7 @@ function loadGsiScript() {
 }
 
 export function isGoogleSignInConfigured() {
-  const raw = import.meta.env.VITE_GOOGLE_CLIENT_ID
-  return Boolean(raw && String(raw).trim() && raw !== 'demo-client-id')
+  return Boolean(GOOGLE_CLIENT_ID)
 }
 
 /**
@@ -62,7 +61,7 @@ export function GoogleSignInButton({
   }, [onSuccess, onError])
 
   useEffect(() => {
-    if (!mountRef.current) return undefined
+    if (!mountRef.current || !GOOGLE_CLIENT_ID) return undefined
 
     let cancelled = false
 
