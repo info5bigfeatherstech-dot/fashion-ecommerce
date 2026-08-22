@@ -55,10 +55,7 @@ export function AccountOrderCard({ order, onSelect, isHydrating = false }) {
         </div>
 
         <div className="account-order-card__content">
-          <div className="account-order-card__title-row">
-            <p className="account-order-card__title">{primaryName}</p>
-            <OrderStatusBadge status={order.orderStatus} />
-          </div>
+          <p className="account-order-card__title">{primaryName}</p>
 
           <p className="account-order-card__meta">
             {formatOrderDate(order.createdAt)}
@@ -75,11 +72,13 @@ export function AccountOrderCard({ order, onSelect, isHydrating = false }) {
         </div>
 
         <div className="account-order-card__aside">
+          <OrderStatusBadge status={order.orderStatus} />
           <p className="account-order-card__price">{formatPrice(order.totalAmount ?? 0)}</p>
-          <span className="account-order-card__cta" aria-hidden="true">
-            <ChevronRight size={16} />
-          </span>
         </div>
+
+        <span className="account-order-card__chevron" aria-hidden="true">
+          <ChevronRight size={18} strokeWidth={2} />
+        </span>
       </div>
 
       {items.length > 1 && (

@@ -44,6 +44,23 @@ export const addressFormSchema = z
     }
   })
 
+export const ADDRESS_CONTACT_FIELDS = ['fullName', 'phone']
+
+export const ADDRESS_LOCATION_FIELDS = [
+  'houseNumber',
+  'building',
+  'floor',
+  'area',
+  'landmark',
+  'addressLine1',
+  'addressLine2',
+  'postalCode',
+  'city',
+  'state',
+  'country',
+  'addressType',
+]
+
 export const ADDRESS_FORM_DEFAULTS = {
   fullName: '',
   phone: '',
