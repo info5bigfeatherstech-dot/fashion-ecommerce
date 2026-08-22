@@ -13,7 +13,7 @@ export default function AdminLogin() {
   const authReady = useAdminStore((s) => s.authReady)
   const isAuthenticated = useAdminStore((s) => s.isAuthenticated)
   const login = useAdminLogin()
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
 
   const redirectTo = location.state?.from || '/admin/orders'
@@ -25,7 +25,7 @@ export default function AdminLogin() {
   const onSubmit = async (event) => {
     event.preventDefault()
     try {
-      await login.mutateAsync({ email, password })
+      await login.mutateAsync({ identifier: identifier.trim(), password })
       toast.success('Welcome back')
       navigate(redirectTo, { replace: true })
     } catch (err) {
@@ -38,16 +38,18 @@ export default function AdminLogin() {
       <div className="admin-login__card">
         <p className="heading-sm text-accent">{SITE_NAME}</p>
         <h1 className="display-md">Admin sign in</h1>
-        <p className="body-sm text-muted">Use your staff credentials for the e-commerce portal.</p>
+    
 
         <form className="admin-form-stack" onSubmit={onSubmit}>
-          <InputGroup label="Email" htmlFor="adminEmail" required>
+          <InputGroup label="Email or phone" htmlFor="adminIdentifier" required>
             <Input
-              id="adminEmail"
-              type="email"
+              id="adminIdentifier"
+              type="text"
+              inputMode="email"
               autoComplete="username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email or 10-digit phone"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
             />
           </InputGroup>
           <InputGroup label="Password" htmlFor="adminPassword" required>

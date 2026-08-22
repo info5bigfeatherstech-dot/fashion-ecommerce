@@ -1,3 +1,5 @@
+import { quoteParamsForPaymentMethod } from './constants'
+
 function toNumber(value, fallback = 0) {
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : fallback
@@ -93,44 +95,78 @@ export function toConfirmPaymentBody(uiMethod, quote) {
   const quoteId = quote?.quoteId
   if (!quoteId) return null
 
+  const params = quoteParamsForPaymentMethod(uiMethod)
+
   if (uiMethod === 'cod') {
     return {
       quoteId,
       paymentMethod: 'cod',
-      paymentPlan: 'full',
-      balanceCollection: 'online',
+      paymentPlan: params.paymentPlan,
+      balanceCollection: params.balanceCollection,
     }
   }
 
-  if (uiMethod === 'partial') {
-    return {
-      quoteId,
-      paymentMethod: 'online',
-      paymentPlan: 'advance',
-      balanceCollection: quote?.partialBalanceCodAvailable ? 'cod' : 'online',
-    }
-  }
-
-  // prepaid / full online
-  return {
+  const body = {
     quoteId,
     paymentMethod: 'online',
-    paymentPlan: 'full',
-    balanceCollection: 'online',
+    paymentPlan: params.paymentPlan,
+    balanceCollection: params.balanceCollection,
+  }
+
+  if (
+    params.paymentPlan !== 'full'
+    && quote?.checkoutPolicy?.partialPaymentEnabled
+  ) {
+    const percent = quote.checkoutPolicy.partialPaymentPercent
+    if (percent != null && Number.isFinite(Number(percent))) {
+      body.paymentAdvancePercent = Number(percent)
+    }
+  }
+
+  return body
+}
+
+function mapPlacedOrderSummary(order) {
+  if (!order || typeof order !== 'object') return null
+
+  return {
+    orderId: order.orderId || order.id || null,
+    totalAmount: toNumber(order.totalAmount, 0),
+    subtotal: toNumber(order.subtotal ?? order.itemsSubtotal, 0),
+    tax: toNumber(order.tax ?? order.taxes, 0),
+    discount: toNumber(order.discount ?? order.promotionDiscount, 0),
+    orderStatus: order.orderStatus || null,
+    paymentStatus: order.paymentStatus || null,
+    balanceDueInr: toNumber(order.balanceDueInr, 0),
+    onlinePaymentMode: order.onlinePaymentMode || null,
+    paymentAdvancePercent: order.paymentAdvancePercent ?? null,
   }
 }
 
 /** Map placed order + Razorpay create response. */
 export function mapPlacedOrder(payload) {
   const raw = payload?.order ? payload : { order: payload?.data || payload }
+  const order = mapPlacedOrderSummary(raw?.order)
+
   return {
-    order: raw?.order || null,
+    order,
     razorpayOrder: raw?.razorpayOrder || null,
     razorpayErrorDetail: raw?.razorpayErrorDetail || null,
+    appliedCoupon: raw?.appliedCoupon || null,
+    paymentMethod: raw?.paymentMethod || null,
+    idempotentReplay: Boolean(raw?.idempotentReplay),
     success: raw?.success !== false,
     message: raw?.message || null,
     raw: payload,
   }
+}
+
+/** True when create-order response is COD (no Razorpay step). */
+export function isCodPlacedOrder(orderResult) {
+  if (!orderResult) return false
+  if (orderResult.paymentMethod === 'online') return false
+  if (orderResult.paymentMethod === 'cod') return true
+  return !orderResult.razorpayOrder?.id
 }
 
 export function mapVerifyPayment(payload) {

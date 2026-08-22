@@ -4,7 +4,7 @@ import { ShoppingBag } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { CheckoutAddressModal } from '@/components/checkout/CheckoutAddressModal'
 import { CartItem } from '@/features/cart/components/CartItem'
-import { useCart, useCartProducts } from '@/features/cart/hooks'
+import { useCart } from '@/features/cart/hooks'
 import { useAppStore } from '@/store'
 import { useCartTotal } from '@/store/selectors'
 import { formatPrice } from '@/lib/utils'
@@ -17,10 +17,6 @@ export function AccountCartTab() {
   const [checkoutAddressOpen, setCheckoutAddressOpen] = useState(false)
 
   useCart({ enabled: isAuthenticated })
-  const { products: hydratedCartItems } = useCartProducts(cartItems, {
-    enabled: isAuthenticated && cartItems.length > 0,
-  })
-
   const bagCount = cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0)
 
   return (
@@ -57,7 +53,7 @@ export function AccountCartTab() {
         ) : (
           <div className="account-bag">
             <section className="account-bag__list" aria-label="Bag items">
-              {hydratedCartItems.map((item) => (
+              {cartItems.map((item) => (
                 <CartItem key={item.id} item={item} layout="account" />
               ))}
             </section>

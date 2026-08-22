@@ -28,6 +28,8 @@ import {
   useConfirmCheckout,
   useCreateOrderFromConfirm,
   useVerifyRazorpayPayment,
+  fetchFreshCheckoutQuote,
+  buildCheckoutCartKey,
 } from '@/features/checkout/hooks'
 import { getRazorpayKey } from '@/features/checkout/api'
 import {
@@ -35,7 +37,7 @@ import {
   isQuoteRefreshError,
   PAYMENT_STATE,
 } from '@/features/checkout/constants'
-import { isQuoteExpired, toConfirmPaymentBody } from '@/features/checkout/mappers'
+import { isCodPlacedOrder, isQuoteExpired, toConfirmPaymentBody } from '@/features/checkout/mappers'
 import RazorpayCheckout, { markRazorpaySessionClosed } from '@/features/checkout/razorpay/RazorpayCheckout'
 import { PaymentErrorOverlay } from '@/features/checkout/razorpay/PaymentErrorOverlay'
 import { PaymentLoadingOverlay } from '@/features/checkout/razorpay/PaymentLoadingOverlay'
@@ -78,11 +80,9 @@ export default function Checkout() {
   const checkoutAttemptKeyRef = useRef(null)
   const gatewayDismissRecoveryInFlight = useRef(false)
   const gatewayDismissHandlerRef = useRef(null)
+  const lastQuoteErrorToastRef = useRef('')
 
-  const cartKey = useMemo(
-    () => cartItems.map((item) => `${item.id}:${item.quantity}:${item.variantId || ''}`).join('|'),
-    [cartItems]
-  )
+  const cartKey = useMemo(() => buildCheckoutCartKey(cartItems), [cartItems])
 
   const { data: checkoutSettings } = useCheckoutSettings({ enabled: isAuthenticated })
 
@@ -238,10 +238,14 @@ export default function Checkout() {
   }, [quote?.couponApplied])
 
   useEffect(() => {
-    if (quoteFailed && quoteError?.message) {
-      toast.error(quoteError.message)
+    if (!quoteFailed || !quoteError?.message) {
+      lastQuoteErrorToastRef.current = ''
+      return
     }
-  }, [quoteFailed, quoteError])
+    if (quoteError.message === lastQuoteErrorToastRef.current) return
+    lastQuoteErrorToastRef.current = quoteError.message
+    toast.error(quoteError.message)
+  }, [quoteFailed, quoteError?.message])
 
   useEffect(() => {
     gatewayDismissHandlerRef.current = async () => {
@@ -416,20 +420,8 @@ export default function Checkout() {
       return
     }
 
-    if (!quote?.quoteId || quoteExpired) {
-      toast.error(quoteExpired ? 'Quote expired — refreshing…' : 'Waiting for checkout quote')
-      await refetchQuote()
-      return
-    }
-
-    if (!quote.isDeliverable) {
-      toast.error('This address is not deliverable for your bag')
-      return
-    }
-
-    const confirmBody = toConfirmPaymentBody(formData.paymentMethod, quote)
-    if (!confirmBody) {
-      toast.error('Could not build payment confirmation')
+    if (quoteLoading) {
+      toast.info('Updating checkout totals — please wait.')
       return
     }
 
@@ -437,7 +429,22 @@ export default function Checkout() {
       checkoutAttemptKeyRef.current || createCheckoutAttemptKey()
     checkoutAttemptKeyRef.current = idempotencyKey
 
-    try {
+    const runCheckout = async (activeQuote) => {
+      if (!activeQuote?.quoteId) {
+        throw new Error('Could not load checkout totals')
+      }
+      if (isQuoteExpired(activeQuote)) {
+        throw new Error('Quote expired — please try again')
+      }
+      if (!activeQuote.isDeliverable) {
+        throw new Error('This address is not deliverable for your bag')
+      }
+
+      const confirmBody = toConfirmPaymentBody(formData.paymentMethod, activeQuote)
+      if (!confirmBody) {
+        throw new Error('Could not build payment confirmation')
+      }
+
       const confirmed = await confirmCheckout.mutateAsync(confirmBody)
       if (!confirmed?.next?.payload) {
         throw new Error('Confirm did not return create-order payload')
@@ -448,7 +455,14 @@ export default function Checkout() {
         idempotencyKey,
       })
 
-      if (formData.paymentMethod === 'cod') {
+      setPlacedOrder(orderResult)
+
+      if (orderResult.idempotentReplay) {
+        toast.info('Resuming your checkout…')
+      }
+
+      if (isCodPlacedOrder(orderResult)) {
+        toast.success(orderResult.message || 'Order placed successfully')
         finishOrderSuccess(false)
         return
       }
@@ -456,6 +470,7 @@ export default function Checkout() {
       if (!orderResult.razorpayOrder?.id) {
         throw new Error(
           orderResult.razorpayErrorDetail?.description
+          || orderResult.message
           || 'Failed to initiate payment. Please try again.'
         )
       }
@@ -469,17 +484,56 @@ export default function Checkout() {
         throw new Error('Payment gateway not configured. Please use COD or try again later.')
       }
 
-      setPlacedOrder(orderResult)
       setRazorpayOrderData(orderResult.razorpayOrder)
       setRazorpayPaymentState(PAYMENT_STATE.IDLE)
       setShowRazorpay(true)
+    }
+
+    try {
+      let activeQuote = await fetchFreshCheckoutQuote({
+        queryClient,
+        addressId: checkoutAddress.id,
+        couponCode: appliedCouponCode,
+        paymentMethod: formData.paymentMethod,
+        replaceCartFromApi,
+      })
+
+      try {
+        await runCheckout(activeQuote)
+      } catch (err) {
+        if (!isQuoteRefreshError(err?.code, err?.message)) {
+          throw err
+        }
+
+        activeQuote = await fetchFreshCheckoutQuote({
+          queryClient,
+          addressId: checkoutAddress.id,
+          couponCode: appliedCouponCode,
+          paymentMethod: formData.paymentMethod,
+          replaceCartFromApi,
+        })
+        await runCheckout(activeQuote)
+      }
     } catch (err) {
-      if (isQuoteRefreshError(err?.code)) {
+      if (isQuoteRefreshError(err?.code, err?.message)) {
         checkoutAttemptKeyRef.current = null
-        toast.info(err?.message || 'Checkout session expired — select payment again.')
+        setPlacedOrder(null)
+        setShowRazorpay(false)
+        setRazorpayOrderData(null)
+        toast.error(err?.message || 'Totals changed — please try placing the order again.')
+      } else if (err?.code === 'IDEMPOTENCY_REQUEST_IN_PROGRESS') {
+        toast.info('Your order is already being processed. Please wait a moment.')
+      } else if (err?.code === 'IDEMPOTENCY_KEY_REUSED') {
+        checkoutAttemptKeyRef.current = null
+        toast.error('Checkout session changed. Please place the order again.')
+      } else if (err?.code === 'QUOTE_ID_REQUIRED') {
+        checkoutAttemptKeyRef.current = null
+        toast.error(err?.message || 'Checkout expired — please refresh and try again.')
       } else if (err?.code === 'MISSING_RAZORPAY_ENV') {
+        checkoutAttemptKeyRef.current = null
         toast.error('Payment not configured. Please use COD for now.')
       } else {
+        checkoutAttemptKeyRef.current = null
         toast.error(err?.message || 'Could not place order')
       }
     }

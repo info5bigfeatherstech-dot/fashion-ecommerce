@@ -15,11 +15,22 @@ export function createCheckoutAttemptKey() {
   return `checkout-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`
 }
 
-export function isQuoteRefreshError(code) {
+export function isQuoteRefreshError(code, message = '') {
+  const text = String(message || '').toLowerCase()
   return (
     code === 'QUOTE_STALE'
     || code === 'QUOTE_EXPIRED'
     || code === 'QUOTE_NOT_FOUND'
+    || code === 'CART_CHANGED'
+    || text.includes('pricing changed')
+    || text.includes('refresh quote')
+  )
+}
+
+export function isIdempotencyError(code) {
+  return (
+    code === 'IDEMPOTENCY_REQUEST_IN_PROGRESS'
+    || code === 'IDEMPOTENCY_KEY_REUSED'
   )
 }
 

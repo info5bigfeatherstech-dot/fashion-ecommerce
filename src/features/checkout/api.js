@@ -50,8 +50,9 @@ export async function confirmCheckoutQuote(body) {
 }
 
 /**
- * Create order using confirm.next — do not invent fields.
- * Uses next.createOrderEndpoint when provided.
+ * POST /api/orders/items
+ * Body must come from confirm.next.payload — do not invent fields.
+ * Requires Idempotency-Key per checkout attempt (same key + same body = safe replay).
  */
 export async function createOrderFromConfirm(next, { idempotencyKey } = {}) {
   if (!next?.payload || typeof next.payload !== 'object') {
@@ -62,10 +63,19 @@ export async function createOrderFromConfirm(next, { idempotencyKey } = {}) {
     next.createOrderEndpoint || API_ENDPOINTS.orders.items
   )
 
-  const headers = idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined
-  const payload = await http.post(endpoint, next.payload, { headers })
+  const key = String(idempotencyKey || '').trim()
+  if (!key) {
+    throw new Error('Missing Idempotency-Key for order creation')
+  }
+
+  const payload = await http.post(endpoint, next.payload, {
+    headers: { 'Idempotency-Key': key },
+  })
   return mapPlacedOrder(payload)
 }
+
+/** Alias for createOrderFromConfirm — POST /api/orders/items */
+export const createOrder = createOrderFromConfirm
 
 /** GET /api/public/razorpay-key */
 export async function getRazorpayKey({ signal } = {}) {

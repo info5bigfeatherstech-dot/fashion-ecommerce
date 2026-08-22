@@ -6,6 +6,20 @@ import { getProductBySlug, getProductDetailedById } from '@/features/product/api
 import { productKeys } from '@/features/product/queryKeys'
 import { useAppStore } from '@/store'
 
+/** Only fetch product details when the cart row is missing display fields. */
+export function cartItemNeedsHydration(item) {
+  if (!item) return false
+  const slug = String(item.slug || '').trim()
+  const productId = String(item.productId || '').trim()
+  if (!slug && !productId) return false
+
+  const hasName = Boolean(String(item.name || '').trim() && item.name !== 'Product')
+  const hasImage = Boolean(item.image)
+  const hasPrice = item.price != null && Number.isFinite(Number(item.price))
+
+  return !hasName || !hasImage || !hasPrice
+}
+
 /**
  * Server cart query — keeps Zustand mirror in sync when authenticated.
  */
@@ -18,7 +32,7 @@ export function useCart({ enabled = true } = {}) {
     queryKey: cartKeys.detail(),
     queryFn: ({ signal }) => getCart({ signal }),
     enabled: enabled && isAuthenticated && Boolean(accessToken),
-    staleTime: 1000 * 30,
+    staleTime: 1000 * 60 * 2,
   })
 
   useEffect(() => {
@@ -49,7 +63,8 @@ export function useCartProducts(cartItems = [], { enabled = true } = {}) {
   const queries = useQueries({
     queries: cartItems.map((item) => {
       const slug = String(item?.slug || '').trim()
-      const id = String(item?.productId || item?.id || '').trim()
+      const id = String(item?.productId || '').trim()
+      const needsHydration = cartItemNeedsHydration(item)
 
       return {
         queryKey: slug ? productKeys.detail(slug) : productKeys.detailedById(id),
@@ -58,7 +73,7 @@ export function useCartProducts(cartItems = [], { enabled = true } = {}) {
             ? getProductBySlug(slug, { signal })
             : getProductDetailedById(id, { signal })
         ),
-        enabled: enabled && Boolean(slug || id),
+        enabled: enabled && needsHydration && Boolean(slug || id),
         staleTime: 1000 * 60 * 5,
       }
     }),
@@ -69,6 +84,10 @@ export function useCartProducts(cartItems = [], { enabled = true } = {}) {
 
   const products = useMemo(() => (
     cartItems.map((item, index) => {
+      if (!cartItemNeedsHydration(item)) {
+        return { ...item, _hydrated: true, _isLoading: false }
+      }
+
       const live = queries[index]?.data
       if (!live) {
         return {
@@ -93,8 +112,12 @@ export function useCartProducts(cartItems = [], { enabled = true } = {}) {
     })
   ), [cartItems, dataSignature, itemsSignature]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const pendingIndexes = cartItems
+    .map((item, index) => (cartItemNeedsHydration(item) ? index : -1))
+    .filter((index) => index >= 0)
+
   return {
     products,
-    isLoading: queries.length > 0 && queries.some((q) => q.isPending),
+    isLoading: pendingIndexes.some((index) => queries[index]?.isPending),
   }
 }

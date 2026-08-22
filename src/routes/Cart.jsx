@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Lock, ShoppingBag, Sparkles, Truck } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { CartItem } from '@/features/cart/components/CartItem'
-import { useCart, useCartProducts } from '@/features/cart/hooks'
+import { useCart } from '@/features/cart/hooks'
 import { useAppStore } from '@/store'
 import { useCartDiscount, useCartTotal } from '@/store/selectors'
 import { formatPrice } from '@/lib/utils'
@@ -21,11 +21,7 @@ export default function Cart() {
   const navigate = useNavigate()
   const [checkoutAddressOpen, setCheckoutAddressOpen] = useState(false)
 
-  useCart({ enabled: isAuthenticated })
-
-  const { products: hydratedItems } = useCartProducts(cartItems, {
-    enabled: isAuthenticated && cartItems.length > 0,
-  })
+  const { isFetching: cartSyncing } = useCart({ enabled: isAuthenticated })
 
   const itemCount = cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0)
   const shipping = cartTotal >= FREE_SHIPPING_THRESHOLD ? 0 : 9.95
@@ -96,9 +92,13 @@ export default function Cart() {
 
         <div className="checkout cart-page__layout">
           <section className="cart-page__list" aria-label="Bag items">
-            {hydratedItems.map((item) => (
-              <CartItem key={item.id} item={item} layout="page" />
-            ))}
+            {cartSyncing && cartItems.length === 0 ? (
+              <p className="body-lg text-muted">Loading your bag…</p>
+            ) : (
+              cartItems.map((item) => (
+                <CartItem key={item.id} item={item} layout="page" />
+              ))
+            )}
           </section>
 
           <aside className="checkout-summary cart-summary">
@@ -173,11 +173,13 @@ export default function Cart() {
         </div>
       </div>
 
-      <CheckoutAddressModal
-        open={checkoutAddressOpen}
-        onOpenChange={setCheckoutAddressOpen}
-        onProceed={() => navigate('/checkout')}
-      />
+      {checkoutAddressOpen && (
+        <CheckoutAddressModal
+          open={checkoutAddressOpen}
+          onOpenChange={setCheckoutAddressOpen}
+          onProceed={() => navigate('/checkout')}
+        />
+      )}
     </div>
   )
 }

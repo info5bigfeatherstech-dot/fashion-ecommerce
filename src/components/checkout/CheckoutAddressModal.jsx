@@ -13,6 +13,8 @@ import { useAddresses, useCreateAddress } from '@/features/address/hooks'
 import { applyFieldErrors } from '@/features/address/mappers'
 import { ADDRESS_FORM_DEFAULTS, addressFormSchema } from '@/features/address/schema'
 
+const EMPTY_ADDRESSES = []
+
 export function CheckoutAddressModal({ open, onOpenChange, onProceed }) {
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
   const checkoutAddress = useAppStore((s) => s.checkoutAddress)
@@ -23,7 +25,7 @@ export function CheckoutAddressModal({ open, onOpenChange, onProceed }) {
   })
   const createAddress = useCreateAddress()
 
-  const addresses = data?.all || []
+  const addresses = data?.all ?? EMPTY_ADDRESSES
   const [selectedAddressId, setSelectedAddressId] = useState(null)
   const [formError, setFormError] = useState('')
 
@@ -38,16 +40,21 @@ export function CheckoutAddressModal({ open, onOpenChange, onProceed }) {
   })
 
   useEffect(() => {
-    if (!open) return
-
-    const preferredId = checkoutAddress?.id
-    if (preferredId && addresses.some((a) => a.id === preferredId)) {
-      setSelectedAddressId(preferredId)
+    if (!open) {
+      setSelectedAddressId(null)
       return
     }
 
-    const defaultId = data?.defaultAddress?.id || addresses[0]?.id || null
-    setSelectedAddressId(defaultId)
+    const preferredId = checkoutAddress?.id
+    let nextId = null
+
+    if (preferredId && addresses.some((a) => a.id === preferredId)) {
+      nextId = preferredId
+    } else {
+      nextId = data?.defaultAddress?.id || addresses[0]?.id || null
+    }
+
+    setSelectedAddressId((current) => (current === nextId ? current : nextId))
   }, [open, addresses, checkoutAddress?.id, data?.defaultAddress?.id])
 
   const handleProceed = () => {

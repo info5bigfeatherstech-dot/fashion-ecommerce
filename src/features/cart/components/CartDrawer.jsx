@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { useAppStore } from '@/store'
 import { useCartTotal } from '@/store/selectors'
 import { formatPrice } from '@/lib/utils'
-import { useCart, useCartProducts } from '@/features/cart/hooks'
+import { useCart } from '@/features/cart/hooks'
 import { CartItem } from './CartItem'
 import { CheckoutAddressModal } from '@/components/checkout/CheckoutAddressModal'
 
@@ -21,10 +21,6 @@ export function CartDrawer() {
   const [checkoutAddressOpen, setCheckoutAddressOpen] = useState(false)
 
   useCart({ enabled: isCartOpen && isAuthenticated })
-
-  const { products: hydratedItems } = useCartProducts(cartItems, {
-    enabled: isCartOpen && isAuthenticated && cartItems.length > 0,
-  })
 
   return (
     <>
@@ -85,7 +81,7 @@ export function CartDrawer() {
                   <Button variant="secondary" onClick={closeCart}>Continue Shopping</Button>
                 </div>
               ) : (
-                hydratedItems.map((item) => <CartItem key={item.id} item={item} />)
+                cartItems.map((item) => <CartItem key={item.id} item={item} />)
               )}
             </div>
             {isAuthenticated && cartItems.length > 0 && (
@@ -126,11 +122,13 @@ export function CartDrawer() {
       )}
       </AnimatePresence>
 
-      <CheckoutAddressModal
-        open={checkoutAddressOpen}
-        onOpenChange={setCheckoutAddressOpen}
-        onProceed={() => navigate('/checkout')}
-      />
+      {checkoutAddressOpen && (
+        <CheckoutAddressModal
+          open={checkoutAddressOpen}
+          onOpenChange={setCheckoutAddressOpen}
+          onProceed={() => navigate('/checkout')}
+        />
+      )}
     </>
   )
 }

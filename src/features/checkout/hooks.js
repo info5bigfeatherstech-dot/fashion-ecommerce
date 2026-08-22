@@ -10,7 +10,53 @@ import {
 } from './api'
 import { checkoutKeys } from './queryKeys'
 import { quoteParamsForPaymentMethod } from './constants'
+import { getCart } from '@/features/cart/api'
 import { useAppStore } from '@/store'
+
+/** Stable key for quote cache — includes price so pricing drift invalidates quotes. */
+export function buildCheckoutCartKey(cartItems = []) {
+  return cartItems
+    .map((item) => `${item.id}:${item.quantity}:${item.variantId || ''}:${item.price ?? ''}`)
+    .join('|')
+}
+
+/**
+ * Sync server cart, bust quote cache, and POST a brand-new quote.
+ * Use before confirm so quoteId matches live server pricing.
+ */
+export async function fetchFreshCheckoutQuote({
+  queryClient,
+  addressId,
+  couponCode,
+  paymentMethod = 'prepaid',
+  replaceCartFromApi,
+} = {}) {
+  if (replaceCartFromApi) {
+    try {
+      const cart = await getCart()
+      replaceCartFromApi(cart)
+    } catch {
+      // Continue — quote API reads server cart directly
+    }
+  }
+
+  const id = String(addressId || '').trim()
+  const cartKey = buildCheckoutCartKey(useAppStore.getState().cartItems)
+  const quoteParams = quoteParamsForPaymentMethod(paymentMethod)
+  const paymentKey = `${quoteParams.paymentMethodHint}:${quoteParams.paymentPlan}:${quoteParams.balanceCollection}`
+  const queryKey = checkoutKeys.quote(id, couponCode, cartKey, paymentKey)
+
+  await queryClient.removeQueries({ queryKey, exact: true })
+
+  const quote = await createCheckoutQuote({
+    addressId: id,
+    couponCode,
+    ...quoteParams,
+  })
+
+  queryClient.setQueryData(queryKey, quote)
+  return quote
+}
 
 export function useCheckoutSettings({ enabled = true } = {}) {
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
@@ -28,7 +74,7 @@ export function useCheckoutSettings({ enabled = true } = {}) {
  * Auto-quote when addressId is present.
  * paymentMethod drives paymentMethodHint for server-side totals.
  */
-export function useCheckoutQuote({
+export function   useCheckoutQuote({
   addressId,
   couponCode,
   cartKey,
@@ -50,7 +96,8 @@ export function useCheckoutQuote({
       signal,
     }),
     enabled: enabled && isAuthenticated && Boolean(accessToken) && Boolean(id),
-    staleTime: 1000 * 30,
+    staleTime: 0,
+    gcTime: 1000 * 60 * 5,
     retry: 1,
   })
 }
