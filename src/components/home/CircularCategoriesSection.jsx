@@ -7,10 +7,28 @@ export function CircularCategoriesSection() {
   return (
     <section className="circle-categories" aria-labelledby="circle-categories-heading">
       <div className="container circle-categories__inner">
-        <div className="circle-categories__header">
-          <ScrollRevealText as="h2" id="circle-categories-heading" className="circle-categories__title">
-            Categories
-          </ScrollRevealText>
+        <div className="section-header circle-categories__header">
+          <div>
+            <Reveal>
+              <p className="circle-categories__eyebrow">
+                <span className="circle-categories__eyebrow-rule" aria-hidden="true" />
+                Explore
+              </p>
+            </Reveal>
+            <ScrollRevealText as="h2" id="circle-categories-heading" className="display-md">
+              Shop by <span className="heading-accent heading-accent--gold">Category</span>
+            </ScrollRevealText>
+            <Reveal delay={0.08}>
+              <p className="section-subheader circle-categories__subheader">
+                From everyday essentials to statement gifting — find your perfect piece.
+              </p>
+            </Reveal>
+          </div>
+          <Reveal delay={0.12}>
+            <Link to="/shop/women" className="section-header__link">
+              View all
+            </Link>
+          </Reveal>
         </div>
 
         <div className="circle-categories__track" role="list">
