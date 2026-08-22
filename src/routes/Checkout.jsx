@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -20,12 +21,31 @@ import { Button } from '@/components/ui/Button'
 import { Input, InputGroup } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { CheckoutAddressModal } from '@/components/checkout/CheckoutAddressModal'
-import { useCheckoutSettings } from '@/features/checkout/hooks'
+import {
+  useAbandonOnlineCheckout,
+  useCheckoutQuote,
+  useCheckoutSettings,
+  useConfirmCheckout,
+  useCreateOrderFromConfirm,
+  useVerifyRazorpayPayment,
+} from '@/features/checkout/hooks'
+import { getRazorpayKey } from '@/features/checkout/api'
+import {
+  createCheckoutAttemptKey,
+  isQuoteRefreshError,
+  PAYMENT_STATE,
+} from '@/features/checkout/constants'
+import { isQuoteExpired, toConfirmPaymentBody } from '@/features/checkout/mappers'
+import RazorpayCheckout, { markRazorpaySessionClosed } from '@/features/checkout/razorpay/RazorpayCheckout'
+import { PaymentErrorOverlay } from '@/features/checkout/razorpay/PaymentErrorOverlay'
+import { PaymentLoadingOverlay } from '@/features/checkout/razorpay/PaymentLoadingOverlay'
+import { getCart } from '@/features/cart/api'
 import { useDeliveryCheckQuery } from '@/features/delivery/hooks'
 import { useAvailableCoupons, useValidateCoupon } from '@/features/coupon/hooks'
 import { useAppStore } from '@/store'
 import { useCartTotal } from '@/store/selectors'
 import { formatPrice } from '@/lib/utils'
+import { SITE_NAME } from '@/config/site'
 
 const STEPS = [
   { id: 'contact', label: 'Contact', icon: Package },
@@ -34,105 +54,50 @@ const STEPS = [
 ]
 
 export default function Checkout() {
+  const queryClient = useQueryClient()
   const cartItems = useAppStore((s) => s.cartItems)
   const cartTotal = useCartTotal()
+  const replaceCartFromApi = useAppStore((s) => s.replaceCartFromApi)
   const clearCart = useAppStore((s) => s.clearCart)
   const user = useAppStore((s) => s.user)
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
   const checkoutAddress = useAppStore((s) => s.checkoutAddress)
   const clearCheckoutAddress = useAppStore((s) => s.clearCheckoutAddress)
   const [orderPlaced, setOrderPlaced] = useState(false)
-  const [prepaidOption, setPrepaidOption] = useState('card')
   const [addressModalOpen, setAddressModalOpen] = useState(false)
   const [couponInput, setCouponInput] = useState('')
-  const [appliedCoupon, setAppliedCoupon] = useState(null)
+  const [appliedCouponCode, setAppliedCouponCode] = useState('')
+  const [placedOrder, setPlacedOrder] = useState(null)
+  const [showRazorpay, setShowRazorpay] = useState(false)
+  const [razorpayOrderData, setRazorpayOrderData] = useState(null)
+  const [razorpayKey, setRazorpayKey] = useState(null)
+  const [razorpayPaymentState, setRazorpayPaymentState] = useState(PAYMENT_STATE.IDLE)
+  const [isRecoveringCheckout, setIsRecoveringCheckout] = useState(false)
+  const [paymentError, setPaymentError] = useState(null)
+  const [showPaymentError, setShowPaymentError] = useState(false)
+  const checkoutAttemptKeyRef = useRef(null)
+  const gatewayDismissRecoveryInFlight = useRef(false)
+  const gatewayDismissHandlerRef = useRef(null)
+
+  const cartKey = useMemo(
+    () => cartItems.map((item) => `${item.id}:${item.quantity}:${item.variantId || ''}`).join('|'),
+    [cartItems]
+  )
 
   const { data: checkoutSettings } = useCheckoutSettings({ enabled: isAuthenticated })
-  const codEnabled = checkoutSettings?.codEnabled !== false
-  const partialPaymentEnabled = Boolean(checkoutSettings?.partialPaymentEnabled)
-  const partialPaymentPercent = checkoutSettings?.partialPaymentPercent || 0
 
-  const { data: availableCoupons = [] } = useAvailableCoupons({ enabled: isAuthenticated })
-  const validateCoupon = useValidateCoupon()
-
-  const shipping = cartTotal >= 100 ? 0 : 9.95
-  const couponDiscount = appliedCoupon?.valid ? (appliedCoupon.discountAmount || 0) : 0
-  const total = Math.max(0, cartTotal + shipping - couponDiscount)
-  const suggestedPartial = partialPaymentPercent > 0
-    ? Math.round((total * partialPaymentPercent) / 100)
-    : 0
-  const itemCount = cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0)
-
-  const checkoutSchema = useMemo(() => {
-    return z
-      .object({
-        email: z.string().email('Valid email required'),
-        firstName: z.string().min(1, 'First name required'),
-        lastName: z.string().min(1, 'Last name required'),
-        address: z.string().min(1, 'Address required'),
-        city: z.string().min(1, 'City required'),
-        state: z.string().min(1, 'State required'),
-        zip: z.string().min(3, 'ZIP code required'),
-        paymentMethod: z.enum(['prepaid', 'cod', 'partial']),
-        prepaidOption: z.enum(['razorpay', 'card']).optional(),
-        cardNumber: z.string().optional(),
-        expiry: z.string().optional(),
-        cvv: z.string().optional(),
-        partialAmount: z.string().optional(),
-      })
-      .superRefine((data, ctx) => {
-        if (data.paymentMethod === 'prepaid') {
-          if (!data.prepaidOption) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ['prepaidOption'],
-              message: 'Select a prepaid option',
-            })
-            return
-          }
-          if (data.prepaidOption === 'card') {
-            if (!data.cardNumber || data.cardNumber.replace(/\s/g, '').length < 16) {
-              ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                path: ['cardNumber'],
-                message: 'Valid card number required',
-              })
-            }
-            if (!data.expiry || !/^\d{2}\/\d{2}$/.test(data.expiry)) {
-              ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                path: ['expiry'],
-                message: 'Use MM/YY format',
-              })
-            }
-            if (!data.cvv || data.cvv.length < 3 || data.cvv.length > 4) {
-              ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                path: ['cvv'],
-                message: 'CVV required',
-              })
-            }
-          }
-        }
-
-        if (data.paymentMethod === 'partial') {
-          const num = Number(data.partialAmount)
-          if (!data.partialAmount || Number.isNaN(num) || num <= 0) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ['partialAmount'],
-              message: 'Enter a valid amount',
-            })
-          } else if (num > total) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ['partialAmount'],
-              message: `Amount cannot exceed ${formatPrice(total)}`,
-            })
-          }
-        }
-      })
-  }, [total])
+  const checkoutSchema = useMemo(() => (
+    z.object({
+      email: z.string().email('Valid email required'),
+      firstName: z.string().min(1, 'First name required'),
+      lastName: z.string().min(1, 'Last name required'),
+      address: z.string().min(1, 'Address required'),
+      city: z.string().min(1, 'City required'),
+      state: z.string().min(1, 'State required'),
+      zip: z.string().min(3, 'ZIP code required'),
+      paymentMethod: z.enum(['prepaid', 'cod', 'partial']),
+    })
+  ), [])
 
   const {
     register,
@@ -144,8 +109,6 @@ export default function Checkout() {
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
       paymentMethod: 'prepaid',
-      prepaidOption: 'card',
-      partialAmount: '',
       email: user?.email ?? '',
       firstName: user?.firstName ?? checkoutAddress?.fullName?.split(' ')[0] ?? '',
       lastName:
@@ -161,7 +124,66 @@ export default function Checkout() {
 
   const paymentMethod = watch('paymentMethod')
   const zipValue = watch('zip')
-  const partialAmountNum = Number(watch('partialAmount') || 0)
+
+  const {
+    data: quote,
+    isFetching: quoteLoading,
+    isError: quoteFailed,
+    error: quoteError,
+    refetch: refetchQuote,
+  } = useCheckoutQuote({
+    addressId: checkoutAddress?.id,
+    couponCode: appliedCouponCode,
+    cartKey,
+    paymentMethod,
+    enabled: isAuthenticated && Boolean(checkoutAddress?.id),
+  })
+
+  const confirmCheckout = useConfirmCheckout()
+  const createOrder = useCreateOrderFromConfirm()
+  const verifyPayment = useVerifyRazorpayPayment()
+  const abandonCheckout = useAbandonOnlineCheckout()
+
+  const policy = quote?.checkoutPolicy || checkoutSettings
+  const codEnabled = Boolean(
+    quote
+      ? quote.fullCodAvailable
+      : checkoutSettings?.codEnabled !== false
+  )
+  const partialPaymentEnabled = Boolean(
+    quote
+      ? quote.checkoutPolicy?.partialPaymentEnabled
+      : checkoutSettings?.partialPaymentEnabled
+  )
+  const partialPaymentPercent = policy?.partialPaymentPercent || 0
+
+  const { data: availableCoupons = [] } = useAvailableCoupons({ enabled: isAuthenticated })
+  const validateCoupon = useValidateCoupon()
+
+  const itemsSubtotal = quote ? quote.itemsSubtotal : cartTotal
+  const promotionDiscount = quote ? quote.promotionDiscount : 0
+  const deliveryCharges = quote ? quote.deliveryCharges : (cartTotal >= 100 ? 0 : 9.95)
+  const taxes = quote ? quote.taxes : 0
+  const total = quote
+    ? quote.amountPayable
+    : Math.max(0, cartTotal + deliveryCharges)
+  const suggestedPartial = partialPaymentPercent > 0
+    ? Math.round((total * partialPaymentPercent) / 100)
+    : 0
+  const itemCount = quote?.itemCount
+    || cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0)
+
+  const quoteExpired = isQuoteExpired(quote)
+  const canPlaceOrder = Boolean(
+    checkoutAddress?.id
+    && quote?.quoteId
+    && quote.isDeliverable
+    && !quoteExpired
+    && !quoteLoading
+    && !isRecoveringCheckout
+    && !gatewayDismissRecoveryInFlight.current
+    && !(placedOrder?.order?.orderId && paymentMethod !== 'cod')
+  )
 
   const deliveryPincode = String(
     checkoutAddress?.postalCode || checkoutAddress?.zip || zipValue || ''
@@ -173,7 +195,7 @@ export default function Checkout() {
     isError: deliveryCheckFailed,
     error: deliveryCheckError,
   } = useDeliveryCheckQuery(deliveryPincode, {
-    enabled: isAuthenticated && deliveryPincode.length >= 6,
+    enabled: isAuthenticated && deliveryPincode.length >= 6 && !quote,
   })
 
   useEffect(() => {
@@ -209,14 +231,140 @@ export default function Checkout() {
   }, [codEnabled, partialPaymentEnabled, paymentMethod, setValue])
 
   useEffect(() => {
-    if (paymentMethod !== 'partial' || !partialPaymentEnabled || !suggestedPartial) return
-    const current = watch('partialAmount')
-    if (!current) {
-      setValue('partialAmount', String(suggestedPartial), { shouldValidate: true })
+    if (quote?.couponApplied) {
+      setCouponInput(String(quote.couponApplied).toUpperCase())
+      setAppliedCouponCode(String(quote.couponApplied).toUpperCase())
     }
-  }, [paymentMethod, partialPaymentEnabled, suggestedPartial, setValue, watch])
+  }, [quote?.couponApplied])
 
-  if (cartItems.length === 0 && !orderPlaced) {
+  useEffect(() => {
+    if (quoteFailed && quoteError?.message) {
+      toast.error(quoteError.message)
+    }
+  }, [quoteFailed, quoteError])
+
+  useEffect(() => {
+    gatewayDismissHandlerRef.current = async () => {
+      if (gatewayDismissRecoveryInFlight.current) return
+      gatewayDismissRecoveryInFlight.current = true
+
+      try {
+        setShowRazorpay(false)
+        setRazorpayOrderData(null)
+        setRazorpayPaymentState(PAYMENT_STATE.CANCELLED)
+
+        const oid = placedOrder?.order?.orderId || placedOrder?.order?.id
+        if (!oid) {
+          setRazorpayPaymentState(PAYMENT_STATE.IDLE)
+          return
+        }
+
+        try {
+          await abandonCheckout.mutateAsync(String(oid))
+        } catch (err) {
+          toast.error(err?.message || 'Could not return to checkout. Your order may still be pending.')
+          setRazorpayPaymentState(PAYMENT_STATE.IDLE)
+          return
+        }
+
+        checkoutAttemptKeyRef.current = null
+        setPlacedOrder(null)
+
+        try {
+          const cart = await getCart()
+          replaceCartFromApi(cart)
+        } catch {
+          toast.error('Your bag could not be reloaded. Please refresh the page.')
+          setRazorpayPaymentState(PAYMENT_STATE.IDLE)
+          return
+        }
+
+        await queryClient.invalidateQueries({ queryKey: ['checkout'] })
+        setRazorpayPaymentState(PAYMENT_STATE.IDLE)
+        toast.success('Payment closed. Your bag was restored — you can place the order again.')
+      } finally {
+        gatewayDismissRecoveryInFlight.current = false
+        setIsRecoveringCheckout(false)
+      }
+    }
+  }, [abandonCheckout, placedOrder, queryClient, replaceCartFromApi])
+
+  const finishOrderSuccess = useCallback((isOnline = false) => {
+    checkoutAttemptKeyRef.current = null
+    clearCart()
+    clearCheckoutAddress()
+    setPlacedOrder(null)
+    setShowRazorpay(false)
+    setRazorpayOrderData(null)
+    setRazorpayPaymentState(PAYMENT_STATE.IDLE)
+    setOrderPlaced(true)
+    toast.success(isOnline ? 'Payment verified — order confirmed' : 'Order placed successfully')
+  }, [clearCart, clearCheckoutAddress])
+
+  const handleRazorpaySuccess = useCallback(async (response) => {
+    setShowRazorpay(false)
+    try {
+      const currentOrderId =
+        placedOrder?.order?.orderId
+        || placedOrder?.order?.id
+        || response.notes?.orderId
+      if (!currentOrderId) throw new Error('Order ID not found. Please contact support.')
+
+      await verifyPayment.mutateAsync({
+        razorpay_order_id: response.razorpay_order_id,
+        razorpay_payment_id: response.razorpay_payment_id,
+        razorpay_signature: response.razorpay_signature,
+        orderId: currentOrderId,
+      })
+
+      setRazorpayPaymentState(PAYMENT_STATE.VERIFIED)
+      finishOrderSuccess(true)
+    } catch (err) {
+      setRazorpayPaymentState(PAYMENT_STATE.FAILED)
+      const verificationMessage = err?.code === 'PAYMENT_NOT_CAPTURED_YET'
+        ? 'Payment is received but capture is still pending. Check your orders in a moment.'
+        : (err?.message || 'Payment verification failed. Please contact support.')
+      setPaymentError(verificationMessage)
+      setShowPaymentError(true)
+    }
+  }, [finishOrderSuccess, placedOrder, verifyPayment])
+
+  const handleRazorpayFailure = useCallback((error) => {
+    markRazorpaySessionClosed()
+    setShowRazorpay(false)
+    setRazorpayOrderData(null)
+    setRazorpayPaymentState(PAYMENT_STATE.FAILED)
+    setShowPaymentError(false)
+    setPaymentError(null)
+
+    const msg = typeof error === 'string'
+      ? error
+      : error?.error?.description || error?.message || 'Payment failed. Please try again.'
+
+    const isGatewayInitFailure = /browser is not supported|failed to initialize|failed to load payment gateway|invalid payment order/i.test(msg)
+    if (isGatewayInitFailure) {
+      toast.error(msg)
+      void gatewayDismissHandlerRef.current?.()
+      return
+    }
+
+    toast.error(msg)
+    checkoutAttemptKeyRef.current = null
+  }, [])
+
+  const handleRazorpayRecoveryStart = useCallback(() => {
+    setIsRecoveringCheckout(true)
+  }, [])
+
+  const handleRazorpayClose = useCallback(() => {
+    setShowPaymentError(false)
+    setPaymentError(null)
+    setShowRazorpay(false)
+    setRazorpayOrderData(null)
+    void gatewayDismissHandlerRef.current?.()
+  }, [])
+
+  if (cartItems.length === 0 && !orderPlaced && !placedOrder) {
     return (
       <div className="container empty-state">
         <h1 className="empty-state__title">Nothing to checkout</h1>
@@ -236,7 +384,7 @@ export default function Checkout() {
             <Check size={28} strokeWidth={2.5} />
           </div>
           <p className="heading-sm text-accent">Order placed</p>
-          <h1 className="display-md checkout-success__title">Thank you for shopping with VERAÒ</h1>
+          <h1 className="display-md checkout-success__title">Thank you for shopping with {SITE_NAME}</h1>
           <p className="body-lg text-muted">
             A confirmation email is on its way. We’ll notify you when your pieces leave the atelier.
           </p>
@@ -253,24 +401,102 @@ export default function Checkout() {
     )
   }
 
-  const onSubmit = async () => {
-    await new Promise((r) => setTimeout(r, 1000))
-    clearCart()
-    clearCheckoutAddress()
-    setOrderPlaced(true)
+  const onSubmit = async (formData) => {
+    if (isRecoveringCheckout || gatewayDismissRecoveryInFlight.current) {
+      toast.info('Restoring your bag after payment was closed. Please wait.')
+      return
+    }
+    if (placedOrder?.order?.orderId && formData.paymentMethod !== 'cod') {
+      toast.info('Please wait — your previous payment attempt is still being cleared.')
+      return
+    }
+    if (!checkoutAddress?.id) {
+      toast.error('Select a delivery address')
+      setAddressModalOpen(true)
+      return
+    }
+
+    if (!quote?.quoteId || quoteExpired) {
+      toast.error(quoteExpired ? 'Quote expired — refreshing…' : 'Waiting for checkout quote')
+      await refetchQuote()
+      return
+    }
+
+    if (!quote.isDeliverable) {
+      toast.error('This address is not deliverable for your bag')
+      return
+    }
+
+    const confirmBody = toConfirmPaymentBody(formData.paymentMethod, quote)
+    if (!confirmBody) {
+      toast.error('Could not build payment confirmation')
+      return
+    }
+
+    const idempotencyKey =
+      checkoutAttemptKeyRef.current || createCheckoutAttemptKey()
+    checkoutAttemptKeyRef.current = idempotencyKey
+
+    try {
+      const confirmed = await confirmCheckout.mutateAsync(confirmBody)
+      if (!confirmed?.next?.payload) {
+        throw new Error('Confirm did not return create-order payload')
+      }
+
+      const orderResult = await createOrder.mutateAsync({
+        next: confirmed.next,
+        idempotencyKey,
+      })
+
+      if (formData.paymentMethod === 'cod') {
+        finishOrderSuccess(false)
+        return
+      }
+
+      if (!orderResult.razorpayOrder?.id) {
+        throw new Error(
+          orderResult.razorpayErrorDetail?.description
+          || 'Failed to initiate payment. Please try again.'
+        )
+      }
+
+      let gatewayKey = razorpayKey
+      if (!gatewayKey) {
+        gatewayKey = await getRazorpayKey()
+        setRazorpayKey(gatewayKey)
+      }
+      if (!gatewayKey) {
+        throw new Error('Payment gateway not configured. Please use COD or try again later.')
+      }
+
+      setPlacedOrder(orderResult)
+      setRazorpayOrderData(orderResult.razorpayOrder)
+      setRazorpayPaymentState(PAYMENT_STATE.IDLE)
+      setShowRazorpay(true)
+    } catch (err) {
+      if (isQuoteRefreshError(err?.code)) {
+        checkoutAttemptKeyRef.current = null
+        toast.info(err?.message || 'Checkout session expired — select payment again.')
+      } else if (err?.code === 'MISSING_RAZORPAY_ENV') {
+        toast.error('Payment not configured. Please use COD for now.')
+      } else {
+        toast.error(err?.message || 'Could not place order')
+      }
+    }
   }
 
   const setPaymentMethod = (method) => {
     setValue('paymentMethod', method, { shouldValidate: true })
-    if (method === 'partial' && suggestedPartial) {
-      setValue('partialAmount', String(suggestedPartial), { shouldValidate: true })
-    }
   }
 
   const handleApplyCoupon = async (code) => {
     const couponCode = String(code || couponInput || '').trim().toUpperCase()
     if (!couponCode) {
       toast.error('Enter a coupon code')
+      return
+    }
+    if (!checkoutAddress?.id) {
+      toast.error('Select an address before applying a coupon')
       return
     }
 
@@ -280,23 +506,36 @@ export default function Checkout() {
         useServercart: true,
       })
       if (!result.valid) {
-        setAppliedCoupon(null)
         toast.error(result.message || 'Invalid coupon')
         return
       }
-      setAppliedCoupon(result)
+      // Quote locks the discount — validation alone does not.
+      setAppliedCouponCode(result.couponCode || couponCode)
       setCouponInput(result.couponCode || couponCode)
-      toast.success(result.message || 'Coupon applied')
+      toast.success(result.message || 'Coupon applied — updating quote…')
     } catch (err) {
-      setAppliedCoupon(null)
       toast.error(err?.message || 'Could not validate coupon')
     }
   }
 
   const handleClearCoupon = () => {
-    setAppliedCoupon(null)
+    setAppliedCouponCode('')
     setCouponInput('')
   }
+
+  const submitting = isSubmitting
+    || confirmCheckout.isPending
+    || createOrder.isPending
+    || verifyPayment.isPending
+    || isRecoveringCheckout
+  const deliveryHint = quote
+    ? [
+        quote.isDeliverable
+          ? (quote.deliveryEstimate || 'Deliverable to this PIN')
+          : 'Not deliverable to this PIN',
+        quote.courierName,
+      ].filter(Boolean).join(' · ')
+    : null
 
   return (
     <div className="checkout-page">
@@ -311,6 +550,7 @@ export default function Checkout() {
             <h1 className="display-lg">Checkout</h1>
             <p className="body-sm text-muted">
               {itemCount} {itemCount === 1 ? 'item' : 'items'} · {formatPrice(total)}
+              {quoteLoading ? ' · Updating quote…' : ''}
             </p>
           </div>
         </div>
@@ -423,17 +663,22 @@ export default function Checkout() {
                 <InputGroup label="PIN / ZIP" htmlFor="zip" required error={errors.zip?.message}>
                   <Input id="zip" error={errors.zip} {...register('zip')} />
                 </InputGroup>
-                {deliveryPincode.length >= 6 && (
+                {(deliveryHint || deliveryPincode.length >= 6) && (
                   <p
                     className={`body-sm checkout-delivery-hint${
-                      deliveryCheck && !deliveryCheck.isDeliverable ? ' checkout-delivery-hint--warn' : ''
+                      (quote && !quote.isDeliverable)
+                      || (deliveryCheck && !deliveryCheck.isDeliverable)
+                        ? ' checkout-delivery-hint--warn'
+                        : ''
                     }`}
                   >
-                    {deliveryChecking && 'Checking delivery for this PIN…'}
-                    {!deliveryChecking && deliveryCheckFailed && (
+                    {quoteLoading && 'Getting delivery quote…'}
+                    {!quoteLoading && deliveryHint}
+                    {!quote && !quoteLoading && deliveryChecking && 'Checking delivery for this PIN…'}
+                    {!quote && !quoteLoading && !deliveryChecking && deliveryCheckFailed && (
                       deliveryCheckError?.message || 'Could not verify delivery for this PIN.'
                     )}
-                    {!deliveryChecking && !deliveryCheckFailed && deliveryCheck && (
+                    {!quote && !quoteLoading && !deliveryChecking && !deliveryCheckFailed && deliveryCheck && (
                       deliveryCheck.isDeliverable
                         ? [
                             deliveryCheck.message || 'Deliverable to this PIN',
@@ -442,6 +687,14 @@ export default function Checkout() {
                           ].filter(Boolean).join(' · ')
                         : (deliveryCheck.message || 'Not deliverable to this PIN')
                     )}
+                  </p>
+                )}
+                {quoteExpired && (
+                  <p className="body-sm checkout-delivery-hint--warn">
+                    Quote expired.{' '}
+                    <button type="button" className="section-header__link" onClick={() => refetchQuote()}>
+                      Refresh quote
+                    </button>
                   </p>
                 )}
               </div>
@@ -460,7 +713,6 @@ export default function Checkout() {
               </div>
 
               <input type="hidden" {...register('paymentMethod')} />
-              <input type="hidden" {...register('prepaidOption')} />
 
               <div className="checkout-pay-options" role="radiogroup" aria-label="Payment method">
                 <button
@@ -472,8 +724,8 @@ export default function Checkout() {
                 >
                   <CreditCard size={18} />
                   <span>
-                    <strong>Prepaid</strong>
-                    <small>Pay now with card or Razorpay</small>
+                    <strong>Pay online</strong>
+                    <small>Secure checkout via Razorpay</small>
                   </span>
                 </button>
                 {codEnabled && (
@@ -514,57 +766,13 @@ export default function Checkout() {
 
               {paymentMethod === 'prepaid' && (
                 <div className="checkout-pay-panel">
-                  <div className="checkout-prepaid-toggle">
-                    <button
-                      type="button"
-                      className={`checkout-prepaid-chip${prepaidOption === 'razorpay' ? ' is-active' : ''}`}
-                      onClick={() => {
-                        setPrepaidOption('razorpay')
-                        setValue('prepaidOption', 'razorpay', { shouldValidate: true })
-                      }}
-                    >
-                      Razorpay
-                    </button>
-                    <button
-                      type="button"
-                      className={`checkout-prepaid-chip${prepaidOption === 'card' ? ' is-active' : ''}`}
-                      onClick={() => {
-                        setPrepaidOption('card')
-                        setValue('prepaidOption', 'card', { shouldValidate: true })
-                      }}
-                    >
-                      Card
-                    </button>
+                  <div className="checkout-info-card">
+                    <ShieldCheck size={18} />
+                    <p className="body-sm">
+                      You&apos;ll complete payment securely through Razorpay for{' '}
+                      <strong>{formatPrice(total)}</strong>.
+                    </p>
                   </div>
-
-                  {prepaidOption === 'razorpay' ? (
-                    <div className="checkout-info-card">
-                      <ShieldCheck size={18} />
-                      <p className="body-sm">
-                        You’ll be redirected to Razorpay’s secure checkout to complete payment of{' '}
-                        <strong>{formatPrice(total)}</strong>.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="form-grid">
-                      <InputGroup label="Card Number" htmlFor="cardNumber" required error={errors.cardNumber?.message}>
-                        <Input
-                          id="cardNumber"
-                          placeholder="1234 5678 9012 3456"
-                          error={errors.cardNumber}
-                          {...register('cardNumber')}
-                        />
-                      </InputGroup>
-                      <div className="form-grid form-grid--2">
-                        <InputGroup label="Expiry" htmlFor="expiry" required error={errors.expiry?.message}>
-                          <Input id="expiry" placeholder="MM/YY" error={errors.expiry} {...register('expiry')} />
-                        </InputGroup>
-                        <InputGroup label="CVV" htmlFor="cvv" required error={errors.cvv?.message}>
-                          <Input id="cvv" placeholder="123" error={errors.cvv} {...register('cvv')} />
-                        </InputGroup>
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -579,41 +787,44 @@ export default function Checkout() {
 
               {paymentMethod === 'partial' && (
                 <div className="checkout-pay-panel">
-                  <InputGroup
-                    label="Amount to pay now"
-                    htmlFor="partialAmount"
-                    required
-                    error={errors.partialAmount?.message}
-                  >
-                    <Input
-                      id="partialAmount"
-                      placeholder={`Up to ${formatPrice(total)}`}
-                      error={errors.partialAmount}
-                      {...register('partialAmount')}
-                    />
-                  </InputGroup>
-                  <p className="body-sm text-muted">
-                    {partialPaymentPercent > 0
-                      ? `Suggested advance: ${partialPaymentPercent}% (${formatPrice(suggestedPartial)}). Remaining balance will be collected before dispatch.`
-                      : 'Remaining balance will be collected before dispatch.'}
-                  </p>
+                  <div className="checkout-info-card">
+                    <Wallet size={18} />
+                    <p className="body-sm">
+                      Pay <strong>{formatPrice(suggestedPartial)}</strong> now
+                      {partialPaymentPercent > 0 ? ` (${partialPaymentPercent}% advance)` : ''}.
+                      Remaining balance will be collected
+                      {quote?.partialBalanceCodAvailable ? ' on delivery' : ' online'} before dispatch.
+                    </p>
+                  </div>
                 </div>
               )}
             </section>
 
             <div className="checkout-submit-bar">
-              <Button type="submit" variant="primary" size="lg" fullWidth disabled={isSubmitting}>
-                {isSubmitting
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                fullWidth
+                disabled={submitting || !canPlaceOrder}
+              >
+                {submitting
                   ? 'Processing…'
-                  : paymentMethod === 'cod'
-                    ? 'Place order'
-                    : paymentMethod === 'partial'
-                      ? `Pay ${formatPrice(partialAmountNum || 0)} now`
-                      : `Pay ${formatPrice(total)}`}
+                  : !checkoutAddress?.id
+                    ? 'Select address to continue'
+                    : quoteLoading
+                      ? 'Updating quote…'
+                      : paymentMethod === 'cod'
+                        ? 'Place order'
+                        : paymentMethod === 'partial'
+                          ? `Pay ${formatPrice(suggestedPartial)} now`
+                          : `Pay ${formatPrice(total)}`}
               </Button>
               <p className="checkout-submit-note">
                 <Lock size={12} />
-                Your payment details are encrypted and never stored on our servers.
+                {paymentMethod === 'cod'
+                  ? 'Pay when your order arrives — no online payment now.'
+                  : 'Secured by Razorpay · your card details never touch our servers.'}
               </p>
             </div>
           </form>
@@ -658,9 +869,9 @@ export default function Checkout() {
                     onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
                     placeholder="Enter code"
                     aria-label="Coupon code"
-                    disabled={Boolean(appliedCoupon?.valid)}
+                    disabled={Boolean(appliedCouponCode)}
                   />
-                  {appliedCoupon?.valid ? (
+                  {appliedCouponCode ? (
                     <Button type="button" variant="secondary" size="sm" onClick={handleClearCoupon}>
                       Remove
                     </Button>
@@ -670,18 +881,19 @@ export default function Checkout() {
                       variant="secondary"
                       size="sm"
                       onClick={() => handleApplyCoupon()}
-                      disabled={validateCoupon.isPending}
+                      disabled={validateCoupon.isPending || !checkoutAddress?.id}
                     >
                       {validateCoupon.isPending ? '…' : 'Apply'}
                     </Button>
                   )}
                 </div>
-                {appliedCoupon?.valid && (
+                {appliedCouponCode && (
                   <p className="checkout-coupon__ok">
-                    {appliedCoupon.couponCode} · −{formatPrice(appliedCoupon.discountAmount || 0)}
+                    {appliedCouponCode}
+                    {promotionDiscount > 0 ? ` · −${formatPrice(promotionDiscount)}` : ''}
                   </p>
                 )}
-                {availableCoupons.length > 0 && !appliedCoupon?.valid && (
+                {availableCoupons.length > 0 && !appliedCouponCode && (
                   <div className="checkout-coupon__list">
                     {availableCoupons.slice(0, 4).map((coupon) => (
                       <button
@@ -702,25 +914,39 @@ export default function Checkout() {
 
               <div className="checkout-summary__row">
                 <span>Subtotal</span>
-                <span>{formatPrice(cartTotal)}</span>
+                <span>{formatPrice(itemsSubtotal)}</span>
               </div>
-              <div className="checkout-summary__row">
-                <span>Shipping</span>
-                <span>{shipping === 0 ? 'Free' : formatPrice(shipping)}</span>
-              </div>
-              {couponDiscount > 0 && (
+              {promotionDiscount > 0 && (
                 <div className="checkout-summary__row">
-                  <span>Coupon</span>
-                  <span>−{formatPrice(couponDiscount)}</span>
+                  <span>Discount</span>
+                  <span>−{formatPrice(promotionDiscount)}</span>
                 </div>
               )}
-              {shipping === 0 && (
+              <div className="checkout-summary__row">
+                <span>Shipping</span>
+                <span>{deliveryCharges === 0 ? 'Free' : formatPrice(deliveryCharges)}</span>
+              </div>
+              {taxes > 0 && (
+                <div className="checkout-summary__row">
+                  <span>Taxes</span>
+                  <span>{formatPrice(taxes)}</span>
+                </div>
+              )}
+              {deliveryCharges === 0 && quote?.includesShippingAndHandling && (
                 <p className="checkout-summary__perk">Complimentary shipping on this order</p>
               )}
               <div className="checkout-summary__total">
                 <span>Total</span>
                 <span>{formatPrice(total)}</span>
               </div>
+              {quote?.quoteId && (
+                <p className="body-sm text-muted" style={{ marginTop: 8 }}>
+                  Quote locked until{' '}
+                  {quote.quoteExpiresAt
+                    ? new Date(quote.quoteExpiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    : 'checkout completes'}
+                </p>
+              )}
             </div>
           </aside>
         </div>
@@ -730,6 +956,50 @@ export default function Checkout() {
         open={addressModalOpen}
         onOpenChange={setAddressModalOpen}
       />
+
+      {showRazorpay && razorpayOrderData && razorpayKey && (
+        <RazorpayCheckout
+          key={razorpayOrderData.id}
+          razorpayOrder={razorpayOrderData}
+          razorpayKey={razorpayKey}
+          orderId={placedOrder?.order?.orderId || placedOrder?.order?.id}
+          userEmail={user?.email}
+          userName={user?.name || `${watch('firstName')} ${watch('lastName')}`.trim()}
+          userPhone={checkoutAddress?.phone}
+          paymentState={razorpayPaymentState}
+          onPaymentStateChange={setRazorpayPaymentState}
+          onSuccess={handleRazorpaySuccess}
+          onFailure={handleRazorpayFailure}
+          onClose={handleRazorpayClose}
+          onRecoveryStart={handleRazorpayRecoveryStart}
+        />
+      )}
+
+      {isRecoveringCheckout && (
+        <PaymentLoadingOverlay message="Restoring your bag after payment was closed…" />
+      )}
+
+      {(verifyPayment.isPending || razorpayPaymentState === PAYMENT_STATE.SUCCESS) && (
+        <PaymentLoadingOverlay message="Verifying your payment… please wait" />
+      )}
+
+      {showPaymentError && (
+        <PaymentErrorOverlay
+          error={paymentError}
+          orderId={placedOrder?.order?.orderId || placedOrder?.order?.id}
+          onRetry={() => {
+            setShowPaymentError(false)
+            setPaymentError(null)
+            setRazorpayPaymentState(PAYMENT_STATE.IDLE)
+            checkoutAttemptKeyRef.current = null
+            setPlacedOrder(null)
+          }}
+          onClose={() => {
+            setShowPaymentError(false)
+            setPaymentError(null)
+          }}
+        />
+      )}
     </div>
   )
 }

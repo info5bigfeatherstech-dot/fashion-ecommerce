@@ -3,7 +3,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
 import { startLenis, stopLenis } from '@/lib/lenis'
 
-export function Modal({ open, onOpenChange, title, children, className }) {
+export function Modal({ open, onOpenChange, title, children, className, overlayClassName }) {
   useEffect(() => {
     if (!open) {
       startLenis()
@@ -23,7 +23,7 @@ export function Modal({ open, onOpenChange, title, children, className }) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="modal-overlay" />
+        <Dialog.Overlay className={`modal-overlay${overlayClassName ? ` ${overlayClassName}` : ''}`} />
         <Dialog.Content
           className={`modal-content ${className || ''}`}
           data-lenis-prevent

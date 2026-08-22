@@ -32,11 +32,11 @@ export function AddressFormFields({ register, control, errors, idPrefix = 'addr'
         </div>
 
         <div className="address-form__row">
-          <InputGroup label="Full name" htmlFor={`${idPrefix}-fullName`} error={errors.fullName?.message}>
+          <InputGroup label="Full name" htmlFor={`${idPrefix}-fullName`} error={errors.fullName?.message} required>
             <Input id={`${idPrefix}-fullName`} placeholder="Rahul Sharma" error={errors.fullName} {...register('fullName')} />
           </InputGroup>
 
-          <InputGroup label="Phone" htmlFor={`${idPrefix}-phone`} error={errors.phone?.message}>
+          <InputGroup label="Phone" htmlFor={`${idPrefix}-phone`} error={errors.phone?.message} required>
             <Input
               id={`${idPrefix}-phone`}
               type="tel"
@@ -58,7 +58,7 @@ export function AddressFormFields({ register, control, errors, idPrefix = 'addr'
         </div>
 
         <div className="address-form__row">
-          <InputGroup label="House / flat no." htmlFor={`${idPrefix}-house`} error={errors.houseNumber?.message}>
+          <InputGroup label="House / flat no." htmlFor={`${idPrefix}-house`} error={errors.houseNumber?.message} required>
             <Input id={`${idPrefix}-house`} placeholder="12-A" error={errors.houseNumber} {...register('houseNumber')} />
           </InputGroup>
           <InputGroup label="Building (optional)" htmlFor={`${idPrefix}-building`} error={errors.building?.message}>
@@ -70,13 +70,13 @@ export function AddressFormFields({ register, control, errors, idPrefix = 'addr'
           <InputGroup label="Floor (optional)" htmlFor={`${idPrefix}-floor`} error={errors.floor?.message}>
             <Input id={`${idPrefix}-floor`} placeholder="3" error={errors.floor} {...register('floor')} />
           </InputGroup>
-          <InputGroup label="Area / locality" htmlFor={`${idPrefix}-area`} error={errors.area?.message}>
+          <InputGroup label="Area / locality" htmlFor={`${idPrefix}-area`} error={errors.area?.message} required>
             <Input id={`${idPrefix}-area`} placeholder="Andheri West" error={errors.area} {...register('area')} />
           </InputGroup>
         </div>
 
         <div className="address-form__row">
-          <InputGroup label="Street address" htmlFor={`${idPrefix}-line1`} error={errors.addressLine1?.message}>
+          <InputGroup label="Street address" htmlFor={`${idPrefix}-line1`} error={errors.addressLine1?.message} required>
             <Input
               id={`${idPrefix}-line1`}
               placeholder="Road, street, landmark"
@@ -93,7 +93,7 @@ export function AddressFormFields({ register, control, errors, idPrefix = 'addr'
           <InputGroup label="Landmark (optional)" htmlFor={`${idPrefix}-landmark`} error={errors.landmark?.message}>
             <Input id={`${idPrefix}-landmark`} placeholder="Near metro" error={errors.landmark} {...register('landmark')} />
           </InputGroup>
-          <InputGroup label="PIN code" htmlFor={`${idPrefix}-pin`} error={errors.postalCode?.message}>
+          <InputGroup label="PIN code" htmlFor={`${idPrefix}-pin`} error={errors.postalCode?.message} required>
             <Input
               id={`${idPrefix}-pin`}
               inputMode="numeric"
@@ -105,19 +105,19 @@ export function AddressFormFields({ register, control, errors, idPrefix = 'addr'
         </div>
 
         <div className="address-form__row">
-          <InputGroup label="City" htmlFor={`${idPrefix}-city`} error={errors.city?.message}>
+          <InputGroup label="City" htmlFor={`${idPrefix}-city`} error={errors.city?.message} required>
             <Input id={`${idPrefix}-city`} placeholder="Mumbai" error={errors.city} {...register('city')} />
           </InputGroup>
-          <InputGroup label="State" htmlFor={`${idPrefix}-state`} error={errors.state?.message}>
+          <InputGroup label="State" htmlFor={`${idPrefix}-state`} error={errors.state?.message} required>
             <Input id={`${idPrefix}-state`} placeholder="Maharashtra" error={errors.state} {...register('state')} />
           </InputGroup>
         </div>
 
         <div className="address-form__row">
-          <InputGroup label="Country" htmlFor={`${idPrefix}-country`} error={errors.country?.message}>
+          <InputGroup label="Country" htmlFor={`${idPrefix}-country`} error={errors.country?.message} required>
             <Input id={`${idPrefix}-country`} placeholder="India" error={errors.country} {...register('country')} />
           </InputGroup>
-          <InputGroup label="Address type" htmlFor={`${idPrefix}-type`} error={errors.addressType?.message}>
+          <InputGroup label="Address type" htmlFor={`${idPrefix}-type`} error={errors.addressType?.message} required>
             <select
               id={`${idPrefix}-type`}
               className="input address-form__select"
@@ -131,42 +131,6 @@ export function AddressFormFields({ register, control, errors, idPrefix = 'addr'
         </div>
       </section>
 
-      <section className="address-form__section" aria-labelledby={`${idPrefix}-prefs-heading`}>
-        <div className="address-form__section-head">
-          <h4 id={`${idPrefix}-prefs-heading`} className="address-form__section-title">
-            Preferences
-          </h4>
-          <p className="address-form__section-copy">Optional notes for delivery day</p>
-        </div>
-
-        <InputGroup label="Delivery notes (optional)" htmlFor={`${idPrefix}-notes`} error={errors.deliveryInstructions?.message}>
-          <Input
-            id={`${idPrefix}-notes`}
-            placeholder="Call before delivery"
-            error={errors.deliveryInstructions}
-            {...register('deliveryInstructions')}
-          />
-        </InputGroup>
-
-        <div className="address-form__checks">
-          <label className="address-form__check">
-            <input type="checkbox" {...register('isDefault')} />
-            <span>Set as default address</span>
-          </label>
-
-          <label className="address-form__check">
-            <input type="checkbox" {...register('isGift')} />
-            <span>This is a gift address</span>
-          </label>
-        </div>
-
-        <p
-          className={`address-form__hint${overLimit ? ' address-form__hint--warn' : ''}`}
-        >
-          Courier address length: {courier.combinedLength}/{COURIER_MAX_LENGTH}
-          {overLimit ? ' — shorten street, area, or landmark' : ''}
-        </p>
-      </section>
     </div>
   )
 }

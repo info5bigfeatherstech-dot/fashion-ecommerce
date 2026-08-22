@@ -38,9 +38,28 @@ function applyLoginPayload(payload) {
 
 let refreshPromise = null
 
+/** True when refresh failed because the server rejected the session (not a network blip). */
+export function isFatalAuthRefreshError(error) {
+  const status = error?.status
+  if (status === 401 || status === 403) return true
+  const code = String(error?.code || '')
+  return (
+    code === 'SESSION_EXPIRED' ||
+    code === 'REFRESH_TOKEN_MISSING' ||
+    code === 'REFRESH_TOKEN_INVALID'
+  )
+}
+
+/** GET /api/auth/me — used to hydrate user after cookie refresh when payload has no user. */
+export async function fetchCurrentUser() {
+  const payload = await http.get(API_ENDPOINTS.auth.me, { skipAuthRefresh: true })
+  return mapAuthUser(payload?.user)
+}
+
 /**
  * Exchange the HttpOnly refresh cookie for a new in-memory access token.
  * POST /api/auth/refresh
+ * Session cookie is valid for at least 7 days (backend TTL).
  */
 export async function refreshSession() {
   if (!refreshPromise) {
@@ -50,10 +69,19 @@ export async function refreshSession() {
         { portal: AUTH_PORTAL },
         { skipAuthRefresh: true }
       )
-      .then((payload) => {
-        const result = applyLoginPayload(payload)
+      .then(async (payload) => {
+        let result = applyLoginPayload(payload)
         if (!result.accessToken) {
           throw new Error('Refresh did not return an access token')
+        }
+        if (!result.user) {
+          const user = await fetchCurrentUser()
+          if (user) {
+            result = applyLoginPayload({
+              user,
+              accessToken: result.accessToken,
+            })
+          }
         }
         return result
       })
@@ -137,6 +165,27 @@ export async function login({ identifier, email, password }) {
   }
   return {
     message: payload?.message || 'Login successful',
+    ...session,
+  }
+}
+
+/**
+ * POST /api/auth/google
+ * Body: { idToken } — JWT from Google Identity Services callback.
+ */
+export async function googleLogin({ idToken }) {
+  const payload = await http.post(API_ENDPOINTS.auth.google, {
+    idToken: String(idToken || '').trim(),
+  })
+
+  const session = applyLoginPayload(payload)
+  try {
+    await syncBagsAfterLogin()
+  } catch {
+    // Session is valid even if bag sync fails; UI can refetch later.
+  }
+  return {
+    message: payload?.message || 'Logged in with Google',
     ...session,
   }
 }

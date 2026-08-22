@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
@@ -8,10 +8,8 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Input, InputGroup } from '@/components/ui/Input'
 import { Separator } from '@/components/ui/Separator'
-import { Modal } from '@/components/ui/Modal'
 import { CheckoutAddressModal } from '@/components/checkout/CheckoutAddressModal'
 import { CartItem } from '@/features/cart/components/CartItem'
-import { AuthForms } from '@/features/auth/components/AuthForms'
 import { logout } from '@/features/auth/api'
 import { AddressFormFields } from '@/features/address/components/AddressFormFields'
 import {
@@ -40,25 +38,16 @@ const ACCOUNT_MENU_LINKS = [
   { id: 'addresses', label: 'Saved addresses', icon: MapPin },
 ]
 
-export default function Account({
-  initialAuthMode = 'login',
-  initialActiveTab = 'orders',
-  authGateMode = 'modal',
-} = {}) {
+export default function Account({ initialActiveTab = 'orders' } = {}) {
   const user = useAppStore((s) => s.user)
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
-  const setSession = useAppStore((s) => s.setSession)
+  const openAuthModal = useAppStore((s) => s.openAuthModal)
   const clearUser = useAppStore((s) => s.clearUser)
   const cartItems = useAppStore((s) => s.cartItems)
   const wishlistItems = useAppStore((s) => s.wishlistItems)
   const cartTotal = useCartTotal()
-  const location = useLocation()
   const navigate = useNavigate()
-  const redirectTo = location.state?.redirectTo
   const [activeTab, setActiveTab] = useState(initialActiveTab)
-  const [authMode, setAuthMode] = useState(initialAuthMode)
-  const [authError, setAuthError] = useState('')
-  const [authModalOpen, setAuthModalOpen] = useState(true)
   const [checkoutAddressOpen, setCheckoutAddressOpen] = useState(false)
   const [addressFormError, setAddressFormError] = useState('')
   const [showAddressForm, setShowAddressForm] = useState(false)
@@ -90,18 +79,6 @@ export default function Account({
       phone: user?.phone || '',
     },
   })
-
-  const handleAuthenticated = (session) => {
-    // API layer already wrote accessToken into Zustand memory; ensure session is synced.
-    if (session?.user) {
-      setSession({
-        user: session.user,
-        accessToken: session.accessToken || useAppStore.getState().accessToken,
-      })
-    }
-    setAuthError('')
-    navigate(redirectTo || '/profile', { replace: true })
-  }
 
   const handleLogout = async () => {
     await logout()
@@ -166,13 +143,15 @@ export default function Account({
   }
 
   useEffect(() => {
-    setAuthMode(initialAuthMode)
-    setAuthError('')
-  }, [initialAuthMode])
-
-  useEffect(() => {
     setActiveTab(initialActiveTab)
   }, [initialActiveTab])
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      openAuthModal({ redirectTo: '/account', mode: 'login' })
+      navigate('/', { replace: true })
+    }
+  }, [isAuthenticated, navigate, openAuthModal])
 
   useEffect(() => {
     if (activeTab !== 'addresses') {
@@ -180,12 +159,6 @@ export default function Account({
       setAddressFormError('')
     }
   }, [activeTab])
-
-  useEffect(() => {
-    if (authGateMode === 'modal') {
-      setAuthModalOpen(true)
-    }
-  }, [authGateMode, location.pathname])
 
   useEffect(() => {
     if (!user) return
@@ -197,113 +170,7 @@ export default function Account({
   }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!isAuthenticated) {
-    if (authGateMode === 'modal') {
-      const isRegisterLayout = authMode === 'register'
-      return (
-        <Modal
-          open={authModalOpen}
-          onOpenChange={(open) => {
-            setAuthModalOpen(open)
-            if (!open) navigate('/')
-          }}
-          title={authMode === 'login' ? 'Sign In' : 'Create Account'}
-          className={isRegisterLayout ? 'modal-content--auth modal-content--auth-register' : 'modal-content--auth'}
-        >
-          <div className={isRegisterLayout ? 'auth-modal auth-modal--register' : 'auth-modal'}>
-            {isRegisterLayout ? (
-              <>
-                <div className="auth-modal__register-hero" aria-hidden="true">
-                  <div className="auth-modal__register-hero-inner">
-                    <p className="auth-modal__eyebrow">Create Account</p>
-                    <h3
-                      className="display-md auth-modal__register-title"
-                      style={{ marginBottom: 'var(--space-1)', fontFamily: 'var(--font-italic-serif)' }}
-                    >
-                      Join the Fashion circle
-                    </h3>
-                    <p className="body-sm auth-modal__register-subtitle">
-                      Get early access to drops, save your wishlist, and check out faster.
-                    </p>
-                    <div className="auth-modal__register-features">
-                      <span>Wishlist saving</span>
-                      <span>Faster checkout later</span>
-                      <span>Member-only drops</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="auth-modal__register-body">
-                  <AuthForms
-                    mode={authMode}
-                    onModeChange={setAuthMode}
-                    onAuthenticated={handleAuthenticated}
-                    error={authError}
-                    setError={setAuthError}
-                  />
-
-                  <div className="auth-modal__register-side">
-                    <div className="card" style={{ padding: 'var(--space-4)' }}>
-                      <p className="heading-sm text-accent" style={{ marginBottom: 'var(--space-2)' }}>
-                        What you get
-                      </p>
-                      <ul style={{ margin: 0, paddingLeft: '18px' }}>
-                        <li className="body-sm" style={{ marginBottom: 'var(--space-1)' }}>Save wishlist items</li>
-                        <li className="body-sm" style={{ marginBottom: 'var(--space-1)' }}>Quick checkout </li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="auth-modal__grid">
-                <div className="auth-modal__side">
-                  <p className="heading-sm text-accent" style={{ marginBottom: 'var(--space-2)' }}>
-                    Fashion
-                  </p>
-                  <h3 className="display-md" style={{ marginBottom: 'var(--space-1)' }}>
-                    Shine with pieces made to wear daily.
-                  </h3>
-                  <div className="card" style={{ padding: 'var(--space-2)' }}>
-                    <p className="body-sm" style={{ marginBottom: 'var(--space-2)' }}>
-                      Save your favorites, add to bag quickly, and manage your profile.
-                    </p>
-                  </div>
-                </div>
-
-                <AuthForms
-                  mode={authMode}
-                  onModeChange={setAuthMode}
-                  onAuthenticated={handleAuthenticated}
-                  error={authError}
-                  setError={setAuthError}
-                />
-              </div>
-            )}
-          </div>
-        </Modal>
-      )
-    }
-
-    return (
-      <div className="container" style={{ maxWidth: 'var(--container-narrow)', paddingBlock: 'var(--space-6)' }}>
-        <h1 className="display-lg" style={{ marginBottom: 'var(--space-3)', textAlign: 'center' }}>
-          Profile
-        </h1>
-        <div className="card" style={{ padding: 'var(--space-4)' }}>
-          <p className="body-lg text-muted" style={{ marginBottom: 'var(--space-4)' }}>
-            Please sign in to view your profile and manage saved addresses.
-          </p>
-          <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-            <Link to="/login" state={{ redirectTo: '/profile' }}>
-              <Button variant="primary">Sign in</Button>
-            </Link>
-            <Link to="/register" state={{ redirectTo: '/profile' }}>
-              <Button variant="secondary">Create account</Button>
-            </Link>
-          </div>
-        </div>
-      </div>
-    )
+    return null
   }
 
   return (

@@ -10,6 +10,7 @@ import { useCartCount, useWishlistCount } from '@/store/selectors'
 import { SITE_NAME, NAV_ITEMS } from '@/config/site'
 import { MEGA_MENUS } from '@/features/category/api'
 import { BrandLogo } from './BrandLogo'
+import { getUserFirstName } from '@/lib/utils'
 
 const MENU_CLOSE_DELAY = 280
 
@@ -36,6 +37,19 @@ export function Header() {
   const cartCount = useCartCount()
   const wishlistCount = useWishlistCount()
   const openCart = useAppStore((s) => s.openCart)
+  const isAuthenticated = useAppStore((s) => s.isAuthenticated)
+  const user = useAppStore((s) => s.user)
+  const openAuthModal = useAppStore((s) => s.openAuthModal)
+  const accountFirstName = getUserFirstName(user)
+  const accountLabel = isAuthenticated && accountFirstName ? accountFirstName : 'My Account'
+
+  const handleMyAccountClick = (event) => {
+    if (!isAuthenticated) {
+      event.preventDefault()
+      openAuthModal({ redirectTo: '/profile', mode: 'login' })
+    }
+    setMobileNavOpen(false)
+  }
 
   const categoryMap = {
     women: 'women',
@@ -165,11 +179,16 @@ export function Header() {
                 </span>
                 <span className="header__util-label">Wishlist</span>
               </Link>
-              <Link to="/profile" className="header__util header__util--desktop">
+              <Link
+                to="/profile"
+                className="header__util header__util--desktop"
+                onClick={handleMyAccountClick}
+                aria-label="My Account"
+              >
                 <span className="header__util-icon">
                   <User size={22} />
                 </span>
-                <span className="header__util-label">My Account</span>
+                <span className="header__util-label">{accountLabel}</span>
               </Link>
               <Link to="/wholesale" className="header__util header__util--desktop">
                 <span className="header__util-icon">
@@ -333,8 +352,8 @@ export function Header() {
                 })}
 
                 <div className="header__mobile-extras">
-                  <Link to="/profile" onClick={() => setMobileNavOpen(false)}>
-                    <User size={16} /> My Account <ChevronRight size={16} />
+                  <Link to="/profile" onClick={handleMyAccountClick} aria-label="My Account">
+                    <User size={16} /> {accountLabel} <ChevronRight size={16} />
                   </Link>
                   <Link to="/wholesale" onClick={() => setMobileNavOpen(false)}>
                     <Warehouse size={16} /> Wholesale <ChevronRight size={16} />

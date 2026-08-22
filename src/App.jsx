@@ -5,6 +5,7 @@ import { setupInterceptors } from '@/api/interceptors'
 import { router } from '@/routes/router'
 import { Toaster } from '@/components/ui/Toaster'
 import { SessionBootstrap } from '@/features/auth/components/SessionBootstrap'
+import { AdminSessionBootstrap } from '@/features/admin/components/AdminSessionBootstrap'
 import { SmoothScroll } from '@/components/motion/SmoothScroll'
 
 setupInterceptors()
@@ -14,6 +15,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <SmoothScroll />
       <SessionBootstrap />
+      <AdminSessionBootstrap />
       <RouterProvider router={router} />
       <Toaster />
     </QueryClientProvider>

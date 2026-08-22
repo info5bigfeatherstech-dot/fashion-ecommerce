@@ -25,6 +25,7 @@ export const API_ENDPOINTS = {
     forgotVerifyAnswers: '/auth/forgot-password/verify-answers',
     forgotVerifyOtpFallback: '/auth/forgot-password/verify-otp-fallback',
     forgotResetDirect: '/auth/forgot-password/reset-direct',
+    google: '/auth/google',
   },
   addresses: {
     list: '/addresses',
@@ -49,6 +50,23 @@ export const API_ENDPOINTS = {
   },
   checkout: {
     settings: '/checkout/settings',
+    adminSettings: '/checkout/admin/settings',
+    quote: '/checkout/quote',
+    confirm: '/checkout/confirm',
+  },
+  public: {
+    razorpayKey: '/public/razorpay-key',
+  },
+  orders: {
+    items: '/orders/items',
+    verifyPayment: '/orders/items/verify-payment',
+    abandonOnlineCheckout: (orderId) =>
+      `/orders/items/${encodeURIComponent(String(orderId))}/abandon-online-checkout`,
+  },
+  admin: {
+    ordersSummary: '/admin/orders/summary',
+    ordersList: '/admin/orders/list',
+    orderDetail: (orderId) => `/admin/orders/${encodeURIComponent(String(orderId))}`,
   },
   delivery: {
     check: '/delivery/check-delivery',
@@ -66,4 +84,12 @@ export const API_ENDPOINTS = {
 export const PRODUCT_CATALOG_PAGE_SIZE = 50
 export const PRODUCT_CATALOG_MAX_PAGES = 20
 export const AUTH_PORTAL = 'ecomm'
+export const ADMIN_AUTH_PORTAL = 'admin-ecomm'
 export const STOREFRONT = 'ecomm'
+
+export const ADMIN_ROLES = [
+  'admin',
+  'product_manager',
+  'order_manager',
+  'marketing_manager',
+]

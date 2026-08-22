@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import Masonry from 'react-masonry-css'
 import { motion } from 'framer-motion'
 import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
@@ -27,31 +26,7 @@ function InstagramIcon({ size = 16 }) {
   )
 }
 
-const COLLAGE_COLUMNS = {
-  default: 3,
-  900: 3,
-  640: 2,
-}
-
-const SIZE_PATTERN = [
-  'medium',
-  'square',
-  'tall',
-  'square',
-  'medium',
-  'square',
-  'medium',
-  'square',
-  'square',
-]
-
-const SIZE_CLASS = {
-  tall: 'as-seen-collage__item--tall',
-  square: 'as-seen-collage__item--square',
-  medium: 'as-seen-collage__item--medium',
-}
-
-const COLLAGE_IMAGE_LIMIT = 9
+const COLLAGE_IMAGE_LIMIT = 8
 
 function buildCollageItems(products = [], fallback = []) {
   const items = []
@@ -85,7 +60,7 @@ function buildCollageItems(products = [], fallback = []) {
   return items
 }
 
-function CollageCard({ item, size, index }) {
+function CollageCard({ item, index }) {
   return (
     <motion.div
       className="as-seen-collage__motion"
@@ -101,7 +76,7 @@ function CollageCard({ item, size, index }) {
       <ReflectiveCard
         as={Link}
         to={item.href}
-        className={`as-seen-collage__item ${SIZE_CLASS[size]}`}
+        className="as-seen-collage__item"
         maxTilt={6}
         glareOpacity={0.4}
         aria-label={item.alt}
@@ -156,22 +131,13 @@ export function AsSeenOnYouSection() {
       </div>
 
       {isLoading && collageItems.length === 0 ? (
-        <ProductGridSkeleton count={12} />
+        <ProductGridSkeleton count={8} />
       ) : collageItems.length > 0 ? (
-        <Masonry
-          breakpointCols={COLLAGE_COLUMNS}
-          className="as-seen-collage"
-          columnClassName="as-seen-collage__column"
-        >
+        <div className="as-seen-collage">
           {collageItems.map((item, index) => (
-            <CollageCard
-              key={item.id}
-              item={item}
-              index={index}
-              size={SIZE_PATTERN[index % SIZE_PATTERN.length]}
-            />
+            <CollageCard key={item.id} item={item} index={index} />
           ))}
-        </Masonry>
+        </div>
       ) : (
         <p className="body-sm text-muted">No gallery images available yet.</p>
       )}

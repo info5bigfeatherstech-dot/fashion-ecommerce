@@ -1,6 +1,19 @@
-import Account from './Account'
+import { useEffect } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { useAppStore } from '@/store'
 
 export default function Login() {
-  return <Account initialAuthMode="login" initialActiveTab="orders" authGateMode="modal" />
-}
+  const location = useLocation()
+  const navigate = useNavigate()
+  const openAuthModal = useAppStore((s) => s.openAuthModal)
 
+  useEffect(() => {
+    openAuthModal({
+      redirectTo: location.state?.redirectTo || '/profile',
+      mode: 'login',
+    })
+    navigate(location.state?.from || '/', { replace: true })
+  }, [location.state, navigate, openAuthModal])
+
+  return null
+}

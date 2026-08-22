@@ -26,6 +26,16 @@ export function slugify(text) {
     .replace(/\s+/g, '-')
 }
 
+/** First name for nav labels — from firstName or the first word of name. */
+export function getUserFirstName(user) {
+  if (!user) return ''
+  const first = String(user.firstName || '').trim()
+  if (first) return first
+  const name = String(user.name || '').trim()
+  if (!name) return ''
+  return name.split(/\s+/)[0] || ''
+}
+
 export function getBadgeClass(badge) {
   const map = {
     new: 'badge--new',

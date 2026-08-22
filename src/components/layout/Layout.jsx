@@ -4,6 +4,7 @@ import { PromoBanner } from './PromoBanner'
 import { Header } from './Header'
 import { Footer } from './Footer'
 import { MobileBottomNav } from './MobileBottomNav'
+import { AuthModal } from '@/features/auth/components/AuthModal'
 import { scrollToTop } from '@/lib/lenis'
 
 function ScrollToTop() {
@@ -36,6 +37,7 @@ export function Layout() {
       </main>
       <Footer />
       <MobileBottomNav />
+      <AuthModal />
     </>
   )
 }

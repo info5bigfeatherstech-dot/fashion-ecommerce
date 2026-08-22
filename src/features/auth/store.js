@@ -31,8 +31,27 @@ export const authSlice = (set, get) => ({
   /** Selected delivery address for the current checkout flow (API-shaped). */
   checkoutAddress: null,
 
+  /** Global sign-in / register modal (opened from header, cart, etc.) */
+  authModalOpen: false,
+  authModalMode: 'login',
+  authRedirectTo: '/profile',
+
   setCheckoutAddress: (address) => set({ checkoutAddress: address }),
   clearCheckoutAddress: () => set({ checkoutAddress: null }),
+
+  openAuthModal: ({ redirectTo = '/profile', mode = 'login' } = {}) =>
+    set({
+      authModalOpen: true,
+      authModalMode: mode === 'register' ? 'register' : 'login',
+      authRedirectTo: redirectTo || '/profile',
+    }),
+
+  closeAuthModal: () =>
+    set({
+      authModalOpen: false,
+      authModalMode: 'login',
+      authRedirectTo: '/profile',
+    }),
 
   clearUser: () => {
     clearAuthSession()

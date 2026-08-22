@@ -23,6 +23,7 @@ import {
   forgotPasswordVerifyOtpFallback,
   forgotPasswordResetDirect,
 } from '@/features/auth/api'
+import { AuthDivider, GoogleSignInButton } from '@/features/auth/components/GoogleSignInButton'
 
 const loginSchema = z.object({
   identifier: z.string().min(3, 'Email or phone is required'),
@@ -152,6 +153,16 @@ export function AuthForms({
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const handleGoogleSuccess = (result) => {
+    setError('')
+    setInfoMessage('')
+    onAuthenticated?.(result)
+  }
+
+  const handleGoogleError = (message) => {
+    setError(message || 'Google sign-in failed')
   }
 
   const handleRegister = async (data) => {
@@ -470,6 +481,15 @@ export function AuthForms({
     return (
       <div className="auth-modal__register-form">
         {alertBlock}
+
+        <GoogleSignInButton
+          label="Sign up with Google"
+          disabled={submitting}
+          onSuccess={handleGoogleSuccess}
+          onError={handleGoogleError}
+        />
+        <AuthDivider label="Or register with details" />
+
         <form onSubmit={registerForm.handleSubmit(handleRegister)} noValidate>
           <div className="form-grid" style={{ gap: 'var(--space-3)' }}>
             <div className="form-grid form-grid--2">
@@ -587,7 +607,23 @@ export function AuthForms({
 
   return (
     <div className="auth-modal__form">
+      <div className="auth-modal__welcome">
+        <h2 className="auth-modal__welcome-title">
+          Welcome <em>back</em>
+        </h2>
+        <p className="auth-modal__welcome-sub">Access your premium dashboard</p>
+      </div>
+
       {alertBlock}
+
+      <GoogleSignInButton
+        label="Sign in with Google"
+        disabled={submitting}
+        onSuccess={handleGoogleSuccess}
+        onError={handleGoogleError}
+      />
+      <AuthDivider label="Or" />
+
       <form onSubmit={loginForm.handleSubmit(handleLogin)} noValidate>
         <div className="form-grid" style={{ gap: 'var(--space-3)' }}>
           <InputGroup label="Email or phone" htmlFor="login-identifier" error={loginForm.formState.errors.identifier?.message}>

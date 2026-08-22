@@ -1,7 +1,9 @@
 import axiosClient from './axiosClient'
 import { normalizeApiError } from './errors'
 import { useAppStore } from '@/store'
+import { useAdminStore } from '@/features/admin/store'
 import { refreshSession } from '@/features/auth/api'
+import { refreshAdminSession } from '@/features/admin/api'
 
 let interceptorsInstalled = false
 
@@ -11,9 +13,16 @@ export function setupInterceptors() {
 
   axiosClient.interceptors.request.use(
     (config) => {
-      const token = useAppStore.getState().accessToken
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`
+      if (config.useAdminAuth) {
+        const token = useAdminStore.getState().accessToken
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`
+        }
+      } else {
+        const token = useAppStore.getState().accessToken
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`
+        }
       }
       return config
     },
@@ -44,13 +53,26 @@ export function setupInterceptors() {
       if (status === 401 && original && !skipRefresh) {
         original._retry = true
         try {
-          const session = await refreshSession()
-          original.headers = original.headers || {}
-          original.headers.Authorization = `Bearer ${session.accessToken}`
+          if (original.useAdminAuth) {
+            const session = await refreshAdminSession()
+            original.headers = original.headers || {}
+            original.headers.Authorization = `Bearer ${session.accessToken}`
+          } else {
+            const session = await refreshSession()
+            original.headers = original.headers || {}
+            original.headers.Authorization = `Bearer ${session.accessToken}`
+          }
           return axiosClient(original)
         } catch (refreshError) {
-          useAppStore.getState().clearUser()
-          return Promise.reject(normalizeApiError(refreshError))
+          const normalized = normalizeApiError(refreshError)
+          if (normalized.status === 401 || normalized.status === 403) {
+            if (original.useAdminAuth) {
+              useAdminStore.getState().clearSession()
+            } else {
+              useAppStore.getState().clearUser()
+            }
+          }
+          return Promise.reject(normalized)
         }
       }
 

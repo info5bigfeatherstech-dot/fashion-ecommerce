@@ -1,12 +1,12 @@
 import { useEffect } from 'react'
 import { useAppStore } from '@/store'
-import { refreshSession } from '@/features/auth/api'
+import { refreshSession, isFatalAuthRefreshError } from '@/features/auth/api'
 import { syncBagsFromServer } from '@/features/commerce/syncBags'
 
 /**
- * After Zustand rehydrates a persisted user, restore the in-memory access token
- * via the HttpOnly refresh cookie. Clears session if refresh fails.
- * Then loads server cart + wishlist (no guest merge — that runs on login only).
+ * Restore the in-memory access token from the HttpOnly refresh cookie
+ * (valid ≥ 7 days). Only clears the local session on a real auth rejection,
+ * not on transient network / cold-start errors.
  */
 export function SessionBootstrap() {
   const setAuthReady = useAppStore((s) => s.setAuthReady)
@@ -32,13 +32,15 @@ export function SessionBootstrap() {
 
         if (cancelled) return
 
-        const { user, accessToken, clearUser } = useAppStore.getState()
+        const { accessToken, clearUser } = useAppStore.getState()
 
-        if (user && !accessToken) {
+        if (!accessToken) {
           try {
             await refreshSession()
-          } catch {
-            clearUser()
+          } catch (err) {
+            if (isFatalAuthRefreshError(err)) {
+              clearUser()
+            }
           }
         }
 
