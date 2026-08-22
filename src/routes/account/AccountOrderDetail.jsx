@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useCallback, useState } from 'react'
 import {
   ArrowLeft,
@@ -25,6 +26,7 @@ import {
   getOrderItemImage,
   getOrderItemLineTotal,
   getOrderItemName,
+  getOrderItemProductHref,
   getOrderItemVariantLabel,
   getOrderItems,
   getOrderStatusClass,
@@ -47,11 +49,17 @@ function OrderLineItem({ item }) {
   const name = getOrderItemName(item)
   const image = getOrderItemImage(item)
   const variant = getOrderItemVariantLabel(item)
+  const href = getOrderItemProductHref(item)
   const qty = Number(item.quantity) || 1
   const lineTotal = getOrderItemLineTotal(item)
+  const Tag = href ? Link : 'div'
+  const linkProps = href ? { to: href } : {}
 
   return (
-    <div className="account-order-item">
+    <Tag
+      {...linkProps}
+      className={`account-order-item${href ? ' account-order-item--link' : ''}`}
+    >
       <div className="account-order-item__media">
         {image ? (
           <img src={image} alt={name} loading="lazy" />
@@ -67,7 +75,7 @@ function OrderLineItem({ item }) {
         <p className="account-order-item__qty">Qty {qty}</p>
       </div>
       <p className="account-order-item__price">{formatPrice(lineTotal)}</p>
-    </div>
+    </Tag>
   )
 }
 

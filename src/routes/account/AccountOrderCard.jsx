@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { ChevronRight, Package } from 'lucide-react'
 import {
   canResumeOnlinePayment,
@@ -5,6 +6,7 @@ import {
   getOrderItemCount,
   getOrderItemImage,
   getOrderItemName,
+  getOrderItemProductHref,
   getOrderItemVariantLabel,
   getOrderItems,
   getOrderItemsSummary,
@@ -23,6 +25,38 @@ function OrderStatusBadge({ status }) {
   )
 }
 
+function OrderProductMedia({ item, label, extraCount = 0 }) {
+  const image = item ? getOrderItemImage(item) : null
+  const href = item ? getOrderItemProductHref(item) : null
+
+  const content = (
+    <>
+      {image ? (
+        <img src={image} alt="" loading="lazy" />
+      ) : (
+        <Package size={18} aria-hidden="true" />
+      )}
+      {extraCount > 0 && (
+        <span className="account-order-card__media-count">+{extraCount}</span>
+      )}
+    </>
+  )
+
+  if (href) {
+    return (
+      <Link to={href} className="account-order-card__media account-order-card__product-link" aria-label={label}>
+        {content}
+      </Link>
+    )
+  }
+
+  return (
+    <div className="account-order-card__media" aria-hidden="true">
+      {content}
+    </div>
+  )
+}
+
 export function AccountOrderCard({ order, onSelect, isHydrating = false }) {
   const items = getOrderItems(order)
   const itemCount = getOrderItemCount(order)
@@ -31,31 +65,23 @@ export function AccountOrderCard({ order, onSelect, isHydrating = false }) {
   const primaryName = hasItems
     ? getOrderItemsSummary(order)
     : (isHydrating ? 'Loading order…' : 'Order items')
-  const primaryImage = primaryItem ? getOrderItemImage(primaryItem) : null
+  const primaryHref = primaryItem ? getOrderItemProductHref(primaryItem) : null
   const primaryVariant = primaryItem ? getOrderItemVariantLabel(primaryItem) : null
   const extraCount = Math.max(0, items.length - 1)
 
   return (
-    <button
-      type="button"
-      className="account-order-card"
-      onClick={() => onSelect(order.orderId)}
-      aria-label={`Order from ${formatOrderDate(order.createdAt)}, ${primaryName}`}
-    >
+    <article className="account-order-card">
       <div className="account-order-card__row">
-        <div className="account-order-card__media">
-          {primaryImage ? (
-            <img src={primaryImage} alt="" loading="lazy" />
-          ) : (
-            <Package size={18} aria-hidden="true" />
-          )}
-          {extraCount > 0 && (
-            <span className="account-order-card__media-count">+{extraCount}</span>
-          )}
-        </div>
+        <OrderProductMedia item={primaryItem} label={primaryName} extraCount={extraCount} />
 
         <div className="account-order-card__content">
-          <p className="account-order-card__title">{primaryName}</p>
+          {primaryHref ? (
+            <Link to={primaryHref} className="account-order-card__title account-order-card__product-link">
+              {primaryName}
+            </Link>
+          ) : (
+            <p className="account-order-card__title">{primaryName}</p>
+          )}
 
           <p className="account-order-card__meta">
             {formatOrderDate(order.createdAt)}
@@ -71,31 +97,61 @@ export function AccountOrderCard({ order, onSelect, isHydrating = false }) {
           )}
         </div>
 
-        <div className="account-order-card__aside">
+        <button
+          type="button"
+          className="account-order-card__aside"
+          onClick={() => onSelect(order.orderId)}
+          aria-label={`View order from ${formatOrderDate(order.createdAt)}`}
+        >
           <OrderStatusBadge status={order.orderStatus} />
           <p className="account-order-card__price">{formatPrice(order.totalAmount ?? 0)}</p>
-        </div>
+        </button>
 
-        <span className="account-order-card__chevron" aria-hidden="true">
+        <button
+          type="button"
+          className="account-order-card__chevron"
+          onClick={() => onSelect(order.orderId)}
+          aria-label="View order details"
+        >
           <ChevronRight size={18} strokeWidth={2} />
-        </span>
+        </button>
       </div>
 
       {items.length > 1 && (
         <div className="account-order-card__extras">
-          {items.slice(1, PREVIEW_LIMIT + 1).map((item, index) => (
-            <p key={item._id || item.id || `extra-${index}`} className="account-order-card__extra-line">
-              {getOrderItemName(item)}
-              {Number(item.quantity) > 1 ? ` · Qty ${item.quantity}` : ''}
-            </p>
-          ))}
+          {items.slice(1, PREVIEW_LIMIT + 1).map((item, index) => {
+            const href = getOrderItemProductHref(item)
+            const label = `${getOrderItemName(item)}${Number(item.quantity) > 1 ? ` · Qty ${item.quantity}` : ''}`
+
+            if (href) {
+              return (
+                <Link
+                  key={item._id || item.id || `extra-${index}`}
+                  to={href}
+                  className="account-order-card__extra-line account-order-card__product-link"
+                >
+                  {label}
+                </Link>
+              )
+            }
+
+            return (
+              <p key={item._id || item.id || `extra-${index}`} className="account-order-card__extra-line">
+                {label}
+              </p>
+            )
+          })}
           {items.length > PREVIEW_LIMIT + 1 && (
-            <p className="account-order-card__extra-line account-order-card__extra-line--muted">
+            <button
+              type="button"
+              className="account-order-card__extra-line account-order-card__extra-line--muted account-order-card__extra-line--action"
+              onClick={() => onSelect(order.orderId)}
+            >
               +{items.length - PREVIEW_LIMIT - 1} more item{items.length - PREVIEW_LIMIT - 1 === 1 ? '' : 's'}
-            </p>
+            </button>
           )}
         </div>
       )}
-    </button>
+    </article>
   )
 }

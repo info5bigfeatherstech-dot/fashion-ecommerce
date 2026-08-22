@@ -140,6 +140,18 @@ export function getOrderItemName(item = {}) {
   )
 }
 
+export function getOrderItemProductSlug(item = {}) {
+  const product = resolveProductRef(item)
+  const slug = item.slug || item.productSlug || product?.slug || null
+  const normalized = slug ? String(slug).trim() : ''
+  return normalized || null
+}
+
+export function getOrderItemProductHref(item = {}) {
+  const slug = getOrderItemProductSlug(item)
+  return slug ? `/product/${slug}` : null
+}
+
 export function getOrderItemImage(item = {}) {
   const product = resolveProductRef(item)
   const variantId = String(item.variantId || '')
