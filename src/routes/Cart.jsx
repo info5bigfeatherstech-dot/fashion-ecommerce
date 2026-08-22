@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Lock, ShoppingBag, Sparkles, Truck } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ChevronDown, Lock, ShoppingBag, Sparkles, Truck } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { CartItem } from '@/features/cart/components/CartItem'
 import { useCart } from '@/features/cart/hooks'
@@ -20,6 +20,7 @@ export default function Cart() {
   const clearCart = useAppStore((s) => s.clearCart)
   const navigate = useNavigate()
   const [checkoutAddressOpen, setCheckoutAddressOpen] = useState(false)
+  const [summaryCollapsed, setSummaryCollapsed] = useState(true)
 
   const { isFetching: cartSyncing } = useCart({ enabled: isAuthenticated })
 
@@ -106,7 +107,18 @@ export default function Cart() {
             )}
           </section>
 
-          <aside className="checkout-summary cart-summary">
+          <aside className={`checkout-summary cart-summary cart-summary--collapsible${summaryCollapsed ? ' is-collapsed' : ''}`}>
+            <button
+              type="button"
+              className="cart-summary__toggle"
+              onClick={() => setSummaryCollapsed((open) => !open)}
+              aria-expanded={!summaryCollapsed}
+            >
+              <span>Order Summary · {formatPrice(total)}</span>
+              <ChevronDown size={18} className="cart-summary__toggle-icon" aria-hidden />
+            </button>
+
+            <div className="cart-summary__body">
             <div className="checkout-summary__head">
               <h2 className="checkout-panel__title">Order Summary</h2>
               <span className="body-sm text-muted">
@@ -174,6 +186,7 @@ export default function Cart() {
               <Sparkles size={14} />
               Secure checkout · Easy returns
             </p>
+            </div>
           </aside>
         </div>
       </div>

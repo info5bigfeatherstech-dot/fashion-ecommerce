@@ -1,12 +1,12 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Search, Heart, ShoppingBag, User } from 'lucide-react'
+import { Home, LayoutGrid, Heart, ShoppingBag, User } from 'lucide-react'
 import { useCartCount, useWishlistCount } from '@/store/selectors'
 import { useAppStore } from '@/store'
 import { getUserFirstName } from '@/lib/utils'
 
 const NAV_LINKS = [
   { to: '/', label: 'Home', icon: Home },
-  { to: '/shop/women', label: 'Shop', icon: Search },
+  { to: '/shop/women', label: 'Categories', icon: LayoutGrid },
   { to: '/wishlist', label: 'Wishlist', icon: Heart, badge: 'wishlistCount' },
   { to: '/cart', label: 'Bag', icon: ShoppingBag, badge: 'cartCount' },
   { to: '/profile', label: 'Account', icon: User, requiresAuth: true },

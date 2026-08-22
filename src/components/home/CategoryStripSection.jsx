@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import ReflectCard from '@/components/effects/ReflectCard'
 import { CATEGORY_STRIP } from '@/config/site'
+import { BREAKPOINTS } from '@/config/breakpoints'
 
 function chunk(items, size) {
   const pages = []
@@ -21,11 +22,12 @@ export function CategoryStripSection() {
 
   useEffect(() => {
     const updatePageSize = () => {
-      if (window.innerWidth < 640) {
+      const width = window.innerWidth
+      if (width < BREAKPOINTS.tablet) {
         setPageSize(1)
-      } else if (window.innerWidth < 900) {
+      } else if (width < BREAKPOINTS.desktop) {
         setPageSize(2)
-      } else if (window.innerWidth < 1200) {
+      } else if (width < BREAKPOINTS.xl) {
         setPageSize(4)
       } else {
         setPageSize(7)

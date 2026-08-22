@@ -11,6 +11,7 @@ import { SITE_NAME, NAV_ITEMS } from '@/config/site'
 import { MEGA_MENUS } from '@/features/category/api'
 import { BrandLogo } from './BrandLogo'
 import { getUserFirstName } from '@/lib/utils'
+import { MEDIA_QUERIES } from '@/config/breakpoints'
 
 const MENU_CLOSE_DELAY = 280
 
@@ -113,7 +114,7 @@ export function Header() {
   }, [])
 
   useEffect(() => {
-    const media = window.matchMedia('(min-width: 1024px)')
+    const media = window.matchMedia(MEDIA_QUERIES.desktop)
     const closeOnDesktop = () => {
       if (!media.matches) return
       setMobileNavOpen(false)
@@ -219,11 +220,15 @@ export function Header() {
                 <div
                   key={item.slug}
                   onMouseEnter={() => {
-                    if (item.megaMenu) {
-                      openMenu(item.slug)
-                    } else {
+                    if (!item.megaMenu) {
                       closeMenu()
+                      return
                     }
+                    if (!window.matchMedia(MEDIA_QUERIES.desktop).matches) {
+                      closeMenu()
+                      return
+                    }
+                    openMenu(item.slug)
                   }}
                 >
                   <Link

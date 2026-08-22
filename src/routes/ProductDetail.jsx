@@ -1,4 +1,4 @@
-import { useLayoutEffect, useState } from 'react'
+import { useLayoutEffect, useEffect, useRef, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Star, Heart, Minus, Plus } from 'lucide-react'
 import { ProductGallery } from '@/features/product/components/ProductGallery'
@@ -14,6 +14,7 @@ import { OfferCode } from '@/features/product/components/OfferCode'
 import { useAppStore } from '@/store'
 import { showAddedToCartToast } from '@/lib/cart-toast'
 import { scrollToTop } from '@/lib/lenis'
+import { formatPrice } from '@/lib/utils'
 
 function formatLabel(value) {
   if (!value) return ''
@@ -28,6 +29,8 @@ export default function ProductDetail() {
   const [selectedSize, setSelectedSize] = useState(null)
   const [selectedColor, setSelectedColor] = useState(null)
   const [quantity, setQuantity] = useState(1)
+  const [showStickyBar, setShowStickyBar] = useState(false)
+  const gallerySentinelRef = useRef(null)
 
   const addItem = useAppStore((s) => s.addItem)
   const toggleWishlist = useAppStore((s) => s.toggleWishlist)
@@ -41,8 +44,36 @@ export default function ProductDetail() {
     setSelectedSize(null)
     setSelectedColor(null)
     setQuantity(1)
+    setShowStickyBar(false)
     scrollToTop()
   }, [slug])
+
+  useEffect(() => {
+    const target = gallerySentinelRef.current
+    if (!target) return undefined
+
+    const media = window.matchMedia('(max-width: 767px)')
+    if (!media.matches) {
+      setShowStickyBar(false)
+      return undefined
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowStickyBar(!entry.isIntersecting),
+      { threshold: 0, rootMargin: '0px 0px -20% 0px' },
+    )
+    observer.observe(target)
+
+    const onResize = (event) => {
+      if (!event.matches) setShowStickyBar(false)
+    }
+    media.addEventListener('change', onResize)
+
+    return () => {
+      observer.disconnect()
+      media.removeEventListener('change', onResize)
+    }
+  }, [slug, product?.id])
 
   // Product + related content loads async; reset again so we don't land on "You May Also Like"
   useLayoutEffect(() => {
@@ -128,7 +159,9 @@ export default function ProductDetail() {
       </nav>
 
       <div className="pdp">
-        <ProductGallery images={product.images} name={product.name} />
+        <div ref={gallerySentinelRef}>
+          <ProductGallery images={product.images} name={product.name} />
+        </div>
 
         <div className="pdp-info">
           <div className="pdp-info__kicker">
@@ -239,6 +272,21 @@ export default function ProductDetail() {
           <ProductCarousel products={related} />
         </section>
       )}
+
+      <div
+        className={`pdp-sticky-bar${showStickyBar ? ' pdp-sticky-bar--visible' : ''}`}
+        aria-hidden={!showStickyBar}
+      >
+        <div className="pdp-sticky-bar__price">
+          {formatPrice(product.price)}
+          {product.originalPrice && product.originalPrice > product.price && (
+            <small>{formatPrice(product.originalPrice)}</small>
+          )}
+        </div>
+        <Button variant="primary" size="md" onClick={handleAddToCart}>
+          Add to Bag
+        </Button>
+      </div>
     </div>
   )
 }

@@ -249,6 +249,11 @@ export default function ProductListing() {
               </button>
             </div>
             <ProductFilters {...filterProps} />
+            <div className="plp-sidebar__mobile-foot">
+              <Button variant="primary" fullWidth onClick={() => setFiltersOpen(false)}>
+                Show {data?.total || 0} products
+              </Button>
+            </div>
           </div>
         </div>
 
