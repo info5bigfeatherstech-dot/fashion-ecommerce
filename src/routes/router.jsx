@@ -23,6 +23,7 @@ const AdminProductsPage = lazy(() => import('./admin/AdminProductsPage'))
 const AdminArchivedPage = lazy(() => import('./admin/AdminArchivedPage'))
 const AdminAnalyticsPage = lazy(() => import('./admin/AdminAnalyticsPage'))
 const AdminOutOfStockPage = lazy(() => import('./admin/AdminOutOfStockPage'))
+const AdminLeadsPage = lazy(() => import('./admin/AdminLeadsPage'))
 const AdminCustomersPage = lazy(() => import('./admin/AdminCustomersPage'))
 const AdminCartsPage = lazy(() => import('./admin/AdminCartsPage'))
 const AdminWishlistsPage = lazy(() => import('./admin/AdminWishlistsPage'))
@@ -75,6 +76,7 @@ export const router = createBrowserRouter([
       { path: 'archived', element: <AdminArchivedPage /> },
       { path: 'analytics', element: <AdminAnalyticsPage /> },
       { path: 'out-of-stock', element: <AdminOutOfStockPage /> },
+      { path: 'leads', element: <AdminLeadsPage /> },
       { path: 'customers', element: <AdminCustomersPage /> },
       { path: 'carts', element: <AdminCartsPage /> },
       { path: 'wishlists', element: <AdminWishlistsPage /> },
