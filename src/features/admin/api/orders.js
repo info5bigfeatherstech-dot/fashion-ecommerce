@@ -15,6 +15,32 @@ export const ORDER_TAB_LABEL_TO_BUCKET = Object.freeze({
   'Pickup Exception': 'pickup_exception',
 })
 
+/** Maps backend countsByBucket keys → UI tab labels. */
+export const BUCKET_KEY_TO_TAB_LABEL = Object.freeze({
+  all: 'All',
+  new: 'Pending',
+  bill_sent: 'Confirmed',
+  ready_to_ship: 'Ready to Ship',
+  pickup_exception: 'Pickup Exception',
+  ready_to_pick: 'Processing',
+  in_transit: 'In transit',
+  completed: 'Delivered',
+  rto: 'RTO',
+  others: 'Cancelled',
+})
+
+export const ORDER_TAB_ORDER = Object.freeze([
+  'Pending',
+  'Confirmed',
+  'Ready to Ship',
+  'Processing',
+  'In transit',
+  'Delivered',
+  'RTO',
+  'Cancelled',
+  'Pickup Exception',
+])
+
 function toApiBucket(bucket) {
   if (!bucket || bucket === 'all') return null
   return ORDER_TAB_LABEL_TO_BUCKET[bucket] ?? bucket

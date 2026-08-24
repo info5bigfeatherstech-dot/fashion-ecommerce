@@ -3,12 +3,15 @@ import { toast } from 'sonner'
 import { formatPrice } from '@/lib/utils'
 import { OrderPaymentSummaryCard } from '@/features/admin/components/OrderPaymentSummaryCard'
 import {
+  ORDER_TAB_ORDER,
+  ORDER_TAB_LABEL_TO_BUCKET,
+} from '@/features/admin/api/orders'
+import {
   AdminEmpty,
   AdminError,
   AdminLoading,
   AdminPageHeader,
   AdminPagination,
-  AdminStatRow,
   extractListPayload,
 } from '@/features/admin/components/AdminUi'
 import {
@@ -21,7 +24,44 @@ import {
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
-const BUCKETS = ['Pending', 'Confirmed', 'Processing', 'Delivered', 'Cancelled', 'RTO']
+function formatInr(amount) {
+  const n = Number(amount)
+  if (!Number.isFinite(n)) return '—'
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(n)
+}
+
+function formatDateTime(iso) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  return new Intl.DateTimeFormat('en-IN', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(d)
+}
+
+function providerLabel(order) {
+  const provider = String(order?.shippingProvider || '').toLowerCase()
+  if (provider === 'shipmozo') return 'Shipmozo'
+  if (provider === 'shiprocket' || provider) return provider === 'shiprocket' ? 'Shiprocket' : provider
+  return null
+}
+
+function paymentTone(label) {
+  const s = String(label || '').toLowerCase()
+  if (s.includes('paid') && !s.includes('un')) return 'success'
+  if (s.includes('partial')) return 'warn'
+  if (s.includes('cod')) return 'muted'
+  return 'muted'
+}
 
 export default function AdminOrdersPage() {
   const [bucket, setBucket] = useState('Pending')
@@ -29,8 +69,9 @@ export default function AdminOrdersPage() {
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const [selectedOrderId, setSelectedOrderId] = useState(null)
+  const [selectedOrders, setSelectedOrders] = useState([])
 
-  const { data: summary } = useAdminOrdersSummary()
+  const { data: summary, refetch: refetchSummary } = useAdminOrdersSummary()
   const { data: listData, isLoading, isError, error, refetch } = useAdminOrdersList({
     bucket,
     page,
@@ -47,33 +88,134 @@ export default function AdminOrdersPage() {
     [listData]
   )
 
-  const totals = summary?.totals || summary?.buckets || {}
+  const totals = summary?.totals || {}
+  const countsByBucket = summary?.countsByBucket || {}
 
-  const handleConfirmSelected = async () => {
-    if (!selectedOrderId) return
+  const summaryStats = useMemo(() => ([
+    { label: 'Total Orders', value: String(totals.totalOrders ?? pagination?.total ?? orders.length ?? 0) },
+    { label: 'Total Revenue', value: formatInr(totals.totalRevenueInr) },
+    { label: 'Total Pending Orders', value: String(totals.totalPendingOrders ?? countsByBucket.new ?? 0) },
+    { label: 'Total Completed Orders', value: String(totals.totalCompletedOrders ?? countsByBucket.completed ?? 0) },
+  ]), [totals, countsByBucket, pagination, orders.length])
+
+  const tabs = useMemo(() => (
+    ORDER_TAB_ORDER.map((label) => {
+      const key = ORDER_TAB_LABEL_TO_BUCKET[label]
+      return { label, count: countsByBucket[key] ?? 0 }
+    })
+  ), [countsByBucket])
+
+  const toggleSelectOrder = (orderId) => {
+    setSelectedOrders((prev) =>
+      prev.includes(orderId) ? prev.filter((id) => id !== orderId) : [...prev, orderId]
+    )
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedOrders.length === orders.length) {
+      setSelectedOrders([])
+      return
+    }
+    setSelectedOrders(orders.map((o) => o.orderId || o.id || o._id).filter(Boolean))
+  }
+
+  const handleConfirm = async (orderIds) => {
+    const ids = (Array.isArray(orderIds) ? orderIds : [orderIds]).filter(Boolean)
+    if (!ids.length) return
     try {
-      await confirmOrders.mutateAsync([selectedOrderId])
-      toast.success('Order confirmed')
+      await confirmOrders.mutateAsync(ids)
+      toast.success(ids.length > 1 ? `${ids.length} orders confirmed` : 'Order confirmed')
+      setSelectedOrders([])
       refetch()
+      refetchSummary()
     } catch (err) {
       toast.error(err?.message || 'Could not confirm order')
     }
   }
 
+  const handleDownloadReport = () => {
+    const rows = orders.map((o) => ({
+      id: o.orderIdDisplay || o.orderId || o.id,
+      contact: o.contactPhone || '',
+      date: formatDateTime(o.createdAt),
+      amount: formatInr(o.amountInr ?? o.totalAmount),
+      status: o.fulfillmentLabel || o.orderStatus || '',
+      items: o.itemCount ?? '',
+      payment: o.paymentLabel || '',
+    }))
+    const header = 'Order ID,Contact,Date,Amount,Status,Items,Payment'
+    const csv =
+      'data:text/csv;charset=utf-8,' +
+      header +
+      '\n' +
+      rows
+        .map((o) =>
+          [o.id, o.contact, o.date, o.amount, o.status, o.items, o.payment]
+            .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
+            .join(',')
+        )
+        .join('\n')
+    const link = document.createElement('a')
+    link.setAttribute('href', encodeURI(csv))
+    link.setAttribute('download', 'Orders_Report.csv')
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   const items = orderDetail?.items || orderDetail?.orderItems || []
+  const allSelected = orders.length > 0 && selectedOrders.length === orders.length
 
   return (
     <div className="admin-page">
       <AdminPageHeader eyebrow="Operations" title="Orders">
-        <AdminStatRow stats={[
-          { label: 'Pending', value: totals.pending ?? totals.Pending ?? '—' },
-          { label: 'Confirmed', value: totals.confirmed ?? totals.Confirmed ?? '—' },
-          { label: 'Delivered', value: totals.delivered ?? totals.Delivered ?? '—' },
-        ]} />
+        <div className="admin-toolbar" style={{ marginBottom: 0 }}>
+          <Button variant="secondary" size="sm" onClick={handleDownloadReport}>
+            Order report
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={syncStatuses.isPending}
+            onClick={() => syncStatuses.mutateAsync({})}
+          >
+            {syncStatuses.isPending ? 'Syncing…' : 'Sync statuses'}
+          </Button>
+        </div>
       </AdminPageHeader>
 
-      <div className="admin-toolbar">
-        <form
+      <div className="admin-metric-grid admin-metric-grid--orders">
+        {summaryStats.map((stat) => (
+          <div key={stat.label} className="admin-metric-card">
+            <div>
+              <p className="admin-metric-card__label">{stat.label}</p>
+              <p className="admin-metric-card__value">{stat.value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="admin-orders-filters">
+        <div className="admin-tabs admin-tabs--scroll">
+          {tabs.map((tab) => (
+            <button
+              key={tab.label}
+              type="button"
+              className={`admin-tabs__btn${bucket === tab.label ? ' is-active' : ''}`}
+              onClick={() => {
+                setBucket(tab.label)
+                setPage(1)
+                setSelectedOrderId(null)
+                setSelectedOrders([])
+              }}
+            >
+              {tab.label}
+              <span className="admin-tab-count">{tab.count}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* <form
           className="admin-toolbar__search"
           onSubmit={(e) => {
             e.preventDefault()
@@ -84,39 +226,42 @@ export default function AdminOrdersPage() {
           <Input
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search order ID, customer…"
+            placeholder="Search order ID, phone…"
             aria-label="Search orders"
           />
           <Button type="submit" variant="secondary" size="sm">Search</Button>
-        </form>
-        <Button
-          variant="ghost"
-          size="sm"
-          disabled={syncStatuses.isPending}
-          onClick={() => syncStatuses.mutateAsync({})}
-        >
-          {syncStatuses.isPending ? 'Syncing…' : 'Sync statuses'}
-        </Button>
+          {search && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSearch('')
+                setSearchInput('')
+                setPage(1)
+              }}
+            >
+              Clear
+            </Button>
+          )}
+        </form> */}
       </div>
 
-      <div className="admin-tabs">
-        {BUCKETS.map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            className={`admin-tabs__btn${bucket === tab ? ' is-active' : ''}`}
-            onClick={() => {
-              setBucket(tab)
-              setPage(1)
-              setSelectedOrderId(null)
-            }}
+      {bucket === 'Pending' && selectedOrders.length > 0 && (
+        <div className="admin-bulk-bar">
+          <span>{selectedOrders.length} selected</span>
+          <Button
+            variant="primary"
+            size="sm"
+            disabled={confirmOrders.isPending}
+            onClick={() => handleConfirm(selectedOrders)}
           >
-            {tab}
-          </button>
-        ))}
-      </div>
+            Accept selected
+          </Button>
+        </div>
+      )}
 
-      <div className="admin-orders-layout">
+      <div className="admin-orders-layout admin-orders-layout--table">
         <section className="admin-card admin-card--flush">
           {isLoading && <AdminLoading label="Loading orders…" />}
           {isError && <AdminError message={error?.message} onRetry={refetch} />}
@@ -124,70 +269,186 @@ export default function AdminOrdersPage() {
             <AdminEmpty message={`No orders in ${bucket}.`} />
           )}
           {!isLoading && orders.length > 0 && (
-            <ul className="admin-order-list">
-              {orders.map((order) => {
-                const id = order.orderId || order.id || order._id
-                const active = String(selectedOrderId) === String(id)
-                return (
-                  <li key={id}>
-                    <button
-                      type="button"
-                      className={`admin-order-row${active ? ' is-active' : ''}`}
-                      onClick={() => setSelectedOrderId(id)}
-                    >
-                      <div>
-                        <strong>#{id}</strong>
-                        <p className="body-sm text-muted">{order.customerName || order.userEmail || 'Customer'}</p>
-                      </div>
-                      <div className="admin-order-row__meta">
-                        <span>
-                          {formatPrice(
-                            order.amountInr ?? order.totalAmount ?? order.amountPayable ?? 0
+            <div className="admin-table-wrap">
+              <table className="admin-table admin-orders-table">
+                <thead>
+                  <tr>
+                    <th className="admin-orders-table__check">
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        onChange={toggleSelectAll}
+                        aria-label="Select all orders"
+                      />
+                    </th>
+                    <th>Order ID</th>
+                    <th>Contact</th>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Courier & Ops</th>
+                    <th>Action</th>
+                    <th>Items</th>
+                    <th>Payment</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orders.map((order) => {
+                    const id = order.orderId || order.id || order._id
+                    const active = String(selectedOrderId) === String(id)
+                    const checked = selectedOrders.includes(id)
+                    const provider = providerLabel(order)
+                    const paymentLabel = order.paymentLabel || order.paymentStatus || '—'
+                    const amount = order.amountInr ?? order.totalAmount ?? order.amountPayable ?? 0
+
+                    return (
+                      <tr
+                        key={id}
+                        className={active ? 'is-active' : ''}
+                        onClick={() => setSelectedOrderId(id)}
+                      >
+                        <td
+                          className="admin-orders-table__check"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleSelectOrder(id)}
+                            aria-label={`Select order ${id}`}
+                          />
+                        </td>
+                        <td>
+                          <div className="admin-order-id">
+                            <strong>{order.orderIdDisplay || id}</strong>
+                            {provider && (
+                              <span
+                                className={`admin-provider-badge${
+                                  String(order.shippingProvider).toLowerCase() === 'shipmozo'
+                                    ? ' admin-provider-badge--shipmozo'
+                                    : ''
+                                }`}
+                              >
+                                {provider}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td>{order.contactPhone || order.phone || '—'}</td>
+                        <td className="admin-orders-table__muted">
+                          {formatDateTime(order.createdAt)}
+                        </td>
+                        <td className="admin-orders-table__amount">{formatInr(amount)}</td>
+                        <td>
+                          <span className="admin-badge">
+                            {order.fulfillmentLabel || order.orderStatus || order.status || '—'}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="admin-courier-cell">
+                            <strong>{order.courierOpsLine1 || '—'}</strong>
+                            {order.courierOpsLine2 ? <span>{order.courierOpsLine2}</span> : null}
+                          </div>
+                        </td>
+                        <td onClick={(e) => e.stopPropagation()}>
+                          {bucket === 'Pending' ? (
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              disabled={confirmOrders.isPending}
+                              onClick={() => handleConfirm([id])}
+                            >
+                              Accept
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSelectedOrderId(id)}
+                            >
+                              View
+                            </Button>
                           )}
-                        </span>
-                        <span className="admin-badge">{order.orderStatus || order.status || '—'}</span>
-                      </div>
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
+                        </td>
+                        <td className="admin-orders-table__center">
+                          {order.itemCount ?? order.items?.length ?? '—'}
+                        </td>
+                        <td className="admin-orders-table__center">
+                          <span className={`admin-payment-label admin-payment-label--${paymentTone(paymentLabel)}`}>
+                            {paymentLabel}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
           <AdminPagination
             page={page}
             totalPages={pagination?.totalPages}
             onPageChange={setPage}
           />
+          {pagination?.total != null && (
+            <p className="admin-orders-footer">
+              Page {page} of {pagination.totalPages || 1} · {pagination.total} orders
+            </p>
+          )}
         </section>
 
         <aside className="admin-detail-panel">
-          {!selectedOrderId && <AdminEmpty message="Select an order to view details." />}
           {selectedOrderId && detailLoading && <AdminLoading label="Loading order…" />}
           {selectedOrderId && orderDetail && !detailLoading && (
             <>
               <div className="admin-card">
                 <div className="admin-card__head">
                   <div>
-                    <h2 className="admin-card__title">Order #{selectedOrderId}</h2>
+                    <h2 className="admin-card__title">
+                      Order #{orderDetail.orderIdDisplay || selectedOrderId}
+                    </h2>
                     <p className="admin-card__subtitle">
-                      {orderDetail.orderStatus || orderDetail.status || '—'}
+                      {orderDetail.fulfillmentLabel || orderDetail.orderStatus || orderDetail.status || '—'}
                     </p>
                   </div>
-                  {bucket === 'Pending' && (
+                  <div className="admin-row-actions">
+                    {bucket === 'Pending' && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={confirmOrders.isPending}
+                        onClick={() => handleConfirm([selectedOrderId])}
+                      >
+                        Accept
+                      </Button>
+                    )}
                     <Button
-                      variant="secondary"
+                      variant="ghost"
                       size="sm"
-                      disabled={confirmOrders.isPending}
-                      onClick={handleConfirmSelected}
+                      onClick={() => setSelectedOrderId(null)}
                     >
-                      Confirm
+                      Close
                     </Button>
-                  )}
+                  </div>
                 </div>
                 <div className="admin-payment-grid">
                   <div className="admin-payment-row">
                     <span>Customer</span>
-                    <strong>{orderDetail.customerName || orderDetail.userEmail || '—'}</strong>
+                    <strong>
+                      {orderDetail.customerName || orderDetail.userEmail || orderDetail.contactPhone || '—'}
+                    </strong>
+                  </div>
+                  <div className="admin-payment-row">
+                    <span>Phone</span>
+                    <strong>{orderDetail.contactPhone || orderDetail.phone || '—'}</strong>
+                  </div>
+                  <div className="admin-payment-row">
+                    <span>Amount</span>
+                    <strong>
+                      {formatInr(
+                        orderDetail.amountInr ?? orderDetail.totalAmount ?? orderDetail.amountPayable ?? 0
+                      )}
+                    </strong>
                   </div>
                   <div className="admin-payment-row">
                     <span>Placed</span>
@@ -220,7 +481,7 @@ export default function AdminOrdersPage() {
                       <li key={item.id || item._id || idx} className="admin-item-row">
                         <span>{item.name || item.productName || 'Item'}</span>
                         <span>×{item.quantity || 1}</span>
-                        <span>{formatPrice(item.price || item.lineTotal)}</span>
+                        <span>{formatPrice(item.price || item.lineTotal || 0)}</span>
                       </li>
                     ))}
                   </ul>

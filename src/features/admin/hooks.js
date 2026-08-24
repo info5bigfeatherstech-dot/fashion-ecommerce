@@ -200,11 +200,11 @@ export function useAutoSyncOrderStatuses() {
   })
 }
 
-export function useAdminProductsAll({ page = 1, search = '', enabled = true } = {}) {
+export function useAdminProductsAll({ page = 1, search = '', limit = 50, enabled = true } = {}) {
   const queryEnabled = useAdminQueryEnabled(enabled)
   return useQuery({
-    queryKey: adminKeys.productsAll(page, search),
-    queryFn: ({ signal }) => getAdminProductsAll({ signal, page, search }),
+    queryKey: adminKeys.productsAll(page, search, limit),
+    queryFn: ({ signal }) => getAdminProductsAll({ signal, page, search, limit }),
     enabled: queryEnabled,
     staleTime: 1000 * 30,
   })

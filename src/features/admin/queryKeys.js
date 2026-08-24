@@ -8,7 +8,7 @@ export const adminKeys = {
   ordersList: (bucket, page, search) => [...adminKeys.all, 'orders-list', bucket, page, search || ''],
   orderDetail: (orderId) => [...adminKeys.all, 'order', String(orderId || '')],
   orderTracking: (orderId) => [...adminKeys.all, 'order-tracking', String(orderId || '')],
-  productsAll: (page, search) => [...adminKeys.all, 'products-all', page, search || ''],
+  productsAll: (page, search, limit = 50) => [...adminKeys.all, 'products-all', page, search || '', limit],
   productsActive: () => [...adminKeys.all, 'products-active'],
   productsLowStock: () => [...adminKeys.all, 'products-low-stock'],
   productsArchived: (page) => [...adminKeys.all, 'products-archived', page],
