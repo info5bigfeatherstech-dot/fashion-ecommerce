@@ -1,14 +1,33 @@
 import { Link } from 'react-router-dom'
 import { TrendingUp } from 'lucide-react'
-import { ProductCarousel } from '@/features/product/components/ProductCarousel'
-import { ProductGridSkeleton } from '@/components/ui/Skeleton'
 import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
-import { useBestsellers } from '@/features/product/hooks'
+import video1 from '@/assets/167569-837244635_medium.mp4'
+import video2 from '@/assets/347325.mp4'
+import video3 from '@/assets/371392.mp4'
+import video4 from '@/assets/371392 (1).mp4'
+
+const TRENDING_VIDEOS = [
+  { id: 'trending-1', src: video1, label: 'Trending jewellery look 1' },
+  { id: 'trending-2', src: video2, label: 'Trending jewellery look 2' },
+  { id: 'trending-3', src: video3, label: 'Trending jewellery look 3' },
+  { id: 'trending-4', src: video4, label: 'Trending jewellery look 4' },
+]
+
+function bindSilentLoop(el) {
+  if (!el) return
+  el.muted = true
+  el.defaultMuted = true
+  el.volume = 0
+  el.setAttribute('muted', '')
+  el.playsInline = true
+  const play = () => {
+    el.play().catch(() => {})
+  }
+  if (el.readyState >= 2) play()
+  else el.addEventListener('loadeddata', play, { once: true })
+}
 
 export function TrendingNowFastSection() {
-  const { data: products = [], isLoading } = useBestsellers()
-  const trendingProducts = products.slice(0, 12)
-
   return (
     <section className="section container container--wide trending-now-section">
       <div className="section-header">
@@ -32,13 +51,29 @@ export function TrendingNowFastSection() {
           <Link to="/shop?sort=rating" className="section-header__link">View All</Link>
         </Reveal>
       </div>
-      {isLoading ? (
-        <ProductGridSkeleton count={4} />
-      ) : (
-        <Reveal delay={0.1}>
-          <ProductCarousel products={trendingProducts} />
-        </Reveal>
-      )}
+      <Reveal delay={0.1}>
+        <div className="trending-now-videos" role="list">
+          {TRENDING_VIDEOS.map((clip) => (
+            <div key={clip.id} className="trending-now-videos__item" role="listitem">
+              <video
+                ref={bindSilentLoop}
+                className="trending-now-videos__video"
+                src={clip.src}
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                disablePictureInPicture
+                disableRemotePlayback
+                controlsList="nodownload nofullscreen noremoteplayback"
+                tabIndex={-1}
+                aria-label={clip.label}
+              />
+            </div>
+          ))}
+        </div>
+      </Reveal>
     </section>
   )
 }

@@ -414,6 +414,43 @@ textarea {
   flex-shrink: 0;
 }
 
+.trending-now-videos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+@media (min-width: 768px) {
+  .trending-now-videos {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.trending-now-videos__item {
+  min-width: 0;
+  overflow: hidden;
+  border-radius: var(--radius-md, 0.5rem);
+  background-color: var(--color-paper);
+  aspect-ratio: 3 / 4;
+}
+
+.trending-now-videos__video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  border: 0;
+}
+
+.trending-now-videos__video::-webkit-media-controls {
+  display: none !important;
+}
+
+.trending-now-videos__video::-webkit-media-controls-enclosure {
+  display: none !important;
+}
+
 /* ─── New Arrivals category slider ─── */
 
 .new-arrivals-header {
