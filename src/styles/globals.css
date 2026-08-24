@@ -6468,7 +6468,7 @@ a.cart-item__name:hover {
 }
 
 .pdp-gallery__main {
-  aspect-ratio: 3 / 4;
+  aspect-ratio: 1 / 1;
   overflow: hidden;
   border-radius: var(--radius-sm);
   background-color: var(--color-neutral);
@@ -6499,7 +6499,7 @@ a.cart-item__name:hover {
 
 .pdp-gallery__thumb {
   width: var(--space-8);
-  height: calc(var(--space-8) * 1.25);
+  height: var(--space-8);
   flex-shrink: 0;
   border-radius: var(--radius-sm);
   overflow: hidden;
@@ -10429,7 +10429,7 @@ a.cart-item__name:hover {
 
   .pdp-gallery__thumb {
     width: 56px;
-    height: 72px;
+    height: 56px;
   }
 }
 
