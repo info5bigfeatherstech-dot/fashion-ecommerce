@@ -247,16 +247,26 @@ const ProductFormBody = ({
 
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-gray-700">Featured Product</span>
-              <button type="button" onClick={() => setFormData((p) => ({ ...p, isFeatured: !p.isFeatured }))} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isFeatured ? "bg-yellow-500" : "bg-gray-300"}`}>
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isFeatured ? "translate-x-6" : "translate-x-1"}`} />
+              <button
+                type="button"
+                aria-pressed={Boolean(formData.isFeatured)}
+                onClick={() => setFormData((p) => ({ ...p, isFeatured: !p.isFeatured }))}
+                className={`pf-toggle pf-toggle--featured${formData.isFeatured ? ' is-on' : ''}`}
+              >
+                <span className="pf-toggle__knob" />
               </button>
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700">Sold Info</span>
-                <button type="button" onClick={() => setFormData((p) => ({ ...p, soldInfo: { ...p.soldInfo, enabled: !p.soldInfo.enabled } }))} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.soldInfo?.enabled ? "bg-blue-500" : "bg-gray-300"}`}>
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.soldInfo?.enabled ? "translate-x-6" : "translate-x-1"}`} />
+                <button
+                  type="button"
+                  aria-pressed={Boolean(formData.soldInfo?.enabled)}
+                  onClick={() => setFormData((p) => ({ ...p, soldInfo: { ...p.soldInfo, enabled: !p.soldInfo.enabled } }))}
+                  className={`pf-toggle pf-toggle--sold${formData.soldInfo?.enabled ? ' is-on' : ''}`}
+                >
+                  <span className="pf-toggle__knob" />
                 </button>
               </div>
               {formData.soldInfo?.enabled && (
@@ -267,8 +277,13 @@ const ProductFormBody = ({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700">FOMO</span>
-                <button type="button" onClick={() => setFormData((p) => ({ ...p, fomo: { ...p.fomo, enabled: !p.fomo.enabled } }))} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.fomo?.enabled ? "bg-purple-500" : "bg-gray-300"}`}>
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.fomo?.enabled ? "translate-x-6" : "translate-x-1"}`} />
+                <button
+                  type="button"
+                  aria-pressed={Boolean(formData.fomo?.enabled)}
+                  onClick={() => setFormData((p) => ({ ...p, fomo: { ...p.fomo, enabled: !p.fomo.enabled } }))}
+                  className={`pf-toggle pf-toggle--fomo${formData.fomo?.enabled ? ' is-on' : ''}`}
+                >
+                  <span className="pf-toggle__knob" />
                 </button>
               </div>
               {formData.fomo?.enabled && (

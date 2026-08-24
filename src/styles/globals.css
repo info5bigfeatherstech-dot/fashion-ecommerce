@@ -13841,6 +13841,51 @@ button.admin-stats-chip {
   gap: 14px;
 }
 
+.pf-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid #6b7280;
+  border-radius: 999px;
+  background: #6b7280;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.pf-toggle__knob {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  transform: translateX(2px);
+  transition: transform 0.15s ease;
+}
+
+.pf-toggle.is-on .pf-toggle__knob {
+  transform: translateX(22px);
+}
+
+.pf-toggle--featured.is-on {
+  background: #ca8a04;
+  border-color: #a16207;
+}
+
+.pf-toggle--sold.is-on {
+  background: #2563eb;
+  border-color: #1d4ed8;
+}
+
+.pf-toggle--fomo.is-on {
+  background: #7c3aed;
+  border-color: #6d28d9;
+}
+
 .pf-field {
   display: flex;
   flex-direction: column;
