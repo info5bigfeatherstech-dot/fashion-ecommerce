@@ -22,11 +22,11 @@ export function SmoothScroll() {
         wheelMultiplier: 0.85,
         touchMultiplier: 1,
         autoRaf: false,
-        // Let dialogs / modals own the wheel scroll
+        // Let dialogs / nested scroll panels own the wheel scroll
         prevent: (node) =>
           Boolean(
             node?.closest?.(
-              '.modal-content, [role="dialog"], [data-lenis-prevent], [data-radix-dialog-content]'
+              '.modal-content, [role="dialog"], [data-lenis-prevent], [data-radix-dialog-content], .admin-sidebar, .admin-sidebar__nav'
             )
           ),
       })

@@ -80,7 +80,11 @@ export function AdminShell() {
           <h1 className="admin-sidebar__title">Admin</h1>
         </div>
 
-        <nav className="admin-sidebar__nav" aria-label="Admin navigation">
+        <nav
+          className="admin-sidebar__nav"
+          aria-label="Admin navigation"
+          data-lenis-prevent
+        >
           {Array.from(navGroups.entries()).map(([group, items]) => (
             <div key={group} className="admin-sidebar__group">
               <p className="admin-sidebar__group-label">{group}</p>

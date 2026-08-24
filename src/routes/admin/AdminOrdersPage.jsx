@@ -245,6 +245,36 @@ export default function AdminOrdersPage() {
             </Button>
           )}
         </form> */}
+        {/* <form
+          className="admin-toolbar__search"
+          onSubmit={(e) => {
+            e.preventDefault()
+            setSearch(searchInput.trim())
+            setPage(1)
+          }}
+        >
+          <Input
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search order ID, phone…"
+            aria-label="Search orders"
+          />
+          <Button type="submit" variant="secondary" size="sm">Search</Button>
+          {search && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSearch('')
+                setSearchInput('')
+                setPage(1)
+              }}
+            >
+              Clear
+            </Button>
+          )}
+        </form> */}
       </div>
 
       {bucket === 'Pending' && selectedOrders.length > 0 && (
@@ -397,9 +427,10 @@ export default function AdminOrdersPage() {
           )}
         </section>
 
+        {selectedOrderId ? (
         <aside className="admin-detail-panel">
-          {selectedOrderId && detailLoading && <AdminLoading label="Loading order…" />}
-          {selectedOrderId && orderDetail && !detailLoading && (
+          {detailLoading && <AdminLoading label="Loading order…" />}
+          {orderDetail && !detailLoading && (
             <>
               <div className="admin-card">
                 <div className="admin-card__head">
@@ -492,6 +523,7 @@ export default function AdminOrdersPage() {
             </>
           )}
         </aside>
+        ) : null}
       </div>
     </div>
   )
