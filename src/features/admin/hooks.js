@@ -5,6 +5,15 @@ import {
   autoSyncOrderStatuses,
   bulkCancelOrders,
   bulkConfirmOrders,
+  bulkShipNowOrders,
+  bulkSchedulePickupOrders,
+  bulkSyncShiprocketOrders,
+  downloadBulkTaxInvoicesZip,
+  downloadBulkShippingLabelsZip,
+  downloadBulkManifestsZip,
+  decideAdminReturnRequest,
+  initiateAdminReturnRefund,
+  retryAdminReturnReversePickup,
   createAdminCoupon,
   createAdminStaff,
   deleteAdminCoupon,
@@ -24,6 +33,14 @@ import {
   getAdminProductsAll,
   getAdminProductsArchived,
   getAdminProductsLowStock,
+  getAdminCategories,
+  exportAdminProducts,
+  createAdminProduct,
+  updateAdminProduct,
+  archiveAdminProduct,
+  toggleAdminProductFeatured,
+  bulkUpdateAdminProductStatus,
+  bulkUpdateAdminProductFlags,
   getAdminReturnDetail,
   getAdminReturnRequests,
   getAdminRtoAnalytics,
@@ -34,6 +51,7 @@ import {
   getAdminStaleWishlists,
   getAdminUserDetail,
   getAdminUsers,
+  exportAdminUsers,
   getAdminWishlists,
   getAdminPopularWishlistProducts,
   hardDeleteAdminProduct,
@@ -189,6 +207,86 @@ export function useBulkCancelOrders() {
   })
 }
 
+export function useBulkShipNowOrders() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (orderIds) => bulkShipNowOrders(orderIds),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.ordersSummary() })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'orders-list'] })
+    },
+  })
+}
+
+export function useBulkSchedulePickupOrders() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ orderIds, pickupDate }) => bulkSchedulePickupOrders(orderIds, pickupDate),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.ordersSummary() })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'orders-list'] })
+    },
+  })
+}
+
+export function useBulkSyncShiprocketOrders() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (orderIds) => bulkSyncShiprocketOrders(orderIds),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.ordersSummary() })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'orders-list'] })
+    },
+  })
+}
+
+export function useDownloadBulkTaxInvoicesZip() {
+  return useMutation({ mutationFn: downloadBulkTaxInvoicesZip })
+}
+
+export function useDownloadBulkShippingLabelsZip() {
+  return useMutation({ mutationFn: downloadBulkShippingLabelsZip })
+}
+
+export function useDownloadBulkManifestsZip() {
+  return useMutation({ mutationFn: downloadBulkManifestsZip })
+}
+
+export function useDecideAdminReturnRequest() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ orderId, decision, decisionReason }) =>
+      decideAdminReturnRequest(orderId, { decision, decisionReason }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.returns() })
+    },
+  })
+}
+
+export function useInitiateAdminReturnRefund() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: initiateAdminReturnRefund,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.returns() })
+    },
+  })
+}
+
+export function useRetryAdminReturnReversePickup() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: retryAdminReturnReversePickup,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.returns() })
+    },
+  })
+}
+
+export function useExportAdminUsers() {
+  return useMutation({ mutationFn: exportAdminUsers })
+}
+
 export function useAutoSyncOrderStatuses() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -220,11 +318,11 @@ export function useAdminProductsActiveCount({ enabled = true } = {}) {
   })
 }
 
-export function useAdminProductsLowStock({ enabled = true } = {}) {
+export function useAdminProductsLowStock({ page = 1, limit = 100, enabled = true } = {}) {
   const queryEnabled = useAdminQueryEnabled(enabled)
   return useQuery({
-    queryKey: adminKeys.productsLowStock(),
-    queryFn: ({ signal }) => getAdminProductsLowStock({ signal }),
+    queryKey: [...adminKeys.productsLowStock(), page, limit],
+    queryFn: ({ signal }) => getAdminProductsLowStock({ signal, page, limit }),
     enabled: queryEnabled,
     staleTime: 1000 * 60,
   })
@@ -258,6 +356,71 @@ export function useHardDeleteAdminProduct() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'products-archived'] })
     },
+  })
+}
+
+export function useAdminCategories({ enabled = true } = {}) {
+  const queryEnabled = useAdminQueryEnabled(enabled)
+  return useQuery({
+    queryKey: [...adminKeys.all, 'categories'],
+    queryFn: ({ signal }) => getAdminCategories({ signal }),
+    enabled: queryEnabled,
+    staleTime: 1000 * 60 * 5,
+  })
+}
+
+export function useExportAdminProducts() {
+  return useMutation({ mutationFn: exportAdminProducts })
+}
+
+export function useCreateAdminProduct() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: createAdminProduct,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'products-all'] }),
+  })
+}
+
+export function useUpdateAdminProduct() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ slug, formData }) => updateAdminProduct(slug, formData),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'products-all'] }),
+  })
+}
+
+export function useArchiveAdminProduct() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: archiveAdminProduct,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products-all'] })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products-archived'] })
+    },
+  })
+}
+
+export function useToggleAdminProductFeatured() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ slug, isFeatured }) => toggleAdminProductFeatured(slug, isFeatured),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'products-all'] }),
+  })
+}
+
+export function useBulkUpdateAdminProductStatus() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: bulkUpdateAdminProductStatus,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'products-all'] }),
+  })
+}
+
+export function useBulkUpdateAdminProductFlags() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: bulkUpdateAdminProductFlags,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'products-all'] }),
   })
 }
 

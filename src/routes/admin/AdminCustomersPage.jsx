@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react'
+import { Download } from 'lucide-react'
+import { toast } from 'sonner'
 import {
   AdminEmpty,
   AdminError,
@@ -8,7 +10,7 @@ import {
   AdminTable,
   extractListPayload,
 } from '@/features/admin/components/AdminUi'
-import { useAdminUsers } from '@/features/admin/hooks'
+import { useAdminUsers, useExportAdminUsers } from '@/features/admin/hooks'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 
@@ -18,14 +20,28 @@ export default function AdminCustomersPage() {
   const [searchInput, setSearchInput] = useState('')
 
   const { data, isLoading, isError, error, refetch } = useAdminUsers({ page, search })
+  const exportUsers = useExportAdminUsers()
   const { items: users, pagination } = useMemo(
     () => extractListPayload(data, ['users', 'data']),
     [data]
   )
 
+  const handleExport = async () => {
+    try {
+      await exportUsers.mutateAsync({ search })
+      toast.success('Customers exported')
+    } catch (err) {
+      toast.error(err?.message || 'Export failed')
+    }
+  }
+
   return (
     <div className="admin-page">
-      <AdminPageHeader eyebrow="Leads" title="Customers" />
+      <AdminPageHeader eyebrow="Leads" title="Customers">
+        <Button variant="secondary" size="sm" onClick={handleExport} disabled={exportUsers.isPending}>
+          <Download size={14} /> {exportUsers.isPending ? 'Exporting…' : 'Export Excel'}
+        </Button>
+      </AdminPageHeader>
       <form
         className="admin-toolbar"
         onSubmit={(e) => {

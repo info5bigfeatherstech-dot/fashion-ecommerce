@@ -1,5 +1,5 @@
 import { API_ENDPOINTS } from '@/api/endpoints'
-import { adminGet, unwrapAdmin } from './client'
+import { adminGet, adminGetBlob, downloadBlob, unwrapAdmin } from './client'
 
 export async function getAdminUsers({ signal, page = 1, limit = 20, search = '', role = '' } = {}) {
   const params = { page, limit }
@@ -65,4 +65,13 @@ export async function getAdminPopularWishlistProducts({ signal, limit = 20 } = {
 export async function getAdminDashboardSummary({ signal } = {}) {
   const payload = await adminGet(API_ENDPOINTS.admin.dashboardSummary, { signal })
   return unwrapAdmin(payload)
+}
+
+export async function exportAdminUsers({ search = '', role = '' } = {}) {
+  const params = {}
+  if (String(search || '').trim()) params.search = String(search).trim()
+  if (role) params.role = role
+  const response = await adminGetBlob(API_ENDPOINTS.admin.usersExport, { params })
+  const today = new Date().toISOString().slice(0, 10)
+  downloadBlob(response.data, `customers_export_${today}.xlsx`)
 }

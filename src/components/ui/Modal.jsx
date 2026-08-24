@@ -3,7 +3,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
 import { startLenis, stopLenis } from '@/lib/lenis'
 
-export function Modal({ open, onOpenChange, title, children, className, overlayClassName }) {
+export function Modal({ open, onOpenChange, title, subtitle, children, className, overlayClassName, footer }) {
   useEffect(() => {
     if (!open) {
       startLenis()
@@ -31,8 +31,15 @@ export function Modal({ open, onOpenChange, title, children, className, overlayC
           onTouchMove={(event) => event.stopPropagation()}
         >
           <div className="modal-header">
-            {title && (
-              <Dialog.Title className="modal-title">{title}</Dialog.Title>
+            {(title || subtitle) && (
+              <div className="modal-header__text">
+                {title && (
+                  <Dialog.Title className="modal-title">{title}</Dialog.Title>
+                )}
+                {subtitle && (
+                  <p className="modal-subtitle">{subtitle}</p>
+                )}
+              </div>
             )}
             <Dialog.Close asChild>
               <button className="btn btn--ghost btn--icon" aria-label="Close">
@@ -41,6 +48,7 @@ export function Modal({ open, onOpenChange, title, children, className, overlayC
             </Dialog.Close>
           </div>
           {children}
+          {footer}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

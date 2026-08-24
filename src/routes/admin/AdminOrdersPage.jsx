@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { ChevronDown, Download } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatPrice } from '@/lib/utils'
 import { OrderPaymentSummaryCard } from '@/features/admin/components/OrderPaymentSummaryCard'
@@ -19,7 +20,14 @@ import {
   useAdminOrdersList,
   useAdminOrdersSummary,
   useAutoSyncOrderStatuses,
+  useBulkCancelOrders,
   useBulkConfirmOrders,
+  useBulkSchedulePickupOrders,
+  useBulkShipNowOrders,
+  useBulkSyncShiprocketOrders,
+  useDownloadBulkManifestsZip,
+  useDownloadBulkShippingLabelsZip,
+  useDownloadBulkTaxInvoicesZip,
 } from '@/features/admin/hooks'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -63,6 +71,12 @@ function paymentTone(label) {
   return 'muted'
 }
 
+function tomorrowYmd() {
+  const d = new Date()
+  d.setDate(d.getDate() + 1)
+  return d.toISOString().slice(0, 10)
+}
+
 export default function AdminOrdersPage() {
   const [bucket, setBucket] = useState('Pending')
   const [page, setPage] = useState(1)
@@ -70,6 +84,10 @@ export default function AdminOrdersPage() {
   const [searchInput, setSearchInput] = useState('')
   const [selectedOrderId, setSelectedOrderId] = useState(null)
   const [selectedOrders, setSelectedOrders] = useState([])
+  const [showBulkMenu, setShowBulkMenu] = useState(false)
+  const [pickupDate, setPickupDate] = useState(tomorrowYmd())
+  const [showPickupPanel, setShowPickupPanel] = useState(false)
+  const [bulkBusy, setBulkBusy] = useState(false)
 
   const { data: summary, refetch: refetchSummary } = useAdminOrdersSummary()
   const { data: listData, isLoading, isError, error, refetch } = useAdminOrdersList({
@@ -81,6 +99,13 @@ export default function AdminOrdersPage() {
     enabled: Boolean(selectedOrderId),
   })
   const confirmOrders = useBulkConfirmOrders()
+  const cancelOrders = useBulkCancelOrders()
+  const shipNow = useBulkShipNowOrders()
+  const schedulePickup = useBulkSchedulePickupOrders()
+  const syncShiprocket = useBulkSyncShiprocketOrders()
+  const taxInvoicesZip = useDownloadBulkTaxInvoicesZip()
+  const shippingLabelsZip = useDownloadBulkShippingLabelsZip()
+  const manifestsZip = useDownloadBulkManifestsZip()
   const syncStatuses = useAutoSyncOrderStatuses()
 
   const { items: orders, pagination } = useMemo(
@@ -105,6 +130,11 @@ export default function AdminOrdersPage() {
     })
   ), [countsByBucket])
 
+  const refreshList = () => {
+    refetch()
+    refetchSummary()
+  }
+
   const toggleSelectOrder = (orderId) => {
     setSelectedOrders((prev) =>
       prev.includes(orderId) ? prev.filter((id) => id !== orderId) : [...prev, orderId]
@@ -126,10 +156,72 @@ export default function AdminOrdersPage() {
       await confirmOrders.mutateAsync(ids)
       toast.success(ids.length > 1 ? `${ids.length} orders confirmed` : 'Order confirmed')
       setSelectedOrders([])
-      refetch()
-      refetchSummary()
+      refreshList()
     } catch (err) {
       toast.error(err?.message || 'Could not confirm order')
+    }
+  }
+
+  const handleCancel = async (orderIds) => {
+    const ids = (Array.isArray(orderIds) ? orderIds : [orderIds]).filter(Boolean)
+    if (!ids.length) return
+    if (!window.confirm(`Cancel ${ids.length} order(s)? Stock will be restored.`)) return
+    try {
+      await cancelOrders.mutateAsync({ orderIds: ids })
+      toast.success('Orders cancelled')
+      setSelectedOrders([])
+      refreshList()
+    } catch (err) {
+      toast.error(err?.message || 'Could not cancel orders')
+    }
+  }
+
+  const runBulkMutation = async (label, fn) => {
+    if (!selectedOrders.length) return
+    setBulkBusy(true)
+    try {
+      const data = await fn(selectedOrders)
+      const summaryText = data?.summary
+        ? `Success: ${data.summary.success ?? 0}, Failed: ${data.summary.failed ?? 0}`
+        : label
+      toast.success(summaryText)
+      setSelectedOrders([])
+      setShowBulkMenu(false)
+      setShowPickupPanel(false)
+      refreshList()
+    } catch (err) {
+      toast.error(err?.message || `${label} failed`)
+    } finally {
+      setBulkBusy(false)
+    }
+  }
+
+  const handleShipNow = () => runBulkMutation('Ship now', (ids) => shipNow.mutateAsync(ids))
+  const handleSyncShiprocket = () => {
+    if (!window.confirm(`Refresh Shiprocket for ${selectedOrders.length} order(s)?`)) return
+    runBulkMutation('Shiprocket sync', (ids) => syncShiprocket.mutateAsync(ids))
+  }
+  const handleSchedulePickup = () => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(pickupDate)) {
+      toast.error('Choose a valid pickup date')
+      return
+    }
+    runBulkMutation('Pickup scheduled', (ids) =>
+      schedulePickup.mutateAsync({ orderIds: ids, pickupDate })
+    )
+  }
+
+  const runZipDownload = async (mutation, label) => {
+    if (!selectedOrders.length) return
+    setBulkBusy(true)
+    try {
+      await mutation.mutateAsync(selectedOrders)
+      toast.success(`${label} downloaded`)
+      setShowBulkMenu(false)
+    } catch (err) {
+      toast.error(err?.message || `${label} failed`)
+    } finally {
+      setBulkBusy(false)
     }
   }
 
@@ -165,19 +257,28 @@ export default function AdminOrdersPage() {
 
   const items = orderDetail?.items || orderDetail?.orderItems || []
   const allSelected = orders.length > 0 && selectedOrders.length === orders.length
+  const bulkPending = bulkBusy || confirmOrders.isPending || cancelOrders.isPending || shipNow.isPending
 
   return (
     <div className="admin-page">
       <AdminPageHeader eyebrow="Operations" title="Orders">
         <div className="admin-toolbar" style={{ marginBottom: 0 }}>
           <Button variant="secondary" size="sm" onClick={handleDownloadReport}>
-            Order report
+            <Download size={14} /> Order report
           </Button>
           <Button
             variant="ghost"
             size="sm"
             disabled={syncStatuses.isPending}
-            onClick={() => syncStatuses.mutateAsync({})}
+            onClick={async () => {
+              try {
+                await syncStatuses.mutateAsync({})
+                toast.success('Statuses synced')
+                refreshList()
+              } catch (err) {
+                toast.error(err?.message || 'Sync failed')
+              }
+            }}
           >
             {syncStatuses.isPending ? 'Syncing…' : 'Sync statuses'}
           </Button>
@@ -215,7 +316,7 @@ export default function AdminOrdersPage() {
           ))}
         </div>
 
-        {/* <form
+        <form
           className="admin-toolbar__search"
           onSubmit={(e) => {
             e.preventDefault()
@@ -226,7 +327,7 @@ export default function AdminOrdersPage() {
           <Input
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search order ID, phone…"
+            placeholder="Search order ID, AWB, phone…"
             aria-label="Search orders"
           />
           <Button type="submit" variant="secondary" size="sm">Search</Button>
@@ -244,50 +345,72 @@ export default function AdminOrdersPage() {
               Clear
             </Button>
           )}
-        </form> */}
-        {/* <form
-          className="admin-toolbar__search"
-          onSubmit={(e) => {
-            e.preventDefault()
-            setSearch(searchInput.trim())
-            setPage(1)
-          }}
-        >
-          <Input
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search order ID, phone…"
-            aria-label="Search orders"
-          />
-          <Button type="submit" variant="secondary" size="sm">Search</Button>
-          {search && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setSearch('')
-                setSearchInput('')
-                setPage(1)
-              }}
-            >
-              Clear
-            </Button>
-          )}
-        </form> */}
+        </form>
       </div>
 
-      {bucket === 'Pending' && selectedOrders.length > 0 && (
-        <div className="admin-bulk-bar">
+      {selectedOrders.length > 0 && (
+        <div className="admin-bulk-bar admin-bulk-bar--orders">
           <span>{selectedOrders.length} selected</span>
-          <Button
-            variant="primary"
-            size="sm"
-            disabled={confirmOrders.isPending}
-            onClick={() => handleConfirm(selectedOrders)}
-          >
-            Accept selected
-          </Button>
+          <div className="admin-row-actions">
+            {bucket === 'Pending' && (
+              <>
+                <Button variant="primary" size="sm" disabled={bulkPending} onClick={() => handleConfirm(selectedOrders)}>
+                  Accept selected
+                </Button>
+                <Button variant="secondary" size="sm" disabled={bulkPending} onClick={() => handleCancel(selectedOrders)}>
+                  Cancel selected
+                </Button>
+              </>
+            )}
+            {(bucket === 'Confirmed' || bucket === 'Ready to Ship') && (
+              <Button variant="primary" size="sm" disabled={bulkPending} onClick={handleShipNow}>
+                Ship now
+              </Button>
+            )}
+            <div className="admin-bulk-menu">
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={bulkPending}
+                onClick={() => setShowBulkMenu((v) => !v)}
+              >
+                Bulk actions <ChevronDown size={14} />
+              </Button>
+              {showBulkMenu && (
+                <div className="admin-bulk-menu__panel">
+                  <button type="button" disabled={bulkPending} onClick={() => handleSyncShiprocket()}>
+                    Refresh Shiprocket
+                  </button>
+                  <button type="button" disabled={bulkPending} onClick={() => { setShowPickupPanel(true); setShowBulkMenu(false) }}>
+                    Schedule pickup
+                  </button>
+                  <button type="button" disabled={bulkPending} onClick={() => runZipDownload(taxInvoicesZip, 'Tax invoices ZIP')}>
+                    Tax invoices (ZIP)
+                  </button>
+                  <button type="button" disabled={bulkPending} onClick={() => runZipDownload(shippingLabelsZip, 'Shipping labels ZIP')}>
+                    Shipping labels (ZIP)
+                  </button>
+                  <button type="button" disabled={bulkPending} onClick={() => runZipDownload(manifestsZip, 'Manifests ZIP')}>
+                    Shiprocket manifests (ZIP)
+                  </button>
+                </div>
+              )}
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setSelectedOrders([])}>Clear</Button>
+          </div>
+        </div>
+      )}
+
+      {showPickupPanel && selectedOrders.length > 0 && (
+        <div className="admin-card admin-pickup-panel">
+          <strong>Schedule pickup</strong>
+          <div className="admin-row-actions">
+            <Input type="date" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)} />
+            <Button variant="primary" size="sm" disabled={bulkPending} onClick={handleSchedulePickup}>
+              Confirm pickup
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setShowPickupPanel(false)}>Cancel</Button>
+          </div>
         </div>
       )}
 
@@ -382,14 +505,24 @@ export default function AdminOrdersPage() {
                         </td>
                         <td onClick={(e) => e.stopPropagation()}>
                           {bucket === 'Pending' ? (
-                            <Button
-                              variant="primary"
-                              size="sm"
-                              disabled={confirmOrders.isPending}
-                              onClick={() => handleConfirm([id])}
-                            >
-                              Accept
-                            </Button>
+                            <div className="admin-row-actions">
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                disabled={confirmOrders.isPending}
+                                onClick={() => handleConfirm([id])}
+                              >
+                                Accept
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                disabled={cancelOrders.isPending}
+                                onClick={() => handleCancel([id])}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
                           ) : (
                             <Button
                               variant="ghost"
@@ -444,14 +577,24 @@ export default function AdminOrdersPage() {
                   </div>
                   <div className="admin-row-actions">
                     {bucket === 'Pending' && (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={confirmOrders.isPending}
-                        onClick={() => handleConfirm([selectedOrderId])}
-                      >
-                        Accept
-                      </Button>
+                      <>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          disabled={confirmOrders.isPending}
+                          onClick={() => handleConfirm([selectedOrderId])}
+                        >
+                          Accept
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={cancelOrders.isPending}
+                          onClick={() => handleCancel([selectedOrderId])}
+                        >
+                          Cancel
+                        </Button>
+                      </>
                     )}
                     <Button
                       variant="ghost"

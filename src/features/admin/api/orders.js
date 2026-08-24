@@ -1,5 +1,5 @@
 import { API_ENDPOINTS } from '@/api/endpoints'
-import { adminGet, adminPost, unwrapAdmin } from './client'
+import { adminGet, adminPost, adminPostBlob, downloadBlob, unwrapAdmin } from './client'
 
 /** Maps UI tab labels → backend `bucket` query param (same as fabFE). */
 export const ORDER_TAB_LABEL_TO_BUCKET = Object.freeze({
@@ -125,5 +125,78 @@ export async function getAdminRtoOrders({ signal, page = 1, limit = 20 } = {}) {
 
 export async function getAdminRtoAnalytics({ signal } = {}) {
   const payload = await adminGet(API_ENDPOINTS.admin.rtoAnalytics, { signal })
+  return unwrapAdmin(payload)
+}
+
+export async function bulkShipNowOrders(orderIds) {
+  const ids = Array.isArray(orderIds) ? orderIds : (orderIds?.orderIds || [])
+  const payload = await adminPost(API_ENDPOINTS.admin.bulkShipNow, { orderIds: ids })
+  return unwrapAdmin(payload)
+}
+
+export async function bulkSchedulePickupOrders(orderIds, pickupDate) {
+  const ids = Array.isArray(orderIds) ? orderIds : (orderIds?.orderIds || [])
+  const payload = await adminPost(API_ENDPOINTS.admin.bulkSchedulePickup, {
+    orderIds: ids,
+    pickupDate,
+  })
+  return unwrapAdmin(payload)
+}
+
+export async function bulkSyncShiprocketOrders(orderIds) {
+  const ids = Array.isArray(orderIds) ? orderIds : (orderIds?.orderIds || [])
+  const payload = await adminPost(API_ENDPOINTS.admin.bulkSyncShiprocket, { orderIds: ids })
+  return unwrapAdmin(payload)
+}
+
+async function downloadBulkOrderZip(url, orderIds, filenamePrefix) {
+  const response = await adminPostBlob(url, { orderIds, concurrency: 4 })
+  const ct = String(response.headers?.['content-type'] || '')
+  if (ct.includes('application/json')) {
+    const text = await response.data.text()
+    let message = 'Download failed'
+    try {
+      message = JSON.parse(text)?.message || message
+    } catch {
+      message = text || message
+    }
+    throw new Error(message)
+  }
+  if (!(response.data instanceof Blob) || response.data.size === 0) {
+    throw new Error('Unexpected empty response from server')
+  }
+  downloadBlob(response.data, `${filenamePrefix}-${Date.now()}.zip`)
+}
+
+export async function downloadBulkTaxInvoicesZip(orderIds) {
+  const ids = Array.isArray(orderIds) ? orderIds : (orderIds?.orderIds || [])
+  return downloadBulkOrderZip(API_ENDPOINTS.admin.bulkTaxInvoicesZip, ids, 'tax-invoices-bulk')
+}
+
+export async function downloadBulkShippingLabelsZip(orderIds) {
+  const ids = Array.isArray(orderIds) ? orderIds : (orderIds?.orderIds || [])
+  return downloadBulkOrderZip(API_ENDPOINTS.admin.bulkShippingLabelsZip, ids, 'shipping-labels-bulk')
+}
+
+export async function downloadBulkManifestsZip(orderIds) {
+  const ids = Array.isArray(orderIds) ? orderIds : (orderIds?.orderIds || [])
+  return downloadBulkOrderZip(API_ENDPOINTS.admin.bulkManifestsZip, ids, 'shiprocket-manifests-bulk')
+}
+
+export async function decideAdminReturnRequest(orderId, { decision, decisionReason = '' } = {}) {
+  const payload = await adminPost(API_ENDPOINTS.admin.returnDecision(orderId), {
+    decision,
+    decisionReason,
+  })
+  return unwrapAdmin(payload)
+}
+
+export async function initiateAdminReturnRefund(orderId) {
+  const payload = await adminPost(API_ENDPOINTS.admin.returnRefund(orderId))
+  return unwrapAdmin(payload)
+}
+
+export async function retryAdminReturnReversePickup(orderId) {
+  const payload = await adminPost(API_ENDPOINTS.admin.returnReversePickupRetry(orderId))
   return unwrapAdmin(payload)
 }
