@@ -1,0 +1,3 @@
+@import "tailwindcss" source(none);
+@source "../features/admin/components/product-form";
+@source "../features/admin/components/AdminProductModal.jsx";

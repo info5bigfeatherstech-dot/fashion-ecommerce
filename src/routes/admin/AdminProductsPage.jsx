@@ -469,6 +469,7 @@ export default function AdminProductsPage() {
         onOpenChange={setShowProductModal}
         product={editingProduct}
         categories={categories}
+        products={rawProducts}
         onSaved={() => listRefetch()}
       />
       <AdminBulkUploadModal

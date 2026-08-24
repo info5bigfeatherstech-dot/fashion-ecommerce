@@ -13,7 +13,7 @@ import { useAdminUsers } from '@/features/admin/hooks'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
-import { DropdownMenu } from '@/components/ui/DropdownMenu'
+import { ActionMenu } from '@/components/ui/DropdownMenu'
 
 const ROLE_OPTIONS = [
   { value: 'all', label: 'All Roles' },
@@ -140,7 +140,7 @@ function LeadRow({ lead, onAction }) {
           >
             <Share2 size={16} />
           </button>
-          <DropdownMenu
+          <ActionMenu
             trigger={
               <button type="button" className="lead-action-btn">
                 <MoreVertical size={16} />

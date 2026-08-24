@@ -30,6 +30,7 @@ import {
 } from '@/features/admin/hooks'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { ActionMenu } from '@/components/ui/DropdownMenu'
 
 function formatInr(amount) {
   const n = Number(amount)
@@ -531,22 +532,42 @@ export default function AdminOrdersPage() {
                         <td onClick={(e) => e.stopPropagation()}>
                           {bucket === 'Pending' ? (
                             <div className="admin-row-actions">
-                              <Button
-                                variant="primary"
-                                size="sm"
-                                disabled={confirmOrders.isPending}
-                                onClick={() => handleConfirm([id])}
-                              >
-                                Accept
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                disabled={cancelOrders.isPending}
-                                onClick={() => handleCancel([id])}
-                              >
-                                Cancel
-                              </Button>
+                              <div className="admin-split-button">
+                                <Button
+                                  variant="primary"
+                                  size="sm"
+                                  disabled={confirmOrders.isPending}
+                                  onClick={() => handleConfirm([id])}
+                                  className="admin-split-button__main"
+                                >
+                                  Accept
+                                </Button>
+                                <ActionMenu
+                                  trigger={
+                                    <button
+                                      type="button"
+                                      className="admin-split-button__dropdown"
+                                      disabled={confirmOrders.isPending}
+                                      aria-label="More actions"
+                                    >
+                                      <ChevronDown size={14} />
+                                    </button>
+                                  }
+                                  items={[
+                                    {
+                                      label: 'Reject',
+                                      onClick: () => handleCancel([id]),
+                                    },
+                                    {
+                                      label: 'Open order',
+                                      onClick: () => {
+                                        setSelectedOrderId(id)
+                                        setViewMode('detail')
+                                      },
+                                    },
+                                  ]}
+                                />
+                              </div>
                             </div>
                           ) : (
                             <Button

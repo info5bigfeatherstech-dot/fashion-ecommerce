@@ -118,3 +118,26 @@ export const DropdownMenuSubContent = forwardRef(function DropdownMenuSubContent
     <DropdownMenuPrimitive.SubContent ref={ref} className={cn('dropdown-content', className)} {...props} />
   )
 })
+
+export function ActionMenu({ trigger, items, align = 'end', sideOffset = 4 }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
+      <DropdownMenuContent align={align} sideOffset={sideOffset}>
+        {items.map((item) => (
+          <DropdownMenuItem
+            key={item.label}
+            disabled={item.disabled}
+            className={item.danger ? 'dropdown-item--danger' : undefined}
+            onSelect={(event) => {
+              event.preventDefault()
+              item.onClick?.()
+            }}
+          >
+            {item.label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}

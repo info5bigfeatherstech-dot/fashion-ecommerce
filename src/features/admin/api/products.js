@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from '@/api/endpoints'
+import { buildVariantCatalogApiPayload } from '@/lib/variantCatalogForm'
 import {
   adminDelete,
   adminGet,
@@ -41,6 +42,24 @@ export async function getAdminProductsArchived({ signal, page = 1, limit = 50 } 
 export async function getAdminCategories({ signal } = {}) {
   const payload = await adminGet(API_ENDPOINTS.admin.categories, { signal })
   return unwrapAdmin(payload)
+}
+
+export async function createAdminCategory({ name, description = '', parent = '', status = 'active' } = {}) {
+  const fd = new FormData()
+  fd.append('name', name)
+  if (description) fd.append('description', description)
+  if (parent) fd.append('parent', parent)
+  if (status) fd.append('status', status)
+  const axiosClient = (await import('@/api/axiosClient')).default
+  const response = await axiosClient.request({
+    method: 'POST',
+    url: API_ENDPOINTS.admin.categories,
+    data: fd,
+    headers: { 'Content-Type': 'multipart/form-data' },
+    useAdminAuth: true,
+  })
+  const data = unwrapAdmin(response.data)
+  return data?.category || data
 }
 
 export async function exportAdminProducts() {
@@ -213,6 +232,151 @@ export function buildProductFormData(values, { isEdit = false } = {}) {
   if (!isEdit && values.imageFile instanceof File) {
     fd.append('variantImages_0', values.imageFile)
   }
+
+  return fd
+}
+
+const toNum = (raw) => {
+  if (raw === '' || raw === null || raw === undefined) return undefined
+  const n = parseFloat(raw)
+  return Number.isNaN(n) ? undefined : n
+}
+
+const SUFFIXED_PRODUCT_CODE_REGEX = /^([A-Z0-9]+)-(\d+)$/
+
+function buildPriceObj(price, label = 'Base price') {
+  const base = toNum(price?.base)
+  if (base === undefined) throw new Error(`${label} is required`)
+  if (base <= 0) throw new Error(`${label} must be greater than 0`)
+  const saleRaw = toNum(price?.sale)
+  const sale = price?.sale !== '' && price?.sale != null && saleRaw !== undefined ? saleRaw : null
+  const priceObj = { base, sale }
+  if (price?.wholesaleBase !== undefined && price?.wholesaleBase !== '') {
+    priceObj.wholesaleBase = toNum(price.wholesaleBase) || 0
+  }
+  if (price?.wholesaleSale !== undefined && price?.wholesaleSale !== '') {
+    priceObj.wholesaleSale = toNum(price.wholesaleSale) ?? null
+  }
+  return priceObj
+}
+
+function buildInventoryObj(inv) {
+  return {
+    quantity: parseInt(inv?.quantity, 10) || 0,
+    lowStockThreshold: parseInt(inv?.lowStockThreshold, 10) || 5,
+    trackInventory: inv?.trackInventory !== false,
+  }
+}
+
+function normalizeProductCode(rawCode, label = 'ProductCode') {
+  const code = String(rawCode ?? '').trim().toUpperCase()
+  if (!code) throw new Error(`${label} is required`)
+  const m = code.match(SUFFIXED_PRODUCT_CODE_REGEX)
+  if (!m) throw new Error(`${label} must be in BASE-N format (e.g., 3897-1 or 3897-01)`)
+  const seq = Number(m[2])
+  if (!Number.isInteger(seq) || seq < 1) {
+    throw new Error(`${label} suffix must be a whole number ≥ 1`)
+  }
+  return `${m[1]}-${seq}`
+}
+
+export function buildCreateProductFormData(productData) {
+  const fd = new FormData()
+
+  if (productData.name) fd.append('name', productData.name)
+  if (productData.title) fd.append('title', productData.title)
+  if (productData.description) fd.append('description', productData.description)
+  if (productData.category) fd.append('category', productData.category)
+  if (productData.brand) fd.append('brand', productData.brand)
+  fd.append('status', productData.status || 'draft')
+  fd.append('isFeatured', String(Boolean(productData.isFeatured)))
+  if (productData.hsnCode) fd.append('hsnCode', productData.hsnCode)
+  if (productData.taxRate !== undefined && productData.taxRate !== '') {
+    fd.append('gstRate', String(productData.taxRate))
+  }
+  if (productData.isFragile !== undefined) fd.append('isFragile', String(productData.isFragile))
+
+  const shippingData = {
+    ...productData.shipping,
+    weight: productData.shipping?.weight || 0,
+    dimensions: productData.shipping?.dimensions || { length: 0, width: 0, height: 0 },
+  }
+  fd.append('shipping', JSON.stringify(shippingData))
+  fd.append('soldInfo', JSON.stringify(productData.soldInfo || { enabled: false, count: 0 }))
+  fd.append('fomo', JSON.stringify(productData.fomo || { enabled: false }))
+  if (productData.attributes?.length) fd.append('attributes', JSON.stringify(productData.attributes))
+
+  const productImageFiles = (productData.images || []).filter((img) => img.file instanceof File)
+  productImageFiles.forEach((img) => fd.append('images', img.file))
+
+  const priceData = {
+    base: productData.price?.base,
+    sale: productData.price?.sale,
+  }
+  if (productData.wholesale) {
+    priceData.wholesaleBase = productData.wholesaleBase
+    priceData.wholesaleSale = productData.wholesaleSale
+  }
+  const primaryPrice = buildPriceObj(priceData, 'Main variant base price')
+
+  const extraVariants = []
+  const normalizedVariantCodes = []
+  for (let i = 0; i < (productData.variants || []).length; i++) {
+    const v = productData.variants[i]
+    const variantPriceData = { base: v.price?.base, sale: v.price?.sale }
+    if (v.wholesale) {
+      variantPriceData.wholesaleBase = v.wholesaleBase ?? v.price?.wholesaleBase
+      variantPriceData.wholesaleSale = v.wholesaleSale ?? v.price?.wholesaleSale
+    }
+    const vPrice = buildPriceObj(variantPriceData, `Variant ${i + 1} base price`)
+    const wholesaleEligible = v.wholesale && (toNum(v.wholesaleBase ?? v.price?.wholesaleBase) > 0)
+    const normalizedVariantProductCode = normalizeProductCode(v.ProductCode, `Variant ${i + 1} ProductCode`)
+    normalizedVariantCodes.push(normalizedVariantProductCode)
+    extraVariants.push({
+      productCode: normalizedVariantProductCode,
+      attributes: (v.attributes || []).filter((a) => a.key && a.value),
+      price: vPrice,
+      inventory: buildInventoryObj(v.inventory),
+      isActive: v.isActive !== false,
+      wholesale: v.wholesale || false,
+      minimumOrderQuantity: v.wholesale ? (parseInt(v.minimumOrderQuantity, 10) || 1) : 1,
+      channelVisibility: {
+        ecomm: v.channelVisibility?.ecomm || 'active',
+        wholesale: wholesaleEligible ? 'active' : 'draft',
+      },
+      ...buildVariantCatalogApiPayload({
+        title: v.title,
+        description: v.description,
+        shipping: v.shipping,
+      }),
+    })
+  }
+
+  const primaryWholesaleEligible = productData.wholesale && (toNum(productData.wholesaleBase) > 0)
+  const normalizedMainProductCode = normalizeProductCode(productData.ProductCode, 'Main ProductCode')
+
+  const primaryVariant = {
+    productCode: normalizedMainProductCode,
+    attributes: [],
+    price: primaryPrice,
+    inventory: buildInventoryObj(productData.inventory),
+    isActive: true,
+    wholesale: productData.wholesale || false,
+    minimumOrderQuantity: productData.wholesale ? (parseInt(productData.minimumOrderQuantity, 10) || 1) : 1,
+    channelVisibility: {
+      ecomm: 'active',
+      wholesale: primaryWholesaleEligible ? 'active' : 'draft',
+    },
+  }
+
+  fd.append('variants', JSON.stringify([primaryVariant, ...extraVariants]))
+  productImageFiles.forEach((img) => fd.append('variantImages_0', img.file))
+  ;(productData.variants || []).forEach((variant, vIdx) => {
+    const realIndex = vIdx + 1
+    ;(variant.images || []).forEach((img) => {
+      if (img?.file instanceof File) fd.append(`variantImages_${realIndex}`, img.file)
+    })
+  })
 
   return fd
 }
