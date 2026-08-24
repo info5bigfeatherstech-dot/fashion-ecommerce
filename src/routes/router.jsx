@@ -30,6 +30,15 @@ const AdminCouponsPage = lazy(() => import('./admin/AdminCouponsPage'))
 const AdminStaffPage = lazy(() => import('./admin/AdminStaffPage'))
 const AdminPaymentSettingsPage = lazy(() => import('./admin/AdminPaymentSettingsPage'))
 const AdminDeliverySettingsPage = lazy(() => import('./admin/AdminDeliverySettingsPage'))
+const AdminUtilitiesPage = lazy(() => import('./admin/AdminUtilitiesPage'))
+const AdminEcommercePage = lazy(() => import('./admin/AdminEcommercePage'))
+const AdminMarketingPage = lazy(() => import('./admin/AdminMarketingPage'))
+const AdminSupportPage = lazy(() => import('./admin/AdminSupportPage'))
+const AdminWebsiteSeoPage = lazy(() => import('./admin/AdminWebsiteSeoPage'))
+const AdminWebsiteBlogsPage = lazy(() => import('./admin/AdminWebsiteBlogsPage'))
+const AdminReviewsSubmissionsPage = lazy(() => import('./admin/AdminReviewsSubmissionsPage'))
+const AdminReviewsGeneratedPage = lazy(() => import('./admin/AdminReviewsGeneratedPage'))
+const AdminSettingsSectionPage = lazy(() => import('./admin/AdminSettingsSectionPage'))
 const AdminShell = lazy(() => import('@/features/admin/components/AdminShell').then((m) => ({ default: m.AdminShell })))
 
 export const router = createBrowserRouter([
@@ -69,10 +78,30 @@ export const router = createBrowserRouter([
       { path: 'customers', element: <AdminCustomersPage /> },
       { path: 'carts', element: <AdminCartsPage /> },
       { path: 'wishlists', element: <AdminWishlistsPage /> },
+      { path: 'utilities', element: <AdminUtilitiesPage /> },
+      { path: 'website/seo', element: <AdminWebsiteSeoPage /> },
+      { path: 'website/blogs', element: <AdminWebsiteBlogsPage /> },
+      { path: 'ecommerce', element: <AdminEcommercePage /> },
+      { path: 'marketing', element: <AdminMarketingPage /> },
       { path: 'coupons', element: <AdminCouponsPage /> },
+      { path: 'reviews/submissions', element: <AdminReviewsSubmissionsPage /> },
+      { path: 'reviews/generated', element: <AdminReviewsGeneratedPage /> },
       { path: 'staff', element: <AdminStaffPage /> },
-      { path: 'settings/payment', element: <AdminPaymentSettingsPage /> },
+      { path: 'support', element: <AdminSupportPage /> },
+      { path: 'settings', element: <Navigate to="profile" replace /> },
+      { path: 'settings/profile', element: <AdminSettingsSectionPage section="profile" /> },
+      { path: 'settings/controls', element: <AdminSettingsSectionPage section="controls" /> },
+      { path: 'settings/product-display', element: <AdminSettingsSectionPage section="product-display" /> },
       { path: 'settings/delivery', element: <AdminDeliverySettingsPage /> },
+      { path: 'settings/label', element: <AdminSettingsSectionPage section="label" /> },
+      { path: 'settings/payment', element: <AdminPaymentSettingsPage /> },
+      { path: 'settings/orders', element: <AdminSettingsSectionPage section="orders" /> },
+      { path: 'settings/customer', element: <AdminSettingsSectionPage section="customer" /> },
+      { path: 'settings/staff', element: <AdminStaffPage /> },
+      { path: 'settings/policies', element: <AdminSettingsSectionPage section="policies" /> },
+      { path: 'settings/help', element: <AdminSettingsSectionPage section="help" /> },
+      { path: 'settings/ideas', element: <AdminSettingsSectionPage section="ideas" /> },
+      { path: 'settings/other', element: <AdminSettingsSectionPage section="other" /> },
     ],
   },
 ])

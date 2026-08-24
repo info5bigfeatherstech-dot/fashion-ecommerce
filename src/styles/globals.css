@@ -11593,6 +11593,44 @@ a.cart-item__name:hover {
   margin: 0;
 }
 
+.admin-sidebar__branch {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.admin-sidebar__chevron {
+  margin-left: auto;
+  font-size: 10px;
+  opacity: 0.7;
+  transition: transform var(--transition-fast);
+}
+
+.admin-sidebar__chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.admin-sidebar__subnav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 0 6px 12px;
+  margin-left: 12px;
+  border-left: 1px solid var(--color-border);
+}
+
+.admin-sidebar__link--nested {
+  padding-block: 8px;
+  font-size: 0.8125rem;
+}
+
+.admin-sidebar__back {
+  margin-bottom: var(--space-2);
+  color: var(--color-ink);
+  border: 1px solid var(--color-border);
+  background: var(--color-neutral);
+}
+
 .admin-toolbar {
   display: flex;
   flex-wrap: wrap;
