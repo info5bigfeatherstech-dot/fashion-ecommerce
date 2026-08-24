@@ -177,6 +177,15 @@ export {
 } from './api/marketing'
 
 export {
+  getAdminFreeShippingOffers,
+  getAdminFreeShippingOffer,
+  createAdminFreeShippingOffer,
+  updateAdminFreeShippingOffer,
+  deleteAdminFreeShippingOffer,
+  toggleAdminFreeShippingOffer,
+} from './api/freeShippingOffers'
+
+export {
   getAdminCheckoutSettings,
   updateAdminCheckoutSettings,
   getAdminShippingSettings,

@@ -28,10 +28,13 @@ import {
   downloadAdminOrderShippingLabelFile,
   downloadAdminOrderManifestFile,
   createAdminCoupon,
+  createAdminFreeShippingOffer,
   createAdminStaff,
   deleteAdminCoupon,
+  deleteAdminFreeShippingOffer,
   deleteAdminStaff,
   getAdminAbandonedCarts,
+  getAdminFreeShippingOffers,
   getAdminCheckoutSettings,
   getAdminCoupons,
   getAdminCarts,
@@ -71,8 +74,10 @@ import {
   restoreAdminProduct,
   testAdminShippingConnection,
   toggleAdminCoupon,
+  toggleAdminFreeShippingOffer,
   updateAdminCheckoutSettings,
   updateAdminCoupon,
+  updateAdminFreeShippingOffer,
   updateAdminOosInquiryStatus,
   updateAdminShippingSettings,
   updateAdminStaff,
@@ -689,6 +694,53 @@ export function useToggleAdminCoupon() {
   return useMutation({
     mutationFn: toggleAdminCoupon,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'coupons'] }),
+  })
+}
+
+export function useAdminFreeShippingOffers({
+  page = 1,
+  status = 'all',
+  search = '',
+  enabled = true,
+} = {}) {
+  const queryEnabled = useAdminQueryEnabled(enabled)
+  return useQuery({
+    queryKey: adminKeys.freeShippingOffers(page, status, search),
+    queryFn: ({ signal }) => getAdminFreeShippingOffers({ signal, page, status, search }),
+    enabled: queryEnabled,
+    staleTime: 1000 * 30,
+  })
+}
+
+export function useCreateAdminFreeShippingOffer() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: createAdminFreeShippingOffer,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'free-shipping-offers'] }),
+  })
+}
+
+export function useUpdateAdminFreeShippingOffer() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...body }) => updateAdminFreeShippingOffer(id, body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'free-shipping-offers'] }),
+  })
+}
+
+export function useDeleteAdminFreeShippingOffer() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: deleteAdminFreeShippingOffer,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'free-shipping-offers'] }),
+  })
+}
+
+export function useToggleAdminFreeShippingOffer() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: toggleAdminFreeShippingOffer,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'free-shipping-offers'] }),
   })
 }
 

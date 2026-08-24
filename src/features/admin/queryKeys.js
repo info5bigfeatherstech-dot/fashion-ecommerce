@@ -18,6 +18,13 @@ export const adminKeys = {
   wishlists: (variant, page) => [...adminKeys.all, 'wishlists', variant, page],
   wishlistsPopular: () => [...adminKeys.all, 'wishlists-popular'],
   coupons: (page, status, search) => [...adminKeys.all, 'coupons', page, status, search || ''],
+  freeShippingOffers: (page, status, search) => [
+    ...adminKeys.all,
+    'free-shipping-offers',
+    page,
+    status,
+    search || '',
+  ],
   staff: (page, search) => [...adminKeys.all, 'staff', page, search || ''],
   staffProfile: () => [...adminKeys.all, 'staff-profile'],
   returns: (page, status) => [...adminKeys.all, 'returns', page, status || ''],

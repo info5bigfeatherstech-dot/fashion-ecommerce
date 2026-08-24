@@ -653,7 +653,49 @@ export function AdminOrderDetailView({
                 <span>Delivery</span>
                 <strong>
                   {Number(order.deliveryCharges) === 0 ? (
-                    <span className="od-free">FREE</span>
+                    <>
+                      <span className="od-free">FREE</span>
+                      <span
+                        style={{
+                          display: 'block',
+                          fontSize: 12,
+                          color: 'var(--color-muted)',
+                          marginTop: 2,
+                        }}
+                      >
+                        {(() => {
+                          const original = Number(
+                            order?.appliedFreeShippingOffer?.originalDeliveryCharges
+                              ?? order?.deliveryFreightInr
+                              ?? 0
+                          )
+                          if (original <= 0) return null
+                          return (
+                            <>
+                              <span style={{ textDecoration: 'line-through' }}>
+                                {formatInr(original)}
+                              </span>{' '}
+                              FREE
+                            </>
+                          )
+                        })()}
+                      </span>
+                      {Number(order?.deliveryCodFeeInr ?? 0) > 0 && (
+                        <span
+                          style={{
+                            display: 'block',
+                            fontSize: 12,
+                            color: 'var(--color-muted)',
+                            marginTop: 2,
+                          }}
+                        >
+                          <span style={{ textDecoration: 'line-through' }}>
+                            {formatInr(Number(order.deliveryCodFeeInr))}
+                          </span>{' '}
+                          COD FREE
+                        </span>
+                      )}
+                    </>
                   ) : (
                     formatInr(order.deliveryCharges)
                   )}

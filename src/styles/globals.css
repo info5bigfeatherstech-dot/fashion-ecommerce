@@ -11220,6 +11220,17 @@ a.cart-item__name:hover {
   border-bottom: 1px solid var(--color-border);
 }
 
+.admin-sidebar__logo {
+  display: flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.admin-sidebar__logo .brand-logo {
+  height: 36px;
+}
+
 .admin-sidebar__title {
   font-family: var(--font-display);
   font-size: var(--text-2xl);

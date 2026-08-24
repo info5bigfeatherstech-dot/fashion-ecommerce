@@ -731,8 +731,12 @@ export default function Checkout() {
     || `${watch('firstName')} ${watch('lastName')}`.trim()
     || 'Customer'
 
+  const freeShippingApplied = Boolean(activeQuote?.freeShippingApplied)
+  const originalShippingForDisplay = Number(activeQuote?.originalFreightInr || activeQuote?.originalDeliveryCharges || 0)
+  const originalCodFeeInr = Number(activeQuote?.originalCodFeeInr || 0)
+
   const shippingLabel = activeQuote
-    ? (deliveryCharges === 0 ? 'Free' : formatPrice(deliveryCharges))
+    ? (freeShippingApplied || deliveryCharges === 0 ? 'Free' : formatPrice(deliveryCharges))
     : isReviewStep
       ? 'Calculated next step'
       : quoteLoading
@@ -1158,7 +1162,31 @@ export default function Checkout() {
               )}
               <div className="checkout-summary__row">
                 <span>Shipping</span>
-                <span>{shippingLabel}</span>
+                <span>
+                  {freeShippingApplied ? (
+                    <span>
+                      <span>{shippingLabel}</span>
+                      {originalShippingForDisplay > 0 && (
+                        <div style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 2 }}>
+                          <span style={{ textDecoration: 'line-through' }}>
+                            {formatPrice(originalShippingForDisplay)}
+                          </span>{' '}
+                          FREE
+                        </div>
+                      )}
+                      {originalCodFeeInr > 0 && (
+                        <div style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 2 }}>
+                          <span style={{ textDecoration: 'line-through' }}>
+                            {formatPrice(originalCodFeeInr)}
+                          </span>{' '}
+                          COD FREE
+                        </div>
+                      )}
+                    </span>
+                  ) : (
+                    shippingLabel
+                  )}
+                </span>
               </div>
               {taxes > 0 && (
                 <div className="checkout-summary__row">

@@ -1,4 +1,4 @@
-import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Suspense, useEffect, useMemo, useState } from 'react'
 import {
   Archive,
@@ -31,6 +31,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { PageLoader } from '@/components/ui/PageLoader'
+import { BrandLogo } from '@/components/layout/BrandLogo'
 import { SITE_NAME } from '@/config/site'
 import { useAdminStore, ADMIN_ROLE_LABELS } from '@/features/admin/store'
 import { useAdminLogout } from '@/features/admin/hooks'
@@ -63,6 +64,7 @@ const NAV_ICONS = {
   marketing: Megaphone,
   'marketing-hub': Megaphone,
   coupons: Tag,
+  'free-shipping-offers': Megaphone,
   reviews: Star,
   'reviews-submissions': Star,
   'reviews-generated': Star,
@@ -207,7 +209,9 @@ export function AdminShell() {
     <div className="admin-shell">
       <aside className="admin-sidebar">
         <div className="admin-sidebar__brand">
-          <p className="heading-sm text-accent">{SITE_NAME}</p>
+          <Link to="/admin/dashboard" className="admin-sidebar__logo" aria-label={`${SITE_NAME} admin home`}>
+            <BrandLogo />
+          </Link>
           <h1 className="admin-sidebar__title">{inSettings ? 'Settings' : 'Admin'}</h1>
         </div>
 

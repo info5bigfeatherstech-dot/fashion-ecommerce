@@ -157,6 +157,9 @@ export default function AdminProductsPage() {
   const [showProductModal, setShowProductModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
   const [showBulkUpload, setShowBulkUpload] = useState(false)
+  const [dateFilter, setDateFilter] = useState('all')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
 
   const { data, isLoading, isError, error, refetch } = useAdminProductsAll({
     page,
@@ -356,6 +359,42 @@ export default function AdminProductsPage() {
                 <option key={cat._id || cat.id} value={cat._id || cat.id}>{cat.name}</option>
               ))}
             </select>
+            <div className="admin-date-filter">
+              <select
+                className="admin-date-filter-select"
+                value={dateFilter}
+                onChange={(e) => {
+                  setDateFilter(e.target.value)
+                  setPage(1)
+                }}
+              >
+                <option value="all">All dates</option>
+                <option value="today">Today</option>
+                <option value="yesterday">Yesterday</option>
+                <option value="last7days">Last 7 days</option>
+                <option value="last30days">Last 30 days</option>
+                <option value="custom">Custom range</option>
+              </select>
+              {dateFilter === 'custom' && (
+                <div className="admin-date-range">
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    placeholder="Start date"
+                    aria-label="Start date"
+                  />
+                  <span className="admin-date-separator">to</span>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    placeholder="End date"
+                    aria-label="End date"
+                  />
+                </div>
+              )}
+            </div>
             <Button variant="primary" size="sm" onClick={() => { setEditingProduct(null); setShowProductModal(true) }}>
               <Plus size={14} /> Add Product
             </Button>
