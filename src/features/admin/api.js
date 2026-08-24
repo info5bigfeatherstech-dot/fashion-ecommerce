@@ -115,6 +115,20 @@ export {
   retryAdminReturnReversePickup,
   getAdminRtoOrders,
   getAdminRtoAnalytics,
+  isPostConfirmOrderStatus,
+  ensureAdminOrderShipment,
+  assignAdminOrderShip,
+  scheduleAdminOrderPickup,
+  syncAdminOrderShiprocket,
+  generateAdminOrderManifest,
+  generateAdminOrderShippingLabel,
+  cancelAdminOrderShipment,
+  retryAdminOrderPickup,
+  getAdminAddressIntelligence,
+  getAdminPickupCalendar,
+  fetchAdminOrderInvoiceHtml,
+  downloadAdminOrderShippingLabelFile,
+  downloadAdminOrderManifestFile,
 } from './api/orders'
 
 export {

@@ -79,6 +79,31 @@ export const API_ENDPOINTS = {
     bulkTaxInvoicesZip: '/orders/admin/items/bulk-documents/tax-invoices-zip',
     bulkShippingLabelsZip: '/orders/admin/items/bulk-documents/shipping-labels-zip',
     bulkManifestsZip: '/orders/admin/items/bulk-documents/manifests-zip',
+    orderInvoiceHtml: (orderId) =>
+      `/orders/admin/items/${encodeURIComponent(String(orderId))}/invoice-html`,
+    orderAddressIntelligence: (orderId) =>
+      `/orders/admin/items/${encodeURIComponent(String(orderId))}/address-intelligence`,
+    orderEnsureShipment: (orderId) =>
+      `/orders/admin/items/${encodeURIComponent(String(orderId))}/fulfillment/ensure-shipment`,
+    orderAssignShip: (orderId) =>
+      `/orders/admin/items/${encodeURIComponent(String(orderId))}/fulfillment/assign-ship`,
+    orderSchedulePickup: (orderId) =>
+      `/orders/admin/items/${encodeURIComponent(String(orderId))}/fulfillment/schedule-pickup`,
+    orderSyncShiprocket: (orderId) =>
+      `/orders/admin/items/${encodeURIComponent(String(orderId))}/fulfillment/sync-shiprocket`,
+    orderManifest: (orderId) =>
+      `/orders/admin/items/${encodeURIComponent(String(orderId))}/fulfillment/manifest`,
+    orderShippingLabel: (orderId) =>
+      `/orders/admin/items/${encodeURIComponent(String(orderId))}/fulfillment/shipping-label`,
+    orderCancelShipment: (orderId) =>
+      `/orders/admin/items/${encodeURIComponent(String(orderId))}/fulfillment/cancel-shipment`,
+    orderRetryPickup: (orderId) =>
+      `/orders/admin/items/${encodeURIComponent(String(orderId))}/fulfillment/retry-pickup`,
+    orderShippingLabelFile: (orderId) =>
+      `/orders/admin/items/${encodeURIComponent(String(orderId))}/fulfillment/shipping-label-file`,
+    orderManifestFile: (orderId) =>
+      `/orders/admin/items/${encodeURIComponent(String(orderId))}/fulfillment/manifest-file`,
+    pickupCalendar: '/orders/admin/fulfillment/pickup-calendar',
     productsAll: '/admin/products/all',
     productsCreate: '/admin/products',
     productsExport: '/admin/products/export-csv',

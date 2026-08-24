@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ChevronDown, Download } from 'lucide-react'
 import { toast } from 'sonner'
-import { formatPrice } from '@/lib/utils'
-import { OrderPaymentSummaryCard } from '@/features/admin/components/OrderPaymentSummaryCard'
+import { AdminOrderDetailView } from '@/features/admin/components/AdminOrderDetailView'
 import {
   ORDER_TAB_ORDER,
   ORDER_TAB_LABEL_TO_BUCKET,
@@ -88,6 +87,7 @@ export default function AdminOrdersPage() {
   const [pickupDate, setPickupDate] = useState(tomorrowYmd())
   const [showPickupPanel, setShowPickupPanel] = useState(false)
   const [bulkBusy, setBulkBusy] = useState(false)
+  const [viewMode, setViewMode] = useState('list') // 'list' or 'detail'
 
   const { data: summary, refetch: refetchSummary } = useAdminOrdersSummary()
   const { data: listData, isLoading, isError, error, refetch } = useAdminOrdersList({
@@ -95,7 +95,7 @@ export default function AdminOrdersPage() {
     page,
     search,
   })
-  const { data: orderDetail, isFetching: detailLoading } = useAdminOrderDetail(selectedOrderId, {
+  const { data: orderDetail, isFetching: detailLoading, refetch: refetchDetail, isError: detailIsError, error: detailError } = useAdminOrderDetail(selectedOrderId, {
     enabled: Boolean(selectedOrderId),
   })
   const confirmOrders = useBulkConfirmOrders()
@@ -255,9 +255,31 @@ export default function AdminOrdersPage() {
     document.body.removeChild(link)
   }
 
-  const items = orderDetail?.items || orderDetail?.orderItems || []
   const allSelected = orders.length > 0 && selectedOrders.length === orders.length
   const bulkPending = bulkBusy || confirmOrders.isPending || cancelOrders.isPending || shipNow.isPending
+
+  if (viewMode === 'detail' && selectedOrderId) {
+    return (
+      <AdminOrderDetailView
+        orderId={selectedOrderId}
+        order={orderDetail}
+        loading={detailLoading}
+        error={detailIsError ? detailError : null}
+        onBack={() => {
+          setViewMode('list')
+          setSelectedOrderId(null)
+          refreshList()
+        }}
+        onOrderRefresh={async () => {
+          await refetchDetail()
+          await refetch()
+          await refetchSummary()
+        }}
+      />
+    )
+  }
+
+  // List view
 
   return (
     <div className="admin-page">
@@ -458,7 +480,10 @@ export default function AdminOrdersPage() {
                       <tr
                         key={id}
                         className={active ? 'is-active' : ''}
-                        onClick={() => setSelectedOrderId(id)}
+                        onClick={() => {
+                          setSelectedOrderId(id)
+                          setViewMode('detail')
+                        }}
                       >
                         <td
                           className="admin-orders-table__check"
@@ -527,7 +552,10 @@ export default function AdminOrdersPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => setSelectedOrderId(id)}
+                              onClick={() => {
+                                setSelectedOrderId(id)
+                                setViewMode('detail')
+                              }}
                             >
                               View
                             </Button>
@@ -559,114 +587,6 @@ export default function AdminOrdersPage() {
             </p>
           )}
         </section>
-
-        {selectedOrderId ? (
-        <aside className="admin-detail-panel">
-          {detailLoading && <AdminLoading label="Loading order…" />}
-          {orderDetail && !detailLoading && (
-            <>
-              <div className="admin-card">
-                <div className="admin-card__head">
-                  <div>
-                    <h2 className="admin-card__title">
-                      Order #{orderDetail.orderIdDisplay || selectedOrderId}
-                    </h2>
-                    <p className="admin-card__subtitle">
-                      {orderDetail.fulfillmentLabel || orderDetail.orderStatus || orderDetail.status || '—'}
-                    </p>
-                  </div>
-                  <div className="admin-row-actions">
-                    {bucket === 'Pending' && (
-                      <>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          disabled={confirmOrders.isPending}
-                          onClick={() => handleConfirm([selectedOrderId])}
-                        >
-                          Accept
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={cancelOrders.isPending}
-                          onClick={() => handleCancel([selectedOrderId])}
-                        >
-                          Cancel
-                        </Button>
-                      </>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedOrderId(null)}
-                    >
-                      Close
-                    </Button>
-                  </div>
-                </div>
-                <div className="admin-payment-grid">
-                  <div className="admin-payment-row">
-                    <span>Customer</span>
-                    <strong>
-                      {orderDetail.customerName || orderDetail.userEmail || orderDetail.contactPhone || '—'}
-                    </strong>
-                  </div>
-                  <div className="admin-payment-row">
-                    <span>Phone</span>
-                    <strong>{orderDetail.contactPhone || orderDetail.phone || '—'}</strong>
-                  </div>
-                  <div className="admin-payment-row">
-                    <span>Amount</span>
-                    <strong>
-                      {formatInr(
-                        orderDetail.amountInr ?? orderDetail.totalAmount ?? orderDetail.amountPayable ?? 0
-                      )}
-                    </strong>
-                  </div>
-                  <div className="admin-payment-row">
-                    <span>Placed</span>
-                    <strong>
-                      {orderDetail.createdAt
-                        ? new Date(orderDetail.createdAt).toLocaleString()
-                        : '—'}
-                    </strong>
-                  </div>
-                  {orderDetail.shippingAddress && (
-                    <div className="admin-payment-row">
-                      <span>Address</span>
-                      <strong>
-                        {[
-                          orderDetail.shippingAddress.fullAddress,
-                          orderDetail.shippingAddress.city,
-                          orderDetail.shippingAddress.postalCode,
-                        ].filter(Boolean).join(', ') || '—'}
-                      </strong>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {items.length > 0 && (
-                <div className="admin-card">
-                  <h3 className="admin-card__title">Items</h3>
-                  <ul className="admin-item-list">
-                    {items.map((item, idx) => (
-                      <li key={item.id || item._id || idx} className="admin-item-row">
-                        <span>{item.name || item.productName || 'Item'}</span>
-                        <span>×{item.quantity || 1}</span>
-                        <span>{formatPrice(item.price || item.lineTotal || 0)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              <OrderPaymentSummaryCard order={orderDetail} showRazorpayIds />
-            </>
-          )}
-        </aside>
-        ) : null}
       </div>
     </div>
   )

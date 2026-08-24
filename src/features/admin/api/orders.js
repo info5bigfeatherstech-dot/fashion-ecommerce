@@ -75,7 +75,11 @@ export async function getAdminOrdersList({
 export async function getAdminOrderDetail(orderId, { signal } = {}) {
   const id = String(orderId || '').trim()
   const payload = await adminGet(API_ENDPOINTS.orders.byId(id), { signal })
-  return payload?.data || payload?.order || unwrapAdmin(payload)
+  const order = payload?.data || payload?.order || unwrapAdmin(payload)
+  if (order && typeof order === 'object' && payload?.fulfillmentPaymentGate) {
+    return { ...order, fulfillmentPaymentGate: payload.fulfillmentPaymentGate }
+  }
+  return order
 }
 
 export async function getAdminOrderTracking(orderId, { signal } = {}) {
@@ -199,4 +203,134 @@ export async function initiateAdminReturnRefund(orderId) {
 export async function retryAdminReturnReversePickup(orderId) {
   const payload = await adminPost(API_ENDPOINTS.admin.returnReversePickupRetry(orderId))
   return unwrapAdmin(payload)
+}
+
+/** Order statuses where GST invoice + courier fulfilment UI are allowed. */
+export function isPostConfirmOrderStatus(orderStatus) {
+  return [
+    'confirmed',
+    'processing',
+    'shipped',
+    'out_for_delivery',
+    'delivered',
+    'return_requested',
+  ].includes(String(orderStatus || '').toLowerCase())
+}
+
+export async function ensureAdminOrderShipment(orderId) {
+  const payload = await adminPost(API_ENDPOINTS.admin.orderEnsureShipment(orderId))
+  return unwrapAdmin(payload) || payload
+}
+
+export async function assignAdminOrderShip(orderId, { courierId, confirmSubstitute } = {}) {
+  const body = {}
+  if (courierId != null) body.courierId = courierId
+  if (confirmSubstitute) body.confirmSubstitute = true
+  const payload = await adminPost(API_ENDPOINTS.admin.orderAssignShip(orderId), body)
+  return unwrapAdmin(payload) || payload
+}
+
+export async function scheduleAdminOrderPickup(orderId, pickupDate) {
+  const payload = await adminPost(API_ENDPOINTS.admin.orderSchedulePickup(orderId), { pickupDate })
+  return unwrapAdmin(payload) || payload
+}
+
+export async function syncAdminOrderShiprocket(orderId) {
+  const payload = await adminPost(API_ENDPOINTS.admin.orderSyncShiprocket(orderId))
+  return unwrapAdmin(payload) || payload
+}
+
+export async function generateAdminOrderManifest(orderId) {
+  const payload = await adminPost(API_ENDPOINTS.admin.orderManifest(orderId))
+  return unwrapAdmin(payload) || payload
+}
+
+export async function generateAdminOrderShippingLabel(orderId) {
+  const payload = await adminPost(API_ENDPOINTS.admin.orderShippingLabel(orderId))
+  return unwrapAdmin(payload) || payload
+}
+
+export async function cancelAdminOrderShipment(orderId) {
+  const payload = await adminPost(API_ENDPOINTS.admin.orderCancelShipment(orderId))
+  return unwrapAdmin(payload) || payload
+}
+
+export async function retryAdminOrderPickup(orderId) {
+  const payload = await adminPost(API_ENDPOINTS.admin.orderRetryPickup(orderId))
+  return unwrapAdmin(payload) || payload
+}
+
+export async function getAdminAddressIntelligence(orderId, { signal, refresh = false } = {}) {
+  const payload = await adminGet(API_ENDPOINTS.admin.orderAddressIntelligence(orderId), {
+    signal,
+    params: refresh ? { refresh: 1 } : undefined,
+  })
+  return unwrapAdmin(payload) || payload
+}
+
+export async function getAdminPickupCalendar({ signal, daysAhead = 45 } = {}) {
+  const payload = await adminGet(API_ENDPOINTS.admin.pickupCalendar, {
+    signal,
+    params: { daysAhead },
+  })
+  return unwrapAdmin(payload) || payload
+}
+
+export async function fetchAdminOrderInvoiceHtml(orderId) {
+  const axiosClient = (await import('@/api/axiosClient')).default
+  const response = await axiosClient.request({
+    method: 'GET',
+    url: API_ENDPOINTS.admin.orderInvoiceHtml(orderId),
+    responseType: 'text',
+    headers: { Accept: 'text/html' },
+    useAdminAuth: true,
+    timeout: 120000,
+  })
+  return response.data
+}
+
+export async function downloadAdminOrderShippingLabelFile(orderId, { provider = 'shiprocket' } = {}) {
+  const response = await adminGetBlob(API_ENDPOINTS.admin.orderShippingLabelFile(orderId))
+  const ct = String(response.headers?.['content-type'] || '')
+  if (ct.includes('application/json')) {
+    const text = await response.data.text()
+    let message = 'Label download failed'
+    try {
+      message = JSON.parse(text)?.message || message
+    } catch {
+      message = text || message
+    }
+    throw new Error(message)
+  }
+  const prefix = String(provider).toLowerCase() === 'shipmozo' ? 'Shipmozo' : 'Shiprocket'
+  let filename = `${prefix}-label-${String(orderId).replace(/[^\w.-]+/g, '_').slice(0, 80)}.pdf`
+  const dispo = response.headers?.['content-disposition']
+  if (dispo) {
+    const m = /filename\*?=(?:UTF-8''|"?)([^";\n]+)/i.exec(dispo)
+    if (m?.[1]) filename = decodeURIComponent(m[1].replace(/"/g, '').trim())
+  }
+  const rawCt = ct.split(';')[0].trim() || 'application/pdf'
+  downloadBlob(new Blob([response.data], { type: rawCt }), filename)
+}
+
+export async function downloadAdminOrderManifestFile(orderId) {
+  const response = await adminGetBlob(API_ENDPOINTS.admin.orderManifestFile(orderId))
+  const ct = String(response.headers?.['content-type'] || '')
+  if (ct.includes('application/json')) {
+    const text = await response.data.text()
+    let message = 'Manifest download failed'
+    try {
+      message = JSON.parse(text)?.message || message
+    } catch {
+      message = text || message
+    }
+    throw new Error(message)
+  }
+  let filename = `Shiprocket-manifest-${String(orderId).replace(/[^\w.-]+/g, '_').slice(0, 80)}.pdf`
+  const dispo = response.headers?.['content-disposition']
+  if (dispo) {
+    const m = /filename\*?=(?:UTF-8''|"?)([^";\n]+)/i.exec(dispo)
+    if (m?.[1]) filename = decodeURIComponent(m[1].replace(/"/g, '').trim())
+  }
+  downloadBlob(new Blob([response.data], { type: ct.split(';')[0].trim() || 'application/pdf' }), filename)
 }

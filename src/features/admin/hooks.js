@@ -14,6 +14,19 @@ import {
   decideAdminReturnRequest,
   initiateAdminReturnRefund,
   retryAdminReturnReversePickup,
+  ensureAdminOrderShipment,
+  assignAdminOrderShip,
+  scheduleAdminOrderPickup,
+  syncAdminOrderShiprocket,
+  generateAdminOrderManifest,
+  generateAdminOrderShippingLabel,
+  cancelAdminOrderShipment,
+  retryAdminOrderPickup,
+  getAdminAddressIntelligence,
+  getAdminPickupCalendar,
+  fetchAdminOrderInvoiceHtml,
+  downloadAdminOrderShippingLabelFile,
+  downloadAdminOrderManifestFile,
   createAdminCoupon,
   createAdminStaff,
   deleteAdminCoupon,
@@ -189,9 +202,13 @@ export function useBulkConfirmOrders() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: bulkConfirmOrders,
-    onSuccess: () => {
+    onSuccess: (_data, orderIds) => {
       queryClient.invalidateQueries({ queryKey: adminKeys.ordersSummary() })
       queryClient.invalidateQueries({ queryKey: ['admin', 'orders-list'] })
+      const ids = Array.isArray(orderIds) ? orderIds : []
+      for (const id of ids) {
+        queryClient.invalidateQueries({ queryKey: adminKeys.orderDetail(id) })
+      }
     },
   })
 }
@@ -200,9 +217,13 @@ export function useBulkCancelOrders() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ orderIds, reason }) => bulkCancelOrders(orderIds, reason),
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: adminKeys.ordersSummary() })
       queryClient.invalidateQueries({ queryKey: ['admin', 'orders-list'] })
+      const ids = Array.isArray(vars?.orderIds) ? vars.orderIds : []
+      for (const id of ids) {
+        queryClient.invalidateQueries({ queryKey: adminKeys.orderDetail(id) })
+      }
     },
   })
 }
@@ -285,6 +306,154 @@ export function useRetryAdminReturnReversePickup() {
 
 export function useExportAdminUsers() {
   return useMutation({ mutationFn: exportAdminUsers })
+}
+
+export function useEnsureAdminOrderShipment() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ensureAdminOrderShipment,
+    onSuccess: (_d, orderId) => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.orderDetail(orderId) })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'orders-list'] })
+      queryClient.invalidateQueries({ queryKey: adminKeys.ordersSummary() })
+    },
+  })
+}
+
+export function useAssignAdminOrderShip() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ orderId, courierId, confirmSubstitute }) =>
+      assignAdminOrderShip(orderId, { courierId, confirmSubstitute }),
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.orderDetail(vars.orderId) })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'orders-list'] })
+    },
+  })
+}
+
+export function useScheduleAdminOrderPickup() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ orderId, pickupDate }) => scheduleAdminOrderPickup(orderId, pickupDate),
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.orderDetail(vars.orderId) })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'orders-list'] })
+    },
+  })
+}
+
+export function useSyncAdminOrderShiprocket() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: syncAdminOrderShiprocket,
+    onSuccess: (_d, orderId) => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.orderDetail(orderId) })
+      queryClient.invalidateQueries({ queryKey: adminKeys.orderTracking(orderId) })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'orders-list'] })
+    },
+  })
+}
+
+export function useGenerateAdminOrderManifest() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: generateAdminOrderManifest,
+    onSuccess: (_d, orderId) => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.orderDetail(orderId) })
+    },
+  })
+}
+
+export function useGenerateAdminOrderShippingLabel() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: generateAdminOrderShippingLabel,
+    onSuccess: (_d, orderId) => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.orderDetail(orderId) })
+    },
+  })
+}
+
+export function useCancelAdminOrderShipment() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: cancelAdminOrderShipment,
+    onSuccess: (_d, orderId) => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.orderDetail(orderId) })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'orders-list'] })
+    },
+  })
+}
+
+export function useRetryAdminOrderPickup() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: retryAdminOrderPickup,
+    onSuccess: (_d, orderId) => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.orderDetail(orderId) })
+    },
+  })
+}
+
+export function useAdminAddressIntelligence(orderId, { refresh = false, enabled = true } = {}) {
+  const queryEnabled = useAdminQueryEnabled(enabled)
+  const id = String(orderId || '').trim()
+  return useQuery({
+    queryKey: [...adminKeys.orderDetail(id), 'address-intel', refresh ? 1 : 0],
+    queryFn: ({ signal }) => getAdminAddressIntelligence(id, { signal, refresh }),
+    enabled: queryEnabled && Boolean(id),
+    staleTime: 1000 * 60,
+  })
+}
+
+export function useAdminPickupCalendar({ enabled = true } = {}) {
+  const queryEnabled = useAdminQueryEnabled(enabled)
+  return useQuery({
+    queryKey: [...adminKeys.all, 'pickup-calendar'],
+    queryFn: ({ signal }) => getAdminPickupCalendar({ signal }),
+    enabled: queryEnabled,
+    staleTime: 1000 * 60 * 5,
+  })
+}
+
+export function usePrintAdminOrderInvoice() {
+  return useMutation({
+    mutationFn: async (orderId) => {
+      const html = await fetchAdminOrderInvoiceHtml(orderId)
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const w = window.open(url, '_blank', 'noopener,noreferrer')
+      if (!w) {
+        URL.revokeObjectURL(url)
+        throw new Error('Pop-up blocked — allow pop-ups to print the invoice.')
+      }
+      const runPrint = () => {
+        try {
+          w.focus()
+          w.print()
+        } catch {
+          /* ignore */
+        }
+      }
+      w.addEventListener('load', runPrint, { once: true })
+      if (w.document?.readyState === 'complete') setTimeout(runPrint, 0)
+      setTimeout(() => URL.revokeObjectURL(url), 180000)
+    },
+  })
+}
+
+export function useDownloadAdminOrderShippingLabel() {
+  return useMutation({
+    mutationFn: ({ orderId, provider }) =>
+      downloadAdminOrderShippingLabelFile(orderId, { provider }),
+  })
+}
+
+export function useDownloadAdminOrderManifest() {
+  return useMutation({
+    mutationFn: downloadAdminOrderManifestFile,
+  })
 }
 
 export function useAutoSyncOrderStatuses() {
