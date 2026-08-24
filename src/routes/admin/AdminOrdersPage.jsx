@@ -140,7 +140,11 @@ export default function AdminOrdersPage() {
                         <p className="body-sm text-muted">{order.customerName || order.userEmail || 'Customer'}</p>
                       </div>
                       <div className="admin-order-row__meta">
-                        <span>{formatPrice(order.totalAmount ?? order.amountPayable)}</span>
+                        <span>
+                          {formatPrice(
+                            order.amountInr ?? order.totalAmount ?? order.amountPayable ?? 0
+                          )}
+                        </span>
                         <span className="admin-badge">{order.orderStatus || order.status || '—'}</span>
                       </div>
                     </button>

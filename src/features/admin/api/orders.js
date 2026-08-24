@@ -1,6 +1,25 @@
 import { API_ENDPOINTS } from '@/api/endpoints'
 import { adminGet, adminPost, unwrapAdmin } from './client'
 
+/** Maps UI tab labels → backend `bucket` query param (same as fabFE). */
+export const ORDER_TAB_LABEL_TO_BUCKET = Object.freeze({
+  All: 'all',
+  Pending: 'new',
+  Confirmed: 'bill_sent',
+  'Ready to Ship': 'ready_to_ship',
+  Processing: 'ready_to_pick',
+  'In transit': 'in_transit',
+  Delivered: 'completed',
+  RTO: 'rto',
+  Cancelled: 'others',
+  'Pickup Exception': 'pickup_exception',
+})
+
+function toApiBucket(bucket) {
+  if (!bucket || bucket === 'all') return null
+  return ORDER_TAB_LABEL_TO_BUCKET[bucket] ?? bucket
+}
+
 export async function getAdminOrdersSummary({ signal, rangePreset = 'all' } = {}) {
   const payload = await adminGet(API_ENDPOINTS.admin.ordersSummary, {
     signal,
@@ -19,7 +38,8 @@ export async function getAdminOrdersList({
   sortOrder = 'desc',
 } = {}) {
   const params = { page, limit, sortBy, sortOrder }
-  if (bucket && bucket !== 'all') params.bucket = bucket
+  const apiBucket = toApiBucket(bucket)
+  if (apiBucket) params.bucket = apiBucket
   if (String(search || '').trim()) params.search = String(search).trim()
 
   const payload = await adminGet(API_ENDPOINTS.admin.orders, { signal, params })
