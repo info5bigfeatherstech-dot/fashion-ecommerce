@@ -87,6 +87,10 @@ export const API_ENDPOINTS = {
       `/orders/admin/items/${encodeURIComponent(String(orderId))}/edit-pending-address/preview`,
     orderEditPendingAddress: (orderId) =>
       `/orders/admin/items/${encodeURIComponent(String(orderId))}/edit-pending-address`,
+    orderEditPendingItemsPreview: (orderId) =>
+      `/orders/admin/items/${encodeURIComponent(String(orderId))}/edit-pending/preview`,
+    orderEditPendingItems: (orderId) =>
+      `/orders/admin/items/${encodeURIComponent(String(orderId))}/edit-pending`,
     orderEnsureShipment: (orderId) =>
       `/orders/admin/items/${encodeURIComponent(String(orderId))}/fulfillment/ensure-shipment`,
     orderAssignShip: (orderId) =>

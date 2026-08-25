@@ -52,6 +52,32 @@ function resolveOrderAddress(order) {
   )
 }
 
+function scoreRingTone(category) {
+  const c = String(category || '').toLowerCase()
+  if (c === 'valid') return 'valid'
+  if (c === 'ambiguous' || c === 'needs_review') return 'warn'
+  if (c) return 'bad'
+  return 'neutral'
+}
+
+function riskPillTone(level) {
+  if (level === 'low') return 'low'
+  if (level === 'medium') return 'mid'
+  if (level === 'high') return 'high'
+  return 'neutral'
+}
+
+function RiskPill({ label, value, emptyHint }) {
+  const level = normalizeRiskLevel(value)
+  const tone = riskPillTone(level)
+  return (
+    <div className={`od-risk-pill od-risk-pill--${tone}`}>
+      <p className="od-risk-pill__label">{label}</p>
+      <p className="od-risk-pill__value">{level || emptyHint || '—'}</p>
+    </div>
+  )
+}
+
 function formatDeliveryAddress(addr) {
   return [
     addr?.houseNumber,
@@ -68,28 +94,6 @@ function formatDeliveryAddress(addr) {
   ]
     .filter(Boolean)
     .join(', ')
-}
-
-function ScoreGauge({ percent, label }) {
-  const p = Number.isFinite(Number(percent)) ? Math.max(0, Math.min(100, Number(percent))) : null
-  return (
-    <div className="od-score">
-      <div
-        className="od-score__ring"
-        style={{
-          background: p == null
-            ? 'conic-gradient(#e2e8f0 0deg, #e2e8f0 360deg)'
-            : `conic-gradient(#3b82f6 ${p * 3.6}deg, #e2e8f0 ${p * 3.6}deg)`,
-        }}
-      >
-        <div className="od-score__inner">
-          <strong>{p == null ? '—' : `${Math.round(p)}%`}</strong>
-          <span>VALID</span>
-        </div>
-      </div>
-      <p className="od-score__label">{label || 'Address score'}</p>
-    </div>
-  )
 }
 
 /**
@@ -163,6 +167,11 @@ export function AdminPendingAddressPanel({ order, orderId, disabled, onApplied }
   const rtoRisk = normalizeRiskLevel(primary?.rtoRisk) || normalizeRiskLevel(shiprocketIntel?.rtoRisk)
   const hasShiprocketRisks = Boolean(shiprocketIntel?.available || primary?.source === 'shiprocket')
   const courierUsage = useMemo(() => getCourierStreetUsage(draft), [draft])
+  const email = customer.email || order.userEmail || order.email || addr.email || null
+  const scoreTone = scoreRingTone(primary?.category)
+  const scoreLabel = primary?.categoryLabel || (scorePercent != null ? 'Valid address' : 'Score pending')
+  const scoreSource = primary?.source === 'shiprocket' ? 'Shiprocket score' : 'Local pre-ship check'
+  const showScoreRow = Boolean(primary?.available || scorePercent != null || intelLoadingAny)
 
   const guardCourierStreetLength = () => {
     const err = validateCourierStreetClient(draft)
@@ -225,28 +234,30 @@ export function AdminPendingAddressPanel({ order, orderId, disabled, onApplied }
   }
 
   return (
-    <section className="od-card">
-      <div className="od-card__head">
+    <section className="od-card od-card--address">
+      <div className="od-card__head od-card__head--address">
         <div className="od-card__title-row">
-          <MapPin size={16} />
-          <div>
+          <span className="od-card__icon" aria-hidden>
+            <MapPin size={16} />
+          </span>
+          <div className="od-card__title-text">
             <h3 className="od-card__title">Customer & address</h3>
             <p className="od-muted">Who receives this order</p>
           </div>
         </div>
         <div className="od-address-actions">
-          <Button
-            variant="ghost"
-            size="sm"
+          <button
+            type="button"
+            className="od-address-actions__btn"
             disabled={busy || intelLoadingAny}
             onClick={() => refetchIntel()}
           >
             {intelLoadingAny ? '…' : 'Refresh score'}
-          </Button>
+          </button>
           {isPending ? (
-            <Button
-              variant="secondary"
-              size="sm"
+            <button
+              type="button"
+              className="od-address-actions__btn od-address-actions__btn--edit"
               disabled={busy}
               onClick={() => {
                 setEditing((v) => !v)
@@ -254,58 +265,78 @@ export function AdminPendingAddressPanel({ order, orderId, disabled, onApplied }
                 setLocalMsg(null)
               }}
             >
-              <Pencil size={14} />
+              <Pencil size={12} aria-hidden />
               {editing ? 'Cancel' : 'Edit'}
-            </Button>
+            </button>
           ) : null}
         </div>
       </div>
 
-      <div className="od-address-top">
-        <ScoreGauge
-          percent={scorePercent}
-          label={primary?.categoryLabel || (scorePercent != null ? 'Valid address' : 'Score pending')}
-        />
-        <div className="od-risk-tags">
-          {addressRisk ? (
-            <span className="od-risk od-risk--low">Address risk: {String(addressRisk)}</span>
-          ) : (
-            <span className="od-risk od-risk--low">Address risk: {hasShiprocketRisks ? '—' : 'After SR'}</span>
-          )}
-          {rtoRisk ? (
-            <span className="od-risk od-risk--mid">RTO risk: {String(rtoRisk)}</span>
-          ) : (
-            <span className="od-risk od-risk--mid">RTO risk: {hasShiprocketRisks ? '—' : 'After SR'}</span>
-          )}
-        </div>
-      </div>
-
-      <div className="od-contact">
-        <div>
-          <p className="od-field-label">Name</p>
-          <p className="od-field-value">
-            {addr.fullName || addr.name || order.customerName || customer.name || '—'}
-          </p>
-        </div>
-        <div>
-          <p className="od-field-label">Phone</p>
-          <p className="od-field-value">
-            {addr.phone || order.contactPhone || order.phone || customer.phone || '—'}
-          </p>
-        </div>
-        <div>
-          <p className="od-field-label">Email</p>
-          <p className="od-field-value">
-            {customer.email || order.userEmail || order.email || addr.email || '—'}
-          </p>
-        </div>
-        {!editing ? (
-          <div>
-            <p className="od-field-label">Delivery address</p>
-            <p className="od-field-value">{formatDeliveryAddress(addr) || '—'}</p>
+      <div className="od-address-body">
+        {showScoreRow ? (
+          <div className="od-address-status">
+            {intelLoadingAny && !primary ? (
+              <p className="od-address-status__loading">Checking address quality…</p>
+            ) : (
+              <>
+                <div
+                  className={`od-score-ring od-score-ring--${scoreTone}`}
+                  title={scoreLabel}
+                >
+                  <span className="od-score-ring__pct">
+                    {Number.isFinite(Number(scorePercent)) ? `${Math.round(Number(scorePercent))}%` : '—'}
+                  </span>
+                  <span className="od-score-ring__valid">Valid</span>
+                </div>
+                <div className="od-score-meta">
+                  <p className="od-score-meta__title">{scoreLabel}</p>
+                  <p className="od-score-meta__sub">{scoreSource}</p>
+                </div>
+                <div className="od-risk-row">
+                  <RiskPill
+                    label="Address risk"
+                    value={addressRisk}
+                    emptyHint={hasShiprocketRisks ? '—' : 'After SR'}
+                  />
+                  <RiskPill
+                    label="RTO risk"
+                    value={rtoRisk}
+                    emptyHint={hasShiprocketRisks ? '—' : 'After SR'}
+                  />
+                </div>
+              </>
+            )}
           </div>
         ) : null}
-      </div>
+
+        <div className="od-contact-grid">
+          <div>
+            <p className="od-field-label">Name</p>
+            <p className="od-field-value">
+              {addr.fullName || addr.name || order.customerName || customer.name || '—'}
+            </p>
+          </div>
+          <div>
+            <p className="od-field-label">Phone</p>
+            <p className="od-field-value">
+              {addr.phone || order.contactPhone || order.phone || customer.phone || '—'}
+            </p>
+          </div>
+          {email ? (
+            <div className="od-contact-grid__full">
+              <p className="od-field-label">Email</p>
+              <p className="od-field-value od-field-value--email">{email}</p>
+            </div>
+          ) : null}
+          {!editing ? (
+            <div className="od-contact-grid__full">
+              <p className="od-field-label">Delivery address</p>
+              <p className="od-field-value od-field-value--address">
+                {formatDeliveryAddress(addr) || '—'}
+              </p>
+            </div>
+          ) : null}
+        </div>
 
       {isPending && editing ? (
         <div className="od-address-edit">
@@ -392,6 +423,7 @@ export function AdminPendingAddressPanel({ order, orderId, disabled, onApplied }
           {localMsg.text}
         </div>
       ) : null}
+      </div>
     </section>
   )
 }

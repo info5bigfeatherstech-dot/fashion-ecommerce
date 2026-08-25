@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { AdminError, AdminLoading } from '@/features/admin/components/AdminUi'
 import { AdminPendingAddressPanel } from '@/features/admin/components/AdminPendingAddressPanel'
+import { AdminPendingOrderEditPanel } from '@/features/admin/components/AdminPendingOrderEditPanel'
 import { OrderPaymentSummaryCard } from '@/features/admin/components/OrderPaymentSummaryCard'
 import { OrderShipmentTrackingPanel } from '@/features/admin/components/OrderShipmentTrackingPanel'
 import {
@@ -43,6 +44,46 @@ function formatInr(amount) {
     currency: 'INR',
     maximumFractionDigits: 2,
   }).format(n)
+}
+
+function getDeliveryBreakdown(order) {
+  const charges = Number(order?.deliveryCharges)
+  if (Number.isFinite(charges) && charges !== 0) {
+    return { mode: 'paid', amount: charges }
+  }
+  const original = Number(
+    order?.appliedFreeShippingOffer?.originalDeliveryCharges
+      ?? order?.deliveryFreightInr
+      ?? 0
+  )
+  const codFee = Number(order?.deliveryCodFeeInr ?? 0)
+  return {
+    mode: 'free',
+    original: Number.isFinite(original) && original > 0 ? original : 0,
+    codFee: Number.isFinite(codFee) && codFee > 0 ? codFee : 0,
+  }
+}
+
+function DeliveryTotalValue({ order }) {
+  const delivery = getDeliveryBreakdown(order)
+  if (delivery.mode === 'paid') {
+    return <strong className="od-totals__amount">{formatInr(delivery.amount)}</strong>
+  }
+  return (
+    <div className="od-totals__value-stack">
+      <span className="od-free">FREE</span>
+      {delivery.original > 0 ? (
+        <span className="od-totals__sub">
+          <s>{formatInr(delivery.original)}</s> FREE
+        </span>
+      ) : null}
+      {delivery.codFee > 0 ? (
+        <span className="od-totals__sub">
+          <s>{formatInr(delivery.codFee)}</s> COD FREE
+        </span>
+      ) : null}
+    </div>
+  )
 }
 
 function formatKg(kg) {
@@ -600,18 +641,29 @@ export function AdminOrderDetailView({
 
       <div className="od-grid">
         <div className="od-grid__main">
-          {/* Items */}
-          <section className="od-card">
-            <div className="od-card__head">
+          {/* Items — editable when pending, read-only after confirm */}
+          {isPendingOrder ? (
+            <AdminPendingOrderEditPanel
+              order={order}
+              orderId={orderId}
+              disabled={fulfillmentBusy}
+              onApplied={async () => {
+                setActionMsg({ type: 'ok', text: 'Pending order items updated.' })
+                await refreshOrder()
+              }}
+            />
+          ) : (
+          <section className="od-card od-card--items">
+            <div className="od-card__head od-card__head--items">
               <h3 className="od-card__title">Items in this order</h3>
-              {(weightLabel || packageDimsLabel) && (
-                <p className="od-muted">
+              {(weightLabel || packageDimsLabel) ? (
+                <p className="od-items-meta">
                   {[weightLabel, packageDimsLabel].filter(Boolean).join(' · ')}
                 </p>
-              )}
+              ) : null}
             </div>
             <div className="od-items">
-              {items.length === 0 && <p className="od-muted">No items</p>}
+              {items.length === 0 && <p className="od-items__empty">No items</p>}
               {items.map((line, idx) => {
                 const name = line?.productId?.name || line?.name || line?.productName || 'Product'
                 const img =
@@ -627,84 +679,45 @@ export function AdminOrderDetailView({
                     <div className="od-item__thumb">
                       {img ? <img src={img} alt="" /> : <Package size={22} />}
                     </div>
-                    <div className="od-item__body">
-                      <strong>{name}</strong>
-                      <span>
-                        Qty {qty} · SKU <code>{sku}</code>
-                      </span>
+                    <div className="od-item__main">
+                      <div className="od-item__body">
+                        <p className="od-item__name">{name}</p>
+                        <p className="od-item__meta">
+                          Qty {qty} · SKU <span className="od-item__sku">{sku}</span>
+                        </p>
+                      </div>
+                      <p className="od-item__price">{formatInr(lineTotal)}</p>
                     </div>
-                    <div className="od-item__price">{formatInr(lineTotal)}</div>
                   </div>
                 )
               })}
             </div>
             <div className="od-totals">
-              <div><span>Subtotal</span><strong>{formatInr(order.subtotal)}</strong></div>
-              <div><span>Taxes & Others</span><strong>{formatInr(order.tax)}</strong></div>
-              <div>
-                <span>Delivery</span>
-                <strong>
-                  {Number(order.deliveryCharges) === 0 ? (
-                    <>
-                      <span className="od-free">FREE</span>
-                      <span
-                        style={{
-                          display: 'block',
-                          fontSize: 12,
-                          color: 'var(--color-muted)',
-                          marginTop: 2,
-                        }}
-                      >
-                        {(() => {
-                          const original = Number(
-                            order?.appliedFreeShippingOffer?.originalDeliveryCharges
-                              ?? order?.deliveryFreightInr
-                              ?? 0
-                          )
-                          if (original <= 0) return null
-                          return (
-                            <>
-                              <span style={{ textDecoration: 'line-through' }}>
-                                {formatInr(original)}
-                              </span>{' '}
-                              FREE
-                            </>
-                          )
-                        })()}
-                      </span>
-                      {Number(order?.deliveryCodFeeInr ?? 0) > 0 && (
-                        <span
-                          style={{
-                            display: 'block',
-                            fontSize: 12,
-                            color: 'var(--color-muted)',
-                            marginTop: 2,
-                          }}
-                        >
-                          <span style={{ textDecoration: 'line-through' }}>
-                            {formatInr(Number(order.deliveryCodFeeInr))}
-                          </span>{' '}
-                          COD FREE
-                        </span>
-                      )}
-                    </>
-                  ) : (
-                    formatInr(order.deliveryCharges)
-                  )}
-                </strong>
+              <div className="od-totals__row">
+                <span className="od-totals__label">Subtotal</span>
+                <strong className="od-totals__amount">{formatInr(order.subtotal)}</strong>
               </div>
-              {Number(order.discount) > 0 && (
-                <div className="od-totals__discount">
-                  <span>Discount</span>
-                  <strong>−{formatInr(order.discount)}</strong>
+              <div className="od-totals__row">
+                <span className="od-totals__label">Taxes & Others</span>
+                <strong className="od-totals__amount">{formatInr(order.tax)}</strong>
+              </div>
+              <div className="od-totals__row">
+                <span className="od-totals__label">Delivery</span>
+                <DeliveryTotalValue order={order} />
+              </div>
+              {Number(order.discount) > 0 ? (
+                <div className="od-totals__row od-totals__discount">
+                  <span className="od-totals__label">Discount</span>
+                  <strong className="od-totals__amount">−{formatInr(order.discount)}</strong>
                 </div>
-              )}
-              <div className="od-totals__grand">
-                <span>Grand total</span>
-                <strong>{formatInr(order.totalAmount ?? order.amountInr)}</strong>
+              ) : null}
+              <div className="od-totals__row od-totals__grand">
+                <span className="od-totals__label">Grand total</span>
+                <strong className="od-totals__amount">{formatInr(order.totalAmount ?? order.amountInr)}</strong>
               </div>
             </div>
           </section>
+          )}
 
           {/* Logistics */}
           {showInvoiceAndLogistics && !unpaidTerminal ? (

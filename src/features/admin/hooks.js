@@ -25,6 +25,8 @@ import {
   getAdminAddressIntelligence,
   previewAdminPendingAddressEdit,
   applyAdminPendingAddressEdit,
+  previewAdminPendingOrderEdit,
+  applyAdminPendingOrderEdit,
   getAdminPickupCalendar,
   fetchAdminOrderInvoiceHtml,
   downloadAdminOrderShippingLabelFile,
@@ -447,6 +449,28 @@ export function useAdminApplyPendingAddressEdit() {
   return useMutation({
     mutationFn: ({ orderId, addressPatch, alsoUpdateSavedAddress }) =>
       applyAdminPendingAddressEdit(orderId, { addressPatch, alsoUpdateSavedAddress }),
+    onSuccess: (_d, vars) => {
+      const id = String(vars?.orderId || '').trim()
+      if (!id) return
+      queryClient.invalidateQueries({ queryKey: adminKeys.orderDetail(id) })
+      queryClient.invalidateQueries({ queryKey: adminKeys.orderTracking(id) })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'orders-list'] })
+    },
+  })
+}
+
+export function useAdminPreviewPendingOrderEdit() {
+  return useMutation({
+    mutationFn: ({ orderId, itemUpdates }) =>
+      previewAdminPendingOrderEdit(orderId, { itemUpdates }),
+  })
+}
+
+export function useAdminApplyPendingOrderEdit() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ orderId, itemUpdates }) =>
+      applyAdminPendingOrderEdit(orderId, { itemUpdates }),
     onSuccess: (_d, vars) => {
       const id = String(vars?.orderId || '').trim()
       if (!id) return

@@ -300,6 +300,20 @@ export async function applyAdminPendingAddressEdit(orderId, { addressPatch, also
   return unwrapAdmin(payload) || payload
 }
 
+export async function previewAdminPendingOrderEdit(orderId, { itemUpdates } = {}) {
+  const payload = await adminPost(API_ENDPOINTS.admin.orderEditPendingItemsPreview(orderId), {
+    itemUpdates,
+  })
+  return unwrapAdmin(payload) || payload
+}
+
+export async function applyAdminPendingOrderEdit(orderId, { itemUpdates } = {}) {
+  const payload = await adminPost(API_ENDPOINTS.admin.orderEditPendingItems(orderId), {
+    itemUpdates,
+  })
+  return unwrapAdmin(payload) || payload
+}
+
 export async function getAdminPickupCalendar({ signal, daysAhead = 45 } = {}) {
   const payload = await adminGet(API_ENDPOINTS.admin.pickupCalendar, {
     signal,

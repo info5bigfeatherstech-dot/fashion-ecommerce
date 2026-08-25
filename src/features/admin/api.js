@@ -127,6 +127,8 @@ export {
   getAdminAddressIntelligence,
   previewAdminPendingAddressEdit,
   applyAdminPendingAddressEdit,
+  previewAdminPendingOrderEdit,
+  applyAdminPendingOrderEdit,
   getAdminPickupCalendar,
   fetchAdminOrderInvoiceHtml,
   downloadAdminOrderShippingLabelFile,

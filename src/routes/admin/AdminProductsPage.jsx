@@ -3,7 +3,9 @@ import {
   AlertTriangle,
   Archive,
   Calendar,
+  Check,
   CheckCircle2,
+  ChevronDown,
   Download,
   Eye,
   Package,
@@ -33,6 +35,7 @@ import {
   useAdminProductsArchived,
   useAdminProductsLowStock,
   useArchiveAdminProduct,
+  useBulkUpdateAdminProductFlags,
   useBulkUpdateAdminProductStatus,
   useExportAdminProducts,
   useToggleAdminProductFeatured,
@@ -671,6 +674,69 @@ function ProductViewModal({ open, onOpenChange, product }) {
   )
 }
 
+function BulkFlagToggle({ label, checked, indeterminate, loading, onChange }) {
+  const checkboxRef = useRef(null)
+
+  useEffect(() => {
+    if (checkboxRef.current) {
+      checkboxRef.current.indeterminate = indeterminate
+    }
+  }, [indeterminate])
+
+  const className = [
+    'admin-bulk-flag',
+    checked ? 'is-checked' : '',
+    indeterminate ? 'is-indeterminate' : '',
+    loading ? 'is-disabled' : '',
+  ].filter(Boolean).join(' ')
+
+  return (
+    <label className={className}>
+      <input
+        ref={checkboxRef}
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        disabled={loading}
+      />
+      <span>{label}</span>
+    </label>
+  )
+}
+
+function BulkChannelDropdown({ label, tone, open, onToggle, disabled, children }) {
+  const wrapRef = useRef(null)
+
+  useEffect(() => {
+    if (!open) return undefined
+    const onDocClick = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) onToggle(false)
+    }
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [open, onToggle])
+
+  return (
+    <div className="admin-bulk-channel" ref={wrapRef}>
+      <button
+        type="button"
+        className={`admin-bulk-channel__btn admin-bulk-channel__btn--${tone}`}
+        onClick={() => onToggle(!open)}
+        disabled={disabled}
+        aria-expanded={open}
+      >
+        <span>{label}</span>
+        <ChevronDown size={14} aria-hidden />
+      </button>
+      {open ? (
+        <div className="admin-bulk-channel__panel" role="menu">
+          {children}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 export default function AdminProductsPage() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
@@ -689,6 +755,13 @@ export default function AdminProductsPage() {
   const [dateFilter, setDateFilter] = useState('all')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [todayArrival, setTodayArrival] = useState(false)
+  const [onSale, setOnSale] = useState(false)
+  const [todayIndeterminate, setTodayIndeterminate] = useState(false)
+  const [saleIndeterminate, setSaleIndeterminate] = useState(false)
+  const [flagLoading, setFlagLoading] = useState(false)
+  const [showEcomMenu, setShowEcomMenu] = useState(false)
+  const [showWholesaleMenu, setShowWholesaleMenu] = useState(false)
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -724,6 +797,7 @@ export default function AdminProductsPage() {
   const archiveProduct = useArchiveAdminProduct()
   const toggleFeatured = useToggleAdminProductFeatured()
   const bulkStatus = useBulkUpdateAdminProductStatus()
+  const bulkFlags = useBulkUpdateAdminProductFlags()
 
   const { items: rawProducts, pagination } = useMemo(
     () => extractListPayload(listData, ['products']),
@@ -805,6 +879,32 @@ export default function AdminProductsPage() {
     setSelectedSlugs(new Set(products.map((p) => p.slug).filter(Boolean)))
   }
 
+  useEffect(() => {
+    setSelectedSlugs(new Set())
+  }, [page])
+
+  useEffect(() => {
+    if (selectedSlugs.size === 0) {
+      setTodayArrival(false)
+      setOnSale(false)
+      setTodayIndeterminate(false)
+      setSaleIndeterminate(false)
+      setShowEcomMenu(false)
+      setShowWholesaleMenu(false)
+      return
+    }
+
+    const selected = products.filter((p) => selectedSlugs.has(p.slug))
+    const total = selected.length
+    const todayCount = selected.filter((p) => p.tags?.includes('today-arrival')).length
+    const saleCount = selected.filter((p) => p.tags?.includes('on-sale')).length
+
+    setTodayArrival(todayCount === total)
+    setTodayIndeterminate(todayCount > 0 && todayCount < total)
+    setOnSale(saleCount === total)
+    setSaleIndeterminate(saleCount > 0 && saleCount < total)
+  }, [selectedSlugs, products])
+
   const handleExport = async () => {
     try {
       await exportProducts.mutateAsync()
@@ -817,6 +917,8 @@ export default function AdminProductsPage() {
   const handleBulkChannel = async (channel, status) => {
     const slugs = [...selectedSlugs]
     if (!slugs.length) return
+    setShowEcomMenu(false)
+    setShowWholesaleMenu(false)
     try {
       await bulkStatus.mutateAsync({ slugs, channel, status })
       toast.success('Bulk status updated')
@@ -824,6 +926,40 @@ export default function AdminProductsPage() {
       listRefetch()
     } catch (err) {
       toast.error(err?.message || 'Bulk update failed')
+    }
+  }
+
+  const handleBulkFlagUpdate = async (flagType) => {
+    const slugs = [...selectedSlugs]
+    if (!slugs.length) {
+      toast.error('No products selected')
+      return
+    }
+    if (flagLoading) return
+
+    const stateMap = {
+      'today-arrival': [todayArrival, setTodayArrival, todayIndeterminate],
+      'on-sale': [onSale, setOnSale, saleIndeterminate],
+    }
+    const stateEntry = stateMap[flagType]
+    if (!stateEntry) return
+
+    const [currentValue, setValue, isIndeterminate] = stateEntry
+    const newValue = isIndeterminate ? true : !currentValue
+
+    setFlagLoading(true)
+    setValue(newValue)
+
+    try {
+      await bulkFlags.mutateAsync({ slugs, flagType, value: newValue })
+      toast.success('Products updated successfully')
+      setTimeout(() => setSelectedSlugs(new Set()), 400)
+      listRefetch()
+    } catch (err) {
+      setValue(currentValue)
+      toast.error(err?.message || 'Failed to update flags')
+    } finally {
+      setFlagLoading(false)
     }
   }
 
@@ -916,13 +1052,93 @@ export default function AdminProductsPage() {
 
       <div className="admin-card admin-products__toolbar-card">
         {selectedSlugs.size > 0 ? (
-          <div className="admin-bulk-bar">
-            <span>{selectedSlugs.size} selected</span>
-            <div className="admin-row-actions">
-              <Button variant="secondary" size="sm" onClick={() => handleBulkChannel('ecomm', 'active')}>Set Ecom Active</Button>
-              <Button variant="secondary" size="sm" onClick={() => handleBulkChannel('ecomm', 'draft')}>Set Ecom Inactive</Button>
-              <Button variant="secondary" size="sm" onClick={() => handleBulkChannel('wholesale', 'active')}>Set Wholesale Active</Button>
-              <Button variant="ghost" size="sm" onClick={() => setSelectedSlugs(new Set())}>Clear</Button>
+          <div className="admin-bulk-bar admin-bulk-bar--products">
+            <div className="admin-bulk-bar__left">
+              <span className="admin-bulk-bar__badge">
+                <Check size={14} aria-hidden />
+                {selectedSlugs.size} product{selectedSlugs.size > 1 ? 's' : ''} selected
+              </span>
+              <button
+                type="button"
+                className="admin-bulk-bar__clear"
+                onClick={() => setSelectedSlugs(new Set())}
+              >
+                Clear selection
+              </button>
+            </div>
+            <div className="admin-bulk-bar__actions">
+              <BulkFlagToggle
+                label="Today Deals"
+                checked={todayArrival}
+                indeterminate={todayIndeterminate}
+                loading={flagLoading}
+                onChange={() => handleBulkFlagUpdate('today-arrival')}
+              />
+              <BulkFlagToggle
+                label="On Sale"
+                checked={onSale}
+                indeterminate={saleIndeterminate}
+                loading={flagLoading}
+                onChange={() => handleBulkFlagUpdate('on-sale')}
+              />
+              <BulkChannelDropdown
+                label="Set as Ecom"
+                tone="ecom"
+                open={showEcomMenu}
+                onToggle={(v) => {
+                  setShowEcomMenu(v)
+                  if (v) setShowWholesaleMenu(false)
+                }}
+                disabled={bulkStatus.isPending}
+              >
+                <button
+                  type="button"
+                  className="admin-bulk-channel__option admin-bulk-channel__option--active-ecom"
+                  disabled={bulkStatus.isPending}
+                  onClick={() => handleBulkChannel('ecomm', 'active')}
+                >
+                  <span className="admin-bulk-channel__dot" style={{ background: '#22c55e' }} />
+                  Active
+                </button>
+                <button
+                  type="button"
+                  className="admin-bulk-channel__option admin-bulk-channel__option--inactive"
+                  disabled={bulkStatus.isPending}
+                  onClick={() => handleBulkChannel('ecomm', 'draft')}
+                >
+                  <span className="admin-bulk-channel__dot" style={{ background: '#9ca3af' }} />
+                  Inactive
+                </button>
+              </BulkChannelDropdown>
+              <BulkChannelDropdown
+                label="Set as Wholesale"
+                tone="wholesale"
+                open={showWholesaleMenu}
+                onToggle={(v) => {
+                  setShowWholesaleMenu(v)
+                  if (v) setShowEcomMenu(false)
+                }}
+                disabled={bulkStatus.isPending}
+              >
+                <button
+                  type="button"
+                  className="admin-bulk-channel__option admin-bulk-channel__option--active-wholesale"
+                  disabled={bulkStatus.isPending}
+                  onClick={() => handleBulkChannel('wholesale', 'active')}
+                >
+                  <span className="admin-bulk-channel__dot" style={{ background: '#a855f7' }} />
+                  Active
+                </button>
+                <button
+                  type="button"
+                  className="admin-bulk-channel__option admin-bulk-channel__option--inactive"
+                  disabled={bulkStatus.isPending}
+                  onClick={() => handleBulkChannel('wholesale', 'draft')}
+                >
+                  <span className="admin-bulk-channel__dot" style={{ background: '#9ca3af' }} />
+                  Inactive
+                </button>
+              </BulkChannelDropdown>
             </div>
           </div>
         ) : (
