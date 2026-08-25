@@ -1,11 +1,21 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, Download } from 'lucide-react'
 import { toast } from 'sonner'
 import { AdminOrderDetailView } from '@/features/admin/components/AdminOrderDetailView'
 import {
   ORDER_TAB_ORDER,
   ORDER_TAB_LABEL_TO_BUCKET,
+  isPostConfirmOrderStatus,
 } from '@/features/admin/api/orders'
+import {
+  canAdminBulkCancelOrderRow,
+  canAdminBulkConfirmOrderRow,
+  canAdminBulkDownloadLabelOrderRow,
+  canAdminBulkDownloadManifestOrderRow,
+  canAdminBulkSchedulePickupOrderRow,
+  canAdminBulkShipNowOrderRow,
+  canAdminBulkSyncShiprocketOrderRow,
+} from '@/features/admin/utils/adminOrderFulfillmentEligibility'
 import {
   AdminEmpty,
   AdminError,
@@ -117,6 +127,8 @@ export default function AdminOrdersPage() {
   const [pickupDate, setPickupDate] = useState(tomorrowYmd())
   const [showPickupPanel, setShowPickupPanel] = useState(false)
   const [bulkBusy, setBulkBusy] = useState(false)
+  const [bulkInlineError, setBulkInlineError] = useState(null)
+  const bulkMenuRef = useRef(null)
   const [viewMode, setViewMode] = useState('list') // 'list' or 'detail'
   const [datePreset, setDatePreset] = useState('last30')
   const [customDateFrom, setCustomDateFrom] = useState('')
@@ -165,6 +177,69 @@ export default function AdminOrdersPage() {
     [listData]
   )
 
+  const orderById = useMemo(
+    () => new Map(orders.map((o) => [o.orderId || o.id || o._id, o])),
+    [orders]
+  )
+
+  const showBulkPendingActions = bucket === 'Pending'
+  const showBulkTaxInvoicesZip = bucket === 'Confirmed'
+
+  const eligibleBulkConfirmIds = useMemo(
+    () => selectedOrders.filter((id) => canAdminBulkConfirmOrderRow(orderById.get(id))),
+    [selectedOrders, orderById]
+  )
+  const eligibleBulkPendingIds = useMemo(
+    () => selectedOrders.filter((id) => canAdminBulkCancelOrderRow(orderById.get(id))),
+    [selectedOrders, orderById]
+  )
+  const eligibleBulkShipIds = useMemo(
+    () => selectedOrders.filter((id) => canAdminBulkShipNowOrderRow(orderById.get(id))),
+    [selectedOrders, orderById]
+  )
+  const eligibleBulkPickupIds = useMemo(
+    () => selectedOrders.filter((id) => canAdminBulkSchedulePickupOrderRow(orderById.get(id))),
+    [selectedOrders, orderById]
+  )
+  const eligibleBulkSyncIds = useMemo(
+    () => selectedOrders.filter((id) => canAdminBulkSyncShiprocketOrderRow(orderById.get(id))),
+    [selectedOrders, orderById]
+  )
+  const eligibleBulkInvoiceIds = useMemo(
+    () =>
+      selectedOrders.filter((id) => {
+        const o = orderById.get(id)
+        return o && isPostConfirmOrderStatus(o.orderStatus)
+      }),
+    [selectedOrders, orderById]
+  )
+  const eligibleBulkManifestIds = useMemo(
+    () => selectedOrders.filter((id) => canAdminBulkDownloadManifestOrderRow(orderById.get(id))),
+    [selectedOrders, orderById]
+  )
+  const eligibleBulkLabelIds = useMemo(
+    () => selectedOrders.filter((id) => canAdminBulkDownloadLabelOrderRow(orderById.get(id))),
+    [selectedOrders, orderById]
+  )
+
+  useEffect(() => {
+    setSelectedOrders([])
+    setShowBulkMenu(false)
+    setShowPickupPanel(false)
+    setBulkInlineError(null)
+  }, [bucket, page, search, datePreset, customDateFrom, customDateTo])
+
+  useEffect(() => {
+    if (!showBulkMenu) return undefined
+    const onDocClick = (e) => {
+      if (bulkMenuRef.current && !bulkMenuRef.current.contains(e.target)) {
+        setShowBulkMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [showBulkMenu])
+
   const totals = summary?.totals || {}
   const countsByBucket = summary?.countsByBucket || {}
 
@@ -203,11 +278,16 @@ export default function AdminOrdersPage() {
 
   const handleConfirm = async (orderIds) => {
     const ids = (Array.isArray(orderIds) ? orderIds : [orderIds]).filter(Boolean)
-    if (!ids.length) return
+    if (!ids.length) {
+      setBulkInlineError('No eligible orders. Confirm needs Pending orders with payment ready.')
+      return
+    }
+    setBulkInlineError(null)
     try {
       await confirmOrders.mutateAsync(ids)
       toast.success(ids.length > 1 ? `${ids.length} orders confirmed` : 'Order confirmed')
       setSelectedOrders([])
+      setShowBulkMenu(false)
       refreshList()
     } catch (err) {
       toast.error(err?.message || 'Could not confirm order')
@@ -216,23 +296,33 @@ export default function AdminOrdersPage() {
 
   const handleCancel = async (orderIds) => {
     const ids = (Array.isArray(orderIds) ? orderIds : [orderIds]).filter(Boolean)
-    if (!ids.length) return
+    if (!ids.length) {
+      setBulkInlineError('No eligible orders. Cancel applies to Pending orders only.')
+      return
+    }
     if (!window.confirm(`Cancel ${ids.length} order(s)? Stock will be restored.`)) return
+    setBulkInlineError(null)
     try {
       await cancelOrders.mutateAsync({ orderIds: ids })
       toast.success('Orders cancelled')
       setSelectedOrders([])
+      setShowBulkMenu(false)
       refreshList()
     } catch (err) {
       toast.error(err?.message || 'Could not cancel orders')
     }
   }
 
-  const runBulkMutation = async (label, fn) => {
-    if (!selectedOrders.length) return
+  const runBulkMutation = async (label, ids, fn) => {
+    const orderIds = (Array.isArray(ids) ? ids : []).filter(Boolean)
+    if (!orderIds.length) {
+      setBulkInlineError(`No eligible orders for ${label}.`)
+      return
+    }
     setBulkBusy(true)
+    setBulkInlineError(null)
     try {
-      const data = await fn(selectedOrders)
+      const data = await fn(orderIds)
       const summaryText = data?.summary
         ? `Success: ${data.summary.success ?? 0}, Failed: ${data.summary.failed ?? 0}`
         : label
@@ -248,26 +338,36 @@ export default function AdminOrdersPage() {
     }
   }
 
-  const handleShipNow = () => runBulkMutation('Ship now', (ids) => shipNow.mutateAsync(ids))
+  const handleShipNow = () =>
+    runBulkMutation('Ship now', eligibleBulkShipIds, (ids) => shipNow.mutateAsync(ids))
   const handleSyncShiprocket = () => {
-    if (!window.confirm(`Refresh Shiprocket for ${selectedOrders.length} order(s)?`)) return
-    runBulkMutation('Shiprocket sync', (ids) => syncShiprocket.mutateAsync(ids))
+    if (!eligibleBulkSyncIds.length) {
+      setBulkInlineError('No selected orders have a Shiprocket shipment to refresh.')
+      return
+    }
+    if (!window.confirm(`Refresh Shiprocket for ${eligibleBulkSyncIds.length} order(s)?`)) return
+    runBulkMutation('Shiprocket sync', eligibleBulkSyncIds, (ids) => syncShiprocket.mutateAsync(ids))
   }
   const handleSchedulePickup = () => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(pickupDate)) {
       toast.error('Choose a valid pickup date')
       return
     }
-    runBulkMutation('Pickup scheduled', (ids) =>
+    runBulkMutation('Pickup scheduled', eligibleBulkPickupIds, (ids) =>
       schedulePickup.mutateAsync({ orderIds: ids, pickupDate })
     )
   }
 
-  const runZipDownload = async (mutation, label) => {
-    if (!selectedOrders.length) return
+  const runZipDownload = async (mutation, label, ids) => {
+    const orderIds = (Array.isArray(ids) ? ids : selectedOrders).filter(Boolean)
+    if (!orderIds.length) {
+      setBulkInlineError(`No eligible orders for ${label}.`)
+      return
+    }
     setBulkBusy(true)
+    setBulkInlineError(null)
     try {
-      await mutation.mutateAsync(selectedOrders)
+      await mutation.mutateAsync(orderIds)
       toast.success(`${label} downloaded`)
       setShowBulkMenu(false)
     } catch (err) {
@@ -308,7 +408,19 @@ export default function AdminOrdersPage() {
   }
 
   const allSelected = orders.length > 0 && selectedOrders.length === orders.length
-  const bulkPending = bulkBusy || confirmOrders.isPending || cancelOrders.isPending || shipNow.isPending
+  const bulkPending =
+    bulkBusy ||
+    confirmOrders.isPending ||
+    cancelOrders.isPending ||
+    shipNow.isPending ||
+    schedulePickup.isPending ||
+    syncShiprocket.isPending
+  const noFulfillmentHint =
+    !eligibleBulkShipIds.length &&
+    !eligibleBulkSyncIds.length &&
+    !eligibleBulkPickupIds.length &&
+    !eligibleBulkManifestIds.length &&
+    !eligibleBulkLabelIds.length
 
   if (viewMode === 'detail' && selectedOrderId) {
     return (
@@ -520,54 +632,190 @@ export default function AdminOrdersPage() {
 
       {selectedOrders.length > 0 && (
         <div className="admin-bulk-bar admin-bulk-bar--orders">
-          <span>{selectedOrders.length} selected</span>
-          <div className="admin-row-actions">
-            {bucket === 'Pending' && (
-              <>
-                <Button variant="primary" size="sm" disabled={bulkPending} onClick={() => handleConfirm(selectedOrders)}>
-                  Accept selected
-                </Button>
-                <Button variant="secondary" size="sm" disabled={bulkPending} onClick={() => handleCancel(selectedOrders)}>
-                  Cancel selected
-                </Button>
-              </>
-            )}
-            {(bucket === 'Confirmed' || bucket === 'Ready to Ship') && (
-              <Button variant="primary" size="sm" disabled={bulkPending} onClick={handleShipNow}>
-                Ship now
-              </Button>
-            )}
-            <div className="admin-bulk-menu">
-              <Button
-                variant="secondary"
-                size="sm"
+          <div className="admin-bulk-bar__row">
+            <div className="admin-bulk-menu" ref={bulkMenuRef}>
+              <button
+                type="button"
+                className="admin-bulk-menu__trigger"
                 disabled={bulkPending}
-                onClick={() => setShowBulkMenu((v) => !v)}
+                onClick={() => {
+                  setBulkInlineError(null)
+                  setShowBulkMenu((v) => !v)
+                }}
               >
-                Bulk actions <ChevronDown size={14} />
-              </Button>
-              {showBulkMenu && (
-                <div className="admin-bulk-menu__panel">
-                  <button type="button" disabled={bulkPending} onClick={() => handleSyncShiprocket()}>
-                    Refresh Shiprocket
+                Bulk actions ▾
+              </button>
+              {showBulkMenu ? (
+                <div className="admin-bulk-menu__panel" role="menu">
+                  {showBulkPendingActions ? (
+                    <>
+                      <button
+                        type="button"
+                        className="admin-bulk-menu__item admin-bulk-menu__item--confirm"
+                        disabled={bulkPending || !eligibleBulkConfirmIds.length}
+                        title={
+                          !eligibleBulkConfirmIds.length
+                            ? 'Select Pending orders where payment is ready.'
+                            : undefined
+                        }
+                        onClick={() => handleConfirm(eligibleBulkConfirmIds)}
+                      >
+                        Confirm order(s)
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-bulk-menu__item admin-bulk-menu__item--cancel"
+                        disabled={bulkPending || !eligibleBulkPendingIds.length}
+                        title={
+                          !eligibleBulkPendingIds.length
+                            ? 'Select Pending orders to cancel.'
+                            : undefined
+                        }
+                        onClick={() => handleCancel(eligibleBulkPendingIds)}
+                      >
+                        Cancel order(s)
+                      </button>
+                    </>
+                  ) : null}
+                  <button
+                    type="button"
+                    className={`admin-bulk-menu__item${showBulkPendingActions ? ' is-bordered' : ''}`}
+                    disabled={bulkPending || !eligibleBulkShipIds.length}
+                    title={
+                      !eligibleBulkShipIds.length
+                        ? 'No selected orders are ready for Ship now (needs Confirmed + no AWB).'
+                        : undefined
+                    }
+                    onClick={handleShipNow}
+                  >
+                    Ship now (Shiprocket)
                   </button>
-                  <button type="button" disabled={bulkPending} onClick={() => { setShowPickupPanel(true); setShowBulkMenu(false) }}>
-                    Schedule pickup
+                  <button
+                    type="button"
+                    className="admin-bulk-menu__item is-bordered"
+                    disabled={bulkPending || !eligibleBulkSyncIds.length}
+                    title={
+                      !eligibleBulkSyncIds.length
+                        ? 'No selected orders have a Shiprocket shipment to refresh.'
+                        : 'Sync status, pickup date, and SRPID from Shiprocket.'
+                    }
+                    onClick={handleSyncShiprocket}
+                  >
+                    Refresh Shiprocket (sync + SRPID)
                   </button>
-                  <button type="button" disabled={bulkPending} onClick={() => runZipDownload(taxInvoicesZip, 'Tax invoices ZIP')}>
-                    Tax invoices (ZIP)
+                  <button
+                    type="button"
+                    className="admin-bulk-menu__item"
+                    disabled={bulkPending || !eligibleBulkPickupIds.length}
+                    title={
+                      !eligibleBulkPickupIds.length
+                        ? 'No selected orders need pickup scheduling (needs AWB, no pickup booked yet).'
+                        : undefined
+                    }
+                    onClick={() => {
+                      setShowPickupPanel(true)
+                      setShowBulkMenu(false)
+                    }}
+                  >
+                    Schedule pickup…
                   </button>
-                  <button type="button" disabled={bulkPending} onClick={() => runZipDownload(shippingLabelsZip, 'Shipping labels ZIP')}>
-                    Shipping labels (ZIP)
+                  {showBulkTaxInvoicesZip ? (
+                    <button
+                      type="button"
+                      className="admin-bulk-menu__item is-bordered"
+                      disabled={bulkPending || !eligibleBulkInvoiceIds.length}
+                      onClick={() =>
+                        runZipDownload(taxInvoicesZip, 'Tax invoices ZIP', eligibleBulkInvoiceIds)
+                      }
+                    >
+                      Bulk tax invoices (ZIP)
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="admin-bulk-menu__item is-bordered"
+                    disabled={bulkPending || !eligibleBulkManifestIds.length}
+                    title={
+                      !eligibleBulkManifestIds.length
+                        ? 'No selected orders can download manifest (needs AWB).'
+                        : undefined
+                    }
+                    onClick={() =>
+                      runZipDownload(manifestsZip, 'Shiprocket manifests ZIP', eligibleBulkManifestIds)
+                    }
+                  >
+                    Bulk Shiprocket manifests (ZIP)
                   </button>
-                  <button type="button" disabled={bulkPending} onClick={() => runZipDownload(manifestsZip, 'Manifests ZIP')}>
-                    Shiprocket manifests (ZIP)
+                  <button
+                    type="button"
+                    className="admin-bulk-menu__item"
+                    disabled={bulkPending || !eligibleBulkLabelIds.length}
+                    title={
+                      !eligibleBulkLabelIds.length
+                        ? 'No selected orders can download label (needs AWB).'
+                        : undefined
+                    }
+                    onClick={() =>
+                      runZipDownload(shippingLabelsZip, 'Shipping labels ZIP', eligibleBulkLabelIds)
+                    }
+                  >
+                    Bulk shipping labels (ZIP)
                   </button>
+                  {noFulfillmentHint ? (
+                    <p className="admin-bulk-menu__hint">
+                      No ship, pickup, manifest, or label actions apply to the current selection. Select
+                      orders with Shiprocket shipments and use Refresh Shiprocket to load SRPID.
+                    </p>
+                  ) : null}
                 </div>
-              )}
+              ) : null}
             </div>
-            <Button variant="ghost" size="sm" onClick={() => setSelectedOrders([])}>Clear</Button>
+
+            <div className="admin-bulk-bar__summary">
+              <p>
+                <strong>{selectedOrders.length}</strong>{' '}
+                {selectedOrders.length === 1 ? 'order selected' : 'orders selected'}. Tap{' '}
+                <strong>Bulk actions</strong>, then pick an item from the menu.
+              </p>
+              <p className="admin-bulk-bar__counts">
+                {showBulkPendingActions ? (
+                  <>
+                    Confirm (payment ready): <strong>{eligibleBulkConfirmIds.length}</strong>
+                    {' · '}
+                    Cancel (pending): <strong>{eligibleBulkPendingIds.length}</strong>
+                    {' · '}
+                  </>
+                ) : null}
+                Ready for ship: <strong>{eligibleBulkShipIds.length}</strong>
+                {' · '}
+                Refresh Shiprocket: <strong>{eligibleBulkSyncIds.length}</strong>
+                {' · '}
+                Ready for pickup: <strong>{eligibleBulkPickupIds.length}</strong>
+                {showBulkTaxInvoicesZip ? (
+                  <>
+                    {' · '}
+                    Tax invoice (ZIP): <strong>{eligibleBulkInvoiceIds.length}</strong>
+                  </>
+                ) : null}
+                {' · '}
+                Manifest (ZIP): <strong>{eligibleBulkManifestIds.length}</strong>
+                {' · '}
+                Shipping label (ZIP): <strong>{eligibleBulkLabelIds.length}</strong>
+                {eligibleBulkShipIds.length === 0 && eligibleBulkPickupIds.length === 0 ? (
+                  <span className="admin-bulk-bar__muted">
+                    {' '}
+                    — Ship / pickup not for these rows at this step.
+                  </span>
+                ) : null}
+              </p>
+            </div>
           </div>
+
+          {bulkInlineError ? (
+            <div className="admin-bulk-bar__error" role="alert">
+              {bulkInlineError}
+            </div>
+          ) : null}
         </div>
       )}
 
@@ -576,10 +824,17 @@ export default function AdminOrdersPage() {
           <strong>Schedule pickup</strong>
           <div className="admin-row-actions">
             <Input type="date" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)} />
-            <Button variant="primary" size="sm" disabled={bulkPending} onClick={handleSchedulePickup}>
-              Confirm pickup
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={bulkPending || !eligibleBulkPickupIds.length}
+              onClick={handleSchedulePickup}
+            >
+              Confirm pickup ({eligibleBulkPickupIds.length})
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setShowPickupPanel(false)}>Cancel</Button>
+            <Button variant="ghost" size="sm" onClick={() => setShowPickupPanel(false)}>
+              Cancel
+            </Button>
           </div>
         </div>
       )}
