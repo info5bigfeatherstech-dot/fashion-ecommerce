@@ -16588,6 +16588,12 @@ button.admin-stats-chip:hover {
   border-color: #4f46e5;
 }
 
+.pf-toggle:disabled,
+.pf-toggle.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Main Variant card (edit mode) — matches admin product edit reference UI */
 .pf-main {
   background: #fff;

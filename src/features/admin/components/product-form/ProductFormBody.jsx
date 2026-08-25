@@ -472,8 +472,13 @@ export default function ProductFormBody({
                     <label className="text-sm font-semibold text-gray-700">Wholesale Pricing</label>
                     <p className="text-xs text-gray-500 mt-0.5">Enable bulk pricing for wholesalers</p>
                   </div>
-                  <button type="button" onClick={() => setFormData((p) => ({ ...p, wholesale: !p.wholesale }))} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.wholesale ? "bg-purple-500" : "bg-gray-300"}`}>
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.wholesale ? "translate-x-6" : "translate-x-1"}`} />
+                  <button
+                    type="button"
+                    aria-label="Toggle wholesale pricing"
+                    onClick={() => setFormData((p) => ({ ...p, wholesale: !p.wholesale }))}
+                    className={`pf-toggle pf-toggle--wholesale${formData.wholesale ? ' is-on' : ''}`}
+                  >
+                    <span className="pf-toggle__knob" />
                   </button>
                 </div>
                 {formData.wholesale && (
@@ -499,8 +504,16 @@ export default function ProductFormBody({
               <div className="pt-2 border-t border-gray-100">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-medium text-gray-700">Track Inventory</span>
-                  <button type="button" onClick={() => setFormData((p) => ({ ...p, inventory: { ...p.inventory, trackInventory: !p.inventory.trackInventory } }))} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${primaryTrack ? "bg-blue-500" : "bg-gray-300"}`}>
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${primaryTrack ? "translate-x-6" : "translate-x-1"}`} />
+                  <button
+                    type="button"
+                    aria-label="Toggle inventory tracking"
+                    onClick={() => setFormData((p) => ({
+                      ...p,
+                      inventory: { ...p.inventory, trackInventory: !p.inventory.trackInventory },
+                    }))}
+                    className={`pf-toggle pf-toggle--inventory${primaryTrack ? ' is-on' : ''}`}
+                  >
+                    <span className="pf-toggle__knob" />
                   </button>
                 </div>
                 {primaryTrack && (
@@ -669,8 +682,15 @@ export default function ProductFormBody({
                           </div>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          <button type="button" onClick={() => onToggleVariantActive(realIndex)} disabled={actionLoading && isEditMode} title={ecommBadge.text === "Active" ? "Click to deactivate (ecom)" : "Click to activate (ecom)"} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:opacity-50 ${ecommBadge.text === "Active" ? "bg-indigo-500" : "bg-gray-300"}`}>
-                            <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${ecommBadge.text === "Active" ? "translate-x-5" : "translate-x-1"}`} />
+                          <button
+                            type="button"
+                            onClick={() => onToggleVariantActive(realIndex)}
+                            disabled={actionLoading && isEditMode}
+                            title={ecommBadge.text === 'Active' ? 'Click to deactivate (ecom)' : 'Click to activate (ecom)'}
+                            aria-label="Toggle ecom visibility"
+                            className={`pf-toggle pf-toggle--ecom${ecommBadge.text === 'Active' ? ' is-on' : ''}${(actionLoading && isEditMode) ? ' is-disabled' : ''}`}
+                          >
+                            <span className="pf-toggle__knob" />
                           </button>
                           <button type="button" onClick={() => onOpenEditVariant(realIndex)} disabled={actionLoading && isEditMode} className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-100 rounded-lg disabled:opacity-50">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
