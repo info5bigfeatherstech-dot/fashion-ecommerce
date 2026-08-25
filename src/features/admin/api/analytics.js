@@ -22,6 +22,11 @@ export async function getAdminCarts({ signal, page = 1, limit = 20 } = {}) {
   return payload
 }
 
+export async function getAdminCartById(cartId, { signal } = {}) {
+  const payload = await adminGet(API_ENDPOINTS.admin.cartById(cartId), { signal })
+  return unwrapAdmin(payload)
+}
+
 export async function getAdminAbandonedCarts({ signal, page = 1, limit = 20, hours = 24 } = {}) {
   const payload = await adminGet(API_ENDPOINTS.admin.cartsAbandoned, {
     signal,

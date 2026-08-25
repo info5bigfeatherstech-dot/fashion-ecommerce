@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { X } from 'lucide-react'
-import { useAdminUserDetail } from '@/features/admin/hooks'
+import { useAdminCartDetail, useAdminUserDetail } from '@/features/admin/hooks'
 
 const formatCurrency = (amount) =>
   new Intl.NumberFormat('en-IN', {
@@ -67,15 +67,36 @@ function CartItemRow({ item }) {
   )
 }
 
-export function AdminCartDetailsModal({ open, onClose, userId = null, fallbackUser = null }) {
-  const { data, isLoading, isError, error, isFetching } = useAdminUserDetail(userId, {
-    enabled: open && Boolean(userId),
-  })
+export function AdminCartDetailsModal({
+  open,
+  onClose,
+  userId = null,
+  cartId = null,
+  fallbackUser = null,
+}) {
+  const fetchByCart = open && Boolean(cartId)
+  const fetchByUser = open && Boolean(userId) && !cartId
 
-  const payload = data?.data && typeof data.data === 'object' ? data.data : data
-  const cart = payload?.cart || null
-  const customer = cart?.user || payload?.user || fallbackUser || null
+  const cartQuery = useAdminCartDetail(cartId, { enabled: fetchByCart })
+  const userQuery = useAdminUserDetail(userId, { enabled: fetchByUser })
+
+  const cartPayload = cartQuery.data?.data && typeof cartQuery.data.data === 'object'
+    ? cartQuery.data.data
+    : cartQuery.data
+  const userPayload = userQuery.data?.data && typeof userQuery.data.data === 'object'
+    ? userQuery.data.data
+    : userQuery.data
+
+  const cart = fetchByCart
+    ? (cartPayload?.cart || cartPayload || null)
+    : (userPayload?.cart || null)
+  const customer = cart?.user || userPayload?.user || fallbackUser || null
   const items = cart?.items || []
+
+  const isLoading = fetchByCart ? cartQuery.isLoading : userQuery.isLoading
+  const isError = fetchByCart ? cartQuery.isError : userQuery.isError
+  const error = fetchByCart ? cartQuery.error : userQuery.error
+  const isFetching = fetchByCart ? cartQuery.isFetching : userQuery.isFetching
 
   useEffect(() => {
     if (!open) return undefined

@@ -38,6 +38,7 @@ import {
   getAdminCheckoutSettings,
   getAdminCoupons,
   getAdminCarts,
+  getAdminCartById,
   getAdminDashboardSummary,
   getAdminHighValueCarts,
   getAdminOosInquiries,
@@ -656,38 +657,61 @@ export function useAdminUserDetail(userId, { enabled = true } = {}) {
   })
 }
 
-export function useAdminCarts({ variant = 'all', page = 1, enabled = true } = {}) {
+export function useAdminCarts({
+  variant = 'all',
+  page = 1,
+  limit = 10,
+  hours = 24,
+  minAmount = 5000,
+  enabled = true,
+} = {}) {
   const queryEnabled = useAdminQueryEnabled(enabled)
   return useQuery({
-    queryKey: adminKeys.carts(variant, page),
+    queryKey: adminKeys.carts(variant, page, hours, minAmount),
     queryFn: ({ signal }) => {
-      if (variant === 'abandoned') return getAdminAbandonedCarts({ signal, page })
-      if (variant === 'high-value') return getAdminHighValueCarts({ signal, page })
-      return getAdminCarts({ signal, page })
+      if (variant === 'abandoned') return getAdminAbandonedCarts({ signal, page, limit, hours })
+      if (variant === 'high-value') return getAdminHighValueCarts({ signal, page, limit, minAmount })
+      return getAdminCarts({ signal, page, limit })
     },
     enabled: queryEnabled,
     staleTime: 1000 * 30,
   })
 }
 
-export function useAdminWishlists({ variant = 'all', page = 1, enabled = true } = {}) {
+export function useAdminCartDetail(cartId, { enabled = true } = {}) {
+  const queryEnabled = useAdminQueryEnabled(enabled)
+  const id = String(cartId || '').trim()
+  return useQuery({
+    queryKey: adminKeys.cartDetail(id),
+    queryFn: ({ signal }) => getAdminCartById(id, { signal }),
+    enabled: queryEnabled && Boolean(id),
+  })
+}
+
+export function useAdminWishlists({
+  variant = 'all',
+  page = 1,
+  limit = 10,
+  days = 7,
+  enabled = true,
+} = {}) {
   const queryEnabled = useAdminQueryEnabled(enabled)
   return useQuery({
-    queryKey: adminKeys.wishlists(variant, page),
+    queryKey: adminKeys.wishlists(variant, page, days),
     queryFn: ({ signal }) => {
-      if (variant === 'stale') return getAdminStaleWishlists({ signal, page })
-      return getAdminWishlists({ signal, page })
+      if (variant === 'stale') return getAdminStaleWishlists({ signal, page, limit, days })
+      return getAdminWishlists({ signal, page, limit })
     },
     enabled: queryEnabled,
     staleTime: 1000 * 30,
   })
 }
 
-export function useAdminPopularWishlistProducts({ enabled = true } = {}) {
+export function useAdminPopularWishlistProducts({ enabled = true, limit = 20 } = {}) {
   const queryEnabled = useAdminQueryEnabled(enabled)
   return useQuery({
-    queryKey: adminKeys.wishlistsPopular(),
-    queryFn: ({ signal }) => getAdminPopularWishlistProducts({ signal }),
+    queryKey: adminKeys.wishlistsPopular(limit),
+    queryFn: ({ signal }) => getAdminPopularWishlistProducts({ signal, limit }),
     enabled: queryEnabled,
     staleTime: 1000 * 60,
   })
