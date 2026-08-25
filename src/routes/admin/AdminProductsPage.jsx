@@ -1,17 +1,30 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, CheckCircle2, ChevronDown, Download, Eye, Package, Pencil, Plus, Star, Trash2 } from 'lucide-react'
+import {
+  AlertTriangle,
+  Archive,
+  Calendar,
+  CheckCircle2,
+  Download,
+  Eye,
+  Package,
+  Pencil,
+  Plus,
+  Search,
+  Star,
+  X,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import {
   AdminEmpty,
   AdminError,
   AdminLoading,
-  AdminPageHeader,
   AdminPagination,
   extractListPayload,
 } from '@/features/admin/components/AdminUi'
 import { AdminBulkUploadModal } from '@/features/admin/components/AdminBulkUploadModal'
 import { AdminProductModal } from '@/features/admin/components/AdminProductModal'
 import { AdminProductStatsBar } from '@/features/admin/components/AdminProductStatsBar'
+import { CategoryQuickModal } from '@/features/admin/components/product-form/CategoryQuickModal'
 import {
   useAdminCategories,
   useAdminProductsActiveCount,
@@ -27,6 +40,50 @@ import { formatPrice } from '@/lib/utils'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
+
+const DATE_PRESETS = [
+  { value: 'today', label: 'Today' },
+  { value: 'yesterday', label: 'Yesterday' },
+  { value: 'last7days', label: 'Last 7 days' },
+  { value: 'last30days', label: 'Last 30 days' },
+  { value: 'custom', label: 'Custom range' },
+]
+
+function startOfDay(d) {
+  const x = new Date(d)
+  x.setHours(0, 0, 0, 0)
+  return x
+}
+
+function endOfDay(d) {
+  const x = new Date(d)
+  x.setHours(23, 59, 59, 999)
+  return x
+}
+
+function getDateRange(preset, startDate, endDate) {
+  const now = new Date()
+  if (preset === 'today') return { start: startOfDay(now), end: endOfDay(now) }
+  if (preset === 'yesterday') {
+    const y = new Date(now)
+    y.setDate(y.getDate() - 1)
+    return { start: startOfDay(y), end: endOfDay(y) }
+  }
+  if (preset === 'last7days') {
+    const s = new Date(now)
+    s.setDate(s.getDate() - 6)
+    return { start: startOfDay(s), end: endOfDay(now) }
+  }
+  if (preset === 'last30days') {
+    const s = new Date(now)
+    s.setDate(s.getDate() - 29)
+    return { start: startOfDay(s), end: endOfDay(now) }
+  }
+  if (preset === 'custom' && startDate && endDate) {
+    return { start: startOfDay(startDate), end: endOfDay(endDate) }
+  }
+  return null
+}
 
 function toNumber(value, fallback = 0) {
   const n = Number(value)
@@ -133,9 +190,10 @@ function extractCount(data) {
   return null
 }
 
-function SelectDropdown({ value, onChange, options, placeholder, className = '' }) {
+function DateFilterButton({ dateFilter, setDateFilter, startDate, setStartDate, endDate, setEndDate }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
+
   useEffect(() => {
     const onDocClick = (e) => {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false)
@@ -143,36 +201,105 @@ function SelectDropdown({ value, onChange, options, placeholder, className = '' 
     document.addEventListener('mousedown', onDocClick)
     return () => document.removeEventListener('mousedown', onDocClick)
   }, [])
-  const selected = options.find((opt) => opt.value === value)
+
+  const isActive = dateFilter !== 'all' && (dateFilter !== 'custom' || (startDate && endDate))
+
+  const label = (() => {
+    if (!isActive) return 'Date Filter'
+    if (dateFilter === 'custom' && startDate && endDate) return `${startDate} → ${endDate}`
+    return DATE_PRESETS.find((p) => p.value === dateFilter)?.label || 'Date Filter'
+  })()
+
   return (
-    <div ref={ref} className={`custom-select ${className}${open ? ' is-open' : ''}`}>
+    <div ref={ref} className={`admin-products__date${open ? ' is-open' : ''}${isActive ? ' is-active' : ''}`}>
       <button
         type="button"
-        className="custom-select__trigger"
+        className="admin-products__date-btn"
         onClick={() => setOpen((v) => !v)}
-        aria-haspopup="listbox"
+        aria-haspopup="dialog"
         aria-expanded={open}
       >
-        <span className="custom-select__value">{selected?.label ?? placeholder ?? value}</span>
-        <ChevronDown size={16} className="custom-select__caret" aria-hidden />
+        <Calendar size={16} aria-hidden />
+        <span>{label}</span>
+        {isActive && (
+          <span
+            className="admin-products__date-clear"
+            role="button"
+            tabIndex={0}
+            aria-label="Clear date filter"
+            onClick={(e) => {
+              e.stopPropagation()
+              setDateFilter('all')
+              setStartDate('')
+              setEndDate('')
+              setOpen(false)
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                e.stopPropagation()
+                setDateFilter('all')
+                setStartDate('')
+                setEndDate('')
+                setOpen(false)
+              }
+            }}
+          >
+            <X size={10} aria-hidden />
+          </span>
+        )}
       </button>
       {open && (
-        <ul className="custom-select__menu" role="listbox">
-          {options.map((opt) => (
-            <li
-              key={opt.value}
-              role="option"
-              aria-selected={opt.value === value}
-              className={`custom-select__item${opt.value === value ? ' is-selected' : ''}`}
+        <div className="admin-products__date-menu">
+          <p className="admin-products__date-heading">Quick presets</p>
+          {DATE_PRESETS.filter((p) => p.value !== 'custom').map((p) => (
+            <button
+              key={p.value}
+              type="button"
+              className={`admin-products__date-option${dateFilter === p.value ? ' is-selected' : ''}`}
               onClick={() => {
-                onChange(opt.value)
+                setDateFilter(p.value)
+                setStartDate('')
+                setEndDate('')
                 setOpen(false)
               }}
             >
-              {opt.label}
-            </li>
+              {p.label}
+              {dateFilter === p.value && <CheckCircle2 size={14} aria-hidden />}
+            </button>
           ))}
-        </ul>
+          <button
+            type="button"
+            className={`admin-products__date-option${dateFilter === 'custom' ? ' is-selected' : ''}`}
+            onClick={() => setDateFilter('custom')}
+          >
+            Custom range
+          </button>
+          {dateFilter === 'custom' && (
+            <div className="admin-products__date-custom">
+              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} aria-label="Start date" />
+              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} aria-label="End date" />
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  if (!startDate || !endDate) {
+                    toast.error('Please select both start and end dates')
+                    return
+                  }
+                  if (new Date(startDate) > new Date(endDate)) {
+                    toast.error('Start date cannot be after end date')
+                    return
+                  }
+                  setOpen(false)
+                }}
+              >
+                Apply
+              </Button>
+            </div>
+          )}
+        </div>
       )}
     </div>
   )
@@ -200,35 +327,93 @@ function fmtDate(d) {
 }
 
 function ProductViewModal({ open, onOpenChange, product }) {
+  const [activeVariantIndex, setActiveVariantIndex] = useState(0)
+  const productKey = product?._id || product?.id || product?.slug || ''
+
+  useEffect(() => {
+    if (open) setActiveVariantIndex(0)
+  }, [open, productKey])
+
   if (!product) return null
-  const v0 = product?.variants?.[0] || {}
+
+  const variants = Array.isArray(product.variants) && product.variants.length
+    ? product.variants
+    : [{}]
+  const activeVariant = variants[Math.min(activeVariantIndex, variants.length - 1)] || variants[0] || {}
   const pricing = getProductPricing(product)
-  const ecomStock = getEcomStock(product)
   const low = isLowStockProduct(product)
 
   const categoryName = getCategoryName(product.category)
   const brand = product.brand || 'Generic'
   const description = product.description || product.shortDescription || '—'
-  const created = product.createdAt || product.createdAt || product.date_created || null
+  const created = product.createdAt || product.date_created || null
   const updated = product.updatedAt || product.modifiedAt || product.date_modified || null
-
-  const variants = Array.isArray(product.variants) ? product.variants : [v0]
+  const title = product.title || ''
+  const slug = product.slug || product.ProductCode || ''
 
   const basePrices = variants.map((v) => toNumber(v?.price?.base ?? v?.basePrice ?? v?.price, 0)).filter((n) => n > 0)
   const minBase = basePrices.length ? Math.min(...basePrices) : pricing.basePrice
   const maxBase = basePrices.length ? Math.max(...basePrices) : pricing.basePrice
-  const priceRange = minBase === maxBase ? `${formatPrice(minBase)}—` : `${formatPrice(minBase)} – ${formatPrice(maxBase)}`
+  const priceRange = minBase === maxBase
+    ? `${formatPrice(minBase || 0)}—`
+    : `${formatPrice(minBase)} – ${formatPrice(maxBase)}`
 
-  const totalStock = variants.reduce((sum, v) => sum + toNumber(v?.inventory?.quantity ?? v?.availability?.quantity ?? v?.stock ?? 0, 0), 0)
+  const totalStock = variants.reduce(
+    (sum, v) => sum + toNumber(v?.inventory?.quantity ?? v?.availability?.quantity ?? v?.stock ?? 0, 0),
+    0
+  )
 
   const shipping = product.shipping || {}
-  const weight = shipping.weight ?? product.weight ?? v0.shipping?.weight ?? '—'
-  const length = shipping.length ?? product.length ?? v0.shipping?.length ?? '—'
-  const width = shipping.width ?? product.width ?? v0.shipping?.width ?? '—'
-  const height = shipping.height ?? product.height ?? v0.shipping?.height ?? '—'
+  const dims = shipping.dimensions || {}
+  const weight = shipping.weight ?? product.weight ?? activeVariant?.shipping?.weight
+  const length = dims.length ?? shipping.length ?? product.length ?? activeVariant?.shipping?.length
+  const width = dims.width ?? shipping.width ?? product.width ?? activeVariant?.shipping?.width
+  const height = dims.height ?? shipping.height ?? product.height ?? activeVariant?.shipping?.height
 
   const ecomStatus = getEcomStatus(product)
-  const slug = product.slug || product.ProductCode || ''
+  const soldInfo = product.soldInfo || product.marketing?.soldInfo
+  const fomo = product.fomo || product.marketing?.fomo
+  const soldEnabled = Boolean(soldInfo?.enabled ?? soldInfo === true)
+  const fomoEnabled = Boolean(fomo?.enabled ?? fomo === true)
+
+  const vBase = toNumber(activeVariant?.price?.base ?? activeVariant?.basePrice ?? activeVariant?.price, 0)
+  const vSaleRaw = activeVariant?.price?.sale ?? activeVariant?.finalPrice ?? activeVariant?.price?.current ?? activeVariant?.salePrice
+  const vSale = vSaleRaw != null && vSaleRaw !== '' ? toNumber(vSaleRaw, null) : null
+  const vHasSale = vSale != null && vSale > 0 && (vBase <= 0 || vSale < vBase)
+  const vDiscount = vHasSale && vBase > 0 ? getDiscountPercentage(vBase, vSale) : 0
+  const vEcom = toNumber(activeVariant?.inventory?.quantity ?? activeVariant?.availability?.quantity ?? activeVariant?.stock ?? 0, 0)
+  const vInv = activeVariant?.inventory?.liveQuantity ?? activeVariant?.inventory?.warehouseQuantity ?? null
+  const vLow = toNumber(activeVariant?.inventory?.lowStockThreshold, 5)
+  const trackFlag = activeVariant?.inventory?.trackInventory
+  const trackedFlag = activeVariant?.inventory?.tracked
+  const vTracking = trackFlag != null ? Boolean(trackFlag) : trackedFlag !== false
+  const vStatusActive = String(
+    activeVariant?.channelStatus?.ecomm
+    || activeVariant?.status
+    || activeVariant?.availability
+    || 'active'
+  ).toLowerCase() !== 'inactive' && String(activeVariant?.status || '').toLowerCase() !== 'draft'
+
+  const rawAttrs = activeVariant?.attributes || activeVariant?.options || []
+  const attrEntries = Array.isArray(rawAttrs)
+    ? rawAttrs
+      .map((a) => (typeof a === 'object' ? [a.key || a.name, a.value] : [null, a]))
+      .filter(([, val]) => val != null && val !== '')
+    : Object.entries(rawAttrs || {}).filter(([, val]) => val != null && val !== '')
+
+  const variantTabLabel = (v, idx) => {
+    if (Array.isArray(v?.attributes) && v.attributes.length) {
+      const label = v.attributes.map((a) => a.value || a.key).filter(Boolean).join(' / ')
+      if (label) return label
+    }
+    return v?.name || v?.title || `Variant ${idx + 1}`
+  }
+
+  const sku = activeVariant?.sku
+    || activeVariant?.productCode
+    || `SKU-${String(product.ProductCode || product.sku || product.slug || '000000').slice(-7)}-${activeVariantIndex + 1}`
+
+  const variantImages = Array.isArray(activeVariant?.images) ? activeVariant.images : []
 
   return (
     <Modal
@@ -237,217 +422,237 @@ function ProductViewModal({ open, onOpenChange, product }) {
       className="modal-content--view-product"
       footer={
         <div className="product-view__footer">
-          <Button type="button" variant="primary" size="sm" onClick={() => onOpenChange(false)}>
+          <button type="button" className="product-view__close-btn" onClick={() => onOpenChange(false)}>
             Close
-          </Button>
+          </button>
         </div>
       }
     >
       <div className="product-view">
-        <div className="product-view__header">
-          <div className="product-view__identity">
-            <div className="product-view__avatar" aria-hidden>
-              <Package size={22} />
-            </div>
-            <div>
-              <h2 className="product-view__name">{product.name || product.title || 'Untitled'}</h2>
-              <p className="product-view__slug">{slug || 'No slug'}</p>
-              <div className="product-view__badges">
-                <span className={`admin-badge${ecomStatus.tone === 'success' ? ' admin-badge--success' : ''}`}>
-                  {ecomStatus.label}
-                </span>
-                {slug && (
-                  <span className="admin-badge admin-badge--ghost">{slug.length > 20 ? slug.slice(0, 20) + '…' : slug}</span>
-                )}
-              </div>
-            </div>
+        <div className="product-view__identity">
+          <div className="product-view__avatar" aria-hidden>
+            <Package size={24} />
           </div>
-        </div>
-
-        <div className="product-view__grid">
-          <div className="product-view__card product-view__card--basic">
-            <h3 className="product-view__section-title">BASIC INFORMATION</h3>
-            <div className="product-view__info-grid">
-              <div className="product-view__info-item">
-                <span className="product-view__info-label">Category</span>
-                <span className="product-view__info-value">{categoryName}</span>
-              </div>
-              <div className="product-view__info-item">
-                <span className="product-view__info-label">Brand</span>
-                <span className="product-view__info-value">{brand}</span>
-              </div>
-              <div className="product-view__info-item">
-                <span className="product-view__info-label">Created</span>
-                <span className="product-view__info-value">{fmtDate(created)}</span>
-              </div>
-              <div className="product-view__info-item">
-                <span className="product-view__info-label">Updated</span>
-                <span className="product-view__info-value">{fmtDate(updated)}</span>
-              </div>
-              <div className="product-view__info-item product-view__info-item--full">
-                <span className="product-view__info-label">Description</span>
-                <span className="product-view__info-value product-view__info-value--multiline">{description}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="product-view__sidebar">
-            <div className="product-view__stat product-view__stat--price">
-              <span className="product-view__stat-label">PRICE RANGE</span>
-              <span className="product-view__stat-value">{priceRange}</span>
-            </div>
-            <div className={`product-view__stat${low ? ' product-view__stat--low' : ''}`}>
-              <span className="product-view__stat-label">TOTAL STOCK</span>
-              <span className="product-view__stat-value">
-                {totalStock || 0}
-                {low && (
-                  <span className="admin-badge admin-badge--error" style={{ marginLeft: 8 }}>
-                    Low
-                  </span>
-                )}
+          <div className="product-view__identity-text">
+            <h2 className="product-view__name">{product.name || product.title || 'Untitled'}</h2>
+            {title && title !== product.name ? (
+              <p className="product-view__subtitle">{title}</p>
+            ) : null}
+            <div className="product-view__badges">
+              <span className={`product-view__badge product-view__badge--${ecomStatus.tone}`}>
+                {String(ecomStatus.label).toUpperCase()}
               </span>
+              {product.isFeatured ? (
+                <span className="product-view__badge product-view__badge--featured">
+                  <Star size={11} fill="currentColor" aria-hidden /> FEATURED
+                </span>
+              ) : null}
+              {slug ? (
+                <span className="product-view__badge product-view__badge--slug">{slug}</span>
+              ) : null}
             </div>
           </div>
         </div>
 
-        <div className="product-view__card product-view__card--variants">
-          <h3 className="product-view__section-title product-view__section-title--indigo">
-            Product Variants ({variants.length})
-          </h3>
-          <div className="product-view__variants">
-            {variants.map((v, idx) => {
-              const vName = v.name || v.title || (variants.length === 1 ? 'Variant 1' : `Variant ${idx + 1}`)
-              const vBase = toNumber(v?.price?.base ?? v?.basePrice ?? v?.price, 0)
-              const vSaleRaw = v?.price?.sale ?? v?.finalPrice ?? v?.price?.current ?? v?.salePrice
-              const vSale = vSaleRaw != null && vSaleRaw !== '' ? toNumber(vSaleRaw, null) : null
-              const vHasSale = vSale != null && vSale > 0 && vSale < vBase
-              const vDiscount = vHasSale ? getDiscountPercentage(vBase, vSale) : 0
-              const vEcom = toNumber(v?.inventory?.quantity ?? v?.availability?.quantity ?? v?.stock ?? 0, 0)
-              const vInv = v?.inventory?.warehouseQuantity ?? v?.inventory?.liveQuantity ?? null
-              const vLow = toNumber(v?.inventory?.lowStockThreshold, 5)
-              const vTracking = v?.inventory?.tracked !== false ? 'Enabled' : 'Disabled'
-              const vStatus = String(v?.status || v?.availability || 'active').toLowerCase() === 'inactive' ? 'Inactive' : 'Active'
-              const vAttributes = v?.attributes || v?.options || {}
-              const attrEntries = Object.entries(vAttributes || {}).filter(([k, val]) => val != null && val !== '')
-              const sku = v?.sku || v?.productCode || `SKU-${(product.ProductCode || product.sku || '000000').slice(-6)}-${idx + 1}`
-
-              return (
-                <div key={idx} className="product-view__variant">
-                  <div className="product-view__variant-header">
-                    <div className="product-view__variant-tab">{vName}</div>
-                  </div>
-                  <div className="product-view__variant-body">
-                    <div className="product-view__variant-col">
-                      <span className="product-view__variant-col-label">Attributes</span>
-                      {attrEntries.length === 0 ? (
-                        <span className="product-view__variant-empty">—</span>
-                      ) : (
-                        <div className="product-view__variant-attrs">
-                          {attrEntries.map(([k, val]) => (
-                            <div key={k} className="product-view__variant-attr">
-                              <strong>{k}:</strong> {String(val)}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div className="product-view__variant-col">
-                      <span className="product-view__variant-col-label">Pricing</span>
-                      <div className="product-view__variant-price-row">
-                        <span>Base Price:</span>
-                        <strong>{formatPrice(vBase)}</strong>
-                      </div>
-                      <div className="product-view__variant-price-row">
-                        <span>Sale Price:</span>
-                        <strong style={{ color: vHasSale ? 'var(--color-success, #16a34a)' : 'inherit' }}>
-                          {vHasSale ? formatPrice(vSale) : '—'}
-                        </strong>
-                      </div>
-                      <div className="product-view__variant-price-row">
-                        <span>Discount:</span>
-                        <strong style={{ color: 'var(--color-success, #16a34a)' }}>
-                          {vDiscount > 0 ? `${vDiscount}% OFF` : '—'}
-                        </strong>
-                      </div>
-                    </div>
-                    <div className="product-view__variant-col">
-                      <span className="product-view__variant-col-label">Inventory</span>
-                      <div className="product-view__variant-price-row">
-                        <span>Ecom stock:</span>
-                        <strong style={{ color: vEcom < vLow ? 'var(--color-error, #dc2626)' : 'inherit' }}>
-                          {vEcom}
-                        </strong>
-                      </div>
-                      <div className="product-view__variant-price-row">
-                        <span>Inventory stock:</span>
-                        <strong>{vInv == null ? '—' : vInv}</strong>
-                      </div>
-                      <div className="product-view__variant-price-row">
-                        <span>Low Stock At:</span>
-                        <strong>{vLow}</strong>
-                      </div>
-                      <div className="product-view__variant-price-row">
-                        <span>Tracking:</span>
-                        <strong style={{ color: 'var(--color-success, #16a34a)' }}>{vTracking}</strong>
-                      </div>
-                      <div className="product-view__variant-price-row">
-                        <span>Status:</span>
-                        <strong style={{ color: vStatus === 'Active' ? 'var(--color-success, #16a34a)' : 'inherit' }}>
-                          {vStatus}
-                        </strong>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="product-view__variant-sku">
-                    SKU: <code className="product-view__sku">{sku}</code>
-                  </div>
+        <div className="product-view__body">
+          <div className="product-view__grid">
+            <div className="product-view__card product-view__card--basic">
+              <h3 className="product-view__section-title">Basic Information</h3>
+              <div className="product-view__info-grid">
+                <div className="product-view__info-item">
+                  <span className="product-view__info-label">Category</span>
+                  <span className="product-view__info-value">{categoryName}</span>
                 </div>
-              )
-            })}
-          </div>
-        </div>
+                <div className="product-view__info-item">
+                  <span className="product-view__info-label">Brand</span>
+                  <span className="product-view__info-value">{brand}</span>
+                </div>
+                <div className="product-view__info-item">
+                  <span className="product-view__info-label">Created</span>
+                  <span className="product-view__info-value">{fmtDate(created)}</span>
+                </div>
+                <div className="product-view__info-item">
+                  <span className="product-view__info-label">Updated</span>
+                  <span className="product-view__info-value">{fmtDate(updated)}</span>
+                </div>
+                <div className="product-view__info-item product-view__info-item--full">
+                  <span className="product-view__info-label">Description</span>
+                  <span className="product-view__info-value product-view__info-value--multiline">{description}</span>
+                </div>
+              </div>
+            </div>
 
-        <div className="product-view__bottom-grid">
-          <div className="product-view__card product-view__card--shipping">
-            <h3 className="product-view__section-title">SHIPPING</h3>
-            <div className="product-view__info-list">
-              <div className="product-view__info-row">
-                <span>Weight:</span>
-                <strong>{weight}{typeof weight === 'number' ? ' kg' : ''}</strong>
+            <div className="product-view__sidebar">
+              <div className="product-view__stat product-view__stat--price">
+                <span className="product-view__stat-label">Price Range</span>
+                <span className="product-view__stat-value">{priceRange}</span>
               </div>
-              <div className="product-view__info-row">
-                <span>Length:</span>
-                <strong>{length}{typeof length === 'number' ? ' cm' : ''}</strong>
-              </div>
-              <div className="product-view__info-row">
-                <span>Width:</span>
-                <strong>{width}{typeof width === 'number' ? ' cm' : ''}</strong>
-              </div>
-              <div className="product-view__info-row">
-                <span>Height:</span>
-                <strong>{height}{typeof height === 'number' ? ' cm' : ''}</strong>
+              <div className={`product-view__stat${low ? ' product-view__stat--low' : ' product-view__stat--ok'}`}>
+                <span className="product-view__stat-label">Total Stock</span>
+                <span className="product-view__stat-value">
+                  {totalStock}
+                  {low ? (
+                    <span className="product-view__low-flag">
+                      <AlertTriangle size={14} aria-hidden /> Low
+                    </span>
+                  ) : null}
+                </span>
               </div>
             </div>
           </div>
-          <div className="product-view__card product-view__card--marketing">
-            <h3 className="product-view__section-title">MARKETING</h3>
-            <div className="product-view__info-list">
-              <div className="product-view__info-row product-view__info-row--toggle">
-                <span>Featured Product</span>
-                <div className={`product-view__toggle${product.isFeatured ? ' is-on' : ''}`} aria-hidden>
-                  <div className="product-view__toggle-thumb" />
+
+          <div className="product-view__card product-view__card--variants">
+            <div className="product-view__variants-head">
+              <h3 className="product-view__variants-title">Product Variants ({variants.length})</h3>
+            </div>
+
+            <div className="product-view__variant-tabs" role="tablist">
+              {variants.map((v, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeVariantIndex === idx}
+                  className={`product-view__variant-tab${activeVariantIndex === idx ? ' is-active' : ''}`}
+                  onClick={() => setActiveVariantIndex(idx)}
+                >
+                  {variantTabLabel(v, idx)}
+                </button>
+              ))}
+            </div>
+
+            <div className="product-view__variant-body">
+              <div className="product-view__variant-col">
+                <span className="product-view__variant-col-label">Attributes</span>
+                {attrEntries.length === 0 ? (
+                  <span className="product-view__variant-empty" />
+                ) : (
+                  <div className="product-view__variant-attrs">
+                    {attrEntries.map(([k, val], i) => (
+                      <span key={`${k}-${i}`} className="product-view__attr-pill">
+                        {k ? `${k}: ${String(val)}` : String(val)}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="product-view__variant-col">
+                <span className="product-view__variant-col-label">Pricing</span>
+                <div className="product-view__variant-price-row">
+                  <span>Base Price:</span>
+                  <strong>{formatPrice(vBase)}</strong>
+                </div>
+                <div className="product-view__variant-price-row">
+                  <span>Sale Price:</span>
+                  <strong className={vHasSale ? 'is-success' : ''}>
+                    {vHasSale ? formatPrice(vSale) : '—'}
+                  </strong>
+                </div>
+                <div className="product-view__variant-price-row">
+                  <span>Discount:</span>
+                  <strong className={vDiscount > 0 ? 'is-success' : ''}>
+                    {vDiscount > 0 ? `${vDiscount}% OFF` : '—'}
+                  </strong>
                 </div>
               </div>
-              <div className="product-view__info-row product-view__info-row--toggle">
-                <span>Sold Info</span>
-                <div className={`product-view__toggle${product?.marketing?.soldInfo ? ' is-on' : ''}`} aria-hidden>
-                  <div className="product-view__toggle-thumb" />
+
+              <div className="product-view__variant-col">
+                <span className="product-view__variant-col-label">Inventory</span>
+                <div className="product-view__variant-price-row">
+                  <span>Ecom stock:</span>
+                  <strong className={vEcom < vLow ? 'is-danger' : ''}>{vEcom}</strong>
+                </div>
+                <div className="product-view__variant-price-row">
+                  <span>Inventory stock:</span>
+                  <strong>{vInv == null ? '—' : vInv}</strong>
+                </div>
+                <div className="product-view__variant-price-row">
+                  <span>Low Stock At:</span>
+                  <strong>{vLow}</strong>
+                </div>
+                <div className="product-view__variant-price-row">
+                  <span>Tracking:</span>
+                  <strong className={vTracking ? 'is-success' : 'is-muted'}>
+                    {vTracking ? 'Enabled' : 'Disabled'}
+                  </strong>
+                </div>
+                <div className="product-view__variant-price-row">
+                  <span>Status:</span>
+                  <strong className={vStatusActive ? 'is-success' : 'is-muted'}>
+                    {vStatusActive ? 'Active' : 'Inactive'}
+                  </strong>
                 </div>
               </div>
-              <div className="product-view__info-row product-view__info-row--toggle">
-                <span>FOMO</span>
-                <div className={`product-view__toggle${product?.marketing?.fomo ? ' is-on' : ''}`} aria-hidden>
-                  <div className="product-view__toggle-thumb" />
+            </div>
+
+            {variantImages.length > 0 ? (
+              <div className="product-view__variant-images">
+                <span className="product-view__variant-col-label">Images</span>
+                <div className="product-view__image-row">
+                  {variantImages.map((img, i) => {
+                    const url = typeof img === 'string' ? img : img?.url
+                    if (!url) return null
+                    return (
+                      <div
+                        key={i}
+                        className={`product-view__image${img?.isMain ? ' is-main' : ''}`}
+                      >
+                        <img src={url} alt={img?.altText || ''} />
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : null}
+
+            <div className="product-view__variant-sku">
+              <span>SKU:</span>
+              <code className="product-view__sku">{sku}</code>
+            </div>
+          </div>
+
+          <div className="product-view__bottom-grid">
+            <div className="product-view__card product-view__card--shipping">
+              <h3 className="product-view__section-title">Shipping</h3>
+              <div className="product-view__info-list">
+                <div className="product-view__info-row">
+                  <span>Weight:</span>
+                  <strong>{weight != null && weight !== '' ? `${weight} kg` : '— kg'}</strong>
+                </div>
+                <div className="product-view__info-row">
+                  <span>Length:</span>
+                  <strong>{length != null && length !== '' ? `${length} cm` : '— cm'}</strong>
+                </div>
+                <div className="product-view__info-row">
+                  <span>Width:</span>
+                  <strong>{width != null && width !== '' ? `${width} cm` : '— cm'}</strong>
+                </div>
+                <div className="product-view__info-row">
+                  <span>Height:</span>
+                  <strong>{height != null && height !== '' ? `${height} cm` : '— cm'}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div className="product-view__card product-view__card--marketing">
+              <h3 className="product-view__section-title">Marketing</h3>
+              <div className="product-view__info-list">
+                <div className="product-view__info-row">
+                  <span>Sold Info</span>
+                  <span className={`product-view__pill${soldEnabled ? ' is-on' : ''}`}>
+                    {soldEnabled
+                      ? `${soldInfo?.count ?? soldInfo?.value ?? ''} sold`.trim() || 'Enabled'
+                      : 'Disabled'}
+                  </span>
+                </div>
+                <div className="product-view__info-row">
+                  <span>FOMO</span>
+                  <span className={`product-view__pill${fomoEnabled ? ' is-fomo' : ''}`}>
+                    {fomoEnabled
+                      ? String(fomo?.type || 'Enabled').replace(/_/g, ' ')
+                      : 'Disabled'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -471,9 +676,18 @@ export default function AdminProductsPage() {
   const [showViewModal, setShowViewModal] = useState(false)
   const [viewingProduct, setViewingProduct] = useState(null)
   const [showBulkUpload, setShowBulkUpload] = useState(false)
+  const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [dateFilter, setDateFilter] = useState('all')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput.trim())
+      setPage(1)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchInput])
 
   const { data, isLoading, isError, error, refetch } = useAdminProductsAll({
     page,
@@ -495,7 +709,7 @@ export default function AdminProductsPage() {
   const { data: activeData } = useAdminProductsActiveCount()
   const { data: lowStockData } = useAdminProductsLowStock()
   const { data: archivedData } = useAdminProductsArchived({ page: 1, limit: 1 })
-  const { data: categoriesData } = useAdminCategories()
+  const { data: categoriesData, refetch: refetchCategories } = useAdminCategories()
 
   const exportProducts = useExportAdminProducts()
   const archiveProduct = useArchiveAdminProduct()
@@ -526,8 +740,18 @@ export default function AdminProductsPage() {
     if (categoryFilter !== 'all') {
       list = list.filter((p) => getCategoryId(p.category) === categoryFilter)
     }
+    const range = getDateRange(dateFilter, startDate, endDate)
+    if (range) {
+      list = list.filter((p) => {
+        const raw = p.createdAt || p.date_created
+        if (!raw) return false
+        const d = new Date(raw)
+        if (Number.isNaN(d.getTime())) return false
+        return d >= range.start && d <= range.end
+      })
+    }
     return list
-  }, [rawProducts, statusFilter, categoryFilter])
+  }, [rawProducts, statusFilter, categoryFilter, dateFilter, startDate, endDate])
 
   const totalProducts = pagination?.total ?? pagination?.totalItems ?? products.length
   const activeCount = extractCount(activeData) ?? products.filter((p) => getEcomStatus(p).label === 'Active').length
@@ -603,15 +827,16 @@ export default function AdminProductsPage() {
   }
 
   return (
-    <div className="admin-page">
-      <AdminPageHeader eyebrow="Catalog" title="Products">
+    <div className="admin-page admin-products">
+      <header className="admin-products__head">
+        <h1 className="admin-products__title">Products</h1>
         <AdminProductStatsBar
           activeCount={activeCount}
           featuredCount={featuredCount}
           archivedCount={archivedCount}
           onBulkUpload={() => setShowBulkUpload(true)}
         />
-      </AdminPageHeader>
+      </header>
 
       <div className="admin-metric-grid">
         {stats.map((stat) => {
@@ -622,6 +847,7 @@ export default function AdminProductsPage() {
               <div>
                 <p className="admin-metric-card__label">{stat.label}</p>
                 <p className="admin-metric-card__value">{stat.value ?? '—'}</p>
+                {stat.active && <p className="admin-metric-card__hint admin-metric-card__hint--danger">Filter active</p>}
               </div>
               <div className="admin-metric-card__icon" aria-hidden>
                 <Icon size={22} />
@@ -652,7 +878,7 @@ export default function AdminProductsPage() {
         })}
       </div>
 
-      <div className="admin-card admin-toolbar-card">
+      <div className="admin-card admin-products__toolbar-card">
         {selectedSlugs.size > 0 ? (
           <div className="admin-bulk-bar">
             <span>{selectedSlugs.size} selected</span>
@@ -664,86 +890,109 @@ export default function AdminProductsPage() {
             </div>
           </div>
         ) : (
-          <div className="admin-products-toolbar">
-            <form
-              className="admin-toolbar__search"
-              onSubmit={(e) => {
-                e.preventDefault()
-                setSearch(searchInput.trim())
+          <div className="admin-products__toolbar">
+            <div className="admin-products__search">
+              <Search size={18} aria-hidden />
+              <input
+                type="search"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Search products..."
+                aria-label="Search products"
+              />
+            </div>
+
+            <DateFilterButton
+              dateFilter={dateFilter}
+              setDateFilter={(v) => {
+                setDateFilter(v)
                 setPage(1)
-                setShowLowStockOnly(false)
               }}
-            >
-              <Input value={searchInput} onChange={(e) => setSearchInput(e.target.value)} placeholder="Search products…" />
-              <Button type="submit" variant="secondary" size="sm">Search</Button>
-            </form>
-            <SelectDropdown
-              className="admin-filter-select"
+              startDate={startDate}
+              setStartDate={setStartDate}
+              endDate={endDate}
+              setEndDate={setEndDate}
+            />
+
+            <select
+              className="admin-products__select"
               value={statusFilter}
-              onChange={setStatusFilter}
-              options={[
-                { value: 'all', label: 'All Status (Ecom)' },
-                { value: 'active', label: 'Active' },
-                { value: 'draft', label: 'Inactive' },
-                { value: 'archived', label: 'Archived' },
-              ]}
-            />
-            <SelectDropdown
-              className="admin-filter-select"
-              value={categoryFilter}
-              onChange={setCategoryFilter}
-              options={[
-                { value: 'all', label: 'All Categories' },
-                ...categories.map((cat) => ({ value: cat._id || cat.id, label: cat.name })),
-              ]}
-            />
-            <div className="admin-date-filter">
-              <SelectDropdown
-                value={dateFilter}
-                onChange={(v) => {
-                  setDateFilter(v)
+              onChange={(e) => {
+                setStatusFilter(e.target.value)
+                setPage(1)
+              }}
+              aria-label="Filter by ecom status"
+            >
+              <option value="all">All Status (Ecom)</option>
+              <option value="active">Active</option>
+              <option value="draft">Inactive</option>
+              <option value="archived">Archived</option>
+            </select>
+
+            <div className="admin-products__category-wrap">
+              <select
+                className="admin-products__select admin-products__select--category"
+                value={categoryFilter}
+                onChange={(e) => {
+                  setCategoryFilter(e.target.value)
                   setPage(1)
                 }}
-                options={[
-                  { value: 'all', label: 'All dates' },
-                  { value: 'today', label: 'Today' },
-                  { value: 'yesterday', label: 'Yesterday' },
-                  { value: 'last7days', label: 'Last 7 days' },
-                  { value: 'last30days', label: 'Last 30 days' },
-                  { value: 'custom', label: 'Custom range' },
-                ]}
-              />
-              {dateFilter === 'custom' && (
-                <div className="admin-date-range">
-                  <Input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    placeholder="Start date"
-                    aria-label="Start date"
-                  />
-                  <span className="admin-date-separator">to</span>
-                  <Input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    placeholder="End date"
-                    aria-label="End date"
-                  />
-                </div>
-              )}
+                aria-label="Filter by category"
+              >
+                <option value="all">All Categories</option>
+                {categories.map((cat) => (
+                  <option key={cat._id || cat.id} value={cat._id || cat.id}>{cat.name}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="admin-products__category-add"
+                onClick={() => setShowCategoryModal(true)}
+                title="Add New Category"
+                aria-label="Add new category"
+              >
+                <Plus size={14} aria-hidden />
+              </button>
             </div>
-            <Button variant="primary" size="sm" onClick={() => { setEditingProduct(null); setShowProductModal(true) }}>
-              <Plus size={14} /> Add Product
-            </Button>
-            <Button variant="secondary" size="sm" onClick={handleExport} disabled={exportProducts.isPending}>
-              <Download size={14} /> {exportProducts.isPending ? 'Exporting…' : 'Export Excel'}
-            </Button>
+
+            {showLowStockOnly && (
+              <button
+                type="button"
+                className="admin-products__clear-low"
+                onClick={() => setShowLowStockOnly(false)}
+              >
+                Clear Low Stock Filter
+                <X size={14} aria-hidden />
+              </button>
+            )}
+
+            <button
+              type="button"
+              className="admin-products__btn-add"
+              onClick={() => { setEditingProduct(null); setShowProductModal(true) }}
+            >
+              <Plus size={18} aria-hidden />
+              Add Product
+            </button>
+
+            <button
+              type="button"
+              className="admin-products__btn-export"
+              onClick={handleExport}
+              disabled={exportProducts.isPending}
+            >
+              {exportProducts.isPending ? (
+                <span className="admin-products__spin" aria-hidden />
+              ) : (
+                <Download size={18} aria-hidden />
+              )}
+              {exportProducts.isPending ? 'Exporting…' : 'Export Excel'}
+            </button>
           </div>
         )}
       </div>
 
-      <div className="admin-card admin-card--flush">
+      <div className="admin-card admin-card--flush admin-products__table-card">
         {listLoading && <AdminLoading label="Loading products…" />}
         {listError && <AdminError message={listErr?.message} onRetry={listRefetch} />}
         {!listLoading && !listError && products.length === 0 && (
@@ -778,11 +1027,12 @@ export default function AdminProductsPage() {
                   const low = isLowStockProduct(product)
                   const ecom = getEcomStatus(product)
                   const wholesale = getWholesaleStatus(product)
+                  const isChecked = selectedSlugs.has(product.slug)
 
                   return (
-                    <tr key={id}>
+                    <tr key={id} className={isChecked ? 'is-selected' : undefined}>
                       <td className="admin-orders-table__check">
-                        <input type="checkbox" checked={selectedSlugs.has(product.slug)} onChange={() => toggleSelect(product.slug)} aria-label={`Select ${product.name}`} />
+                        <input type="checkbox" checked={isChecked} onChange={() => toggleSelect(product.slug)} aria-label={`Select ${product.name}`} />
                       </td>
                       <td>
                         <div className="admin-product-cell">
@@ -814,24 +1064,61 @@ export default function AdminProductsPage() {
                         </div>
                       </td>
                       <td>{liveStock == null ? '—' : liveStock}</td>
-                      <td><span className={`admin-badge${ecom.tone === 'success' ? ' admin-badge--success' : ''}`}>{ecom.label}</span></td>
-                      <td><span className={`admin-badge${wholesale.tone === 'success' ? ' admin-badge--success' : ''}`}>{wholesale.label}</span></td>
                       <td>
-                        <button type="button" className={`admin-badge admin-badge--btn${product.isFeatured ? ' admin-badge--featured' : ''}`} onClick={() => handleToggleFeatured(product)}>
-                          {product.isFeatured ? '★ Featured' : 'Regular'}
+                        <span className={`admin-products__status admin-products__status--${ecom.tone}`}>
+                          {ecom.label}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`admin-products__status admin-products__status--${wholesale.tone}`}>
+                          {wholesale.label}
+                        </span>
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className={`admin-products__featured${product.isFeatured ? ' is-featured' : ''}`}
+                          onClick={() => handleToggleFeatured(product)}
+                        >
+                          {product.isFeatured ? (
+                            <>
+                              <Star size={12} fill="currentColor" aria-hidden />
+                              Featured
+                            </>
+                          ) : (
+                            'Regular'
+                          )}
                         </button>
                       </td>
                       <td>
-                        <div className="admin-row-actions">
-                          <Button variant="ghost" size="sm" onClick={() => { setViewingProduct(product); setShowViewModal(true) }} aria-label="View">
-                            <Eye size={14} />
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => { setEditingProduct(product); setShowProductModal(true) }} aria-label="Edit">
-                            <Pencil size={14} />
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleArchive(product.slug)} aria-label="Archive">
-                            <Trash2 size={14} />
-                          </Button>
+                        <div className="admin-products__actions">
+                          <button
+                            type="button"
+                            className="admin-products__action admin-products__action--view"
+                            onClick={() => { setViewingProduct(product); setShowViewModal(true) }}
+                            aria-label="View"
+                            title="View Details"
+                          >
+                            <Eye size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            className="admin-products__action admin-products__action--edit"
+                            onClick={() => { setEditingProduct(product); setShowProductModal(true) }}
+                            aria-label="Edit"
+                            title="Edit"
+                          >
+                            <Pencil size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            className="admin-products__action admin-products__action--archive"
+                            onClick={() => handleArchive(product.slug)}
+                            aria-label="Archive"
+                            title="Archive"
+                          >
+                            <Archive size={16} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -851,6 +1138,7 @@ export default function AdminProductsPage() {
         categories={categories}
         products={rawProducts}
         onSaved={() => listRefetch()}
+        onCategoriesChange={() => refetchCategories()}
       />
       <ProductViewModal
         open={showViewModal}
@@ -862,6 +1150,16 @@ export default function AdminProductsPage() {
         onOpenChange={setShowBulkUpload}
         onComplete={() => listRefetch()}
       />
+      {showCategoryModal && (
+        <CategoryQuickModal
+          onSelect={(catId) => {
+            setCategoryFilter(catId)
+            setPage(1)
+          }}
+          onCreated={() => refetchCategories()}
+          onClose={() => setShowCategoryModal(false)}
+        />
+      )}
     </div>
   )
 }
