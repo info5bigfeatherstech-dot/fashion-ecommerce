@@ -6,6 +6,7 @@ import {
   Eye,
   EyeOff,
   FileText,
+  Info,
   KeyRound,
   Loader2,
   Lock,
@@ -426,6 +427,131 @@ function ControlsSection() {
   )
 }
 
+const ASPECT_RATIOS = [
+  {
+    id: '1:1',
+    label: 'Square (1:1)',
+    desc: 'Perfect for a balanced, grid-friendly layout. Ideal for most products.',
+    shape: 'square',
+  },
+  {
+    id: '3:4',
+    label: 'Portrait (3:4)',
+    desc: 'Great for fashion, electronics, or anything vertical.',
+    shape: 'portrait-34',
+  },
+  {
+    id: '9:16',
+    label: 'Portrait (9:16)',
+    desc: 'Great for mobile-first visuals. Suited for beauty, wellness, fitness, and service-based businesses.',
+    shape: 'portrait-916',
+  },
+  {
+    id: '4:3',
+    label: 'Landscape (4:3)',
+    desc: 'Ideal for wide products like trays, shoes or scenery.',
+    shape: 'landscape-43',
+  },
+  {
+    id: '16:9',
+    label: 'Landscape (16:9)',
+    desc: 'Best for wide, desktop-friendly images. Ideal for travel, real estate, and event-based businesses.',
+    shape: 'landscape-169',
+  },
+]
+
+const BASE_COLORS = [
+  { id: 'transparent', label: 'Light' },
+  { id: 'black', label: 'Black' },
+  { id: 'white', label: 'White' },
+]
+
+const PREVIEW_IMG =
+  'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=300'
+
+function ProductDisplaySection() {
+  const [selectedRatio, setSelectedRatio] = useState('3:4')
+  const [selectedColor, setSelectedColor] = useState('white')
+
+  return (
+    <div className="admin-settings-product-display">
+      <h1 className="admin-settings-product-display__title">Product display preference</h1>
+
+      <div className="admin-settings-product-display__note">
+        <span className="admin-settings-product-display__note-icon" aria-hidden>
+          <Info size={16} />
+        </span>
+        <p>
+          <strong>Note:</strong> This size will be used as a default for the image cropper for product /
+          service images.
+        </p>
+      </div>
+
+      <div className="admin-settings-product-display__card">
+        <div className="admin-settings-product-display__card-head">Select one option</div>
+        <div className="admin-settings-product-display__options" role="radiogroup" aria-label="Aspect ratio">
+          {ASPECT_RATIOS.map((ratio) => {
+            const selected = selectedRatio === ratio.id
+            return (
+              <label
+                key={ratio.id}
+                className={`admin-settings-product-display__option${selected ? ' is-selected' : ''}`}
+              >
+                <div className="admin-settings-product-display__option-left">
+                  <span className="admin-settings-product-display__shape-wrap" aria-hidden>
+                    <span
+                      className={`admin-settings-product-display__shape admin-settings-product-display__shape--${ratio.shape}`}
+                    />
+                  </span>
+                  <span>
+                    <span className="admin-settings-product-display__option-label">{ratio.label}</span>
+                    <span className="admin-settings-product-display__option-desc">{ratio.desc}</span>
+                  </span>
+                </div>
+                <input
+                  type="radio"
+                  name="aspect-ratio"
+                  value={ratio.id}
+                  checked={selected}
+                  onChange={() => setSelectedRatio(ratio.id)}
+                />
+              </label>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="admin-settings-product-display__base">
+        <div className="admin-settings-product-display__base-copy">
+          <h2>Choose a default base color of product image card</h2>
+          <p>This will be used when the cropped image does not match the product image display preference.</p>
+        </div>
+        <div className="admin-settings-product-display__swatches" role="radiogroup" aria-label="Base color">
+          {BASE_COLORS.map((color) => {
+            const selected = selectedColor === color.id
+            return (
+              <button
+                key={color.id}
+                type="button"
+                className={`admin-settings-product-display__swatch${selected ? ' is-selected' : ''}`}
+                aria-pressed={selected}
+                aria-label={color.label}
+                onClick={() => setSelectedColor(color.id)}
+              >
+                <span
+                  className={`admin-settings-product-display__swatch-inner admin-settings-product-display__swatch-inner--${color.id}`}
+                >
+                  <img src={PREVIEW_IMG} alt="" />
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const META = {
   profile: {
     title: 'Profile settings',
@@ -436,8 +562,8 @@ const META = {
     description: '',
   },
   'product-display': {
-    title: 'Product display',
-    description: 'Control how products appear on the storefront.',
+    title: 'Product display preference',
+    description: '',
   },
   label: {
     title: 'Label settings',
@@ -503,6 +629,14 @@ export default function AdminSettingsSectionPage({ section = 'profile' }) {
           <span className="admin-settings-controls__live">Live Dashboard</span>
         </div>
         <ControlsSection />
+      </div>
+    )
+  }
+
+  if (section === 'product-display') {
+    return (
+      <div className="admin-page">
+        <ProductDisplaySection />
       </div>
     )
   }
