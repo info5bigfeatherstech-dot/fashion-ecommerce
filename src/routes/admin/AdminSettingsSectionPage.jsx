@@ -5,10 +5,16 @@ import {
   ChevronRight,
   Eye,
   EyeOff,
+  FileText,
   KeyRound,
   Loader2,
   Lock,
+  Settings2,
   ShieldCheck,
+  Star,
+  Store,
+  Truck,
+  XCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -268,14 +274,166 @@ function BillingSection() {
   )
 }
 
+function ControlsToggle({ checked, onChange, label }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      className={`admin-settings-controls__toggle${checked ? ' is-on' : ''}`}
+      onClick={onChange}
+    >
+      <span className="admin-settings-controls__toggle-thumb" aria-hidden />
+    </button>
+  )
+}
+
+function ControlsStatusRow({ title, desc, active, onToggle }) {
+  return (
+    <div className="admin-settings-controls__status-row">
+      <div>
+        <div className="admin-settings-controls__status-head">
+          <p className="admin-settings-controls__status-title">{title}</p>
+          {active ? (
+            <span className="admin-settings-controls__pill admin-settings-controls__pill--active">
+              <CheckCircle2 size={10} aria-hidden />
+              Active
+            </span>
+          ) : (
+            <span className="admin-settings-controls__pill admin-settings-controls__pill--paused">
+              <XCircle size={10} aria-hidden />
+              Paused
+            </span>
+          )}
+        </div>
+        <p className="admin-settings-controls__status-desc">{desc}</p>
+      </div>
+      <ControlsToggle checked={active} onChange={onToggle} label={`Toggle ${title}`} />
+    </div>
+  )
+}
+
+function ControlsFeatureCard({ icon: Icon, title, desc, tone, onClick }) {
+  return (
+    <button type="button" className="admin-settings-controls__feature" onClick={onClick}>
+      <span className={`admin-settings-controls__feature-icon admin-settings-controls__feature-icon--${tone}`}>
+        <Icon size={22} strokeWidth={2} aria-hidden />
+      </span>
+      <h4 className="admin-settings-controls__feature-title">{title}</h4>
+      <p className="admin-settings-controls__feature-desc">{desc}</p>
+    </button>
+  )
+}
+
+function ControlsSection() {
+  const [controls, setControls] = useState({
+    store: true,
+    delivery: true,
+    pickup: false,
+  })
+
+  const toggle = (key) => {
+    setControls((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  return (
+    <div className="admin-settings-controls__stack">
+      <section className="admin-settings-controls__card">
+        <div className="admin-settings-controls__card-head">
+          <Settings2 size={16} aria-hidden />
+          <h2>Operational Status</h2>
+        </div>
+        <div className="admin-settings-controls__status-list">
+          <ControlsStatusRow
+            title="Global Store Access"
+            desc="Allow customers to browse your products"
+            active={controls.store}
+            onToggle={() => toggle('store')}
+          />
+          <ControlsStatusRow
+            title="Delivery Services"
+            desc="Enable/Disable shipping and home delivery"
+            active={controls.delivery}
+            onToggle={() => toggle('delivery')}
+          />
+          <ControlsStatusRow
+            title="Self Pick-up"
+            desc="Allow customers to collect from store"
+            active={controls.pickup}
+            onToggle={() => toggle('pickup')}
+          />
+        </div>
+      </section>
+
+      <section className="admin-settings-controls__card admin-settings-controls__framework">
+        <div className="admin-settings-controls__framework-left">
+          <span className="admin-settings-controls__framework-icon" aria-hidden>
+            <Store size={24} strokeWidth={2} />
+          </span>
+          <div>
+            <p className="admin-settings-controls__framework-label">Business Framework</p>
+            <p className="admin-settings-controls__framework-value">Business to Customer (B2C)</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="admin-settings-controls__framework-btn"
+          onClick={() => toast.message('Business type', { description: 'Framework change coming soon.' })}
+        >
+          Change Type
+        </button>
+      </section>
+
+      <section className="admin-settings-controls__features-wrap">
+        <div className="admin-settings-controls__features-head">
+          <h2 className="admin-settings-controls__features-title">Advanced Features</h2>
+          <button
+            type="button"
+            className="admin-settings-controls__explore"
+            onClick={() => toast.message('Advanced features', { description: 'Feature marketplace coming soon.' })}
+          >
+            Explore All
+            <ChevronRight size={18} aria-hidden />
+          </button>
+        </div>
+
+        <div className="admin-settings-controls__features-grid">
+          <ControlsFeatureCard
+            icon={Star}
+            tone="amber"
+            title="Review Engine"
+            desc="Build social proof with automated customer ratings."
+            onClick={() => toast.message('Review Engine', { description: 'Configure generated reviews in Marketing.' })}
+          />
+          <ControlsFeatureCard
+            icon={FileText}
+            tone="blue"
+            title="GST Automator"
+            desc="Generate compliant invoices instantly per order."
+            onClick={() => toast.message('GST Automator', { description: 'GST invoicing tools coming soon.' })}
+          />
+          <ControlsFeatureCard
+            icon={Truck}
+            tone="purple"
+            title="COD Management"
+            desc="Set logic-based fees for Cash on Delivery orders."
+            onClick={() => toast.message('COD Management', { description: 'Open Payments settings to manage COD.' })}
+          />
+        </div>
+      </section>
+    </div>
+  )
+}
+
 const META = {
   profile: {
     title: 'Profile settings',
     description: '',
   },
   controls: {
-    title: 'Controls',
-    description: 'Store feature toggles and operational controls.',
+    title: 'Store Controls',
+    description: '',
   },
   'product-display': {
     title: 'Product display',
@@ -336,6 +494,18 @@ export default function AdminSettingsSectionPage({ section = 'profile' }) {
   }, [signedInAs, user?.name])
 
   const isAdmin = String(user?.role || '').toLowerCase() === 'admin'
+
+  if (section === 'controls') {
+    return (
+      <div className="admin-page admin-settings-controls">
+        <div className="admin-settings-controls__page-head">
+          <h1 className="admin-settings-controls__page-title">{meta.title}</h1>
+          <span className="admin-settings-controls__live">Live Dashboard</span>
+        </div>
+        <ControlsSection />
+      </div>
+    )
+  }
 
   if (section !== 'profile') {
     return (
