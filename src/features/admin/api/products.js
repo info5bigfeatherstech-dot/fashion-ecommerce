@@ -109,7 +109,12 @@ export async function updateAdminProduct(slug, formData) {
   return unwrapAdmin(response.data)
 }
 
-/** Product-level update FormData (edit mode) — mirrors fabFE updateProduct. */
+/** Product-level update FormData (edit mode) — mirrors fabFE updateProduct.
+ *  Do NOT send variants here. Variant price/images/wholesale are saved via
+ *  updateAdminProductVariant (PUT with productCode), otherwise the API can
+ *  reject with "Wholesale storefront is active but no eligible wholesale variant…"
+ *  and images never upload.
+ */
 export function buildUpdateProductFormData(pd) {
   const fd = new FormData()
   if (pd.name) fd.append('name', pd.name)
@@ -130,45 +135,8 @@ export function buildUpdateProductFormData(pd) {
   }))
   fd.append('soldInfo', JSON.stringify(pd.soldInfo || { enabled: false, count: 0 }))
   fd.append('fomo', JSON.stringify(pd.fomo || { enabled: false }))
+  // Always send attributes (even []) so clearing the last attribute persists
   fd.append('attributes', JSON.stringify(pd.attributes || []))
-
-  const main = pd.variants?.[0]
-  if (main) {
-    const base = Number(main.price?.base)
-    if (Number.isFinite(base) && base > 0) {
-      const saleRaw = main.price?.sale !== '' && main.price?.sale != null
-        ? Number(main.price.sale)
-        : null
-      const price = { base, sale: Number.isFinite(saleRaw) ? saleRaw : null }
-      if (main.wholesale) {
-        price.wholesaleBase = Number(main.price?.wholesaleBase) || 0
-        price.wholesaleSale = main.price?.wholesaleSale !== '' && main.price?.wholesaleSale != null
-          ? Number(main.price.wholesaleSale)
-          : null
-      }
-      const wholesaleEligible = Boolean(main.wholesale && price.wholesaleBase > 0)
-      const primaryVariant = {
-        productCode: String(main.productCode || main.ProductCode || '').trim().toUpperCase(),
-        attributes: (main.attributes || []).filter((a) => a.key && a.value),
-        price,
-        inventory: {
-          quantity: Number(main.inventory?.quantity) || 0,
-          lowStockThreshold: Number(main.inventory?.lowStockThreshold) || 5,
-          trackInventory: main.inventory?.trackInventory !== false,
-        },
-        isActive: main.isActive !== false,
-        wholesale: Boolean(main.wholesale),
-        minimumOrderQuantity: main.wholesale
-          ? (parseInt(main.minimumOrderQuantity, 10) || 1)
-          : 1,
-        channelVisibility: {
-          ecomm: main.channelVisibility?.ecomm || 'active',
-          wholesale: wholesaleEligible ? 'active' : 'draft',
-        },
-      }
-      fd.append('variants', JSON.stringify([primaryVariant]))
-    }
-  }
 
   return fd
 }
@@ -324,12 +292,19 @@ function buildPriceObj(price, label = 'Base price') {
   const saleRaw = toNum(price?.sale)
   const sale = price?.sale !== '' && price?.sale != null && saleRaw !== undefined ? saleRaw : null
   const priceObj = { base, sale }
+
+  // wholesaleBase / wholesaleSale must live inside price (backend contract)
   if (price?.wholesaleBase !== undefined && price?.wholesaleBase !== '') {
     priceObj.wholesaleBase = toNum(price.wholesaleBase) || 0
+  } else if (typeof price?.wholesaleBase === 'number') {
+    priceObj.wholesaleBase = price.wholesaleBase
   }
   if (price?.wholesaleSale !== undefined && price?.wholesaleSale !== '') {
     priceObj.wholesaleSale = toNum(price.wholesaleSale) ?? null
+  } else if (price?.wholesaleSale === null) {
+    priceObj.wholesaleSale = null
   }
+
   return priceObj
 }
 

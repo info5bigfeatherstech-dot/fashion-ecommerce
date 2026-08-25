@@ -23,12 +23,83 @@ import {
   addAdminProductVariant,
   buildCreateProductFormData,
   buildUpdateProductFormData,
+  bulkUpdateAdminProductStatus,
   createAdminProduct,
   deleteAdminProductVariant,
   getAdminProductBySlug,
   updateAdminProduct,
   updateAdminProductVariant,
 } from '@/features/admin/api/products'
+
+function isWholesaleEligibleVariant(variant) {
+  if (!variant) return false
+  const on = Boolean(variant.wholesale)
+  const base = parseFloat(variant?.price?.wholesaleBase ?? variant?.wholesaleBase) || 0
+  return on && base > 0
+}
+
+/**
+ * When product wholesale channel is active, never clear the last eligible wholesale
+ * pricing on save (attributes/images/etc). Prefer form values when eligible;
+ * otherwise keep server main-variant wholesale fields.
+ */
+function resolveMainVariantWholesalePayload(formMain, serverMain, productWholesaleActive) {
+  const formEligible = isWholesaleEligibleVariant(formMain)
+  const serverEligible = isWholesaleEligibleVariant(serverMain)
+
+  if (formEligible) {
+    const wholesaleBase = parseFloat(formMain.price?.wholesaleBase) || 0
+    const wholesaleSaleRaw = formMain.price?.wholesaleSale
+    const wholesaleSale =
+      wholesaleSaleRaw !== '' && wholesaleSaleRaw != null
+        ? parseFloat(wholesaleSaleRaw)
+        : null
+    return {
+      wholesale: true,
+      wholesaleBase,
+      wholesaleSale: Number.isFinite(wholesaleSale) ? wholesaleSale : null,
+      minimumOrderQuantity: parseInt(formMain.minimumOrderQuantity, 10) || 1,
+      channelWholesale: 'active',
+    }
+  }
+
+  if (productWholesaleActive && serverEligible) {
+    const wholesaleBase = parseFloat(serverMain.price?.wholesaleBase ?? serverMain.wholesaleBase) || 0
+    const wholesaleSaleRaw = serverMain.price?.wholesaleSale ?? serverMain.wholesaleSale
+    const wholesaleSale =
+      wholesaleSaleRaw !== '' && wholesaleSaleRaw != null
+        ? parseFloat(wholesaleSaleRaw)
+        : null
+    return {
+      wholesale: true,
+      wholesaleBase,
+      wholesaleSale: Number.isFinite(wholesaleSale) ? wholesaleSale : null,
+      minimumOrderQuantity: parseInt(serverMain.minimumOrderQuantity ?? formMain?.minimumOrderQuantity, 10) || 1,
+      channelWholesale: 'active',
+      preservedFromServer: true,
+    }
+  }
+
+  const wholesaleOn = Boolean(formMain?.wholesale)
+  const wholesaleBase = wholesaleOn
+    ? (parseFloat(formMain?.price?.wholesaleBase) || 0)
+    : undefined
+  const wholesaleSale = wholesaleOn
+    ? (formMain?.price?.wholesaleSale !== '' && formMain?.price?.wholesaleSale != null
+      ? parseFloat(formMain.price.wholesaleSale)
+      : null)
+    : undefined
+
+  return {
+    wholesale: wholesaleOn,
+    wholesaleBase,
+    wholesaleSale: wholesaleOn && Number.isFinite(wholesaleSale) ? wholesaleSale : (wholesaleOn ? null : undefined),
+    minimumOrderQuantity: wholesaleOn
+      ? (parseInt(formMain?.minimumOrderQuantity, 10) || 1)
+      : 1,
+    channelWholesale: wholesaleOn && wholesaleBase > 0 ? 'active' : 'draft',
+  }
+}
 
 export function AdminProductModal({
   open,
@@ -56,6 +127,8 @@ export function AdminProductModal({
   const [variantSaveError, setVariantSaveError] = useState(null)
   const [loadingProduct, setLoadingProduct] = useState(false)
   const [error, setError] = useState('')
+  /** Full product from GET — used to preserve wholesale eligibility on partial saves. */
+  const [loadedProduct, setLoadedProduct] = useState(null)
 
   useEffect(() => {
     setCategories(categoriesProp)
@@ -72,12 +145,14 @@ export function AdminProductModal({
 
     if (!isEdit) {
       setFormData(emptyProductForm())
+      setLoadedProduct(null)
       setLoadingProduct(false)
       return
     }
 
     // Hydrate immediately from list row, then refresh from full product GET.
     setFormData(productToEditForm(product))
+    setLoadedProduct(product || null)
     let cancelled = false
     const slug = product.slug
 
@@ -85,7 +160,10 @@ export function AdminProductModal({
       setLoadingProduct(true)
       try {
         const full = await getAdminProductBySlug(slug)
-        if (!cancelled && full) setFormData(productToEditForm(full))
+        if (!cancelled && full) {
+          setLoadedProduct(full)
+          setFormData(productToEditForm(full))
+        }
       } catch {
         // List row hydration is enough to show the form if detail fetch fails.
       } finally {
@@ -113,6 +191,7 @@ export function AdminProductModal({
       setVariantForm(defaultVariant)
       setVariantSaveError(null)
       setError('')
+      setLoadedProduct(null)
       return undefined
     }
     stopLenis()
@@ -259,6 +338,49 @@ export function AdminProductModal({
       wholesale: wholesaleVisibility,
     }
 
+    // If product wholesale channel is active, at least one variant must remain eligible
+    // after this save. If none are eligible, deactivate wholesale channel first.
+    const sourceProduct = loadedProduct || product
+    let productWholesaleActive =
+      String(sourceProduct?.channelStatus?.wholesale || '').toLowerCase() === 'active'
+    if (productWholesaleActive) {
+      const thisEligible = Boolean(variantToSave.wholesale && pricePayload.wholesaleBase > 0)
+      const otherEligible = (formData.variants || []).some((v, i) => {
+        if (editingVariantIndex !== null && i === editingVariantIndex) return false
+        return isWholesaleEligibleVariant(v)
+      })
+      const serverMainEligible = isWholesaleEligibleVariant(sourceProduct?.variants?.[0])
+      if (!thisEligible && !otherEligible && !serverMainEligible) {
+        try {
+          await bulkUpdateAdminProductStatus({
+            slugs: [slug],
+            channel: 'wholesale',
+            status: 'draft',
+          })
+          productWholesaleActive = false
+          setLoadedProduct((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  channelStatus: {
+                    ...(prev.channelStatus || {}),
+                    wholesale: 'draft',
+                  },
+                }
+              : prev
+          )
+          toast.message('Wholesale was set Inactive — no wholesale price was configured.')
+        } catch (err) {
+          const message =
+            err?.message ||
+            'Wholesale storefront is active but no eligible wholesale variant is available. Add/update at least one variant with wholesale=true and wholesaleBase > 0.'
+          setVariantSaveError(message)
+          toast.error(message)
+          return
+        }
+      }
+    }
+
     setVariantSaving(true)
     try {
       if (editingVariantIndex !== null) {
@@ -283,7 +405,10 @@ export function AdminProductModal({
           variantUpdatePayload.shipping = variantToSave.shipping
         }
         const result = await updateAdminProductVariant(variantUpdatePayload)
-        applyProductVariants(result?.product)
+        if (result?.product) {
+          setLoadedProduct(result.product)
+          applyProductVariants(result.product)
+        }
         toast.success('Variant updated')
       } else {
         const result = await addAdminProductVariant(slug, {
@@ -291,7 +416,10 @@ export function AdminProductModal({
           price: pricePayload,
           channelVisibility: channelVisibilityPayload,
         })
-        applyProductVariants(result?.product)
+        if (result?.product) {
+          setLoadedProduct(result.product)
+          applyProductVariants(result.product)
+        }
         toast.success('Variant added')
         onSaved?.()
       }
@@ -438,9 +566,123 @@ export function AdminProductModal({
     setError('')
 
     if (isEdit) {
+      if (!formData.name?.trim()) {
+        setError('Product name is required')
+        return
+      }
+      if (!formData.title?.trim()) {
+        setError('Product title is required')
+        return
+      }
+      if (!formData.category) {
+        setError('Please select a category')
+        return
+      }
+
       setSaving(true)
       try {
-        const fd = buildUpdateProductFormData(formData)
+        const mainVariant = formData.variants?.[0]
+        const barcode = mainVariant?.productCode ?? mainVariant?.ProductCode
+
+        // 1) Save main variant (price / wholesale / images) — same as fabFE updateVariantByBarcode
+        if (barcode != null && barcode !== '') {
+          const base = parseFloat(mainVariant.price?.base)
+          if (!base || base <= 0) {
+            throw new Error('Main variant base price is required and must be greater than 0')
+          }
+          const sale =
+            mainVariant.price?.sale !== '' && mainVariant.price?.sale != null
+              ? parseFloat(mainVariant.price.sale)
+              : null
+          if (sale !== null && Number.isFinite(sale) && sale >= base) {
+            throw new Error('Main variant sale price must be less than base price')
+          }
+
+          const sourceProduct = loadedProduct || product
+          let productWholesaleActive =
+            String(sourceProduct?.channelStatus?.wholesale || '').toLowerCase() === 'active'
+          const serverMain = sourceProduct?.variants?.[0] || null
+          let wholesaleResolved = resolveMainVariantWholesalePayload(
+            mainVariant,
+            serverMain,
+            productWholesaleActive
+          )
+
+          // Inconsistent state: wholesale channel ON but no variant has wholesaleBase > 0.
+          // Deactivate wholesale channel so attribute/image saves can proceed (backend rejects otherwise).
+          if (
+            productWholesaleActive &&
+            !(wholesaleResolved.wholesale && wholesaleResolved.wholesaleBase > 0)
+          ) {
+            await bulkUpdateAdminProductStatus({
+              slugs: [product.slug],
+              channel: 'wholesale',
+              status: 'draft',
+            })
+            productWholesaleActive = false
+            wholesaleResolved = resolveMainVariantWholesalePayload(mainVariant, serverMain, false)
+            setLoadedProduct((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    channelStatus: {
+                      ...(prev.channelStatus || {}),
+                      wholesale: 'draft',
+                    },
+                  }
+                : prev
+            )
+            toast.message('Wholesale set to Inactive — no wholesale price was configured on any variant.')
+          }
+
+          if (
+            wholesaleResolved.wholesale &&
+            wholesaleResolved.wholesaleSale != null &&
+            Number.isFinite(wholesaleResolved.wholesaleSale) &&
+            wholesaleResolved.wholesaleSale >= wholesaleResolved.wholesaleBase
+          ) {
+            throw new Error('Wholesale sale price must be less than wholesale base price')
+          }
+
+          const pricePayload = {
+            base,
+            sale: Number.isFinite(sale) ? sale : null,
+            ...(wholesaleResolved.wholesale
+              ? {
+                  wholesaleBase: wholesaleResolved.wholesaleBase,
+                  wholesaleSale: wholesaleResolved.wholesaleSale ?? null,
+                }
+              : {}),
+          }
+          const channelVisibilityPayload = {
+            ecomm: mainVariant.channelVisibility?.ecomm || 'active',
+            wholesale: wholesaleResolved.channelWholesale,
+          }
+
+          const variantResult = await updateAdminProductVariant({
+            slug: product.slug,
+            barcode,
+            price: pricePayload,
+            inventory: mainVariant.inventory,
+            attributes: mainVariant.attributes,
+            isActive: mainVariant.isActive,
+            images: mainVariant.images,
+            wholesale: wholesaleResolved.wholesale,
+            minimumOrderQuantity: wholesaleResolved.minimumOrderQuantity,
+            channelVisibility: channelVisibilityPayload,
+          })
+          if (variantResult?.product) {
+            setLoadedProduct(variantResult.product)
+            applyProductVariants(variantResult.product)
+          }
+        }
+
+        // 2) Product-level fields only (no variants / images) — PUT /admin/products/:slug
+        const fd = buildUpdateProductFormData({
+          ...formData,
+          // Prefer attributes from main variant in edit mode
+          attributes: formData.variants?.[0]?.attributes || formData.attributes || [],
+        })
         await updateAdminProduct(product.slug, fd)
         toast.success('Product updated')
         onOpenChange(false)
