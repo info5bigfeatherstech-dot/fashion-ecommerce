@@ -204,23 +204,6 @@ export default function ProductDetail() {
     )
   }
 
-  const accordionItems = [
-    ...(product.description
-      ? [{
-          value: 'description',
-          title: 'Description',
-          content: product.description,
-        }]
-      : []),
-    ...(product.composition
-      ? [{
-          value: 'details',
-          title: 'Details',
-          content: product.composition,
-        }]
-      : []),
-  ]
-
   const related = relatedProducts.filter((p) => p.id !== product.id).slice(0, 8)
   const optionGroups = product.optionGroups?.length
     ? product.optionGroups
@@ -232,6 +215,60 @@ export default function ProductDetail() {
           ? [{ key: 'Size', label: 'Size', values: product.sizes, isSize: true }]
           : []),
       ]
+
+  // Only show pickers when there is more than one choice; single values go into Details.
+  const choosableGroups = optionGroups.filter((group) => (group.values?.length || 0) > 1)
+  const detailOnlyGroups = optionGroups.filter((group) => (group.values?.length || 0) === 1)
+
+  const detailLines = [
+    ...detailOnlyGroups.map((group) => ({
+      key: group.key,
+      label: group.label || group.key,
+      value: group.values[0],
+    })),
+    ...(product.composition
+      ? String(product.composition)
+          .split(' · ')
+          .map((part) => part.trim())
+          .filter(Boolean)
+          .map((part) => {
+            const idx = part.indexOf(':')
+            if (idx === -1) return { key: part, label: part, value: '' }
+            return {
+              key: part.slice(0, idx).trim(),
+              label: part.slice(0, idx).trim(),
+              value: part.slice(idx + 1).trim(),
+            }
+          })
+          .filter((row) => !detailOnlyGroups.some((g) => String(g.key).toLowerCase() === String(row.key).toLowerCase()))
+      : []),
+  ]
+
+  const accordionItems = [
+    ...(product.description
+      ? [{
+          value: 'description',
+          title: 'Description',
+          content: product.description,
+        }]
+      : []),
+    ...(detailLines.length
+      ? [{
+          value: 'details',
+          title: 'Details',
+          content: (
+            <dl className="pdp-details-list">
+              {detailLines.map((row) => (
+                <div key={row.key} className="pdp-details-list__row">
+                  <dt>{row.label}</dt>
+                  <dd>{row.value || '—'}</dd>
+                </div>
+              ))}
+            </dl>
+          ),
+        }]
+      : []),
+  ]
 
   return (
     <div className="container pdp-page">
@@ -286,7 +323,7 @@ export default function ProductDetail() {
           <PriceBlock price={displayPrice} originalPrice={displayOriginal} size="large" />
           <OfferCode />
 
-          {optionGroups.map((group) => {
+          {choosableGroups.map((group) => {
             const selected = selectedAttrs[group.key] ?? group.values[0]
             if (group.isColor) {
               return (

@@ -7000,6 +7000,36 @@ a.cart-item__name:hover {
   width: 100%;
 }
 
+.pdp-details-list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.pdp-details-list__row {
+  display: grid;
+  grid-template-columns: minmax(6rem, 8.5rem) 1fr;
+  gap: 0.75rem;
+  align-items: baseline;
+}
+
+.pdp-details-list dt {
+  margin: 0;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted, #6b6b6b);
+}
+
+.pdp-details-list dd {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--color-ink, #1a1a1a);
+}
+
 .pdp-option__head {
   display: flex;
   align-items: baseline;
