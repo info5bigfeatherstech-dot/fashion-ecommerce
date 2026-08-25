@@ -102,6 +102,17 @@ export function AdminProductModal({
     if (!open) {
       startLenis()
       document.documentElement.classList.remove('modal-open')
+      // Nested popups must not survive parent close/reopen.
+      setShowCategoryModal(false)
+      setShowBrandModal(false)
+      setShowAttributeModal(false)
+      setShowCustomMessageModal(false)
+      setShowVariantModal(false)
+      setEditingVariantIndex(null)
+      setEditingAttribute(null)
+      setVariantForm(defaultVariant)
+      setVariantSaveError(null)
+      setError('')
       return undefined
     }
     stopLenis()
@@ -111,6 +122,42 @@ export function AdminProductModal({
       document.documentElement.classList.remove('modal-open')
     }
   }, [open])
+
+  const handleOpenChange = (nextOpen) => {
+    // Keep product modal open while a nested popup is visible
+    // (e.g. Escape / outside click should close brand first, not the editor).
+    if (
+      !nextOpen &&
+      (showCategoryModal ||
+        showBrandModal ||
+        showAttributeModal ||
+        showCustomMessageModal ||
+        showVariantModal)
+    ) {
+      setShowCategoryModal(false)
+      setShowBrandModal(false)
+      setShowAttributeModal(false)
+      setShowCustomMessageModal(false)
+      setShowVariantModal(false)
+      setEditingVariantIndex(null)
+      setEditingAttribute(null)
+      setVariantForm(defaultVariant)
+      setVariantSaveError(null)
+      return
+    }
+    if (!nextOpen) {
+      setShowCategoryModal(false)
+      setShowBrandModal(false)
+      setShowAttributeModal(false)
+      setShowCustomMessageModal(false)
+      setShowVariantModal(false)
+      setEditingVariantIndex(null)
+      setEditingAttribute(null)
+      setVariantForm(defaultVariant)
+      setVariantSaveError(null)
+    }
+    onOpenChange(nextOpen)
+  }
 
   const openAddVariant = () => {
     setVariantForm(defaultVariant)
@@ -437,7 +484,7 @@ export function AdminProductModal({
   const busy = saving || loadingProduct || variantSaving
 
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+    <Dialog.Root open={open} onOpenChange={handleOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="modal-overlay" />
         <Dialog.Content

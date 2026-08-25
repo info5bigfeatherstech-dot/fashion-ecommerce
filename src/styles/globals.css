@@ -17109,6 +17109,96 @@ button.admin-stats-chip:hover {
   cursor: not-allowed;
 }
 
+/* Confirm dialog (archive / delete / destructive actions) */
+.pf-confirm-card {
+  width: 100%;
+  max-width: 420px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.22);
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.pf-confirm-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px 0;
+}
+
+.pf-confirm-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.pf-confirm-card__icon--warn,
+.pf-confirm-card__icon--archive {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.pf-confirm-card__icon--danger {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.pf-confirm-card__body {
+  padding: 14px 20px 6px;
+}
+
+.pf-confirm-card__title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.35;
+}
+
+.pf-confirm-card__desc {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.pf-confirm-card__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 20px 18px;
+}
+
+.pf-confirm-btn--warn,
+.pf-confirm-btn--archive {
+  background: #ea580c;
+  border-color: #ea580c;
+  color: #fff;
+}
+
+.pf-confirm-btn--warn:hover:not(:disabled),
+.pf-confirm-btn--archive:hover:not(:disabled) {
+  background: #c2410c;
+  border-color: #c2410c;
+}
+
+.pf-confirm-btn--danger {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+}
+
+.pf-confirm-btn--danger:hover:not(:disabled) {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
 /* Variant add/edit modal */
 .pf-variant-overlay {
   position: fixed;

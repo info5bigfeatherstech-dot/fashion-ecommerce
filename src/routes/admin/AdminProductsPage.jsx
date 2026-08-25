@@ -22,6 +22,7 @@ import {
   extractListPayload,
 } from '@/features/admin/components/AdminUi'
 import { AdminBulkUploadModal } from '@/features/admin/components/AdminBulkUploadModal'
+import { AdminConfirmDialog } from '@/features/admin/components/AdminConfirmDialog'
 import { AdminProductModal } from '@/features/admin/components/AdminProductModal'
 import { AdminProductStatsBar } from '@/features/admin/components/AdminProductStatsBar'
 import { CategoryQuickModal } from '@/features/admin/components/product-form/CategoryQuickModal'
@@ -684,6 +685,7 @@ export default function AdminProductsPage() {
   const [viewingProduct, setViewingProduct] = useState(null)
   const [showBulkUpload, setShowBulkUpload] = useState(false)
   const [showCategoryModal, setShowCategoryModal] = useState(false)
+  const [archiveTarget, setArchiveTarget] = useState(null)
   const [dateFilter, setDateFilter] = useState('all')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
@@ -825,8 +827,16 @@ export default function AdminProductsPage() {
     }
   }
 
-  const handleArchive = async (slug) => {
-    if (!window.confirm('Archive this product?')) return
+  const handleArchive = (product) => {
+    setArchiveTarget({
+      slug: product.slug,
+      name: product.name || product.title || product.slug || 'this product',
+    })
+  }
+
+  const confirmArchive = async () => {
+    const slug = archiveTarget?.slug
+    if (!slug) return
     try {
       await archiveProduct.mutateAsync(slug)
       setSelectedSlugs((prev) => {
@@ -834,6 +844,7 @@ export default function AdminProductsPage() {
         next.delete(slug)
         return next
       })
+      setArchiveTarget(null)
       toast.success('Product archived')
     } catch (err) {
       toast.error(err?.message || 'Archive failed')
@@ -1138,9 +1149,10 @@ export default function AdminProductsPage() {
                           <button
                             type="button"
                             className="admin-products__action admin-products__action--archive"
-                            onClick={() => handleArchive(product.slug)}
+                            onClick={() => handleArchive(product)}
                             aria-label="Archive"
                             title="Archive"
+                            disabled={archiveProduct.isPending}
                           >
                             <Archive size={16} />
                           </button>
@@ -1185,6 +1197,23 @@ export default function AdminProductsPage() {
           onClose={() => setShowCategoryModal(false)}
         />
       )}
+      <AdminConfirmDialog
+        open={Boolean(archiveTarget)}
+        tone="archive"
+        title="Archive this product?"
+        description={
+          archiveTarget
+            ? `“${archiveTarget.name}” will be hidden from the storefront and moved to Archived. You can restore it later.`
+            : undefined
+        }
+        confirmLabel="Archive product"
+        cancelLabel="Cancel"
+        busy={archiveProduct.isPending}
+        onCancel={() => {
+          if (!archiveProduct.isPending) setArchiveTarget(null)
+        }}
+        onConfirm={confirmArchive}
+      />
     </div>
   )
 }
