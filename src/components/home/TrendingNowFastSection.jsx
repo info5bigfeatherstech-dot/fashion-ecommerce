@@ -1,16 +1,18 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { TrendingUp } from 'lucide-react'
 import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
+import { TrendingVideoReelModal } from '@/components/home/TrendingVideoReelModal'
 import video1 from '@/assets/167569-837244635_medium.mp4'
 import video2 from '@/assets/347325.mp4'
 import video3 from '@/assets/371392.mp4'
 import video4 from '@/assets/371392 (1).mp4'
 
 const TRENDING_VIDEOS = [
-  { id: 'trending-1', src: video1, label: 'Trending jewellery look 1' },
-  { id: 'trending-2', src: video2, label: 'Trending jewellery look 2' },
-  { id: 'trending-3', src: video3, label: 'Trending jewellery look 3' },
-  { id: 'trending-4', src: video4, label: 'Trending jewellery look 4' },
+  { id: 'trending-1', src: video1, title: 'Kundan Jewellery', label: 'Trending jewellery look 1' },
+  { id: 'trending-2', src: video2, title: 'Everyday Gold', label: 'Trending jewellery look 2' },
+  { id: 'trending-3', src: video3, title: 'Bridal Edit', label: 'Trending jewellery look 3' },
+  { id: 'trending-4', src: video4, title: 'Statement Drops', label: 'Trending jewellery look 4' },
 ]
 
 function bindSilentLoop(el) {
@@ -28,6 +30,8 @@ function bindSilentLoop(el) {
 }
 
 export function TrendingNowFastSection() {
+  const [activeIndex, setActiveIndex] = useState(null)
+
   return (
     <section className="section container container--wide trending-now-section">
       <div className="section-header">
@@ -53,27 +57,43 @@ export function TrendingNowFastSection() {
       </div>
       <Reveal delay={0.1}>
         <div className="trending-now-videos" role="list">
-          {TRENDING_VIDEOS.map((clip) => (
+          {TRENDING_VIDEOS.map((clip, index) => (
             <div key={clip.id} className="trending-now-videos__item" role="listitem">
-              <video
-                ref={bindSilentLoop}
-                className="trending-now-videos__video"
-                src={clip.src}
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="metadata"
-                disablePictureInPicture
-                disableRemotePlayback
-                controlsList="nodownload nofullscreen noremoteplayback"
-                tabIndex={-1}
-                aria-label={clip.label}
-              />
+              <button
+                type="button"
+                className="trending-now-videos__open"
+                onClick={() => setActiveIndex(index)}
+                aria-label={`Open ${clip.title || clip.label}`}
+              >
+                <video
+                  ref={bindSilentLoop}
+                  className="trending-now-videos__video"
+                  src={clip.src}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  disablePictureInPicture
+                  disableRemotePlayback
+                  controlsList="nodownload nofullscreen noremoteplayback"
+                  tabIndex={-1}
+                  aria-hidden="true"
+                />
+              </button>
             </div>
           ))}
         </div>
       </Reveal>
+
+      {activeIndex != null ? (
+        <TrendingVideoReelModal
+          videos={TRENDING_VIDEOS}
+          index={activeIndex}
+          onIndexChange={setActiveIndex}
+          onClose={() => setActiveIndex(null)}
+        />
+      ) : null}
     </section>
   )
 }

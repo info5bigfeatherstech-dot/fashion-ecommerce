@@ -30,12 +30,75 @@ const COLOR_SWATCH = {
   'Rose Gold': '#B76E79',
   Burgundy: '#6D1A2A',
   Grey: '#8A8680',
+  Gray: '#8A8680',
+  Silver: '#C0C0C0',
+  Beige: '#D4C4A8',
+  Khaki: '#C3B091',
+  Maroon: '#6D1A2A',
+  Red: '#C62828',
+  Blue: '#1E4E8C',
+  Green: '#2E7D4F',
+  Yellow: '#E6B800',
+  Pink: '#E8A0B0',
+  Purple: '#6B3FA0',
+  Orange: '#E07A3A',
   Cream: '#F2EDE3',
   'Light Wash': '#B7C4D4',
   'Dark Wash': '#2C3A4F',
 }
 
-export function SizeSelector({ sizes, selected, onSelect, label = 'Size' }) {
+const CSS_NAMED = new Set([
+  'aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure', 'beige', 'bisque', 'black',
+  'blanchedalmond', 'blue', 'blueviolet', 'brown', 'burlywood', 'cadetblue', 'chartreuse',
+  'chocolate', 'coral', 'cornflowerblue', 'cornsilk', 'crimson', 'cyan', 'darkblue',
+  'darkcyan', 'darkgoldenrod', 'darkgray', 'darkgreen', 'darkgrey', 'darkkhaki',
+  'darkmagenta', 'darkolivegreen', 'darkorange', 'darkorchid', 'darkred', 'darksalmon',
+  'darkseagreen', 'darkslateblue', 'darkslategray', 'darkslategrey', 'darkturquoise',
+  'darkviolet', 'deeppink', 'deepskyblue', 'dimgray', 'dimgrey', 'dodgerblue', 'firebrick',
+  'floralwhite', 'forestgreen', 'fuchsia', 'gainsboro', 'ghostwhite', 'gold', 'goldenrod',
+  'gray', 'green', 'greenyellow', 'grey', 'honeydew', 'hotpink', 'indianred', 'indigo',
+  'ivory', 'khaki', 'lavender', 'lavenderblush', 'lawngreen', 'lemonchiffon', 'lightblue',
+  'lightcoral', 'lightcyan', 'lightgoldenrodyellow', 'lightgray', 'lightgreen', 'lightgrey',
+  'lightpink', 'lightsalmon', 'lightseagreen', 'lightskyblue', 'lightslategray',
+  'lightslategrey', 'lightsteelblue', 'lightyellow', 'lime', 'limegreen', 'linen', 'magenta',
+  'maroon', 'mediumaquamarine', 'mediumblue', 'mediumorchid', 'mediumpurple', 'mediumseagreen',
+  'mediumslateblue', 'mediumspringgreen', 'mediumturquoise', 'mediumvioletred', 'midnightblue',
+  'mintcream', 'mistyrose', 'moccasin', 'navajowhite', 'navy', 'oldlace', 'olive', 'olivedrab',
+  'orange', 'orangered', 'orchid', 'palegoldenrod', 'palegreen', 'paleturquoise',
+  'palevioletred', 'papayawhip', 'peachpuff', 'peru', 'pink', 'plum', 'powderblue', 'purple',
+  'rebeccapurple', 'red', 'rosybrown', 'royalblue', 'saddlebrown', 'salmon', 'sandybrown',
+  'seagreen', 'seashell', 'sienna', 'silver', 'skyblue', 'slateblue', 'slategray', 'slategrey',
+  'snow', 'springgreen', 'steelblue', 'tan', 'teal', 'thistle', 'tomato', 'turquoise',
+  'violet', 'wheat', 'white', 'whitesmoke', 'yellow', 'yellowgreen',
+])
+
+function hashToColor(name) {
+  let hash = 0
+  const text = String(name)
+  for (let i = 0; i < text.length; i += 1) {
+    hash = (hash * 31 + text.charCodeAt(i)) >>> 0
+  }
+  const hue = hash % 360
+  const sat = 28 + (hash % 25)
+  const light = 42 + (hash % 18)
+  return `hsl(${hue} ${sat}% ${light}%)`
+}
+
+function resolveSwatchColor(name) {
+  if (!name) return '#888888'
+  const raw = String(name).trim()
+  if (!raw) return '#888888'
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw)) return raw
+  if (COLOR_SWATCH[raw]) return COLOR_SWATCH[raw]
+  const match = Object.keys(COLOR_SWATCH).find(
+    (key) => key.toLowerCase() === raw.toLowerCase()
+  )
+  if (match) return COLOR_SWATCH[match]
+  if (CSS_NAMED.has(raw.toLowerCase())) return raw.toLowerCase()
+  return hashToColor(raw)
+}
+
+export function SizeSelector({ sizes, selected, onSelect, label = 'Size', showFitHint = true }) {
   if (!sizes?.length) return null
 
   return (
@@ -44,7 +107,7 @@ export function SizeSelector({ sizes, selected, onSelect, label = 'Size' }) {
         <p className="heading-sm">
           {label}: <span className="pdp-option__value">{selected}</span>
         </p>
-        <span className="pdp-option__hint">True to size</span>
+        {showFitHint ? <span className="pdp-option__hint">True to size</span> : null}
       </div>
       <div className="size-selector">
         {sizes.map((size) => (
@@ -79,7 +142,7 @@ export function ColorSelector({ colors, selected, onSelect, label = 'Color' }) {
             key={color}
             type="button"
             className={`color-selector__swatch ${selected === color ? 'color-selector__swatch--active' : ''}`}
-            style={{ backgroundColor: COLOR_SWATCH[color] || '#888888' }}
+            style={{ backgroundColor: resolveSwatchColor(color) }}
             onClick={() => onSelect(color)}
             aria-pressed={selected === color}
             aria-label={color}
@@ -88,5 +151,18 @@ export function ColorSelector({ colors, selected, onSelect, label = 'Color' }) {
         ))}
       </div>
     </div>
+  )
+}
+
+/** Generic attribute picker (Material, Style, etc.) — same button UI as size. */
+export function AttributeSelector({ values, selected, onSelect, label }) {
+  return (
+    <SizeSelector
+      sizes={values}
+      selected={selected}
+      onSelect={onSelect}
+      label={label}
+      showFitHint={false}
+    />
   )
 }

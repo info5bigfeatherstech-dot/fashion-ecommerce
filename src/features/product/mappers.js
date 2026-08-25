@@ -40,6 +40,38 @@ function collectAttributeValues(variants, productAttributes, matcher) {
   return unique(values)
 }
 
+/** All variant option axes (Color, Size, Material, …) for the PDP pickers. */
+function collectAttributeGroups(variants, productAttributes) {
+  const groups = new Map()
+
+  const add = (key, value) => {
+    const k = String(key || '').trim()
+    const v = String(value || '').trim()
+    if (!k || !v) return
+    if (!groups.has(k)) groups.set(k, new Set())
+    groups.get(k).add(v)
+  }
+
+  for (const variant of variants) {
+    for (const attribute of asArray(variant.attributes)) {
+      add(attribute.key, attribute.value)
+    }
+  }
+  for (const attribute of productAttributes) {
+    add(attribute.key, attribute.value)
+  }
+
+  return [...groups.entries()]
+    .map(([key, values]) => ({
+      key,
+      label: key,
+      values: [...values],
+      isColor: COLOR_KEYS.test(key),
+      isSize: SIZE_KEYS.test(key),
+    }))
+    .filter((group) => group.values.length > 0)
+}
+
 function collectImages(dto, variants) {
   const urls = []
 
@@ -116,6 +148,7 @@ export function mapProduct(dto) {
     slug: dto.slug,
     name: dto.name || dto.title || 'Untitled product',
     title: dto.title || dto.name || '',
+    displayTitle: String(dto.title || dto.name || 'Untitled product').trim(),
     productCode:
       dto.productCode ||
       dto.product_code ||
@@ -130,10 +163,12 @@ export function mapProduct(dto) {
     price,
     originalPrice: originalPrice > price ? originalPrice : null,
     badge: deriveBadge(dto),
+    tags: asArray(dto.appliedTags),
     rating: toNumber(dto.rating?.value, 0),
     reviewCount: toNumber(dto.rating?.count, 0),
     sizes: collectAttributeValues(variants, attributes, SIZE_KEYS),
     colors: collectAttributeValues(variants, attributes, COLOR_KEYS),
+    optionGroups: collectAttributeGroups(variants, attributes),
     images,
     inStock: Boolean(dto.inStock ?? primaryVariant?.availability?.purchasable),
     isFeatured: Boolean(dto.isFeatured),
@@ -159,11 +194,40 @@ function attributeValue(attributes, matcher) {
   return undefined
 }
 
+function attrKeyEquals(a, b) {
+  return String(a || '').toLowerCase() === String(b || '').toLowerCase()
+}
+
+function attrValueEquals(a, b) {
+  return String(a ?? '').trim().toLowerCase() === String(b ?? '').trim().toLowerCase()
+}
+
 /**
- * Resolve a variant from mapped product.variants using selected size/color.
- * Falls back to the first variant when size/color are not provided or unmatched.
+ * Score a variant against selected attributes.
+ * Rejects variants that contradict any selected key they define
+ * (e.g. Color=black cannot win when Color=grey is selected, even if Size matches).
  */
-export function resolveVariant(product, { size, color, variantId } = {}) {
+function scoreVariantAgainstAttrs(variant, entries) {
+  const variantAttrs = asArray(variant?.attributes)
+  let score = 0
+
+  for (const [key, value] of entries) {
+    const match = variantAttrs.find((a) => attrKeyEquals(a.key, key))
+    if (!match) continue
+    if (!attrValueEquals(match.value, value)) {
+      return { ok: false, score: 0 }
+    }
+    score += 1
+  }
+
+  return { ok: true, score }
+}
+
+/**
+ * Resolve a variant from mapped product.variants using selected attrs / size / color.
+ * Falls back to the first non-contradicting variant, then the first variant.
+ */
+export function resolveVariant(product, { size, color, variantId, attrs } = {}) {
   const variants = asArray(product?.variants)
   if (!variants.length) return null
 
@@ -172,23 +236,84 @@ export function resolveVariant(product, { size, color, variantId } = {}) {
     if (byId) return byId
   }
 
-  const sizeStr = size != null ? String(size) : null
-  const colorStr = color != null ? String(color) : null
+  const selected = { ...(attrs && typeof attrs === 'object' ? attrs : {}) }
+  if (size != null && size !== '') {
+    const sizeGroup = asArray(product?.optionGroups).find((g) => g.isSize)
+    if (sizeGroup?.key) selected[sizeGroup.key] = size
+    else if (!Object.keys(selected).some((k) => SIZE_KEYS.test(k))) selected.Size = size
+  }
+  if (color != null && color !== '') {
+    const colorGroup = asArray(product?.optionGroups).find((g) => g.isColor)
+    if (colorGroup?.key) selected[colorGroup.key] = color
+    else if (!Object.keys(selected).some((k) => COLOR_KEYS.test(k))) selected.Color = color
+  }
 
-  if (sizeStr != null || colorStr != null) {
-    const matched = variants.find((variant) => {
-      const variantSize = attributeValue(variant.attributes, SIZE_KEYS)
-      const variantColor = attributeValue(variant.attributes, COLOR_KEYS)
-      if (sizeStr != null && variantSize != null && String(variantSize) !== sizeStr) return false
-      if (colorStr != null && variantColor != null && String(variantColor) !== colorStr) return false
-      if (sizeStr != null && variantSize == null) return false
-      if (colorStr != null && variantColor == null) return false
-      return true
-    })
-    if (matched) return matched
+  const entries = Object.entries(selected).filter(([, v]) => v != null && String(v).trim() !== '')
+  if (!entries.length) return variants[0] || null
+
+  const exact = variants.find((variant) => {
+    const variantAttrs = asArray(variant.attributes)
+    if (!variantAttrs.length) return false
+    return (
+      entries.length === variantAttrs.length &&
+      entries.every(([key, value]) =>
+        variantAttrs.some((a) => attrKeyEquals(a.key, key) && attrValueEquals(a.value, value))
+      )
+    )
+  })
+  if (exact) return exact
+
+  // Prefer full coverage of selected keys when the variant defines them
+  const fullCover = variants.find((variant) => {
+    const { ok, score } = scoreVariantAgainstAttrs(variant, entries)
+    return ok && score === entries.length
+  })
+  if (fullCover) return fullCover
+
+  let best = null
+  let bestScore = -1
+  for (const variant of variants) {
+    const { ok, score } = scoreVariantAgainstAttrs(variant, entries)
+    if (!ok || score <= 0) continue
+    if (score > bestScore) {
+      bestScore = score
+      best = variant
+    }
+  }
+  if (best) return best
+
+  // Last resort: ignore size-like keys and match color (or other axes) only
+  const nonSizeEntries = entries.filter(([key]) => !SIZE_KEYS.test(key))
+  if (nonSizeEntries.length && nonSizeEntries.length < entries.length) {
+    for (const variant of variants) {
+      const { ok, score } = scoreVariantAgainstAttrs(variant, nonSizeEntries)
+      if (ok && score > 0) return variant
+    }
   }
 
   return variants[0] || null
+}
+
+/** Gallery URLs for the active selection — never mix other colors' images. */
+export function resolveDisplayImages(product, selectedVariant, selectedAttrs = {}) {
+  if (selectedVariant?.images?.length) return selectedVariant.images
+
+  const colorGroup = asArray(product?.optionGroups).find((g) => g.isColor)
+  const selectedColor = colorGroup ? selectedAttrs[colorGroup.key] : null
+  if (selectedColor) {
+    const sameColor = asArray(product?.variants).find((variant) => {
+      const hasColor = asArray(variant.attributes).some(
+        (a) => COLOR_KEYS.test(a.key) && attrValueEquals(a.value, selectedColor)
+      )
+      return hasColor && asArray(variant.images).length > 0
+    })
+    if (sameColor?.images?.length) return sameColor.images
+  }
+
+  // Selected variant exists but has no images — do not fall back to all-variant collage
+  if (selectedVariant) return []
+
+  return asArray(product?.images)
 }
 
 export function resolveVariantId(product, options = {}) {

@@ -2,10 +2,12 @@ export const SITE_NAME = 'FABUNIQO'
 export const SITE_TAGLINE = 'Artificial jewelry for everyday shine.'
 
 export const SITE_CONTACT = {
-  email: 'hello@fabuniqo.com',
+  email: 'support.fabuniqo@gmail.com ',
   phone: '+91 98765 43210',
   phoneHref: 'tel:+919876543210',
-  emailHref: 'mailto:hello@fabuniqo.com',
+  emailHref: 'mailto:support.fabuniqo@gmail.com ',
+  /** Wholesale inquiry form destination */
+  wholesaleEmail: 'fabuniqo@gmail.com',
 }
 
 export const PRODUCT_OFFER = {
@@ -25,7 +27,9 @@ export const TOP_BANNER = {
 
 export const SALE_LIVE = {
   label: 'Sale is live',
+  /** Listing loads GET /api/products/all?tags=on-sale */
   href: '/shop/sale',
+  tag: 'on-sale',
 }
 
 export const NAV_ITEMS = [

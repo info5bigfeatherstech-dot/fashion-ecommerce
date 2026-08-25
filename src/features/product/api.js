@@ -47,7 +47,10 @@ function applyProductFilters(products, filters = {}) {
   if (filters.category === 'beauty') {
     results = results.filter((product) => BEAUTY_CATEGORIES.has(product.category))
   } else if (filters.category === 'sale') {
-    results = results.filter((product) => product.originalPrice)
+    results = results.filter((product) => {
+      const tags = Array.isArray(product.tags) ? product.tags : []
+      return tags.includes('on-sale') || product.badge === 'limited' || Boolean(product.originalPrice)
+    })
   } else if (filters.category === 'new-arrivals') {
     results = results.filter((product) => product.badge === 'new' || product.badge === 'limited')
   } else if (filters.category === 'footwear') {
@@ -253,9 +256,35 @@ export async function searchProducts(query, { page = 1, limit = 12, signal } = {
   }
 }
 
+/**
+ * Products filtered by applied tag (e.g. on-sale, today-arrival).
+ * GET /api/products/all?tags=on-sale&page=1&limit=25
+ */
+export async function getProductsByTag(tag, { page = 1, limit = 25, signal, ...params } = {}) {
+  const normalized = String(tag || '').trim()
+  if (!normalized) {
+    return { products: [], total: 0, pagination: mapPagination(null) }
+  }
+
+  const { products, pagination, raw } = await fetchProductsPage(
+    { page, limit, tags: normalized, ...params },
+    { signal }
+  )
+
+  return {
+    products,
+    total: pagination.total || products.length,
+    pagination,
+    raw,
+  }
+}
+
 export async function getProducts(filters = {}) {
   const category = filters.category
   const searchQuery = String(filters.search || '').trim()
+  const tag =
+    filters.tags ||
+    (category === 'sale' ? 'on-sale' : category === 'today-arrival' ? 'today-arrival' : null)
 
   // Prefer dedicated search API when a query is present
   if (searchQuery.length >= 2) {
@@ -272,6 +301,32 @@ export async function getProducts(filters = {}) {
       }
     } catch {
       // Fall back to catalog filter if search route is unavailable
+    }
+  }
+
+  // Sale / tagged collections — server-side tags filter
+  if (tag) {
+    try {
+      const { products, pagination, total } = await getProductsByTag(tag, {
+        page: filters.page || 1,
+        limit: filters.limit || 25,
+      })
+      const filtered = applyProductFilters(products, {
+        ...filters,
+        category: undefined,
+        tags: undefined,
+        onSale: undefined,
+      })
+      return {
+        products: filtered,
+        total: filtered.length === products.length ? total : filtered.length,
+        pagination: {
+          ...pagination,
+          total: filtered.length === products.length ? total : filtered.length,
+        },
+      }
+    } catch {
+      // Fall back to catalog filter if tags route is unavailable
     }
   }
 

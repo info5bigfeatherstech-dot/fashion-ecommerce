@@ -8,6 +8,7 @@ import {
   getBeautyProducts,
   getFeaturedProducts,
   getProductsByCategory,
+  getProductsByTag,
   getRelatedProducts,
   searchProducts,
 } from './api'
@@ -17,6 +18,14 @@ export function useProductListing(filters = {}) {
   return useQuery({
     queryKey: productKeys.list(filters),
     queryFn: () => getProducts(filters),
+  })
+}
+
+export function useProductsByTag(tag, params = {}) {
+  return useQuery({
+    queryKey: productKeys.byTag(tag, params),
+    queryFn: ({ signal }) => getProductsByTag(tag, { ...params, signal }),
+    enabled: Boolean(tag),
   })
 }
 

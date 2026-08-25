@@ -1,9 +1,13 @@
-import { useLayoutEffect, useEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Star, Heart, Minus, Plus } from 'lucide-react'
 import { ProductGallery } from '@/features/product/components/ProductGallery'
 import { PriceBlock } from '@/features/product/components/PriceBlock'
-import { SizeSelector, ColorSelector } from '@/features/product/components/SizeSelector'
+import {
+  SizeSelector,
+  ColorSelector,
+  AttributeSelector,
+} from '@/features/product/components/SizeSelector'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Accordion } from '@/components/ui/Accordion'
@@ -11,6 +15,7 @@ import { ProductCarousel } from '@/features/product/components/ProductCarousel'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
 import { useProductDetail, useRelatedProducts } from '@/features/product/hooks'
 import { OfferCode } from '@/features/product/components/OfferCode'
+import { resolveDisplayImages, resolveVariant } from '@/features/product/mappers'
 import { useAppStore } from '@/store'
 import { showAddedToCartToast } from '@/lib/cart-toast'
 import { scrollToTop } from '@/lib/lenis'
@@ -21,13 +26,27 @@ function formatLabel(value) {
   return value.replace(/-/g, ' ')
 }
 
+function initialAttrsFromProduct(product) {
+  const groups = product?.optionGroups || []
+  if (!groups.length) return {}
+  const firstVariant = product?.variants?.[0]
+  const fromVariant = {}
+  for (const attr of firstVariant?.attributes || []) {
+    if (attr?.key && attr?.value != null) fromVariant[attr.key] = attr.value
+  }
+  const next = {}
+  for (const group of groups) {
+    next[group.key] = fromVariant[group.key] ?? group.values[0]
+  }
+  return next
+}
+
 export default function ProductDetail() {
   const { slug } = useParams()
   const { data: product, isLoading, isError } = useProductDetail(slug)
   const { data: relatedProducts = [] } = useRelatedProducts(slug, { limit: 8 })
 
-  const [selectedSize, setSelectedSize] = useState(null)
-  const [selectedColor, setSelectedColor] = useState(null)
+  const [selectedAttrs, setSelectedAttrs] = useState({})
   const [quantity, setQuantity] = useState(1)
   const [showStickyBar, setShowStickyBar] = useState(false)
   const gallerySentinelRef = useRef(null)
@@ -41,12 +60,16 @@ export default function ProductDetail() {
   const navigate = useNavigate()
 
   useLayoutEffect(() => {
-    setSelectedSize(null)
-    setSelectedColor(null)
+    setSelectedAttrs({})
     setQuantity(1)
     setShowStickyBar(false)
     scrollToTop()
   }, [slug])
+
+  useEffect(() => {
+    if (!product) return
+    setSelectedAttrs(initialAttrsFromProduct(product))
+  }, [product?.id])
 
   useEffect(() => {
     const target = gallerySentinelRef.current
@@ -83,6 +106,35 @@ export default function ProductDetail() {
     return () => cancelAnimationFrame(raf)
   }, [slug, isLoading, product?.id])
 
+  const selectedVariant = useMemo(() => {
+    if (!product) return null
+    return resolveVariant(product, { attrs: selectedAttrs })
+  }, [product, selectedAttrs])
+
+  const displayTitle = useMemo(() => {
+    if (!product) return ''
+    const variantTitle = String(selectedVariant?.title || '').trim()
+    if (variantTitle) return variantTitle
+    return (
+      String(product.title || '').trim() ||
+      String(product.displayTitle || '').trim() ||
+      product.name ||
+      'Product'
+    )
+  }, [product, selectedVariant])
+
+  const displayImages = useMemo(
+    () => resolveDisplayImages(product, selectedVariant, selectedAttrs),
+    [product, selectedVariant, selectedAttrs]
+  )
+
+  const displayPrice = selectedVariant?.price > 0 ? selectedVariant.price : product?.price
+  const displayOriginal =
+    selectedVariant?.originalPrice > displayPrice
+      ? selectedVariant.originalPrice
+      : product?.originalPrice
+  const displayCode = selectedVariant?.productCode || product?.productCode
+
   if (isLoading) {
     return (
       <div className="container pdp-page">
@@ -108,19 +160,48 @@ export default function ProductDetail() {
     )
   }
 
-  const size = selectedSize || product.sizes?.[0]
-  const color = selectedColor || product.colors?.[0]
+  const handleAttrSelect = (key, value) => {
+    setSelectedAttrs((prev) => {
+      const next = { ...prev, [key]: value }
+      // Drop other axes that contradict the newly chosen value so Color=grey
+      // is not kept locked to a Black+Size variant.
+      const matched = resolveVariant(product, { attrs: next })
+      if (!matched) return next
+      for (const attr of matched.attributes || []) {
+        if (!attr?.key) continue
+        if (String(attr.key).toLowerCase() === String(key).toLowerCase()) continue
+        const current = next[attr.key]
+        if (current != null && String(current) !== String(attr.value)) {
+          next[attr.key] = attr.value
+        } else if (current == null) {
+          next[attr.key] = attr.value
+        }
+      }
+      return next
+    })
+  }
 
   const handleAddToCart = () => {
     if (!isAuthenticated) {
       navigate('/login', { state: { redirectTo: `/product/${slug}` }, replace: true })
       return
     }
-    addItem(product, { size, color, quantity })
-    showAddedToCartToast(product, {
+    const sizeGroup = (product.optionGroups || []).find((g) => g.isSize)
+    const colorGroup = (product.optionGroups || []).find((g) => g.isColor)
+    addItem(product, {
+      size: sizeGroup ? selectedAttrs[sizeGroup.key] : undefined,
+      color: colorGroup ? selectedAttrs[colorGroup.key] : undefined,
+      attrs: selectedAttrs,
+      variantId: selectedVariant?.id,
       quantity,
-      onViewBag: () => navigate('/cart'),
     })
+    showAddedToCartToast(
+      { ...product, name: displayTitle },
+      {
+        quantity,
+        onViewBag: () => navigate('/cart'),
+      }
+    )
   }
 
   const accordionItems = [
@@ -141,6 +222,16 @@ export default function ProductDetail() {
   ]
 
   const related = relatedProducts.filter((p) => p.id !== product.id).slice(0, 8)
+  const optionGroups = product.optionGroups?.length
+    ? product.optionGroups
+    : [
+        ...(product.colors?.length
+          ? [{ key: 'Color', label: 'Color', values: product.colors, isColor: true }]
+          : []),
+        ...(product.sizes?.length
+          ? [{ key: 'Size', label: 'Size', values: product.sizes, isSize: true }]
+          : []),
+      ]
 
   return (
     <div className="container pdp-page">
@@ -155,27 +246,27 @@ export default function ProductDetail() {
           </>
         )}
         <span className="breadcrumb__sep">/</span>
-        <span>{product.name}</span>
+        <span>{displayTitle}</span>
       </nav>
 
       <div className="pdp">
         <div ref={gallerySentinelRef}>
-          <ProductGallery images={product.images} name={product.name} />
+          <ProductGallery images={displayImages} name={displayTitle} />
         </div>
 
         <div className="pdp-info">
           <div className="pdp-info__kicker">
             {product.badge && <Badge badge={product.badge} />}
             <p className="pdp-info__category">
-              {formatLabel(product.category)}
+              {formatLabel(product.categoryLabel || product.category)}
               {product.subcategory ? ` · ${formatLabel(product.subcategory)}` : ''}
             </p>
           </div>
 
-          <h1 className="pdp-info__title">{product.name}</h1>
+          <h1 className="pdp-info__title">{displayTitle}</h1>
 
-          {product.productCode && (
-            <p className="pdp-info__code">{product.productCode}</p>
+          {displayCode && (
+            <p className="pdp-info__code">{displayCode}</p>
           )}
 
           <div className="pdp-info__rating">
@@ -192,24 +283,43 @@ export default function ProductDetail() {
             <span className="text-muted">({product.reviewCount} reviews)</span>
           </div>
 
-          <PriceBlock price={product.price} originalPrice={product.originalPrice} size="large" />
+          <PriceBlock price={displayPrice} originalPrice={displayOriginal} size="large" />
           <OfferCode />
 
-          {product.colors?.length > 0 && (
-            <ColorSelector
-              colors={product.colors}
-              selected={color}
-              onSelect={setSelectedColor}
-            />
-          )}
-
-          {product.sizes?.length > 0 && (
-            <SizeSelector
-              sizes={product.sizes}
-              selected={size}
-              onSelect={setSelectedSize}
-            />
-          )}
+          {optionGroups.map((group) => {
+            const selected = selectedAttrs[group.key] ?? group.values[0]
+            if (group.isColor) {
+              return (
+                <ColorSelector
+                  key={group.key}
+                  label={group.label}
+                  colors={group.values}
+                  selected={selected}
+                  onSelect={(value) => handleAttrSelect(group.key, value)}
+                />
+              )
+            }
+            if (group.isSize) {
+              return (
+                <SizeSelector
+                  key={group.key}
+                  label={group.label}
+                  sizes={group.values}
+                  selected={selected}
+                  onSelect={(value) => handleAttrSelect(group.key, value)}
+                />
+              )
+            }
+            return (
+              <AttributeSelector
+                key={group.key}
+                label={group.label}
+                values={group.values}
+                selected={selected}
+                onSelect={(value) => handleAttrSelect(group.key, value)}
+              />
+            )
+          })}
 
           <div className="pdp-info__qty">
             <p className="heading-sm">Quantity</p>
@@ -278,9 +388,9 @@ export default function ProductDetail() {
         aria-hidden={!showStickyBar}
       >
         <div className="pdp-sticky-bar__price">
-          {formatPrice(product.price)}
-          {product.originalPrice && product.originalPrice > product.price && (
-            <small>{formatPrice(product.originalPrice)}</small>
+          {formatPrice(displayPrice)}
+          {displayOriginal && displayOriginal > displayPrice && (
+            <small>{formatPrice(displayOriginal)}</small>
           )}
         </div>
         <Button variant="primary" size="md" onClick={handleAddToCart}>
