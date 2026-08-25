@@ -140,7 +140,7 @@ export default function Account({ initialActiveTab = 'orders' } = {}) {
                 <p className="heading-sm">FABUNIQO Customer</p>
                 <h3 className="display-md account-hero__title">{user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim()}</h3>
                 <p className="body-lg text-muted">Manage your details, delivery addresses, and upcoming orders from one place.</p>
-              </div>
+              </div>  
             </div>
 
             <div className="account-panel">
