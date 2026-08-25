@@ -13,9 +13,11 @@ export default function AdminSectionPage({
     <div className="admin-page">
       <AdminPageHeader eyebrow={eyebrow} title={title} />
       <div className="admin-card">
-        <p className="admin-card__subtitle" style={{ margin: 0 }}>
-          {description}
-        </p>
+        {description ? (
+          <p className="admin-card__subtitle" style={{ margin: 0 }}>
+            {description}
+          </p>
+        ) : null}
         {children}
       </div>
     </div>

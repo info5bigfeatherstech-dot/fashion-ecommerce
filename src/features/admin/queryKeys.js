@@ -41,7 +41,7 @@ export const adminKeys = {
     status,
     search || '',
   ],
-  staff: (page, search) => [...adminKeys.all, 'staff', page, search || ''],
+  staff: (page, search, role) => [...adminKeys.all, 'staff', page, search || '', role || ''],
   staffProfile: () => [...adminKeys.all, 'staff-profile'],
   returns: (page, status) => [...adminKeys.all, 'returns', page, status || ''],
   returnDetail: (orderId) => [...adminKeys.all, 'return', String(orderId || '')],

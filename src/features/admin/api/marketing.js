@@ -42,6 +42,28 @@ export async function getAdminStaffProfile({ signal } = {}) {
   return unwrapAdmin(payload)
 }
 
+export async function initiateAdminSelfPasswordReset() {
+  const payload = await adminPost(API_ENDPOINTS.admin.staffProfilePasswordResetInit, {})
+  const inner = unwrapAdmin(payload)
+  return {
+    message: payload?.message || inner?.message || 'OTP sent to your email',
+    maskedEmail: inner?.maskedEmail || null,
+    expiresInSeconds: inner?.expiresInSeconds || 600,
+  }
+}
+
+export async function verifyAdminSelfPasswordReset({ otp, newPassword, confirmPassword }) {
+  const payload = await adminPost(API_ENDPOINTS.admin.staffProfilePasswordResetVerify, {
+    otp,
+    newPassword,
+    confirmPassword,
+  })
+  const inner = unwrapAdmin(payload)
+  return {
+    message: payload?.message || inner?.message || 'Password updated successfully',
+  }
+}
+
 export async function createAdminStaff(body) {
   const payload = await adminPost(API_ENDPOINTS.admin.staff, body)
   return unwrapAdmin(payload)

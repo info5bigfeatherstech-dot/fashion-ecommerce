@@ -124,6 +124,13 @@ export const API_ENDPOINTS = {
     usersExport: '/admin/analytics/users/export',
     leadsPushSettings: '/admin/analytics/push-settings',
     productReviews: '/admin/product-reviews',
+    productReviewsGenerated: '/admin/product-reviews/generated',
+    productReviewGeneratedById: (id) =>
+      `/admin/product-reviews/generated/${encodeURIComponent(String(id))}`,
+    productReviewStatus: (id) =>
+      `/admin/product-reviews/${encodeURIComponent(String(id))}/status`,
+    productByVariantCode: (code) =>
+      `/admin/products/variant/${encodeURIComponent(String(code))}`,
     seoOverview: '/admin/seo-analytics/overview',
     categories: '/categories/admin/categories',
     rtoReport: '/admin/rto/report',
@@ -143,6 +150,8 @@ export const API_ENDPOINTS = {
     freeShippingOfferToggle: (id) => `/admin/free-shipping-offers/${encodeURIComponent(String(id))}/toggle`,
     staff: '/admin/staff',
     staffProfile: '/admin/staff/profile/me',
+    staffProfilePasswordResetInit: '/admin/staff/profile/me/initiate-password-reset',
+    staffProfilePasswordResetVerify: '/admin/staff/profile/me/verify-password-reset',
     staffById: (id) => `/admin/staff/${encodeURIComponent(String(id))}`,
     returns: '/orders/admin/returns/requests',
     returnDetail: (orderId) =>

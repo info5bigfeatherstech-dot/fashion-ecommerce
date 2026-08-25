@@ -806,11 +806,11 @@ export function useToggleAdminFreeShippingOffer() {
   })
 }
 
-export function useAdminStaff({ page = 1, search = '', enabled = true } = {}) {
+export function useAdminStaff({ page = 1, search = '', role = '', enabled = true } = {}) {
   const queryEnabled = useAdminQueryEnabled(enabled)
   return useQuery({
-    queryKey: adminKeys.staff(page, search),
-    queryFn: ({ signal }) => getAdminStaff({ signal, page, search }),
+    queryKey: adminKeys.staff(page, search, role),
+    queryFn: ({ signal }) => getAdminStaff({ signal, page, search, role }),
     enabled: queryEnabled,
     staleTime: 1000 * 30,
   })
