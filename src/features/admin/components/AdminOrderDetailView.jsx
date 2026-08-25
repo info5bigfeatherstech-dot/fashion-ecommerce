@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ArrowLeft,
-  MapPin,
   Package,
   Printer,
   RefreshCw,
@@ -11,10 +10,16 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { AdminError, AdminLoading } from '@/features/admin/components/AdminUi'
+import { AdminPendingAddressPanel } from '@/features/admin/components/AdminPendingAddressPanel'
 import { OrderPaymentSummaryCard } from '@/features/admin/components/OrderPaymentSummaryCard'
+import { OrderShipmentTrackingPanel } from '@/features/admin/components/OrderShipmentTrackingPanel'
+import {
+  buildCarrierTimeline,
+  resolveCarrierStatusDisplay,
+  unwrapTrackingPayload,
+} from '@/features/admin/utils/orderTrackingDisplay'
 import { isPostConfirmOrderStatus } from '@/features/admin/api/orders'
 import {
-  useAdminAddressIntelligence,
   useAdminOrderTracking,
   useAdminPickupCalendar,
   useAssignAdminOrderShip,
@@ -177,28 +182,6 @@ function FulfillmentStepCard({ step, focusStep, done, title, heading, children }
   )
 }
 
-function ScoreGauge({ percent, label }) {
-  const p = Number.isFinite(Number(percent)) ? Math.max(0, Math.min(100, Number(percent))) : null
-  return (
-    <div className="od-score">
-      <div
-        className="od-score__ring"
-        style={{
-          background: p == null
-            ? 'conic-gradient(#e2e8f0 0deg, #e2e8f0 360deg)'
-            : `conic-gradient(#3b82f6 ${p * 3.6}deg, #e2e8f0 ${p * 3.6}deg)`,
-        }}
-      >
-        <div className="od-score__inner">
-          <strong>{p == null ? '—' : `${Math.round(p)}%`}</strong>
-          <span>VALID</span>
-        </div>
-      </div>
-      <p className="od-score__label">{label || 'Address score'}</p>
-    </div>
-  )
-}
-
 /**
  * Full-page admin order detail (fabFE-style).
  */
@@ -225,13 +208,12 @@ export function AdminOrderDetailView({
   const downloadLabel = useDownloadAdminOrderShippingLabel()
   const downloadManifest = useDownloadAdminOrderManifest()
 
-  const { data: tracking, isFetching: trackingLoading, refetch: refetchTracking } =
-    useAdminOrderTracking(orderId, { enabled: Boolean(orderId) })
-  const { data: addressIntel, isFetching: intelLoading, refetch: refetchIntel } =
-    useAdminAddressIntelligence(orderId, {
-      enabled: Boolean(orderId),
-      refresh: Boolean(order?.shipmentInfo?.shiprocketOrderId || order?.shipmentInfo?.shipmentId),
-    })
+  const {
+    data: tracking,
+    isFetching: trackingLoading,
+    refetch: refetchTracking,
+    error: trackingError,
+  } = useAdminOrderTracking(orderId, { enabled: Boolean(orderId) })
   const { data: pickupCalendarRes } = useAdminPickupCalendar({
     enabled: Boolean(orderId) && isPostConfirmOrderStatus(order?.orderStatus),
   })
@@ -311,11 +293,21 @@ export function AdminOrderDetailView({
   )
   const weightLabel = formatKg(weightSnap?.totalWeightKg ?? order?.totalWeightKg)
 
-  const addr = order?.shippingAddress || order?.deliveryAddress || {}
-  const primary = addressIntel?.primary || addressIntel?.data?.primary || null
-  const scorePercent = primary?.scorePercent
-  const addressRisk = primary?.risk || primary?.categoryLabel || null
-  const rtoRisk = primary?.rtoRisk || null
+  const trackingData = unwrapTrackingPayload(tracking)
+  const lastSyncedAt = trackingData?.lastSyncedAt || ship?.lastSyncAt || null
+  const lastSyncError = ship?.lastError || null
+  const hideStaleTracking = ops?.opsState === 'PROVIDER_RESET'
+  const { carrierStatusDisplay, carrierStatusSecondary } = resolveCarrierStatusDisplay({
+    tracking: trackingData,
+    ship,
+    ops,
+  })
+  const carrierTimeline = buildCarrierTimeline({
+    tracking: trackingData,
+    ship,
+    ops,
+    lastSyncedAt,
+  })
 
   const handleConfirm = async () => {
     setActionMsg(null)
@@ -897,115 +889,32 @@ export function AdminOrderDetailView({
             </section>
           ) : null}
 
-          {/* Tracking */}
-          <section className="od-card">
-            <div className="od-card__head">
-              <h3 className="od-card__title">Shipment tracking</h3>
-              <Button variant="ghost" size="sm" disabled={trackingLoading} onClick={() => refetchTracking()}>
-                {trackingLoading ? '…' : 'Refresh tracking'}
-              </Button>
-            </div>
-            <div className="od-courier-grid">
-              <div>
-                <p className="od-field-label">Courier</p>
-                <p className="od-field-value">{ship.courier || tracking?.courier || '—'}</p>
-              </div>
-              <div>
-                <p className="od-field-label">Tracking number</p>
-                <p className="od-field-value od-mono">
-                  {ship.awbCode || ship.trackingNumber || tracking?.awb || '—'}
-                </p>
-              </div>
-              <div>
-                <p className="od-field-label">Shipment status</p>
-                <p className="od-field-value">
-                  {ship.providerStatus || ops.opsStateLabel || tracking?.status || 'Awaiting shipment'}
-                </p>
-              </div>
-            </div>
-            {Array.isArray(tracking?.timeline) && tracking.timeline.length > 0 ? (
-              <ul className="od-timeline">
-                {tracking.timeline.slice(0, 8).map((ev, i) => (
-                  <li key={i}>
-                    <strong>{ev.status || 'Update'}</strong>
-                    <span>{ev.description || ev.location || ''}</span>
-                    <em>{ev.timestamp ? formatDateHeader(ev.timestamp) : ''}</em>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="od-muted" style={{ marginTop: 12 }}>No carrier timeline yet.</p>
-            )}
-          </section>
+          <OrderShipmentTrackingPanel
+            ship={ship}
+            ops={ops}
+            orderStatus={order.orderStatus}
+            carrierStatusDisplay={carrierStatusDisplay || (isPendingOrder ? 'Awaiting approval' : null)}
+            carrierStatusSecondary={carrierStatusSecondary}
+            lastSyncedAt={lastSyncedAt}
+            lastSyncError={lastSyncError}
+            hideStaleTracking={hideStaleTracking}
+            carrierTimeline={carrierTimeline}
+            trackingLoading={trackingLoading}
+            trackingError={trackingError}
+            providerKey={shippingProviderKey}
+            trackingUrl={trackingData?.trackingUrl || ship?.trackingUrl || null}
+            formatDateTime={formatDateHeader}
+            onRefreshTracking={() => refetchTracking()}
+          />
         </div>
 
         <aside className="od-grid__side">
-          <section className="od-card">
-            <div className="od-card__head">
-              <div className="od-card__title-row">
-                <MapPin size={16} />
-                <div>
-                  <h3 className="od-card__title">Customer & address</h3>
-                  <p className="od-muted">Who receives this order</p>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={intelLoading}
-                onClick={() => refetchIntel()}
-              >
-                {intelLoading ? '…' : 'Refresh score'}
-              </Button>
-            </div>
-
-            <div className="od-address-top">
-              <ScoreGauge
-                percent={scorePercent}
-                label={primary?.categoryLabel || (scorePercent != null ? 'Valid address' : 'Score pending')}
-              />
-              <div className="od-risk-tags">
-                {addressRisk ? (
-                  <span className="od-risk od-risk--low">Address risk: {String(addressRisk)}</span>
-                ) : null}
-                {rtoRisk ? (
-                  <span className="od-risk od-risk--mid">RTO risk: {String(rtoRisk)}</span>
-                ) : (
-                  <span className="od-risk od-risk--mid">RTO risk: After SR</span>
-                )}
-              </div>
-            </div>
-
-            <div className="od-contact">
-              <div>
-                <p className="od-field-label">Name</p>
-                <p className="od-field-value">
-                  {order.customerName || addr.fullName || addr.name || '—'}
-                </p>
-              </div>
-              <div>
-                <p className="od-field-label">Phone</p>
-                <p className="od-field-value">{order.contactPhone || order.phone || addr.phone || '—'}</p>
-              </div>
-              <div>
-                <p className="od-field-label">Email</p>
-                <p className="od-field-value">{order.userEmail || order.email || addr.email || '—'}</p>
-              </div>
-              <div>
-                <p className="od-field-label">Delivery address</p>
-                <p className="od-field-value">
-                  {[
-                    addr.houseNumber,
-                    addr.addressLine1 || addr.fullAddress,
-                    addr.area,
-                    addr.city,
-                    addr.state,
-                    addr.postalCode,
-                  ].filter(Boolean).join(', ') || '—'}
-                </p>
-              </div>
-            </div>
-          </section>
+          <AdminPendingAddressPanel
+            order={order}
+            orderId={orderId}
+            disabled={fulfillmentBusy}
+            onApplied={refreshOrder}
+          />
 
           <OrderPaymentSummaryCard order={order} showRazorpayIds />
         </aside>

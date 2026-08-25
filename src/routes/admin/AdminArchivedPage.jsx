@@ -26,10 +26,10 @@ export default function AdminArchivedPage() {
   const handleRestore = async (slug) => {
     try {
       await restore.mutateAsync(slug)
-      toast.success('Product restored')
-      refetch()
+      toast.success('Product restored — it will appear on the Products page')
     } catch (err) {
       toast.error(err?.message || 'Restore failed')
+      refetch()
     }
   }
 
@@ -38,9 +38,9 @@ export default function AdminArchivedPage() {
     try {
       await hardDelete.mutateAsync(slug)
       toast.success('Product deleted')
-      refetch()
     } catch (err) {
       toast.error(err?.message || 'Delete failed')
+      refetch()
     }
   }
 

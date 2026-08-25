@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X } from 'lucide-react'
+import { FolderPlus, X } from 'lucide-react'
 import { createAdminCategory } from '@/features/admin/api/products'
 
 export function CategoryQuickModal({ onSelect, onCreated, onClose }) {
@@ -7,8 +7,10 @@ export function CategoryQuickModal({ onSelect, onCreated, onClose }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
+  const trimmed = name.trim()
+  const canSubmit = Boolean(trimmed) && !saving
+
   const handleSave = async () => {
-    const trimmed = name.trim()
     if (!trimmed) {
       setError('Category name is required')
       return
@@ -28,48 +30,95 @@ export function CategoryQuickModal({ onSelect, onCreated, onClose }) {
     }
   }
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      if (!saving) onClose()
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleSave()
+    }
+  }
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[70]">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold text-gray-900">Add Category</h3>
-          <button type="button" onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg" disabled={saving}>
-            <X size={20} className="text-gray-500" />
+    <div
+      className="pf-quick-overlay"
+      onClick={() => {
+        if (!saving) onClose()
+      }}
+      role="presentation"
+    >
+      <div
+        className="pf-quick-card"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={handleKeyDown}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pf-quick-category-title"
+      >
+        <div className="pf-quick-card__head">
+          <div className="pf-quick-card__head-main">
+            <span className="pf-quick-card__icon" aria-hidden>
+              <FolderPlus size={18} />
+            </span>
+            <div>
+              <h3 id="pf-quick-category-title" className="pf-quick-card__title">
+                Add category
+              </h3>
+              <p className="pf-quick-card__subtitle">Create a new catalog category for this product</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="pf-quick-card__close"
+            onClick={onClose}
+            disabled={saving}
+            aria-label="Close"
+          >
+            <X size={18} />
           </button>
         </div>
-        {error ? (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-600 text-sm">{error}</p>
-          </div>
-        ) : null}
-        <label className="block text-sm font-medium text-gray-700 mb-2">Category name</label>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => {
-            setName(e.target.value)
-            setError('')
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault()
-              handleSave()
-            }
-          }}
-          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-          placeholder="e.g., Electronics"
-          autoFocus
-          disabled={saving}
-        />
-        <div className="flex justify-end gap-3 mt-6">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg" disabled={saving}>
+
+        <div className="pf-quick-card__body">
+          {error ? (
+            <div className="pf-quick-card__error" role="alert">
+              {error}
+            </div>
+          ) : null}
+
+          <label className="pf-quick-field" htmlFor="pf-quick-category-name">
+            <span className="pf-quick-field__label">Category name</span>
+            <input
+              id="pf-quick-category-name"
+              type="text"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value)
+                setError('')
+              }}
+              className="pf-quick-field__input"
+              placeholder="e.g. Electronics, Bangles, Necklaces"
+              autoFocus
+              disabled={saving}
+            />
+          </label>
+        </div>
+
+        <div className="pf-quick-card__footer">
+          <button
+            type="button"
+            className="pf-quick-btn pf-quick-btn--ghost"
+            onClick={onClose}
+            disabled={saving}
+          >
             Cancel
           </button>
           <button
             type="button"
+            className="pf-quick-btn pf-quick-btn--primary"
             onClick={handleSave}
-            disabled={saving || !name.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            disabled={!canSubmit}
           >
             {saving ? 'Creating…' : 'Add category'}
           </button>

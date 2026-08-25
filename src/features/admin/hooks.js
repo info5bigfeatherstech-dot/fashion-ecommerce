@@ -23,6 +23,8 @@ import {
   cancelAdminOrderShipment,
   retryAdminOrderPickup,
   getAdminAddressIntelligence,
+  previewAdminPendingAddressEdit,
+  applyAdminPendingAddressEdit,
   getAdminPickupCalendar,
   fetchAdminOrderInvoiceHtml,
   downloadAdminOrderShippingLabelFile,
@@ -433,6 +435,28 @@ export function useAdminAddressIntelligence(orderId, { refresh = false, enabled 
   })
 }
 
+export function useAdminPreviewPendingAddressEdit() {
+  return useMutation({
+    mutationFn: ({ orderId, addressPatch, alsoUpdateSavedAddress }) =>
+      previewAdminPendingAddressEdit(orderId, { addressPatch, alsoUpdateSavedAddress }),
+  })
+}
+
+export function useAdminApplyPendingAddressEdit() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ orderId, addressPatch, alsoUpdateSavedAddress }) =>
+      applyAdminPendingAddressEdit(orderId, { addressPatch, alsoUpdateSavedAddress }),
+    onSuccess: (_d, vars) => {
+      const id = String(vars?.orderId || '').trim()
+      if (!id) return
+      queryClient.invalidateQueries({ queryKey: adminKeys.orderDetail(id) })
+      queryClient.invalidateQueries({ queryKey: adminKeys.orderTracking(id) })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'orders-list'] })
+    },
+  })
+}
+
 export function useAdminPickupCalendar({ enabled = true } = {}) {
   const queryEnabled = useAdminQueryEnabled(enabled)
   return useQuery({
@@ -500,6 +524,7 @@ export function useAdminProductsAll({ page = 1, search = '', limit = 50, enabled
     queryFn: ({ signal }) => getAdminProductsAll({ signal, page, search, limit }),
     enabled: queryEnabled,
     staleTime: 1000 * 30,
+    refetchOnMount: 'always',
   })
 }
 
@@ -535,20 +560,180 @@ export function useAdminProductsArchived({ page = 1, enabled = true } = {}) {
 
 export function useRestoreAdminProduct() {
   const queryClient = useQueryClient()
+
+  const removeFromArchivedLists = (slug) => {
+    const strip = (old) => {
+      if (!old) return old
+      if (Array.isArray(old)) return old.filter((p) => p.slug !== slug)
+
+      const patchContainer = (container) => {
+        if (!container || typeof container !== 'object') return container
+        let changed = false
+        const next = { ...container }
+        for (const key of ['products', 'data']) {
+          if (!Array.isArray(container[key])) continue
+          const filtered = container[key].filter((p) => p.slug !== slug)
+          if (filtered.length !== container[key].length) {
+            next[key] = filtered
+            changed = true
+          }
+        }
+        if (changed) {
+          if (typeof next.total === 'number') next.total = Math.max(0, next.total - 1)
+          if (typeof next.totalProducts === 'number') {
+            next.totalProducts = Math.max(0, next.totalProducts - 1)
+          }
+          if (next.pagination && typeof next.pagination.total === 'number') {
+            next.pagination = {
+              ...next.pagination,
+              total: Math.max(0, next.pagination.total - 1),
+            }
+          }
+        }
+        return changed ? next : container
+      }
+
+      if (old.data && typeof old.data === 'object') {
+        const nextData = patchContainer(old.data)
+        if (nextData !== old.data) return { ...old, data: nextData }
+      }
+      const nextRoot = patchContainer(old)
+      return nextRoot !== old ? nextRoot : old
+    }
+
+    queryClient.setQueriesData({ queryKey: ['admin', 'products-archived'] }, strip)
+  }
+
+  const insertIntoProductLists = (product) => {
+    if (!product?.slug) return
+    const inject = (old) => {
+      if (!old) return old
+      if (Array.isArray(old)) {
+        if (old.some((p) => p.slug === product.slug)) {
+          return old.map((p) => (p.slug === product.slug ? { ...p, ...product, status: product.status || 'active' } : p))
+        }
+        return [{ ...product, status: product.status || 'active' }, ...old]
+      }
+
+      const patchContainer = (container) => {
+        if (!container || typeof container !== 'object') return container
+        let listKey = null
+        for (const key of ['products', 'data']) {
+          if (Array.isArray(container[key])) {
+            listKey = key
+            break
+          }
+        }
+        if (!listKey) return container
+        const list = container[listKey]
+        const exists = list.some((p) => p.slug === product.slug)
+        const nextList = exists
+          ? list.map((p) =>
+              p.slug === product.slug
+                ? { ...p, ...product, status: product.status || p.status || 'active' }
+                : p
+            )
+          : [{ ...product, status: product.status || 'active' }, ...list]
+        const next = { ...container, [listKey]: nextList }
+        if (!exists) {
+          if (typeof next.total === 'number') next.total += 1
+          if (typeof next.totalProducts === 'number') next.totalProducts += 1
+          if (next.pagination && typeof next.pagination.total === 'number') {
+            next.pagination = { ...next.pagination, total: next.pagination.total + 1 }
+          }
+        }
+        return next
+      }
+
+      if (old.data && typeof old.data === 'object' && Array.isArray(old.data.products)) {
+        return { ...old, data: patchContainer(old.data) }
+      }
+      return patchContainer(old)
+    }
+
+    queryClient.setQueriesData({ queryKey: ['admin', 'products-all'] }, inject)
+  }
+
   return useMutation({
     mutationFn: restoreAdminProduct,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'products-archived'] })
-      queryClient.invalidateQueries({ queryKey: ['admin', 'products-all'] })
+    onMutate: async (slug) => {
+      await queryClient.cancelQueries({ queryKey: ['admin', 'products-archived'] })
+      const previousArchived = queryClient.getQueriesData({ queryKey: ['admin', 'products-archived'] })
+      removeFromArchivedLists(slug)
+      return { previousArchived }
+    },
+    onError: (_err, _slug, context) => {
+      context?.previousArchived?.forEach(([key, data]) => queryClient.setQueryData(key, data))
+    },
+    onSuccess: async (data) => {
+      const product = data?.product || data?.data?.product || null
+      if (product) insertIntoProductLists(product)
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['admin', 'products-all'], refetchType: 'all' }),
+        queryClient.invalidateQueries({ queryKey: adminKeys.productsActive(), refetchType: 'all' }),
+        queryClient.invalidateQueries({ queryKey: adminKeys.productsLowStock(), refetchType: 'all' }),
+        queryClient.invalidateQueries({ queryKey: ['admin', 'products-archived'], refetchType: 'all' }),
+      ])
     },
   })
 }
 
 export function useHardDeleteAdminProduct() {
   const queryClient = useQueryClient()
+
+  const removeFromArchivedLists = (slug) => {
+    const strip = (old) => {
+      if (!old) return old
+      if (Array.isArray(old)) return old.filter((p) => p.slug !== slug)
+
+      const patchContainer = (container) => {
+        if (!container || typeof container !== 'object') return container
+        let changed = false
+        const next = { ...container }
+        for (const key of ['products', 'data']) {
+          if (!Array.isArray(container[key])) continue
+          const filtered = container[key].filter((p) => p.slug !== slug)
+          if (filtered.length !== container[key].length) {
+            next[key] = filtered
+            changed = true
+          }
+        }
+        if (changed) {
+          if (typeof next.total === 'number') next.total = Math.max(0, next.total - 1)
+          if (next.pagination && typeof next.pagination.total === 'number') {
+            next.pagination = {
+              ...next.pagination,
+              total: Math.max(0, next.pagination.total - 1),
+            }
+          }
+        }
+        return changed ? next : container
+      }
+
+      if (old.data && typeof old.data === 'object') {
+        const nextData = patchContainer(old.data)
+        if (nextData !== old.data) return { ...old, data: nextData }
+      }
+      const nextRoot = patchContainer(old)
+      return nextRoot !== old ? nextRoot : old
+    }
+
+    queryClient.setQueriesData({ queryKey: ['admin', 'products-archived'] }, strip)
+  }
+
   return useMutation({
     mutationFn: hardDeleteAdminProduct,
-    onSuccess: () => {
+    onMutate: async (slug) => {
+      await queryClient.cancelQueries({ queryKey: ['admin', 'products-archived'] })
+      const previousArchived = queryClient.getQueriesData({ queryKey: ['admin', 'products-archived'] })
+      removeFromArchivedLists(slug)
+      return { previousArchived }
+    },
+    onError: (_err, _slug, context) => {
+      context?.previousArchived?.forEach(([key, data]) => queryClient.setQueryData(key, data))
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'products-archived'] })
     },
   })
@@ -586,10 +771,63 @@ export function useUpdateAdminProduct() {
 
 export function useArchiveAdminProduct() {
   const queryClient = useQueryClient()
+
+  const removeFromProductLists = (slug) => {
+    const strip = (old) => {
+      if (!old) return old
+      if (Array.isArray(old)) return old.filter((p) => p.slug !== slug)
+
+      const patchContainer = (container) => {
+        if (!container || typeof container !== 'object') return container
+        let changed = false
+        const next = { ...container }
+        for (const key of ['products', 'data']) {
+          if (!Array.isArray(container[key])) continue
+          const filtered = container[key].filter((p) => p.slug !== slug)
+          if (filtered.length !== container[key].length) {
+            next[key] = filtered
+            changed = true
+          }
+        }
+        if (changed && next.pagination && typeof next.pagination.total === 'number') {
+          next.pagination = {
+            ...next.pagination,
+            total: Math.max(0, next.pagination.total - 1),
+          }
+        }
+        return changed ? next : container
+      }
+
+      if (old.data && typeof old.data === 'object') {
+        const nextData = patchContainer(old.data)
+        if (nextData !== old.data) return { ...old, data: nextData }
+      }
+      const nextRoot = patchContainer(old)
+      return nextRoot !== old ? nextRoot : old
+    }
+
+    queryClient.setQueriesData({ queryKey: ['admin', 'products-all'] }, strip)
+    queryClient.setQueriesData({ queryKey: adminKeys.productsLowStock() }, strip)
+  }
+
   return useMutation({
     mutationFn: archiveAdminProduct,
-    onSuccess: () => {
+    onMutate: async (slug) => {
+      await queryClient.cancelQueries({ queryKey: ['admin', 'products-all'] })
+      await queryClient.cancelQueries({ queryKey: adminKeys.productsLowStock() })
+      const previousAll = queryClient.getQueriesData({ queryKey: ['admin', 'products-all'] })
+      const previousLowStock = queryClient.getQueriesData({ queryKey: adminKeys.productsLowStock() })
+      removeFromProductLists(slug)
+      return { previousAll, previousLowStock }
+    },
+    onError: (_err, _slug, context) => {
+      context?.previousAll?.forEach(([key, data]) => queryClient.setQueryData(key, data))
+      context?.previousLowStock?.forEach(([key, data]) => queryClient.setQueryData(key, data))
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'products-all'] })
+      queryClient.invalidateQueries({ queryKey: adminKeys.productsLowStock() })
+      queryClient.invalidateQueries({ queryKey: adminKeys.productsActive() })
       queryClient.invalidateQueries({ queryKey: ['admin', 'products-archived'] })
     },
   })

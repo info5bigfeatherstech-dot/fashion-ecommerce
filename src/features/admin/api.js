@@ -125,6 +125,8 @@ export {
   cancelAdminOrderShipment,
   retryAdminOrderPickup,
   getAdminAddressIntelligence,
+  previewAdminPendingAddressEdit,
+  applyAdminPendingAddressEdit,
   getAdminPickupCalendar,
   fetchAdminOrderInvoiceHtml,
   downloadAdminOrderShippingLabelFile,

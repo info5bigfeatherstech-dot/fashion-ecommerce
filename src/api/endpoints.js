@@ -83,6 +83,10 @@ export const API_ENDPOINTS = {
       `/orders/admin/items/${encodeURIComponent(String(orderId))}/invoice-html`,
     orderAddressIntelligence: (orderId) =>
       `/orders/admin/items/${encodeURIComponent(String(orderId))}/address-intelligence`,
+    orderEditPendingAddressPreview: (orderId) =>
+      `/orders/admin/items/${encodeURIComponent(String(orderId))}/edit-pending-address/preview`,
+    orderEditPendingAddress: (orderId) =>
+      `/orders/admin/items/${encodeURIComponent(String(orderId))}/edit-pending-address`,
     orderEnsureShipment: (orderId) =>
       `/orders/admin/items/${encodeURIComponent(String(orderId))}/fulfillment/ensure-shipment`,
     orderAssignShip: (orderId) =>
@@ -117,6 +121,7 @@ export const API_ENDPOINTS = {
     productsLowStock: '/admin/products/low-stock',
     productsArchived: '/admin/products/archived',
     productBySlug: (slug) => `/admin/products/${encodeURIComponent(slug)}`,
+    productVariants: (slug) => `/admin/products/${encodeURIComponent(slug)}/variants`,
     productRestore: (slug) => `/admin/products/restore/${encodeURIComponent(slug)}`,
     productHardDelete: (slug) => `/admin/products/hard/${encodeURIComponent(slug)}`,
     users: '/admin/analytics/users',

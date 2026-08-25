@@ -163,6 +163,13 @@ function isLowStockProduct(product) {
   return false
 }
 
+function isArchivedProduct(product) {
+  // Match fabFE: only product.status === 'archived'.
+  // Do not use deletedAt / channelStatus here — restored products can still
+  // carry leftover fields and would incorrectly stay hidden from the table.
+  return String(product?.status || '').toLowerCase() === 'archived'
+}
+
 function getEcomStatus(product) {
   const status = String(product?.channelStatus?.ecomm || product?.status || '').toLowerCase()
   if (product?.isActive === false || status === 'draft' || status === 'archived' || status === 'inactive') {
@@ -721,6 +728,14 @@ export default function AdminProductsPage() {
     [listData]
   )
 
+  const listTotal =
+    pagination?.total ??
+    pagination?.totalItems ??
+    listData?.totalProducts ??
+    listData?.total ??
+    listData?.data?.totalProducts ??
+    listData?.data?.total
+
   const categories = useMemo(() => {
     const raw = categoriesData?.categories || categoriesData
     return Array.isArray(raw) ? raw : []
@@ -728,12 +743,17 @@ export default function AdminProductsPage() {
 
   const products = useMemo(() => {
     let list = rawProducts
+    // Always hide truly archived rows from the main catalog table
+    // (archived filter view uses AdminArchivedPage instead).
+    if (statusFilter !== 'archived') {
+      list = list.filter((p) => !isArchivedProduct(p))
+    }
     if (statusFilter !== 'all') {
       list = list.filter((p) => {
         const st = String(p.channelStatus?.ecomm || p.status || '').toLowerCase()
         if (statusFilter === 'active') return st === 'active' || p.isActive === true
         if (statusFilter === 'draft') return st === 'draft' || p.isActive === false
-        if (statusFilter === 'archived') return st === 'archived'
+        if (statusFilter === 'archived') return isArchivedProduct(p)
         return true
       })
     }
@@ -753,7 +773,7 @@ export default function AdminProductsPage() {
     return list
   }, [rawProducts, statusFilter, categoryFilter, dateFilter, startDate, endDate])
 
-  const totalProducts = pagination?.total ?? pagination?.totalItems ?? products.length
+  const totalProducts = listTotal ?? products.length
   const activeCount = extractCount(activeData) ?? products.filter((p) => getEcomStatus(p).label === 'Active').length
   const featuredCount = products.filter((p) => p.isFeatured).length
   const lowStockCount = extractCount(lowStockData) ?? products.filter(isLowStockProduct).length
@@ -809,10 +829,15 @@ export default function AdminProductsPage() {
     if (!window.confirm('Archive this product?')) return
     try {
       await archiveProduct.mutateAsync(slug)
+      setSelectedSlugs((prev) => {
+        const next = new Set(prev)
+        next.delete(slug)
+        return next
+      })
       toast.success('Product archived')
-      listRefetch()
     } catch (err) {
       toast.error(err?.message || 'Archive failed')
+      listRefetch()
     }
   }
 

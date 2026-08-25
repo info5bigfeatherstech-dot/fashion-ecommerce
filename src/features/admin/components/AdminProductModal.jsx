@@ -14,16 +14,20 @@ import {
   emptyProductForm,
   formatIndianRupee,
   getDiscountPercentage,
+  normaliseVariantsForEdit,
   productToEditForm,
   validateCreateProductForm,
 } from '@/features/admin/components/product-form/utils'
 import { shippingFormFromVariant } from '@/lib/variantCatalogForm'
 import {
+  addAdminProductVariant,
   buildCreateProductFormData,
   buildUpdateProductFormData,
   createAdminProduct,
+  deleteAdminProductVariant,
   getAdminProductBySlug,
   updateAdminProduct,
+  updateAdminProductVariant,
 } from '@/features/admin/api/products'
 
 export function AdminProductModal({
@@ -48,6 +52,8 @@ export function AdminProductModal({
   const [showCustomMessageModal, setShowCustomMessageModal] = useState(false)
   const [showVariantModal, setShowVariantModal] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [variantSaving, setVariantSaving] = useState(false)
+  const [variantSaveError, setVariantSaveError] = useState(null)
   const [loadingProduct, setLoadingProduct] = useState(false)
   const [error, setError] = useState('')
 
@@ -109,6 +115,7 @@ export function AdminProductModal({
   const openAddVariant = () => {
     setVariantForm(defaultVariant)
     setEditingVariantIndex(null)
+    setVariantSaveError(null)
     setShowVariantModal(true)
   }
 
@@ -144,44 +151,199 @@ export function AdminProductModal({
       shipping: shippingFormFromVariant(v, formData.shipping, formData),
     })
     setEditingVariantIndex(index)
+    setVariantSaveError(null)
     setShowVariantModal(true)
   }
 
-  const handleVariantSave = (variantToSave) => {
-    if (editingVariantIndex !== null) {
-      setFormData((p) => ({
-        ...p,
-        variants: p.variants.map((v, i) => (i === editingVariantIndex ? variantToSave : v)),
-      }))
-    } else {
-      setFormData((p) => ({ ...p, variants: [...p.variants, variantToSave] }))
-    }
+  const closeVariantModal = () => {
     setShowVariantModal(false)
     setVariantForm(defaultVariant)
     setEditingVariantIndex(null)
+    setVariantSaveError(null)
   }
 
-  const deleteVariant = (index) => {
-    if (isEdit && index === 0) return
+  const applyProductVariants = (productPayload) => {
+    if (!productPayload?.variants) return
+    setFormData((prev) => ({
+      ...prev,
+      variants: normaliseVariantsForEdit(productPayload.variants),
+    }))
+  }
+
+  const handleVariantSave = async (variantToSave) => {
+    setVariantSaveError(null)
+
+    // Create mode: product does not exist yet — keep variants in local form only.
+    if (!isEdit) {
+      if (editingVariantIndex !== null) {
+        setFormData((p) => ({
+          ...p,
+          variants: p.variants.map((v, i) => (i === editingVariantIndex ? variantToSave : v)),
+        }))
+      } else {
+        setFormData((p) => ({ ...p, variants: [...p.variants, variantToSave] }))
+      }
+      closeVariantModal()
+      return
+    }
+
+    const slug = product?.slug
+    if (!slug) {
+      setVariantSaveError('Product slug is missing — cannot save variant.')
+      return
+    }
+
+    const pricePayload = {
+      base: parseFloat(variantToSave.price.base) || 0,
+      sale: variantToSave.price.sale ? parseFloat(variantToSave.price.sale) : null,
+      wholesaleBase: variantToSave.wholesale
+        ? (parseFloat(variantToSave.price.wholesaleBase) || 0)
+        : undefined,
+      wholesaleSale: variantToSave.wholesale
+        ? (variantToSave.price.wholesaleSale
+          ? parseFloat(variantToSave.price.wholesaleSale)
+          : null)
+        : undefined,
+    }
+    const wholesaleVisibility =
+      variantToSave.wholesale && pricePayload.wholesaleBase > 0 ? 'active' : 'draft'
+    const channelVisibilityPayload = {
+      ecomm: variantToSave.channelVisibility?.ecomm || 'active',
+      wholesale: wholesaleVisibility,
+    }
+
+    setVariantSaving(true)
+    try {
+      if (editingVariantIndex !== null) {
+        const existingProductCode =
+          formData.variants[editingVariantIndex]?.productCode ??
+          formData.variants[editingVariantIndex]?.ProductCode
+        const variantUpdatePayload = {
+          slug,
+          barcode: existingProductCode,
+          price: pricePayload,
+          inventory: variantToSave.inventory,
+          attributes: variantToSave.attributes,
+          images: variantToSave.images,
+          isActive: variantToSave.isActive,
+          wholesale: variantToSave.wholesale,
+          minimumOrderQuantity: variantToSave.minimumOrderQuantity,
+          channelVisibility: channelVisibilityPayload,
+        }
+        if (editingVariantIndex > 0) {
+          variantUpdatePayload.variantTitle = variantToSave.title
+          variantUpdatePayload.variantDescription = variantToSave.description
+          variantUpdatePayload.shipping = variantToSave.shipping
+        }
+        const result = await updateAdminProductVariant(variantUpdatePayload)
+        applyProductVariants(result?.product)
+        toast.success('Variant updated')
+      } else {
+        const result = await addAdminProductVariant(slug, {
+          ...variantToSave,
+          price: pricePayload,
+          channelVisibility: channelVisibilityPayload,
+        })
+        applyProductVariants(result?.product)
+        toast.success('Variant added')
+        onSaved?.()
+      }
+      closeVariantModal()
+    } catch (err) {
+      const message = err?.message || 'Failed to save variant'
+      setVariantSaveError(message)
+      toast.error(message)
+    } finally {
+      setVariantSaving(false)
+    }
+  }
+
+  const deleteVariant = async (index) => {
+    if (isEdit && index === 0) {
+      alert('Cannot delete the main variant. It is the product itself.')
+      return
+    }
+
+    // Create mode: local list only
+    if (!isEdit) {
+      setFormData((p) => ({ ...p, variants: p.variants.filter((_, i) => i !== index) }))
+      return
+    }
+
+    const variant = formData.variants[index]
+    const barcode = variant?.productCode ?? variant?.ProductCode
+    if (!barcode && barcode !== 0) {
+      alert('Cannot delete — variant has no productCode')
+      return
+    }
+    if (!window.confirm(`Delete variant (productCode: ${barcode})? This cannot be undone.`)) return
+
+    const prevVariants = formData.variants
     setFormData((p) => ({ ...p, variants: p.variants.filter((_, i) => i !== index) }))
+    try {
+      const result = await deleteAdminProductVariant(product.slug, barcode)
+      applyProductVariants(result?.product)
+      toast.success('Variant deleted')
+      onSaved?.()
+    } catch (err) {
+      setFormData((p) => ({ ...p, variants: prevVariants }))
+      toast.error(err?.message || 'Delete failed')
+    }
   }
 
-  const toggleVariantActive = (index) =>
+  const toggleVariantActive = async (index) => {
+    if (!isEdit) {
+      setFormData((p) => ({
+        ...p,
+        variants: p.variants.map((v, i) => {
+          if (i !== index) return v
+          const nextActive = !v.isActive
+          return {
+            ...v,
+            isActive: nextActive,
+            channelVisibility: {
+              ...(v.channelVisibility || { ecomm: 'active', wholesale: 'draft' }),
+              ecomm: nextActive ? 'active' : 'draft',
+            },
+          }
+        }),
+      }))
+      return
+    }
+
+    const variant = formData.variants[index]
+    if (!variant) return
+    const barcode = variant.productCode ?? variant.ProductCode
+    const newActiveState = !variant.isActive
+    const newEcommVisibility = newActiveState ? 'active' : 'draft'
+    const prevVariants = formData.variants
+
     setFormData((p) => ({
       ...p,
-      variants: p.variants.map((v, i) => {
-        if (i !== index) return v
-        const nextActive = !v.isActive
-        return {
-          ...v,
-          isActive: nextActive,
-          channelVisibility: {
-            ...(v.channelVisibility || { ecomm: 'active', wholesale: 'draft' }),
-            ecomm: nextActive ? 'active' : 'draft',
-          },
-        }
-      }),
+      variants: p.variants.map((v, i) =>
+        i === index
+          ? {
+              ...v,
+              isActive: newActiveState,
+              channelVisibility: { ...v.channelVisibility, ecomm: newEcommVisibility },
+            }
+          : v
+      ),
     }))
+
+    try {
+      const result = await updateAdminProductVariant({
+        slug: product.slug,
+        barcode,
+        isActive: newActiveState,
+        channelVisibility: { ecomm: newEcommVisibility },
+      })
+      applyProductVariants(result?.product)
+    } catch (err) {
+      setFormData((p) => ({ ...p, variants: prevVariants }))
+      toast.error(err?.message || 'Toggle failed')
+    }
+  }
 
   const handleAddAttribute = (attr) => {
     if (isEdit) {
@@ -272,7 +434,7 @@ export function AdminProductModal({
   const subtitle = isEdit
     ? (product?.name ? `Editing “${product.name}”` : undefined)
     : 'Top fields = main variant (variants[0]) · "Add Variant" = extra variants'
-  const busy = saving || loadingProduct
+  const busy = saving || loadingProduct || variantSaving
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -383,12 +545,10 @@ export function AdminProductModal({
               setVariantForm={setVariantForm}
               editingVariantIndex={editingVariantIndex}
               onSave={handleVariantSave}
-              onClose={() => {
-                setShowVariantModal(false)
-                setVariantForm(defaultVariant)
-                setEditingVariantIndex(null)
-              }}
+              onClose={closeVariantModal}
               getDiscountPercentage={getDiscountPercentage}
+              isSaving={variantSaving}
+              saveError={variantSaveError}
             />
           ) : null}
         </Dialog.Content>

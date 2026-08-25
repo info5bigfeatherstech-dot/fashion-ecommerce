@@ -180,7 +180,10 @@ export async function archiveAdminProduct(slug) {
 
 export async function restoreAdminProduct(slug) {
   const payload = await adminPatch(API_ENDPOINTS.admin.productRestore(slug))
-  return unwrapAdmin(payload)
+  const unwrapped = unwrapAdmin(payload)
+  // Prefer explicit product from restore response so the UI can re-insert it.
+  const product = unwrapped?.product || payload?.product || null
+  return product ? { ...(typeof unwrapped === 'object' ? unwrapped : {}), product } : unwrapped
 }
 
 export async function hardDeleteAdminProduct(slug) {
@@ -449,4 +452,170 @@ export function buildCreateProductFormData(productData) {
   })
 
   return fd
+}
+
+/** POST /admin/products/:slug/variants — add an extra variant on an existing product. */
+export async function addAdminProductVariant(slug, variantData) {
+  const rawCode = variantData.ProductCode ?? variantData.productCode
+  if (!rawCode && rawCode !== 0) throw new Error('ProductCode is required to add a variant')
+  const upper = String(rawCode).trim().toUpperCase()
+  const m = upper.match(/^([A-Z0-9]+)-(\d+)$/)
+  const seq = m ? Number(m[2]) : NaN
+  if (!m || !Number.isInteger(seq) || seq < 1) {
+    throw new Error('ProductCode must be BASE-N (e.g., 3897-1 or 3897-01)')
+  }
+  const canonicalProductCode = `${m[1]}-${seq}`
+
+  const fd = new FormData()
+  fd.append('productCode', canonicalProductCode)
+  fd.append('price', JSON.stringify(buildPriceObj(variantData.price, 'Variant base price')))
+
+  const cleanAttrs = Array.isArray(variantData.attributes)
+    ? variantData.attributes.filter((a) => a.key && a.value).map((a) => ({ key: a.key, value: a.value }))
+    : []
+  fd.append('attributes', JSON.stringify(cleanAttrs))
+  fd.append('inventory', JSON.stringify(buildInventoryObj(variantData.inventory || {})))
+  fd.append('isActive', variantData.isActive !== false ? 'true' : 'false')
+  fd.append('wholesale', variantData.wholesale ? 'true' : 'false')
+  if (variantData.minimumOrderQuantity) {
+    fd.append('minimumOrderQuantity', String(variantData.minimumOrderQuantity))
+  }
+  if (variantData.channelVisibility) {
+    fd.append('channelVisibility', JSON.stringify(variantData.channelVisibility))
+  }
+
+  const catalogPayload = buildVariantCatalogApiPayload({
+    title: variantData.title,
+    description: variantData.description,
+    shipping: variantData.shipping,
+  })
+  if (catalogPayload.title) fd.append('title', catalogPayload.title)
+  if (catalogPayload.description) fd.append('description', catalogPayload.description)
+  if (catalogPayload.shipping) fd.append('shipping', JSON.stringify(catalogPayload.shipping))
+
+  if (variantData.images?.length) {
+    variantData.images.forEach((img) => {
+      if (img?.file instanceof File) fd.append('variantImages', img.file)
+    })
+  }
+
+  const axiosClient = (await import('@/api/axiosClient')).default
+  const response = await axiosClient.request({
+    method: 'POST',
+    url: API_ENDPOINTS.admin.productVariants(slug),
+    data: fd,
+    headers: { 'Content-Type': 'multipart/form-data' },
+    useAdminAuth: true,
+    timeout: 150000,
+  })
+  const payload = response.data
+  if (payload?.success === false) throw new Error(payload?.message || 'Add variant failed')
+  const unwrapped = unwrapAdmin(payload)
+  return { product: unwrapped?.product || payload?.product || unwrapped }
+}
+
+/**
+ * PUT /admin/products/:slug — update an existing variant by productCode.
+ * Mirrors fabFE updateVariantByBarcode (variant fields go on product PUT with productCode).
+ */
+export async function updateAdminProductVariant({
+  slug,
+  barcode,
+  price,
+  inventory,
+  attributes,
+  isActive,
+  images,
+  wholesale,
+  minimumOrderQuantity,
+  channelVisibility,
+  variantTitle,
+  variantDescription,
+  shipping: variantShipping,
+}) {
+  const fd = new FormData()
+  fd.append('productCode', String(barcode))
+
+  if (price !== undefined) {
+    fd.append('price', JSON.stringify(buildPriceObj(price, 'Variant base price')))
+  }
+  if (inventory !== undefined) {
+    fd.append('inventory', JSON.stringify(buildInventoryObj(inventory)))
+  }
+  if (attributes !== undefined) {
+    const cleanAttrs = Array.isArray(attributes)
+      ? attributes.filter((a) => a.key && a.value).map((a) => ({ key: a.key, value: a.value }))
+      : []
+    fd.append('attributes', JSON.stringify(cleanAttrs))
+  }
+  if (isActive !== undefined) fd.append('isActive', String(isActive))
+  if (wholesale !== undefined) fd.append('wholesale', String(wholesale))
+  if (minimumOrderQuantity !== undefined) {
+    fd.append('minimumOrderQuantity', String(minimumOrderQuantity))
+  }
+  if (channelVisibility !== undefined) {
+    fd.append('channelVisibility', JSON.stringify(channelVisibility))
+  }
+
+  const catalogPayload = buildVariantCatalogApiPayload({
+    title: variantTitle,
+    description: variantDescription,
+    shipping: variantShipping,
+  })
+  if (catalogPayload.title) fd.append('variantTitle', catalogPayload.title)
+  if (catalogPayload.description) fd.append('variantDescription', catalogPayload.description)
+  if (catalogPayload.shipping) fd.append('shipping', JSON.stringify(catalogPayload.shipping))
+
+  if (images !== undefined && images !== null) {
+    const existingImages = images.filter((img) => img.url && !(img.file instanceof File))
+    const newFiles = images.filter((img) => img.file instanceof File)
+
+    if (existingImages.length > 0) {
+      const sorted = [...existingImages].sort((a, b) => {
+        if (a.isMain && !b.isMain) return -1
+        if (!a.isMain && b.isMain) return 1
+        return 0
+      })
+      const existingPayload = sorted.map((img, i) => ({
+        url: img.url,
+        publicId: img.publicId || img.public_id || '',
+        altText: img.altText || '',
+        order: i,
+      }))
+      fd.append('existingImages', JSON.stringify(existingPayload))
+    }
+
+    newFiles.forEach((img) => {
+      fd.append('variantImages', img.file)
+    })
+  }
+
+  const axiosClient = (await import('@/api/axiosClient')).default
+  const response = await axiosClient.request({
+    method: 'PUT',
+    url: API_ENDPOINTS.admin.productBySlug(slug),
+    data: fd,
+    headers: { 'Content-Type': 'multipart/form-data' },
+    useAdminAuth: true,
+    timeout: 150000,
+  })
+  const payload = response.data
+  if (payload?.success === false) throw new Error(payload?.message || 'Variant update failed')
+  const unwrapped = unwrapAdmin(payload)
+  return { product: unwrapped?.product || payload?.product || unwrapped }
+}
+
+/** DELETE /admin/products/:slug/variants — remove a variant by productCode. */
+export async function deleteAdminProductVariant(slug, barcode) {
+  const axiosClient = (await import('@/api/axiosClient')).default
+  const response = await axiosClient.request({
+    method: 'DELETE',
+    url: API_ENDPOINTS.admin.productVariants(slug),
+    data: { productCode: barcode },
+    useAdminAuth: true,
+  })
+  const payload = response.data
+  if (payload?.success === false) throw new Error(payload?.message || 'Delete variant failed')
+  const unwrapped = unwrapAdmin(payload)
+  return { product: unwrapped?.product || payload?.product || unwrapped }
 }

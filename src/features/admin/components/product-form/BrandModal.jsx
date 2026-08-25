@@ -1,67 +1,99 @@
 import { useState } from 'react'
-import { X } from 'lucide-react'
+import { Tag, X } from 'lucide-react'
 
 export function BrandModal({ brands, setBrands, onSelect, onClose }) {
   const [newBrand, setNewBrand] = useState('')
   const [error, setError] = useState('')
 
+  const trimmed = newBrand.trim()
+  const canSubmit = Boolean(trimmed)
+
   const handleAdd = () => {
-    const name = newBrand.trim()
-    if (!name) {
+    if (!trimmed) {
       setError('Brand name cannot be empty')
       return
     }
-    if (brands.includes(name)) {
+    if (brands.includes(trimmed)) {
       setError('This brand already exists')
       return
     }
-    const updated = [...brands, name].sort()
+    const updated = [...brands, trimmed].sort()
     setBrands(updated)
-    onSelect(name)
+    onSelect(trimmed)
     onClose()
   }
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      onClose()
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleAdd()
+    }
+  }
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[70]">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold text-gray-900">Add New Brand</h3>
-          <button type="button" onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
-            <X size={20} className="text-gray-500" />
+    <div className="pf-quick-overlay" onClick={onClose} role="presentation">
+      <div
+        className="pf-quick-card"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={handleKeyDown}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pf-quick-brand-title"
+      >
+        <div className="pf-quick-card__head">
+          <div className="pf-quick-card__head-main">
+            <span className="pf-quick-card__icon" aria-hidden>
+              <Tag size={18} />
+            </span>
+            <div>
+              <h3 id="pf-quick-brand-title" className="pf-quick-card__title">
+                Add brand
+              </h3>
+              <p className="pf-quick-card__subtitle">Add a brand option for this product</p>
+            </div>
+          </div>
+          <button type="button" className="pf-quick-card__close" onClick={onClose} aria-label="Close">
+            <X size={18} />
           </button>
         </div>
-        {error ? (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-600 text-sm">{error}</p>
-          </div>
-        ) : null}
-        <label className="block text-sm font-medium text-gray-700 mb-2">Brand name</label>
-        <input
-          type="text"
-          value={newBrand}
-          onChange={(e) => {
-            setNewBrand(e.target.value)
-            setError('')
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault()
-              handleAdd()
-            }
-          }}
-          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-          placeholder="e.g., Apple, Samsung, Nike"
-          autoFocus
-        />
-        <div className="flex justify-end gap-3 mt-6">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+
+        <div className="pf-quick-card__body">
+          {error ? (
+            <div className="pf-quick-card__error" role="alert">
+              {error}
+            </div>
+          ) : null}
+
+          <label className="pf-quick-field" htmlFor="pf-quick-brand-name">
+            <span className="pf-quick-field__label">Brand name</span>
+            <input
+              id="pf-quick-brand-name"
+              type="text"
+              value={newBrand}
+              onChange={(e) => {
+                setNewBrand(e.target.value)
+                setError('')
+              }}
+              className="pf-quick-field__input"
+              placeholder="e.g. Apple, Samsung, Nike"
+              autoFocus
+            />
+          </label>
+        </div>
+
+        <div className="pf-quick-card__footer">
+          <button type="button" className="pf-quick-btn pf-quick-btn--ghost" onClick={onClose}>
             Cancel
           </button>
           <button
             type="button"
+            className="pf-quick-btn pf-quick-btn--primary"
             onClick={handleAdd}
-            disabled={!newBrand.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            disabled={!canSubmit}
           >
             Add brand
           </button>

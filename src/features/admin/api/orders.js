@@ -284,6 +284,22 @@ export async function getAdminAddressIntelligence(orderId, { signal, refresh = f
   return unwrapAdmin(payload) || payload
 }
 
+export async function previewAdminPendingAddressEdit(orderId, { addressPatch, alsoUpdateSavedAddress = false } = {}) {
+  const payload = await adminPost(API_ENDPOINTS.admin.orderEditPendingAddressPreview(orderId), {
+    addressPatch,
+    alsoUpdateSavedAddress: Boolean(alsoUpdateSavedAddress),
+  })
+  return unwrapAdmin(payload) || payload
+}
+
+export async function applyAdminPendingAddressEdit(orderId, { addressPatch, alsoUpdateSavedAddress = false } = {}) {
+  const payload = await adminPost(API_ENDPOINTS.admin.orderEditPendingAddress(orderId), {
+    addressPatch,
+    alsoUpdateSavedAddress: Boolean(alsoUpdateSavedAddress),
+  })
+  return unwrapAdmin(payload) || payload
+}
+
 export async function getAdminPickupCalendar({ signal, daysAhead = 45 } = {}) {
   const payload = await adminGet(API_ENDPOINTS.admin.pickupCalendar, {
     signal,
