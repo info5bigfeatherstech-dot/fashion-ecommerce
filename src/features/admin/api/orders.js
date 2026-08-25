@@ -46,10 +46,17 @@ function toApiBucket(bucket) {
   return ORDER_TAB_LABEL_TO_BUCKET[bucket] ?? bucket
 }
 
-export async function getAdminOrdersSummary({ signal, rangePreset = 'all' } = {}) {
+export async function getAdminOrdersSummary({ signal, rangePreset = 'all', from, to } = {}) {
+  const params = {}
+  if (from && to) {
+    params.from = from
+    params.to = to
+  } else if (rangePreset) {
+    params.rangePreset = rangePreset
+  }
   const payload = await adminGet(API_ENDPOINTS.admin.ordersSummary, {
     signal,
-    params: { rangePreset },
+    params,
   })
   return unwrapAdmin(payload)
 }
@@ -62,11 +69,20 @@ export async function getAdminOrdersList({
   search = '',
   sortBy = 'createdAt',
   sortOrder = 'desc',
+  rangePreset,
+  from,
+  to,
 } = {}) {
   const params = { page, limit, sortBy, sortOrder }
   const apiBucket = toApiBucket(bucket)
   if (apiBucket) params.bucket = apiBucket
   if (String(search || '').trim()) params.search = String(search).trim()
+  if (from && to) {
+    params.from = from
+    params.to = to
+  } else if (rangePreset) {
+    params.rangePreset = rangePreset
+  }
 
   const payload = await adminGet(API_ENDPOINTS.admin.orders, { signal, params })
   return payload

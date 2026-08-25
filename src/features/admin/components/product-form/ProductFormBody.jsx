@@ -7,7 +7,7 @@ const TAX_RATE_OPTIONS = [
   { value: 28, label: "28% (GST)" },
 ];
 
-const ProductFormBody = ({
+export default function ProductFormBody({
   formData,
   setFormData,
   categories,
@@ -27,7 +27,7 @@ const ProductFormBody = ({
   productSlug,
   actionLoading = false,
   actionError = null,
-}) => {
+}) {
   const isEditMode = !!productSlug;
   const [draggedIdx, setDraggedIdx] = useState(null);
   const [isDraggingZone, setIsDraggingZone] = useState(false);
@@ -313,86 +313,89 @@ const ProductFormBody = ({
           </div>
         </div>
 
-        {/* Main Variant Card - UPDATED with channel visibility toggles */}
-
         {isEditMode && primaryVariant && (
-          <div className="bg-white rounded-xl border-2 border-indigo-300 overflow-hidden">
-            <div className="p-4 border-b border-indigo-200 bg-indigo-50">
-              <h3 className="font-semibold text-gray-900">Main Variant</h3>
-              <p className="text-xs text-indigo-500 mt-0.5 font-mono">📦 ProductCode: {primaryVariant.productCode}</p>
+          <div className="pf-main">
+            <div className="pf-main__head">
+              <h3>Main Variant</h3>
+              <p>
+                <span className="pf-main__code-icon" aria-hidden="true">📦</span>
+                ProductCode: {primaryVariant.productCode}
+              </p>
             </div>
 
-            <div className="p-4 space-y-4">
-              {/* Ecom Visibility Toggle */}
-              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+            <div className="pf-main__body">
+              <div className="pf-main__panel pf-main__panel--ecom">
                 <div>
-                  <label className="text-sm font-semibold text-gray-700">Ecom Visibility</label>
-                  <p className="text-xs text-gray-500">Show on ecommerce storefront</p>
+                  <label>Ecom Visibility</label>
+                  <p>Show on ecommerce storefront</p>
                 </div>
                 <button
                   type="button"
+                  aria-label="Toggle ecom visibility"
                   onClick={() => {
-                    const newValue = primaryVariant.channelVisibility?.ecomm === "active" ? "draft" : "active";
-                    updateMainVariantChannelVisibility("ecomm", newValue);
+                    const newValue = primaryVariant.channelVisibility?.ecomm === 'active' ? 'draft' : 'active'
+                    updateMainVariantChannelVisibility('ecomm', newValue)
                   }}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${primaryVariant.channelVisibility?.ecomm === "active" ? "bg-green-500" : "bg-gray-300"}`}
+                  className={`pf-toggle pf-toggle--ecom${primaryVariant.channelVisibility?.ecomm === 'active' ? ' is-on' : ''}`}
                 >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${primaryVariant.channelVisibility?.ecomm === "active" ? "translate-x-6" : "translate-x-1"}`} />
+                  <span className="pf-toggle__knob" />
                 </button>
               </div>
 
-              {/* Wholesale Visibility Badge (read-only, calculated from price.wholesaleBase) */}
-              <div className={`flex items-center justify-between p-3 rounded-lg border ${(primaryVariant.wholesale && primaryVariant.price?.wholesaleBase > 0) ? "bg-purple-50 border-purple-200" : "bg-gray-50 border-gray-200"}`}>
+              <div className={`pf-main__panel${(primaryVariant.wholesale && primaryVariant.price?.wholesaleBase > 0) ? ' pf-main__panel--wholesale-on' : ' pf-main__panel--muted'}`}>
                 <div>
-                  <label className="text-sm font-semibold text-gray-700">Wholesale Visibility</label>
-                  <p className="text-xs text-gray-500">Auto-calculated from wholesale price</p>
+                  <label>Wholesale Visibility</label>
+                  <p>Auto-calculated from wholesale price</p>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${(primaryVariant.wholesale && primaryVariant.price?.wholesaleBase > 0) ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-500"}`}>
-                  {(primaryVariant.wholesale && primaryVariant.price?.wholesaleBase > 0) ? "Active" : "Ineligible"}
+                <span className={`pf-main__badge${(primaryVariant.wholesale && primaryVariant.price?.wholesaleBase > 0) ? ' is-active' : ''}`}>
+                  {(primaryVariant.wholesale && primaryVariant.price?.wholesaleBase > 0) ? 'Active' : 'Ineligible'}
                 </span>
               </div>
 
-              {/* Price inputs */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Price (₹)</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs text-gray-500 block mb-1">Base Price</label>
-                    <input type="number" value={primaryVariant.price?.base ?? ""} onChange={(e) => updateMainVariantPrice("base", e.target.value)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg" />
+              <div className="pf-main__section">
+                <label className="pf-main__section-title">Price (₹)</label>
+                <div className="pf-row">
+                  <div className="pf-field">
+                    <label className="pf-main__sublabel">Base Price</label>
+                    <input type="number" value={primaryVariant.price?.base ?? ''} onChange={(e) => updateMainVariantPrice('base', e.target.value)} className="pf-input" />
                   </div>
-                  <div>
-                    <label className="text-xs text-gray-500 block mb-1">Sale Price</label>
-                    <input type="number" value={primaryVariant.price?.sale ?? ""} onChange={(e) => updateMainVariantPrice("sale", e.target.value)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg" />
+                  <div className="pf-field">
+                    <label className="pf-main__sublabel">Sale Price</label>
+                    <input type="number" value={primaryVariant.price?.sale ?? ''} onChange={(e) => updateMainVariantPrice('sale', e.target.value)} className="pf-input" />
                   </div>
                 </div>
               </div>
 
-              {/* Wholesale Toggle */}
-              <div className="border-t border-gray-200 pt-4">
-                <div className="flex items-center justify-between mb-3">
-                  <label className="text-sm font-semibold text-gray-700">Wholesale Pricing</label>
-                  <button type="button" onClick={() => updateMainVariantField("wholesale", !primaryVariant.wholesale)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${primaryVariant.wholesale ? "bg-purple-500" : "bg-gray-300"}`}>
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${primaryVariant.wholesale ? "translate-x-6" : "translate-x-1"}`} />
+              <div className="pf-main__divider">
+                <div className="pf-main__row">
+                  <label>Wholesale Pricing</label>
+                  <button
+                    type="button"
+                    aria-label="Toggle wholesale pricing"
+                    onClick={() => updateMainVariantField('wholesale', !primaryVariant.wholesale)}
+                    className={`pf-toggle pf-toggle--wholesale${primaryVariant.wholesale ? ' is-on' : ''}`}
+                  >
+                    <span className="pf-toggle__knob" />
                   </button>
                 </div>
                 {primaryVariant.wholesale && (
-                  <div className="space-y-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Wholesale Base Price (₹)</label>
-                        <input type="number" value={primaryVariant.price?.wholesaleBase ?? ""} onChange={(e) => updateMainVariantPrice("wholesaleBase", e.target.value)} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg" />
+                  <div className="pf-main__wholesale-box">
+                    <div className="pf-row">
+                      <div className="pf-field">
+                        <label className="pf-main__sublabel">Wholesale Base Price (₹)</label>
+                        <input type="number" value={primaryVariant.price?.wholesaleBase ?? ''} onChange={(e) => updateMainVariantPrice('wholesaleBase', e.target.value)} className="pf-input" />
                       </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Wholesale Sale Price (₹)</label>
-                        <input type="number" value={primaryVariant.price?.wholesaleSale ?? ""} onChange={(e) => updateMainVariantPrice("wholesaleSale", e.target.value)} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg" />
+                      <div className="pf-field">
+                        <label className="pf-main__sublabel">Wholesale Sale Price (₹)</label>
+                        <input type="number" value={primaryVariant.price?.wholesaleSale ?? ''} onChange={(e) => updateMainVariantPrice('wholesaleSale', e.target.value)} className="pf-input" />
                       </div>
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Minimum Order Quantity (MOQ)</label>
-                      <input type="number" min="1" value={primaryVariant.minimumOrderQuantity ?? 1} onChange={(e) => updateMainVariantField("minimumOrderQuantity", parseInt(e.target.value) || 1)} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg" />
+                    <div className="pf-field">
+                      <label className="pf-main__sublabel">Minimum Order Quantity (MOQ)</label>
+                      <input type="number" min="1" value={primaryVariant.minimumOrderQuantity ?? 1} onChange={(e) => updateMainVariantField('minimumOrderQuantity', parseInt(e.target.value, 10) || 1)} className="pf-input" />
                     </div>
                     {isWholesaleMoqUnmet(primaryVariant) && (
-                      <p className="text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg px-2 py-1">
+                      <p className="pf-main__warn">
                         Wholesale warning: MOQ ({primaryVariant.minimumOrderQuantity ?? 1}) is greater than stock ({primaryVariant.inventory?.quantity ?? 0})
                       </p>
                     )}
@@ -400,26 +403,33 @@ const ProductFormBody = ({
                 )}
               </div>
 
-              {/* Inventory */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-semibold text-gray-700">Inventory</label>
-                  <button type="button" onClick={() => updateMainVariantInventory("trackInventory", !primaryVariant.inventory?.trackInventory)} className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors ${primaryVariant.inventory?.trackInventory !== false ? "bg-indigo-500" : "bg-gray-300"}`}>
-                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${primaryVariant.inventory?.trackInventory !== false ? "translate-x-5" : "translate-x-0.5"}`} />
+              <div className="pf-main__section">
+                <div className="pf-main__row">
+                  <label>Inventory</label>
+                  <button
+                    type="button"
+                    aria-label="Toggle inventory tracking"
+                    onClick={() => updateMainVariantInventory('trackInventory', !primaryVariant.inventory?.trackInventory)}
+                    className={`pf-toggle pf-toggle--inventory${primaryVariant.inventory?.trackInventory !== false ? ' is-on' : ''}`}
+                  >
+                    <span className="pf-toggle__knob" />
                   </button>
                 </div>
                 {primaryVariant.inventory?.trackInventory !== false && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <input type="number" value={primaryVariant.inventory?.quantity ?? 0} onChange={(e) => updateMainVariantInventory("quantity", parseInt(e.target.value) || 0)} className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg" placeholder="Quantity" />
-                    <input type="number" value={primaryVariant.inventory?.lowStockThreshold ?? 5} onChange={(e) => updateMainVariantInventory("lowStockThreshold", parseInt(e.target.value) || 5)} className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg" placeholder="Low stock alert" />
+                  <div className="pf-row">
+                    <input type="number" value={primaryVariant.inventory?.quantity ?? 0} onChange={(e) => updateMainVariantInventory('quantity', parseInt(e.target.value, 10) || 0)} className="pf-input" placeholder="Quantity" />
+                    <input type="number" value={primaryVariant.inventory?.lowStockThreshold ?? 5} onChange={(e) => updateMainVariantInventory('lowStockThreshold', parseInt(e.target.value, 10) || 5)} className="pf-input" placeholder="Low stock alert" />
                   </div>
                 )}
               </div>
-
             </div>
-            <p className="text-xs text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-lg p-2">
-              💡 Images for main variant are managed in the <strong>Product Gallery</strong> panel →. All changes here are saved when you click <strong>Save Changes</strong>.
-            </p>
+
+            <div className="pf-main__tip">
+              <span aria-hidden="true">💡</span>
+              <p>
+                Images for main variant are managed in the <strong>Product Gallery</strong> panel →. All changes here are saved when you click <strong>Save Changes</strong>.
+              </p>
+            </div>
           </div>
         )}
 
@@ -725,9 +735,6 @@ const ProductFormBody = ({
         </div>
       </aside>
     </div>
-  );
-};
-
-export { ProductFormBody }
-export default ProductFormBody
+  )
+}
 

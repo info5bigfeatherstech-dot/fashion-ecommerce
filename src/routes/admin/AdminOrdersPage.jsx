@@ -77,6 +77,35 @@ function tomorrowYmd() {
   return d.toISOString().slice(0, 10)
 }
 
+function toLocalYmd(date) {
+  const d = date instanceof Date ? date : new Date(date)
+  if (Number.isNaN(d.getTime())) return ''
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+function localDateStrToStartIso(dateStr) {
+  if (!dateStr || typeof dateStr !== 'string') return null
+  const parts = dateStr.split('-').map(Number)
+  if (parts.length !== 3 || parts.some((n) => !Number.isFinite(n))) return null
+  const [y, m, d] = parts
+  const dt = new Date(y, m - 1, d, 0, 0, 0, 0)
+  if (Number.isNaN(dt.getTime())) return null
+  return dt.toISOString()
+}
+
+function localDateStrToEndIso(dateStr) {
+  if (!dateStr || typeof dateStr !== 'string') return null
+  const parts = dateStr.split('-').map(Number)
+  if (parts.length !== 3 || parts.some((n) => !Number.isFinite(n))) return null
+  const [y, m, d] = parts
+  const dt = new Date(y, m - 1, d, 23, 59, 59, 999)
+  if (Number.isNaN(dt.getTime())) return null
+  return dt.toISOString()
+}
+
 export default function AdminOrdersPage() {
   const [bucket, setBucket] = useState('Pending')
   const [page, setPage] = useState(1)
@@ -89,12 +118,34 @@ export default function AdminOrdersPage() {
   const [showPickupPanel, setShowPickupPanel] = useState(false)
   const [bulkBusy, setBulkBusy] = useState(false)
   const [viewMode, setViewMode] = useState('list') // 'list' or 'detail'
+  const [datePreset, setDatePreset] = useState('last30')
+  const [customDateFrom, setCustomDateFrom] = useState('')
+  const [customDateTo, setCustomDateTo] = useState('')
+  const [draftDateFrom, setDraftDateFrom] = useState('')
+  const [draftDateTo, setDraftDateTo] = useState('')
+  const [customRangeError, setCustomRangeError] = useState(null)
+
+  const searchActive = Boolean(String(search || '').trim())
+
+  const dateQueryArgs = useMemo(() => {
+    if (searchActive) return { rangePreset: 'all' }
+    if (datePreset === 'custom') {
+      const fromIso = localDateStrToStartIso(customDateFrom)
+      const toIso = localDateStrToEndIso(customDateTo)
+      if (fromIso && toIso) return { from: fromIso, to: toIso }
+      return { rangePreset: 'last30' }
+    }
+    if (datePreset === 'last7') return { rangePreset: 'last7' }
+    if (datePreset === 'last30') return { rangePreset: 'last30' }
+    return { rangePreset: 'last30' }
+  }, [searchActive, datePreset, customDateFrom, customDateTo])
 
   const { data: summary, refetch: refetchSummary } = useAdminOrdersSummary()
   const { data: listData, isLoading, isError, error, refetch } = useAdminOrdersList({
     bucket,
     page,
     search,
+    ...dateQueryArgs,
   })
   const { data: orderDetail, isFetching: detailLoading, refetch: refetchDetail, isError: detailIsError, error: detailError } = useAdminOrderDetail(selectedOrderId, {
     enabled: Boolean(selectedOrderId),
@@ -286,6 +337,102 @@ export default function AdminOrdersPage() {
     <div className="admin-page">
       <AdminPageHeader eyebrow="Operations" title="Orders">
         <div className="admin-toolbar" style={{ marginBottom: 0 }}>
+          <div className="admin-date-range">
+            <select
+              className="admin-date-range__select"
+              value={datePreset}
+              disabled={searchActive}
+              title={
+                searchActive
+                  ? 'Date range paused while searching — clear search to filter by date'
+                  : undefined
+              }
+              onChange={(e) => {
+                const v = e.target.value
+                setCustomRangeError(null)
+                setPage(1)
+                if (v === 'custom') {
+                  const toD = new Date()
+                  const fromD = new Date(toD.getTime() - 6 * 24 * 60 * 60 * 1000)
+                  const toStr = toLocalYmd(toD)
+                  const fromStr = toLocalYmd(fromD)
+                  setDraftDateFrom(fromStr)
+                  setDraftDateTo(toStr)
+                  setCustomDateFrom(fromStr)
+                  setCustomDateTo(toStr)
+                  setDatePreset('custom')
+                } else {
+                  setDatePreset(v)
+                  setCustomDateFrom('')
+                  setCustomDateTo('')
+                  setDraftDateFrom('')
+                  setDraftDateTo('')
+                }
+              }}
+            >
+              <option value="last7">Last 7 days</option>
+              <option value="last30">Last 30 days</option>
+              <option value="custom">Custom</option>
+            </select>
+            {datePreset === 'custom' && !searchActive && (
+              <div className="admin-date-range__custom">
+                <label className="admin-date-range__label">
+                  From
+                  <input
+                    type="date"
+                    className="admin-date-range__input"
+                    value={draftDateFrom}
+                    onChange={(e) => setDraftDateFrom(e.target.value)}
+                  />
+                </label>
+                <label className="admin-date-range__label">
+                  To
+                  <input
+                    type="date"
+                    className="admin-date-range__input"
+                    value={draftDateTo}
+                    onChange={(e) => setDraftDateTo(e.target.value)}
+                  />
+                </label>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setCustomRangeError(null)
+                    if (!draftDateFrom || !draftDateTo) {
+                      setCustomRangeError('Select both start and end dates.')
+                      return
+                    }
+                    if (draftDateFrom > draftDateTo) {
+                      setCustomRangeError('Start date must be on or before end date.')
+                      return
+                    }
+                    const start = new Date(draftDateFrom)
+                    const end = new Date(draftDateTo)
+                    const maxMs = 366 * 24 * 60 * 60 * 1000
+                    if (end - start > maxMs) {
+                      setCustomRangeError('Range cannot exceed 366 days.')
+                      return
+                    }
+                    setCustomDateFrom(draftDateFrom)
+                    setCustomDateTo(draftDateTo)
+                    setPage(1)
+                  }}
+                >
+                  Apply
+                </Button>
+              </div>
+            )}
+            {customRangeError && (
+              <p className="admin-date-range__error">{customRangeError}</p>
+            )}
+            {searchActive && (
+              <p className="admin-date-range__hint">
+                Searching all dates — clear search to use the date filter.
+              </p>
+            )}
+          </div>
           <Button variant="secondary" size="sm" onClick={handleDownloadReport}>
             <Download size={14} /> Order report
           </Button>
@@ -295,7 +442,7 @@ export default function AdminOrdersPage() {
             disabled={syncStatuses.isPending}
             onClick={async () => {
               try {
-                await syncStatuses.mutateAsync({})
+                await syncStatuses.mutateAsync(dateQueryArgs)
                 toast.success('Statuses synced')
                 refreshList()
               } catch (err) {

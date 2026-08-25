@@ -91,6 +91,12 @@ export async function createAdminProduct(formData) {
   return unwrapAdmin(response.data)
 }
 
+export async function getAdminProductBySlug(slug, { signal } = {}) {
+  const payload = await adminGet(API_ENDPOINTS.admin.productBySlug(slug), { signal })
+  const unwrapped = unwrapAdmin(payload)
+  return unwrapped?.product || unwrapped?.data || unwrapped
+}
+
 export async function updateAdminProduct(slug, formData) {
   const axiosClient = (await import('@/api/axiosClient')).default
   const response = await axiosClient.request({
@@ -101,6 +107,70 @@ export async function updateAdminProduct(slug, formData) {
     useAdminAuth: true,
   })
   return unwrapAdmin(response.data)
+}
+
+/** Product-level update FormData (edit mode) — mirrors fabFE updateProduct. */
+export function buildUpdateProductFormData(pd) {
+  const fd = new FormData()
+  if (pd.name) fd.append('name', pd.name)
+  if (pd.title) fd.append('title', pd.title)
+  if (pd.description) fd.append('description', pd.description)
+  if (pd.category) fd.append('category', pd.category)
+  if (pd.brand) fd.append('brand', pd.brand)
+  if (pd.isFeatured !== undefined) fd.append('isFeatured', String(Boolean(pd.isFeatured)))
+  if (pd.status) fd.append('status', pd.status)
+  if (pd.hsnCode) fd.append('hsnCode', pd.hsnCode)
+  if (pd.taxRate !== undefined && pd.taxRate !== '') fd.append('gstRate', String(pd.taxRate))
+  if (pd.isFragile !== undefined) fd.append('isFragile', String(Boolean(pd.isFragile)))
+
+  fd.append('shipping', JSON.stringify({
+    ...(pd.shipping || {}),
+    weight: pd.shipping?.weight || 0,
+    dimensions: pd.shipping?.dimensions || { length: 0, width: 0, height: 0 },
+  }))
+  fd.append('soldInfo', JSON.stringify(pd.soldInfo || { enabled: false, count: 0 }))
+  fd.append('fomo', JSON.stringify(pd.fomo || { enabled: false }))
+  fd.append('attributes', JSON.stringify(pd.attributes || []))
+
+  const main = pd.variants?.[0]
+  if (main) {
+    const base = Number(main.price?.base)
+    if (Number.isFinite(base) && base > 0) {
+      const saleRaw = main.price?.sale !== '' && main.price?.sale != null
+        ? Number(main.price.sale)
+        : null
+      const price = { base, sale: Number.isFinite(saleRaw) ? saleRaw : null }
+      if (main.wholesale) {
+        price.wholesaleBase = Number(main.price?.wholesaleBase) || 0
+        price.wholesaleSale = main.price?.wholesaleSale !== '' && main.price?.wholesaleSale != null
+          ? Number(main.price.wholesaleSale)
+          : null
+      }
+      const wholesaleEligible = Boolean(main.wholesale && price.wholesaleBase > 0)
+      const primaryVariant = {
+        productCode: String(main.productCode || main.ProductCode || '').trim().toUpperCase(),
+        attributes: (main.attributes || []).filter((a) => a.key && a.value),
+        price,
+        inventory: {
+          quantity: Number(main.inventory?.quantity) || 0,
+          lowStockThreshold: Number(main.inventory?.lowStockThreshold) || 5,
+          trackInventory: main.inventory?.trackInventory !== false,
+        },
+        isActive: main.isActive !== false,
+        wholesale: Boolean(main.wholesale),
+        minimumOrderQuantity: main.wholesale
+          ? (parseInt(main.minimumOrderQuantity, 10) || 1)
+          : 1,
+        channelVisibility: {
+          ecomm: main.channelVisibility?.ecomm || 'active',
+          wholesale: wholesaleEligible ? 'active' : 'draft',
+        },
+      }
+      fd.append('variants', JSON.stringify([primaryVariant]))
+    }
+  }
+
+  return fd
 }
 
 export async function archiveAdminProduct(slug) {

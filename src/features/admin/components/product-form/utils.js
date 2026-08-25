@@ -81,6 +81,113 @@ export function emptyProductForm() {
   }
 }
 
+/** Normalize API variants into the edit-form shape used by ProductFormBody. */
+export function normaliseVariantsForEdit(variants = []) {
+  return variants.map((v, vIdx) => ({
+    ...v,
+    productCode: v.productCode ?? v.ProductCode ?? '',
+    ProductCode: v.ProductCode ?? v.productCode ?? '',
+    price: {
+      base: v.price?.base ?? '',
+      sale: v.price?.sale ?? '',
+      wholesaleBase: v.price?.wholesaleBase ?? '',
+      wholesaleSale: v.price?.wholesaleSale ?? '',
+    },
+    inventory: {
+      quantity: v.inventory?.quantity ?? 0,
+      lowStockThreshold: v.inventory?.lowStockThreshold ?? 5,
+      trackInventory: v.inventory?.trackInventory !== false,
+    },
+    attributes: (v.attributes || []).map((a, i) => ({
+      ...a,
+      id: a.id ?? a._id ?? `var-${vIdx}-attr-${i}`,
+    })),
+    images: (v.images || [])
+      .slice()
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map((img, iIdx) => ({
+        ...img,
+        id: img._id || img.publicId || img.url || `var-${vIdx}-img-${iIdx}`,
+        isMain: iIdx === 0 ? true : Boolean(img.isMain),
+      })),
+    isActive:
+      v.channelVisibility?.ecomm != null
+        ? v.channelVisibility.ecomm === 'active'
+        : v.isActive !== false,
+    wholesale: Boolean(v.wholesale),
+    minimumOrderQuantity: v.minimumOrderQuantity || 1,
+    channelVisibility: v.channelVisibility || { ecomm: 'active', wholesale: 'draft' },
+    title: v.title || '',
+    description: v.description || '',
+    shipping: v.shipping || undefined,
+  }))
+}
+
+/** Map a product API object into ProductFormBody edit state. */
+export function productToEditForm(product) {
+  if (!product) return emptyProductForm()
+  const variants = normaliseVariantsForEdit(product.variants || [])
+  const main = variants[0] || {}
+  const categoryId =
+    typeof product.category === 'object' && product.category !== null
+      ? (product.category._id || product.category.id || '')
+      : (product.category || '')
+
+  return {
+    ...emptyProductForm(),
+    name: product.name || '',
+    title: product.title || '',
+    description: product.description || '',
+    brand: product.brand || 'Generic',
+    category: categoryId,
+    hsnCode: product.hsnCode || '',
+    taxRate: product.gstRate ?? product.taxRate ?? '',
+    isFragile: Boolean(product.isFragile),
+    shipping: {
+      weight: product.shipping?.weight ?? '',
+      dimensions: {
+        length: product.shipping?.dimensions?.length ?? '',
+        width: product.shipping?.dimensions?.width ?? '',
+        height: product.shipping?.dimensions?.height ?? '',
+      },
+    },
+    soldInfo: product.soldInfo || { enabled: false, count: 0 },
+    fomo: product.fomo || {
+      enabled: false,
+      type: 'viewing_now',
+      viewingNow: 0,
+      productLeft: 0,
+      customMessage: '',
+    },
+    images: (product.images || []).map((img, i) => ({
+      ...img,
+      id: img._id || img.publicId || img.url || `main-img-${i}`,
+      isMain: img.isMain || i === 0,
+    })),
+    attributes: (product.attributes || main.attributes || []).map((a, i) => ({
+      ...a,
+      id: a.id ?? a._id ?? `attr-${i}`,
+    })),
+    variants,
+    isFeatured: Boolean(product.isFeatured),
+    status: product.status || 'draft',
+    ProductCode: String(main.productCode || main.ProductCode || ''),
+    price: {
+      base: main.price?.base ?? '',
+      sale: main.price?.sale ?? '',
+    },
+    inventory: {
+      quantity: main.inventory?.quantity ?? 0,
+      lowStockThreshold: main.inventory?.lowStockThreshold ?? 5,
+      trackInventory: main.inventory?.trackInventory !== false,
+    },
+    wholesale: Boolean(main.wholesale),
+    wholesaleBase: main.price?.wholesaleBase ?? '',
+    wholesaleSale: main.price?.wholesaleSale ?? '',
+    minimumOrderQuantity: main.minimumOrderQuantity || 1,
+  }
+}
+
 export function validateCreateProductForm(formData) {
   if (!formData.name?.trim()) throw new Error('Product name is required')
   if (!formData.title?.trim()) throw new Error('Product title is required')

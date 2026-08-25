@@ -156,11 +156,17 @@ export function useAdminDashboardSummary({ enabled = true } = {}) {
   })
 }
 
-export function useAdminOrdersSummary({ enabled = true } = {}) {
+export function useAdminOrdersSummary({
+  rangePreset = 'all',
+  from,
+  to,
+  enabled = true,
+} = {}) {
   const queryEnabled = useAdminQueryEnabled(enabled)
+  const rangeKey = from && to ? `custom:${from}:${to}` : rangePreset
   return useQuery({
-    queryKey: adminKeys.ordersSummary(),
-    queryFn: ({ signal }) => getAdminOrdersSummary({ signal }),
+    queryKey: adminKeys.ordersSummary(rangeKey),
+    queryFn: ({ signal }) => getAdminOrdersSummary({ signal, rangePreset, from, to }),
     enabled: queryEnabled,
     staleTime: 1000 * 60,
   })
@@ -170,12 +176,24 @@ export function useAdminOrdersList({
   bucket = 'Pending',
   page = 1,
   search = '',
+  rangePreset = 'last30',
+  from,
+  to,
   enabled = true,
 } = {}) {
   const queryEnabled = useAdminQueryEnabled(enabled)
+  const rangeKey = from && to ? `custom:${from}:${to}` : rangePreset
   return useQuery({
-    queryKey: adminKeys.ordersList(bucket, page, search),
-    queryFn: ({ signal }) => getAdminOrdersList({ signal, bucket, page, search }),
+    queryKey: adminKeys.ordersList(bucket, page, search, rangeKey),
+    queryFn: ({ signal }) => getAdminOrdersList({
+      signal,
+      bucket,
+      page,
+      search,
+      rangePreset,
+      from,
+      to,
+    }),
     enabled: queryEnabled,
     staleTime: 1000 * 20,
   })
@@ -466,7 +484,7 @@ export function useAutoSyncOrderStatuses() {
   return useMutation({
     mutationFn: autoSyncOrderStatuses,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: adminKeys.ordersSummary() })
+      queryClient.invalidateQueries({ queryKey: [...adminKeys.all, 'orders-summary'] })
       queryClient.invalidateQueries({ queryKey: ['admin', 'orders-list'] })
     },
   })

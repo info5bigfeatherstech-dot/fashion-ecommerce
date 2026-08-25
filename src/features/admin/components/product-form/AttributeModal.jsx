@@ -1,30 +1,51 @@
 import { useState } from 'react'
 
-const AttributeModal = ({ onAdd, onClose, initialValue = null }) => {
-  const isEditMode = !!initialValue;
+export default function AttributeModal({ onAdd, onClose, initialValue = null }) {
+  const isEditMode = !!initialValue
   const [newAttribute, setNewAttribute] = useState({
     key: initialValue?.key || '',
     value: initialValue?.value || '',
-  });
+  })
+
+  const canSubmit = Boolean(newAttribute.key.trim() && newAttribute.value.trim())
 
   const handleAdd = () => {
-    if (newAttribute.key && newAttribute.value) {
-      onAdd(isEditMode ? { ...newAttribute, id: initialValue.id } : { ...newAttribute, id: Date.now() });
-      setNewAttribute({ key: '', value: '' });
-      onClose();
+    if (!canSubmit) return
+    onAdd(
+      isEditMode
+        ? { ...newAttribute, key: newAttribute.key.trim(), value: newAttribute.value.trim(), id: initialValue.id }
+        : { key: newAttribute.key.trim(), value: newAttribute.value.trim(), id: Date.now() }
+    )
+    setNewAttribute({ key: '', value: '' })
+    onClose()
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleAdd()
     }
-  };
+    if (e.key === 'Escape') onClose()
+  }
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6">
-        {/* <h3 className="text-xl font-bold text-gray-900 mb-4">Add Attribute</h3> */}
-        <h3 className="text-xl font-bold text-gray-900 mb-4">{isEditMode ? 'Edit Attribute' : 'Add Attribute'}</h3>
-        <div className="space-y-4">
+    <div className="pf-attr-overlay" onClick={onClose} role="presentation">
+      <div
+        className="pf-attr-card"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={handleKeyDown}
+        role="dialog"
+        aria-modal="true"
+        aria-label={isEditMode ? 'Edit Attribute' : 'Add Attribute'}
+      >
+        <h3 className="pf-attr-card__title">{isEditMode ? 'Edit Attribute' : 'Add Attribute'}</h3>
+
+        <div className="pf-attr-card__fields">
           <input
             type="text"
             value={newAttribute.key}
             onChange={(e) => setNewAttribute({ ...newAttribute, key: e.target.value })}
-            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg"
+            className="pf-attr-input pf-attr-input--key"
             placeholder="Key (e.g., Material)"
             autoFocus
           />
@@ -32,27 +53,25 @@ const AttributeModal = ({ onAdd, onClose, initialValue = null }) => {
             type="text"
             value={newAttribute.value}
             onChange={(e) => setNewAttribute({ ...newAttribute, value: e.target.value })}
-            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg"
+            className="pf-attr-input pf-attr-input--value"
             placeholder="Value (e.g., Cotton)"
           />
         </div>
-        <div className="flex justify-end gap-3 mt-6">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-600 hover:text-gray-800"
-          >
+
+        <div className="pf-attr-card__actions">
+          <button type="button" className="pf-attr-btn pf-attr-btn--cancel" onClick={onClose}>
             Cancel
           </button>
           <button
+            type="button"
+            className="pf-attr-btn pf-attr-btn--add"
             onClick={handleAdd}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            disabled={!canSubmit}
           >
             {isEditMode ? 'Save' : 'Add'}
           </button>
         </div>
       </div>
     </div>
-  );
-};
-
-export default AttributeModal;
+  )
+}

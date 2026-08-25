@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { AlertTriangle, CheckCircle2, Download, Package, Pencil, Plus, Star, Trash2 } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { AlertTriangle, CheckCircle2, ChevronDown, Download, Eye, Package, Pencil, Plus, Star, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   AdminEmpty,
@@ -26,6 +26,7 @@ import {
 import { formatPrice } from '@/lib/utils'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
+import { Modal } from '@/components/ui/Modal'
 
 function toNumber(value, fallback = 0) {
   const n = Number(value)
@@ -132,6 +133,51 @@ function extractCount(data) {
   return null
 }
 
+function SelectDropdown({ value, onChange, options, placeholder, className = '' }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [])
+  const selected = options.find((opt) => opt.value === value)
+  return (
+    <div ref={ref} className={`custom-select ${className}${open ? ' is-open' : ''}`}>
+      <button
+        type="button"
+        className="custom-select__trigger"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span className="custom-select__value">{selected?.label ?? placeholder ?? value}</span>
+        <ChevronDown size={16} className="custom-select__caret" aria-hidden />
+      </button>
+      {open && (
+        <ul className="custom-select__menu" role="listbox">
+          {options.map((opt) => (
+            <li
+              key={opt.value}
+              role="option"
+              aria-selected={opt.value === value}
+              className={`custom-select__item${opt.value === value ? ' is-selected' : ''}`}
+              onClick={() => {
+                onChange(opt.value)
+                setOpen(false)
+              }}
+            >
+              {opt.label}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 function ProductThumb({ src, alt }) {
   const [broken, setBroken] = useState(false)
   if (!src || broken) {
@@ -146,6 +192,272 @@ function ProductThumb({ src, alt }) {
   )
 }
 
+function fmtDate(d) {
+  if (!d) return '—'
+  const date = new Date(d)
+  if (Number.isNaN(date.getTime())) return String(d)
+  return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+function ProductViewModal({ open, onOpenChange, product }) {
+  if (!product) return null
+  const v0 = product?.variants?.[0] || {}
+  const pricing = getProductPricing(product)
+  const ecomStock = getEcomStock(product)
+  const low = isLowStockProduct(product)
+
+  const categoryName = getCategoryName(product.category)
+  const brand = product.brand || 'Generic'
+  const description = product.description || product.shortDescription || '—'
+  const created = product.createdAt || product.createdAt || product.date_created || null
+  const updated = product.updatedAt || product.modifiedAt || product.date_modified || null
+
+  const variants = Array.isArray(product.variants) ? product.variants : [v0]
+
+  const basePrices = variants.map((v) => toNumber(v?.price?.base ?? v?.basePrice ?? v?.price, 0)).filter((n) => n > 0)
+  const minBase = basePrices.length ? Math.min(...basePrices) : pricing.basePrice
+  const maxBase = basePrices.length ? Math.max(...basePrices) : pricing.basePrice
+  const priceRange = minBase === maxBase ? `${formatPrice(minBase)}—` : `${formatPrice(minBase)} – ${formatPrice(maxBase)}`
+
+  const totalStock = variants.reduce((sum, v) => sum + toNumber(v?.inventory?.quantity ?? v?.availability?.quantity ?? v?.stock ?? 0, 0), 0)
+
+  const shipping = product.shipping || {}
+  const weight = shipping.weight ?? product.weight ?? v0.shipping?.weight ?? '—'
+  const length = shipping.length ?? product.length ?? v0.shipping?.length ?? '—'
+  const width = shipping.width ?? product.width ?? v0.shipping?.width ?? '—'
+  const height = shipping.height ?? product.height ?? v0.shipping?.height ?? '—'
+
+  const ecomStatus = getEcomStatus(product)
+  const slug = product.slug || product.ProductCode || ''
+
+  return (
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      className="modal-content--view-product"
+      footer={
+        <div className="product-view__footer">
+          <Button type="button" variant="primary" size="sm" onClick={() => onOpenChange(false)}>
+            Close
+          </Button>
+        </div>
+      }
+    >
+      <div className="product-view">
+        <div className="product-view__header">
+          <div className="product-view__identity">
+            <div className="product-view__avatar" aria-hidden>
+              <Package size={22} />
+            </div>
+            <div>
+              <h2 className="product-view__name">{product.name || product.title || 'Untitled'}</h2>
+              <p className="product-view__slug">{slug || 'No slug'}</p>
+              <div className="product-view__badges">
+                <span className={`admin-badge${ecomStatus.tone === 'success' ? ' admin-badge--success' : ''}`}>
+                  {ecomStatus.label}
+                </span>
+                {slug && (
+                  <span className="admin-badge admin-badge--ghost">{slug.length > 20 ? slug.slice(0, 20) + '…' : slug}</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="product-view__grid">
+          <div className="product-view__card product-view__card--basic">
+            <h3 className="product-view__section-title">BASIC INFORMATION</h3>
+            <div className="product-view__info-grid">
+              <div className="product-view__info-item">
+                <span className="product-view__info-label">Category</span>
+                <span className="product-view__info-value">{categoryName}</span>
+              </div>
+              <div className="product-view__info-item">
+                <span className="product-view__info-label">Brand</span>
+                <span className="product-view__info-value">{brand}</span>
+              </div>
+              <div className="product-view__info-item">
+                <span className="product-view__info-label">Created</span>
+                <span className="product-view__info-value">{fmtDate(created)}</span>
+              </div>
+              <div className="product-view__info-item">
+                <span className="product-view__info-label">Updated</span>
+                <span className="product-view__info-value">{fmtDate(updated)}</span>
+              </div>
+              <div className="product-view__info-item product-view__info-item--full">
+                <span className="product-view__info-label">Description</span>
+                <span className="product-view__info-value product-view__info-value--multiline">{description}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="product-view__sidebar">
+            <div className="product-view__stat product-view__stat--price">
+              <span className="product-view__stat-label">PRICE RANGE</span>
+              <span className="product-view__stat-value">{priceRange}</span>
+            </div>
+            <div className={`product-view__stat${low ? ' product-view__stat--low' : ''}`}>
+              <span className="product-view__stat-label">TOTAL STOCK</span>
+              <span className="product-view__stat-value">
+                {totalStock || 0}
+                {low && (
+                  <span className="admin-badge admin-badge--error" style={{ marginLeft: 8 }}>
+                    Low
+                  </span>
+                )}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="product-view__card product-view__card--variants">
+          <h3 className="product-view__section-title product-view__section-title--indigo">
+            Product Variants ({variants.length})
+          </h3>
+          <div className="product-view__variants">
+            {variants.map((v, idx) => {
+              const vName = v.name || v.title || (variants.length === 1 ? 'Variant 1' : `Variant ${idx + 1}`)
+              const vBase = toNumber(v?.price?.base ?? v?.basePrice ?? v?.price, 0)
+              const vSaleRaw = v?.price?.sale ?? v?.finalPrice ?? v?.price?.current ?? v?.salePrice
+              const vSale = vSaleRaw != null && vSaleRaw !== '' ? toNumber(vSaleRaw, null) : null
+              const vHasSale = vSale != null && vSale > 0 && vSale < vBase
+              const vDiscount = vHasSale ? getDiscountPercentage(vBase, vSale) : 0
+              const vEcom = toNumber(v?.inventory?.quantity ?? v?.availability?.quantity ?? v?.stock ?? 0, 0)
+              const vInv = v?.inventory?.warehouseQuantity ?? v?.inventory?.liveQuantity ?? null
+              const vLow = toNumber(v?.inventory?.lowStockThreshold, 5)
+              const vTracking = v?.inventory?.tracked !== false ? 'Enabled' : 'Disabled'
+              const vStatus = String(v?.status || v?.availability || 'active').toLowerCase() === 'inactive' ? 'Inactive' : 'Active'
+              const vAttributes = v?.attributes || v?.options || {}
+              const attrEntries = Object.entries(vAttributes || {}).filter(([k, val]) => val != null && val !== '')
+              const sku = v?.sku || v?.productCode || `SKU-${(product.ProductCode || product.sku || '000000').slice(-6)}-${idx + 1}`
+
+              return (
+                <div key={idx} className="product-view__variant">
+                  <div className="product-view__variant-header">
+                    <div className="product-view__variant-tab">{vName}</div>
+                  </div>
+                  <div className="product-view__variant-body">
+                    <div className="product-view__variant-col">
+                      <span className="product-view__variant-col-label">Attributes</span>
+                      {attrEntries.length === 0 ? (
+                        <span className="product-view__variant-empty">—</span>
+                      ) : (
+                        <div className="product-view__variant-attrs">
+                          {attrEntries.map(([k, val]) => (
+                            <div key={k} className="product-view__variant-attr">
+                              <strong>{k}:</strong> {String(val)}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="product-view__variant-col">
+                      <span className="product-view__variant-col-label">Pricing</span>
+                      <div className="product-view__variant-price-row">
+                        <span>Base Price:</span>
+                        <strong>{formatPrice(vBase)}</strong>
+                      </div>
+                      <div className="product-view__variant-price-row">
+                        <span>Sale Price:</span>
+                        <strong style={{ color: vHasSale ? 'var(--color-success, #16a34a)' : 'inherit' }}>
+                          {vHasSale ? formatPrice(vSale) : '—'}
+                        </strong>
+                      </div>
+                      <div className="product-view__variant-price-row">
+                        <span>Discount:</span>
+                        <strong style={{ color: 'var(--color-success, #16a34a)' }}>
+                          {vDiscount > 0 ? `${vDiscount}% OFF` : '—'}
+                        </strong>
+                      </div>
+                    </div>
+                    <div className="product-view__variant-col">
+                      <span className="product-view__variant-col-label">Inventory</span>
+                      <div className="product-view__variant-price-row">
+                        <span>Ecom stock:</span>
+                        <strong style={{ color: vEcom < vLow ? 'var(--color-error, #dc2626)' : 'inherit' }}>
+                          {vEcom}
+                        </strong>
+                      </div>
+                      <div className="product-view__variant-price-row">
+                        <span>Inventory stock:</span>
+                        <strong>{vInv == null ? '—' : vInv}</strong>
+                      </div>
+                      <div className="product-view__variant-price-row">
+                        <span>Low Stock At:</span>
+                        <strong>{vLow}</strong>
+                      </div>
+                      <div className="product-view__variant-price-row">
+                        <span>Tracking:</span>
+                        <strong style={{ color: 'var(--color-success, #16a34a)' }}>{vTracking}</strong>
+                      </div>
+                      <div className="product-view__variant-price-row">
+                        <span>Status:</span>
+                        <strong style={{ color: vStatus === 'Active' ? 'var(--color-success, #16a34a)' : 'inherit' }}>
+                          {vStatus}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="product-view__variant-sku">
+                    SKU: <code className="product-view__sku">{sku}</code>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="product-view__bottom-grid">
+          <div className="product-view__card product-view__card--shipping">
+            <h3 className="product-view__section-title">SHIPPING</h3>
+            <div className="product-view__info-list">
+              <div className="product-view__info-row">
+                <span>Weight:</span>
+                <strong>{weight}{typeof weight === 'number' ? ' kg' : ''}</strong>
+              </div>
+              <div className="product-view__info-row">
+                <span>Length:</span>
+                <strong>{length}{typeof length === 'number' ? ' cm' : ''}</strong>
+              </div>
+              <div className="product-view__info-row">
+                <span>Width:</span>
+                <strong>{width}{typeof width === 'number' ? ' cm' : ''}</strong>
+              </div>
+              <div className="product-view__info-row">
+                <span>Height:</span>
+                <strong>{height}{typeof height === 'number' ? ' cm' : ''}</strong>
+              </div>
+            </div>
+          </div>
+          <div className="product-view__card product-view__card--marketing">
+            <h3 className="product-view__section-title">MARKETING</h3>
+            <div className="product-view__info-list">
+              <div className="product-view__info-row product-view__info-row--toggle">
+                <span>Featured Product</span>
+                <div className={`product-view__toggle${product.isFeatured ? ' is-on' : ''}`} aria-hidden>
+                  <div className="product-view__toggle-thumb" />
+                </div>
+              </div>
+              <div className="product-view__info-row product-view__info-row--toggle">
+                <span>Sold Info</span>
+                <div className={`product-view__toggle${product?.marketing?.soldInfo ? ' is-on' : ''}`} aria-hidden>
+                  <div className="product-view__toggle-thumb" />
+                </div>
+              </div>
+              <div className="product-view__info-row product-view__info-row--toggle">
+                <span>FOMO</span>
+                <div className={`product-view__toggle${product?.marketing?.fomo ? ' is-on' : ''}`} aria-hidden>
+                  <div className="product-view__toggle-thumb" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 export default function AdminProductsPage() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
@@ -156,6 +468,8 @@ export default function AdminProductsPage() {
   const [selectedSlugs, setSelectedSlugs] = useState(new Set())
   const [showProductModal, setShowProductModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
+  const [showViewModal, setShowViewModal] = useState(false)
+  const [viewingProduct, setViewingProduct] = useState(null)
   const [showBulkUpload, setShowBulkUpload] = useState(false)
   const [dateFilter, setDateFilter] = useState('all')
   const [startDate, setStartDate] = useState('')
@@ -302,14 +616,9 @@ export default function AdminProductsPage() {
       <div className="admin-metric-grid">
         {stats.map((stat) => {
           const Icon = stat.icon
-          return (
-            <button
-              key={stat.label}
-              type="button"
-              className={`admin-metric-card admin-metric-card--${stat.tone}${stat.active ? ' is-active' : ''}`}
-              onClick={stat.onClick}
-              disabled={!stat.onClick}
-            >
+          const className = `admin-metric-card admin-metric-card--${stat.tone}${stat.active ? ' is-active' : ''}`
+          const content = (
+            <>
               <div>
                 <p className="admin-metric-card__label">{stat.label}</p>
                 <p className="admin-metric-card__value">{stat.value ?? '—'}</p>
@@ -317,7 +626,28 @@ export default function AdminProductsPage() {
               <div className="admin-metric-card__icon" aria-hidden>
                 <Icon size={22} />
               </div>
-            </button>
+            </>
+          )
+          if (stat.onClick) {
+            return (
+              <button
+                key={stat.label}
+                type="button"
+                className={className}
+                onClick={stat.onClick}
+              >
+                {content}
+              </button>
+            )
+          }
+          return (
+            <div
+              key={stat.label}
+              className={className}
+              role="group"
+            >
+              {content}
+            </div>
           )
         })}
       </div>
@@ -347,34 +677,42 @@ export default function AdminProductsPage() {
               <Input value={searchInput} onChange={(e) => setSearchInput(e.target.value)} placeholder="Search products…" />
               <Button type="submit" variant="secondary" size="sm">Search</Button>
             </form>
-            <select className="input admin-filter-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option value="all">All Status (Ecom)</option>
-              <option value="active">Active</option>
-              <option value="draft">Inactive</option>
-              <option value="archived">Archived</option>
-            </select>
-            <select className="input admin-filter-select" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-              <option value="all">All Categories</option>
-              {categories.map((cat) => (
-                <option key={cat._id || cat.id} value={cat._id || cat.id}>{cat.name}</option>
-              ))}
-            </select>
+            <SelectDropdown
+              className="admin-filter-select"
+              value={statusFilter}
+              onChange={setStatusFilter}
+              options={[
+                { value: 'all', label: 'All Status (Ecom)' },
+                { value: 'active', label: 'Active' },
+                { value: 'draft', label: 'Inactive' },
+                { value: 'archived', label: 'Archived' },
+              ]}
+            />
+            <SelectDropdown
+              className="admin-filter-select"
+              value={categoryFilter}
+              onChange={setCategoryFilter}
+              options={[
+                { value: 'all', label: 'All Categories' },
+                ...categories.map((cat) => ({ value: cat._id || cat.id, label: cat.name })),
+              ]}
+            />
             <div className="admin-date-filter">
-              <select
-                className="admin-date-filter-select"
+              <SelectDropdown
                 value={dateFilter}
-                onChange={(e) => {
-                  setDateFilter(e.target.value)
+                onChange={(v) => {
+                  setDateFilter(v)
                   setPage(1)
                 }}
-              >
-                <option value="all">All dates</option>
-                <option value="today">Today</option>
-                <option value="yesterday">Yesterday</option>
-                <option value="last7days">Last 7 days</option>
-                <option value="last30days">Last 30 days</option>
-                <option value="custom">Custom range</option>
-              </select>
+                options={[
+                  { value: 'all', label: 'All dates' },
+                  { value: 'today', label: 'Today' },
+                  { value: 'yesterday', label: 'Yesterday' },
+                  { value: 'last7days', label: 'Last 7 days' },
+                  { value: 'last30days', label: 'Last 30 days' },
+                  { value: 'custom', label: 'Custom range' },
+                ]}
+              />
               {dateFilter === 'custom' && (
                 <div className="admin-date-range">
                   <Input
@@ -485,6 +823,9 @@ export default function AdminProductsPage() {
                       </td>
                       <td>
                         <div className="admin-row-actions">
+                          <Button variant="ghost" size="sm" onClick={() => { setViewingProduct(product); setShowViewModal(true) }} aria-label="View">
+                            <Eye size={14} />
+                          </Button>
                           <Button variant="ghost" size="sm" onClick={() => { setEditingProduct(product); setShowProductModal(true) }} aria-label="Edit">
                             <Pencil size={14} />
                           </Button>
@@ -510,6 +851,11 @@ export default function AdminProductsPage() {
         categories={categories}
         products={rawProducts}
         onSaved={() => listRefetch()}
+      />
+      <ProductViewModal
+        open={showViewModal}
+        onOpenChange={setShowViewModal}
+        product={viewingProduct}
       />
       <AdminBulkUploadModal
         open={showBulkUpload}
