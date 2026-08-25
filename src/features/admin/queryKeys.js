@@ -21,6 +21,7 @@ export const adminKeys = {
   productsArchived: (page) => [...adminKeys.all, 'products-archived', page],
   users: (page, search, role) => [...adminKeys.all, 'users', page, search || '', role || ''],
   userDetail: (userId) => [...adminKeys.all, 'user', String(userId || '')],
+  leadsPushSettings: () => [...adminKeys.all, 'leads-push-settings'],
   carts: (variant, page) => [...adminKeys.all, 'carts', variant, page],
   wishlists: (variant, page) => [...adminKeys.all, 'wishlists', variant, page],
   wishlistsPopular: () => [...adminKeys.all, 'wishlists-popular'],
@@ -38,5 +39,5 @@ export const adminKeys = {
   returnDetail: (orderId) => [...adminKeys.all, 'return', String(orderId || '')],
   rtoOrders: (page) => [...adminKeys.all, 'rto-orders', page],
   rtoAnalytics: () => [...adminKeys.all, 'rto-analytics'],
-  oosInquiries: (page, status, search) => [...adminKeys.all, 'oos', page, status, search || ''],
+  oosInquiries: (page, days, search) => [...adminKeys.all, 'oos', page, days, search || ''],
 }

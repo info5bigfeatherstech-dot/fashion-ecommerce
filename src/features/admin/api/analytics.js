@@ -75,3 +75,13 @@ export async function exportAdminUsers({ search = '', role = '' } = {}) {
   const today = new Date().toISOString().slice(0, 10)
   downloadBlob(response.data, `customers_export_${today}.xlsx`)
 }
+
+export async function getAdminLeadsPushSettings({ signal } = {}) {
+  const payload = await adminGet(API_ENDPOINTS.admin.leadsPushSettings, { signal })
+  return unwrapAdmin(payload)
+}
+
+export async function updateAdminLeadsPushSettings(body = {}) {
+  const payload = await adminPut(API_ENDPOINTS.admin.leadsPushSettings, body)
+  return unwrapAdmin(payload)
+}

@@ -122,6 +122,7 @@ export const API_ENDPOINTS = {
     users: '/admin/analytics/users',
     userById: (userId) => `/admin/analytics/users/${encodeURIComponent(String(userId))}`,
     usersExport: '/admin/analytics/users/export',
+    leadsPushSettings: '/admin/analytics/push-settings',
     productReviews: '/admin/product-reviews',
     seoOverview: '/admin/seo-analytics/overview',
     categories: '/categories/admin/categories',

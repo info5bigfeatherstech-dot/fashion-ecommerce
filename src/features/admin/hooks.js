@@ -68,6 +68,8 @@ import {
   getAdminUserDetail,
   getAdminUsers,
   exportAdminUsers,
+  getAdminLeadsPushSettings,
+  updateAdminLeadsPushSettings,
   getAdminWishlists,
   getAdminPopularWishlistProducts,
   hardDeleteAdminProduct,
@@ -616,13 +618,31 @@ export function useBulkUpdateAdminProductFlags() {
   })
 }
 
-export function useAdminUsers({ page = 1, search = '', role = '', enabled = true } = {}) {
+export function useAdminUsers({ page = 1, limit = 10, search = '', role = '', enabled = true } = {}) {
   const queryEnabled = useAdminQueryEnabled(enabled)
   return useQuery({
     queryKey: adminKeys.users(page, search, role),
-    queryFn: ({ signal }) => getAdminUsers({ signal, page, search, role }),
+    queryFn: ({ signal }) => getAdminUsers({ signal, page, limit, search, role }),
     enabled: queryEnabled,
     staleTime: 1000 * 30,
+  })
+}
+
+export function useAdminLeadsPushSettings({ enabled = true } = {}) {
+  const queryEnabled = useAdminQueryEnabled(enabled)
+  return useQuery({
+    queryKey: adminKeys.leadsPushSettings(),
+    queryFn: ({ signal }) => getAdminLeadsPushSettings({ signal }),
+    enabled: queryEnabled,
+    staleTime: 1000 * 60,
+  })
+}
+
+export function useUpdateAdminLeadsPushSettings() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body) => updateAdminLeadsPushSettings(body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: adminKeys.leadsPushSettings() }),
   })
 }
 
@@ -847,14 +867,15 @@ export function useAdminRtoAnalytics({ enabled = true } = {}) {
 
 export function useAdminOosInquiries({
   page = 1,
-  status = 'all',
+  limit = 20,
   search = '',
+  days = 30,
   enabled = true,
 } = {}) {
   const queryEnabled = useAdminQueryEnabled(enabled)
   return useQuery({
-    queryKey: adminKeys.oosInquiries(page, status, search),
-    queryFn: ({ signal }) => getAdminOosInquiries({ signal, page, status, search }),
+    queryKey: adminKeys.oosInquiries(page, days, search),
+    queryFn: ({ signal }) => getAdminOosInquiries({ signal, page, limit, search, days }),
     enabled: queryEnabled,
     staleTime: 1000 * 30,
   })

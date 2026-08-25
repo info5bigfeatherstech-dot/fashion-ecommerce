@@ -28,10 +28,9 @@ export const ADMIN_NAV_ITEMS = [
   { id: 'analytics', label: 'Store Analytics', path: '/admin/analytics', group: 'Catalog' },
   { id: 'archived', label: 'Archived', path: '/admin/archived', group: 'Catalog' },
   { id: 'outofstock', label: 'Out of Stock Query', path: '/admin/out-of-stock', group: 'Catalog' },
-  { id: 'leads', label: 'Leads', path: '/admin/leads', group: 'Growth' },
   {
-    id: 'customers-parent',
-    label: 'Customers',
+    id: 'leads',
+    label: 'Leads',
     path: '/admin/customers',
     group: 'Growth',
     children: [

@@ -152,6 +152,8 @@ export {
   getAdminUsers,
   getAdminUserDetail,
   exportAdminUsers,
+  getAdminLeadsPushSettings,
+  updateAdminLeadsPushSettings,
   getAdminCarts,
   getAdminAbandonedCarts,
   getAdminHighValueCarts,

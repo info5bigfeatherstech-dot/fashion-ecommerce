@@ -1,34 +1,156 @@
-import { useMemo, useState } from 'react'
-import { Download } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Download, Heart, Search, ShoppingBag } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   AdminEmpty,
   AdminError,
   AdminLoading,
   AdminPageHeader,
-  AdminPagination,
-  AdminTable,
   extractListPayload,
 } from '@/features/admin/components/AdminUi'
-import { useAdminUsers, useExportAdminUsers } from '@/features/admin/hooks'
-import { Input } from '@/components/ui/Input'
-import { Button } from '@/components/ui/Button'
+import { AdminCartDetailsModal } from '@/features/admin/components/AdminCartDetailsModal'
+import { AdminCustomerDetailsModal } from '@/features/admin/components/AdminCustomerDetailsModal'
+import {
+  useAdminLeadsPushSettings,
+  useAdminUsers,
+  useExportAdminUsers,
+  useUpdateAdminLeadsPushSettings,
+} from '@/features/admin/hooks'
+
+function formatJoinedDate(iso) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function formatJoinedTime(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true })
+}
+
+function formatIstHourLabel(hour) {
+  const h = Math.floor(Number(hour))
+  if (!Number.isFinite(h) || h < 0 || h > 23) return '6:00 PM IST'
+  if (h === 0) return '12:00 AM IST'
+  if (h === 12) return '12:00 PM IST'
+  if (h < 12) return `${h}:00 AM IST`
+  return `${h - 12}:00 PM IST`
+}
+
+function userIdOf(user) {
+  return user?._id || user?.id
+}
+
+function LeadsAutoPushToggle() {
+  const { data, isLoading, isFetching } = useAdminLeadsPushSettings()
+  const updateSettings = useUpdateAdminLeadsPushSettings()
+  const [enabled, setEnabled] = useState(false)
+
+  const settings = data && typeof data === 'object' && !Array.isArray(data)
+    ? (data.data && typeof data.data === 'object' ? data.data : data)
+    : null
+  const pushConfigured = settings?.pushConfigured !== false
+  const hourLabel = formatIstHourLabel(settings?.autoPushHourIst ?? 18)
+  const busy = isLoading || isFetching || updateSettings.isPending
+
+  useEffect(() => {
+    if (settings) setEnabled(Boolean(settings.autoPushEnabled))
+  }, [settings, settings?.autoPushEnabled])
+
+  const handleToggle = async () => {
+    if (!pushConfigured) {
+      toast.warning('Web push is not configured on the server (VAPID keys).')
+      return
+    }
+    const next = !enabled
+    setEnabled(next)
+    try {
+      await updateSettings.mutateAsync({ autoPushEnabled: next })
+      toast.success(next ? `Auto cart push enabled (daily ~${hourLabel})` : 'Auto cart push disabled')
+    } catch (err) {
+      setEnabled(!next)
+      toast.error(err?.message || 'Could not update auto push setting')
+    }
+  }
+
+  return (
+    <div
+      className={`admin-leads-autopush${enabled ? ' is-on' : ''}${!pushConfigured ? ' is-disabled' : ''}`}
+      title={
+        pushConfigured
+          ? `Daily auto push at ~${hourLabel} for cart users who allowed notifications`
+          : 'Configure VAPID keys on server to enable push'
+      }
+    >
+      <div className="admin-leads-autopush__text">
+        <span>Auto push</span>
+        <small>{enabled ? `On · ~${hourLabel}` : 'Off'}</small>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={enabled}
+        aria-label="Toggle auto cart reminder push"
+        disabled={busy || !pushConfigured}
+        onClick={handleToggle}
+        className={`pf-toggle pf-toggle--wholesale${enabled ? ' is-on' : ''}`}
+      >
+        <span className="pf-toggle__knob" />
+      </button>
+    </div>
+  )
+}
 
 export default function AdminCustomersPage() {
   const [page, setPage] = useState(1)
-  const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
+  const [search, setSearch] = useState('')
+  const [role, setRole] = useState('')
+  const [selectedIds, setSelectedIds] = useState([])
+  const [cartUser, setCartUser] = useState(null)
+  const [detailUser, setDetailUser] = useState(null)
 
-  const { data, isLoading, isError, error, refetch } = useAdminUsers({ page, search })
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput.trim())
+      setPage(1)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchInput])
+
+  const { data, isLoading, isError, error, refetch, isFetching } = useAdminUsers({
+    page,
+    limit: 10,
+    search,
+    role,
+  })
   const exportUsers = useExportAdminUsers()
-  const { items: users, pagination } = useMemo(
-    () => extractListPayload(data, ['users', 'data']),
-    [data]
-  )
+
+  const { items: users, pagination } = useMemo(() => {
+    if (Array.isArray(data?.data)) {
+      return { items: data.data, pagination: data.pagination || {} }
+    }
+    return extractListPayload(data, ['users', 'data'])
+  }, [data])
+
+  const totalPages = Math.max(1, Number(pagination?.totalPages) || 1)
+  const allSelected = users.length > 0 && users.every((u) => selectedIds.includes(userIdOf(u)))
+
+  const handleSelectAll = (checked) => {
+    if (checked) setSelectedIds(users.map(userIdOf).filter(Boolean))
+    else setSelectedIds([])
+  }
+
+  const toggleUser = (id) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
 
   const handleExport = async () => {
     try {
-      await exportUsers.mutateAsync({ search })
+      await exportUsers.mutateAsync({ search, role })
       toast.success('Customers exported')
     } catch (err) {
       toast.error(err?.message || 'Export failed')
@@ -36,46 +158,189 @@ export default function AdminCustomersPage() {
   }
 
   return (
-    <div className="admin-page">
-      <AdminPageHeader eyebrow="Leads" title="Customers">
-        <Button variant="secondary" size="sm" onClick={handleExport} disabled={exportUsers.isPending}>
-          <Download size={14} /> {exportUsers.isPending ? 'Exporting…' : 'Export Excel'}
-        </Button>
-      </AdminPageHeader>
-      <form
-        className="admin-toolbar"
-        onSubmit={(e) => {
-          e.preventDefault()
-          setSearch(searchInput.trim())
-          setPage(1)
-        }}
-      >
-        <Input value={searchInput} onChange={(e) => setSearchInput(e.target.value)} placeholder="Search name, email, phone…" />
-        <Button type="submit" variant="secondary" size="sm">Search</Button>
-      </form>
-      <div className="admin-card admin-card--flush">
-        {isLoading && <AdminLoading />}
-        {isError && <AdminError message={error?.message} onRetry={refetch} />}
-        {!isLoading && users.length === 0 && <AdminEmpty message="No customers found." />}
-        {!isLoading && users.length > 0 && (
-          <AdminTable
-            columns={[
-              { key: 'name', label: 'Name', render: (r) => r.name || '—' },
-              { key: 'email', label: 'Email', render: (r) => r.email || '—' },
-              { key: 'phone', label: 'Phone', render: (r) => r.phone || '—' },
-              { key: 'role', label: 'Role', render: (r) => r.role || 'user' },
-              {
-                key: 'joined',
-                label: 'Joined',
-                render: (r) => (r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '—'),
-              },
-            ]}
-            rows={users}
-            getRowKey={(r) => r._id || r.id}
+    <div className="admin-page admin-leads">
+      <AdminPageHeader title="Leads" />
+
+      <div className="admin-leads__toolbar">
+        <div className="admin-leads__search">
+          <Search size={16} aria-hidden="true" />
+          <input
+            type="search"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search customers..."
+            aria-label="Search customers"
           />
-        )}
-        <AdminPagination page={page} totalPages={pagination?.totalPages} onPageChange={setPage} />
+        </div>
+
+        <LeadsAutoPushToggle />
+
+        <select
+          className="admin-leads__role"
+          value={role}
+          onChange={(e) => {
+            setRole(e.target.value)
+            setPage(1)
+          }}
+          aria-label="Filter by role"
+        >
+          <option value="">All Roles</option>
+          <option value="user">Customer</option>
+          <option value="wholesaler">Wholesaler</option>
+        </select>
+
+        <button
+          type="button"
+          className="admin-leads__export"
+          onClick={handleExport}
+          disabled={exportUsers.isPending}
+        >
+          {exportUsers.isPending ? (
+            <span className="admin-leads__export-spin" aria-hidden="true" />
+          ) : (
+            <Download size={16} aria-hidden="true" />
+          )}
+          {exportUsers.isPending ? 'Exporting…' : 'Export Data'}
+        </button>
       </div>
+
+      <div className="admin-card admin-card--flush admin-leads__card">
+        {isFetching && !isLoading ? (
+          <div className="admin-leads__updating" aria-busy="true">Updating…</div>
+        ) : null}
+
+        {isLoading && <AdminLoading label="Loading customers…" />}
+        {isError && <AdminError message={error?.message} onRetry={refetch} />}
+        {!isLoading && !isError && users.length === 0 && (
+          <AdminEmpty message="No customers found." />
+        )}
+
+        {!isLoading && !isError && users.length > 0 && (
+          <div className="admin-table-wrap">
+            <table className="admin-table admin-leads__table">
+              <thead>
+                <tr>
+                  <th className="admin-leads__check-col">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                      aria-label="Select all customers"
+                    />
+                  </th>
+                  <th>Customer</th>
+                  <th>Status</th>
+                  <th>Engagement</th>
+                  <th>Joined</th>
+                  <th className="admin-leads__actions-col">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user) => {
+                  const id = userIdOf(user)
+                  const initial = (user.name || user.email || '?').charAt(0).toUpperCase()
+                  const verified = Boolean(user.isVerified)
+                  return (
+                    <tr key={id}>
+                      <td className="admin-leads__check-col">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(id)}
+                          onChange={() => toggleUser(id)}
+                          aria-label={`Select ${user.name || user.email || 'customer'}`}
+                        />
+                      </td>
+                      <td>
+                        <div className="admin-leads__customer">
+                          <span className="admin-leads__avatar" aria-hidden="true">{initial}</span>
+                          <div className="admin-leads__customer-meta">
+                            <strong>{user.name || 'Customer'}</strong>
+                            <span>{user.email || '—'}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`admin-leads__status${verified ? ' is-verified' : ''}`}>
+                          {verified ? 'Verified' : 'Unverified'}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="admin-leads__engage">
+                          <button
+                            type="button"
+                            className="admin-leads__engage-chip admin-leads__engage-chip--cart"
+                            title="View cart items"
+                            onClick={() => setCartUser(user)}
+                          >
+                            <ShoppingBag size={12} aria-hidden="true" />
+                            {user.cartItemsCount || 0}
+                          </button>
+                          <button
+                            type="button"
+                            className="admin-leads__engage-chip admin-leads__engage-chip--wish"
+                            title="View customer details"
+                            onClick={() => setDetailUser(user)}
+                          >
+                            <Heart size={12} aria-hidden="true" />
+                            {user.wishlistCount || 0}
+                          </button>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="admin-leads__joined">
+                          <span>{formatJoinedDate(user.createdAt)}</span>
+                          <small>{formatJoinedTime(user.createdAt)}</small>
+                        </div>
+                      </td>
+                      <td className="admin-leads__actions-col" />
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <div className="admin-leads__pager">
+          <span>Page {page} of {totalPages}</span>
+          <div className="admin-leads__pager-btns">
+            <button
+              type="button"
+              className="admin-leads__pager-btn"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Prev
+            </button>
+            <button
+              type="button"
+              className="admin-leads__pager-btn admin-leads__pager-btn--next"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <AdminCartDetailsModal
+        open={Boolean(cartUser)}
+        onClose={() => setCartUser(null)}
+        userId={cartUser ? userIdOf(cartUser) : null}
+        fallbackUser={cartUser}
+      />
+
+      <AdminCustomerDetailsModal
+        open={Boolean(detailUser)}
+        onClose={() => setDetailUser(null)}
+        userId={detailUser ? userIdOf(detailUser) : null}
+        initialUser={detailUser}
+        onViewCart={(id, user) => {
+          setDetailUser(null)
+          setCartUser(user || { _id: id, id })
+        }}
+      />
     </div>
   )
 }
