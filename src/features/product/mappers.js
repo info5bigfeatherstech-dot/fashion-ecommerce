@@ -40,8 +40,10 @@ function collectAttributeValues(variants, productAttributes, matcher) {
   return unique(values)
 }
 
-/** All variant option axes (Color, Size, Material, …) for the PDP pickers. */
-function collectAttributeGroups(variants, productAttributes) {
+/** Variant option axes (Color, Size, …) for PDP pickers — variant attrs only.
+ * Product-level-only attributes stay in composition / details, not selectors.
+ */
+function collectAttributeGroups(variants) {
   const groups = new Map()
 
   const add = (key, value) => {
@@ -56,9 +58,6 @@ function collectAttributeGroups(variants, productAttributes) {
     for (const attribute of asArray(variant.attributes)) {
       add(attribute.key, attribute.value)
     }
-  }
-  for (const attribute of productAttributes) {
-    add(attribute.key, attribute.value)
   }
 
   return [...groups.entries()]
@@ -190,7 +189,7 @@ export function mapProduct(dto) {
     reviewCount: toNumber(dto.rating?.count, 0),
     sizes: collectAttributeValues(variants, attributes, SIZE_KEYS),
     colors: collectAttributeValues(variants, attributes, COLOR_KEYS),
-    optionGroups: collectAttributeGroups(variants, attributes),
+    optionGroups: collectAttributeGroups(variants),
     images,
     inStock: mappedVariants.length
       ? mappedVariants.some((variant) => variant.inStock)
@@ -272,11 +271,13 @@ export function isAttrValueInStock(product, selectedAttrs = {}, key, value) {
 /**
  * Resolve a variant from mapped product.variants using selected attrs / size / color.
  * Prefers an exact attribute match (even if out of stock) so OOS colors/sizes stay selected.
- * Never falls back to a variant that contradicts the current selection.
+ * Product-level-only attrs (not present on any variant) are ignored for matching.
  */
 export function resolveVariant(product, { size, color, variantId, attrs } = {}) {
   const variants = asArray(product?.variants)
   if (!variants.length) return null
+
+  const fallback = () => variants.find((v) => v.inStock) || variants[0] || null
 
   if (variantId) {
     const byId = variants.find((variant) => String(variant.id) === String(variantId))
@@ -295,10 +296,23 @@ export function resolveVariant(product, { size, color, variantId, attrs } = {}) 
     else if (!Object.keys(selected).some((k) => COLOR_KEYS.test(k))) selected.Color = color
   }
 
-  const entries = Object.entries(selected).filter(([, v]) => v != null && String(v).trim() !== '')
-  if (!entries.length) {
-    return variants.find((v) => v.inStock) || variants[0] || null
+  const knownKeys = new Set()
+  for (const variant of variants) {
+    for (const attribute of asArray(variant.attributes)) {
+      if (attribute?.key) knownKeys.add(String(attribute.key).toLowerCase())
+    }
   }
+
+  const entries = Object.entries(selected).filter(([key, v]) => {
+    if (v == null || String(v).trim() === '') return false
+    // No variant-level axes → ignore selection and use primary stocked variant.
+    if (knownKeys.size === 0) return false
+    // Ignore product-only attributes that no variant defines (e.g. Material on product).
+    if (!knownKeys.has(String(key).toLowerCase())) return false
+    return true
+  })
+
+  if (!entries.length) return fallback()
 
   const exact = variants.find((variant) => {
     const variantAttrs = asArray(variant.attributes)
@@ -355,8 +369,8 @@ export function resolveVariant(product, { size, color, variantId, attrs } = {}) 
     }
   }
 
-  // Do not return an unrelated first variant — that hides real OOS selections.
-  return null
+  // No variant-axis match (e.g. variants have no attributes) — use primary stocked variant.
+  return fallback()
 }
 
 /** Gallery URLs for the active selection — never mix other colors' images. */

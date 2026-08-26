@@ -39,6 +39,7 @@ function initialAttrsFromProduct(product) {
   }
   const next = {}
   for (const group of groups) {
+    // Only seed attrs that variants actually define (optionGroups are variant-only).
     next[group.key] = fromVariant[group.key] ?? group.values[0]
   }
   return next
@@ -141,11 +142,12 @@ export default function ProductDetail() {
       ? selectedVariant.originalPrice
       : product?.originalPrice
   const displayCode = selectedVariant?.productCode || product?.productCode
-  // Availability must follow the *selected* variant, not product-level stock
-  // (product.inStock is true if ANY variant has stock).
-  const isAvailable = product?.variants?.length
-    ? Boolean(selectedVariant?.inStock)
-    : Boolean(product?.inStock)
+  // Prefer selected variant stock; if resolve failed, fall back to any in-stock variant / product flag.
+  const isAvailable = selectedVariant
+    ? Boolean(selectedVariant.inStock)
+    : product?.variants?.length
+      ? product.variants.some((variant) => variant.inStock)
+      : Boolean(product?.inStock)
   const maxOrderQty = selectedVariant?.quantity > 0
     ? Math.min(8, selectedVariant.quantity)
     : 8
