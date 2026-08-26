@@ -7411,13 +7411,14 @@ a.cart-item__name:hover {
   display: grid;
   gap: var(--space-2);
   width: 100%;
+  font-family: 'Montserrat', sans-serif;
 }
 
 .oos-inquiry__badge {
   padding: 0.75rem 1rem;
   border-radius: 0.75rem;
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--color-neutral);
+  color: var(--color-muted);
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
   text-align: center;
@@ -7427,9 +7428,9 @@ a.cart-item__name:hover {
   display: grid;
   gap: 0.9rem;
   padding: 1rem 1.1rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
   border-radius: 1rem;
-  background: color-mix(in srgb, #f8fafc 80%, white);
+  background: color-mix(in srgb, var(--color-paper) 80%, var(--color-white));
 }
 
 .oos-inquiry__intro {
@@ -7445,8 +7446,8 @@ a.cart-item__name:hover {
   display: grid;
   place-items: center;
   border-radius: 999px;
-  background: #fff4e5;
-  color: #c27803;
+  background: color-mix(in srgb, var(--color-gold) 15%, var(--color-paper));
+  color: var(--color-gold);
 }
 
 .oos-inquiry__title {
@@ -7460,7 +7461,7 @@ a.cart-item__name:hover {
 .oos-inquiry__desc {
   margin: 0.25rem 0 0;
   font-size: var(--text-xs);
-  color: #64748b;
+  color: var(--color-muted);
   line-height: 1.5;
 }
 
@@ -7477,19 +7478,19 @@ a.cart-item__name:hover {
 .oos-inquiry__label {
   font-size: 0.7rem;
   font-weight: var(--weight-semibold);
-  color: #475569;
+  color: var(--color-ink);
 }
 
 .oos-inquiry__req {
-  color: #ef4444;
+  color: var(--color-error);
 }
 
 .oos-inquiry__input {
   width: 100%;
   padding: 0.8rem 0.9rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
   border-radius: 0.75rem;
-  background: #fff;
+  background: var(--color-white);
   color: var(--color-ink);
   font-size: var(--text-sm);
   outline: none;
@@ -7497,16 +7498,16 @@ a.cart-item__name:hover {
 }
 
 .oos-inquiry__input::placeholder {
-  color: #94a3b8;
+  color: var(--color-muted);
 }
 
 .oos-inquiry__input:focus {
-  border-color: #f7a221;
-  box-shadow: 0 0 0 3px rgba(247, 162, 33, 0.28);
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-gold) 28%, transparent);
 }
 
 .oos-inquiry__input--error {
-  border-color: #fca5a5;
+  border-color: color-mix(in srgb, var(--color-error) 30%, transparent);
 }
 
 .oos-inquiry__input:disabled {
@@ -7518,13 +7519,13 @@ a.cart-item__name:hover {
   margin: 0;
   font-size: 0.7rem;
   font-weight: var(--weight-medium);
-  color: #dc2626;
+  color: var(--color-error);
 }
 
 .oos-inquiry__hint {
   margin: 0;
   font-size: 0.7rem;
-  color: #64748b;
+  color: var(--color-muted);
   line-height: 1.45;
 }
 
@@ -7537,12 +7538,12 @@ a.cart-item__name:hover {
   padding: 0.85rem 1rem;
   border: none;
   border-radius: 0.75rem;
-  background: #f7a221;
-  color: #0f172a;
+  background: var(--color-gold);
+  color: var(--color-ink);
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-ink) 6%, transparent);
   transition: filter var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast);
 }
 
@@ -7574,28 +7575,28 @@ a.cart-item__name:hover {
   align-items: flex-start;
   gap: 0.75rem;
   padding: 1rem;
-  border: 1px solid color-mix(in srgb, #34d399 40%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-success) 40%, transparent);
   border-radius: 1rem;
-  background: color-mix(in srgb, #ecfdf5 90%, white);
+  background: color-mix(in srgb, var(--color-success) 10%, var(--color-paper));
 }
 
 .oos-inquiry__success-icon {
   flex-shrink: 0;
   margin-top: 0.1rem;
-  color: #059669;
+  color: var(--color-success);
 }
 
 .oos-inquiry__success-title {
   margin: 0;
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
-  color: #064e3b;
+  color: var(--color-success);
 }
 
 .oos-inquiry__success-text {
   margin: 0.3rem 0 0;
   font-size: var(--text-xs);
-  color: color-mix(in srgb, #065f46 80%, transparent);
+  color: color-mix(in srgb, var(--color-success) 80%, transparent);
   line-height: 1.5;
 }
 

@@ -557,7 +557,7 @@ export const FOOTER_COLUMNS = [
   {
     title: 'Customer Service',
     links: [
-      { label: 'Contact Us', href: '/account' },
+      { label: 'Contact Us', href: '/contact' },
       { label: 'Shipping Info', href: '/account' },
       { label: 'Returns & Exchanges', href: '/account' },
       { label: 'Size Guide', href: '/account' },

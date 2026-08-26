@@ -181,6 +181,12 @@ export function Header() {
                 </span>
                 <span className="header__util-label">Wishlist</span>
               </Link>
+              <Link to="/contact" className="header__util header__util--desktop">
+                <span className="header__util-icon">
+                  <MessageCircle size={22} />
+                </span>
+                <span className="header__util-label">Contact Us</span>
+              </Link>
               <Link
                 to="/profile"
                 className="header__util header__util--desktop"
@@ -371,6 +377,9 @@ export function Header() {
                   </Link>
                   <Link to="/wishlist" onClick={() => setMobileNavOpen(false)}>
                     <Heart size={16} /> Wishlist <ChevronRight size={16} />
+                  </Link>
+                  <Link to="/contact" onClick={() => setMobileNavOpen(false)}>
+                    <MessageCircle size={16} /> Contact Us <ChevronRight size={16} />
                   </Link>
                 </div>
               </div>
