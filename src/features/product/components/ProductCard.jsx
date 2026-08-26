@@ -252,7 +252,7 @@ export function ProductCard({ product, compact = false }) {
           )}
         </div>
         <OfferCode compact />
-        <div className="product-card__rating">
+        <div className="product-card__rating" data-empty={!(product.reviewCount > 0) ? 'true' : undefined}>
           <Star size={12} className="product-card__star" fill="currentColor" />
           <span>{product.rating}</span>
           <span>({product.reviewCount})</span>

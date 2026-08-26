@@ -35,16 +35,8 @@ function getPanelWidths(panelCount) {
   }
 }
 
-function getActiveMobileHeight() {
-  if (typeof window === 'undefined') return 280
-  return Math.min(Math.max(window.innerWidth * 0.58, 220), 300)
-}
-
-const MOBILE_INACTIVE_HEIGHT = 112
-
 export function ShopByOccasionSection() {
   const [activeIndex, setActiveIndex] = useState(DEFAULT_ACTIVE)
-  const [mobileActiveHeight, setMobileActiveHeight] = useState(280)
   const isMobile = useIsMobile()
   const reduceMotion = useReducedMotion()
   const { eyebrow, panels } = SHOP_BY_OCCASION
@@ -58,12 +50,7 @@ export function ShopByOccasionSection() {
     ? { duration: 0 }
     : { duration: 0.55, ease: PANEL_EASE }
 
-  useEffect(() => {
-    const updateHeight = () => setMobileActiveHeight(getActiveMobileHeight())
-    updateHeight()
-    window.addEventListener('resize', updateHeight)
-    return () => window.removeEventListener('resize', updateHeight)
-  }, [])
+  if (isMobile) return null
 
   return (
     <section className="shop-occasion" aria-labelledby="shop-occasion-heading">
@@ -83,10 +70,8 @@ export function ShopByOccasionSection() {
         </div>
 
         <div
-          className={`occasion-accordion${isMobile ? ' occasion-accordion--mobile' : ''}`}
-          onMouseLeave={() => {
-            if (!isMobile) setActiveIndex(DEFAULT_ACTIVE)
-          }}
+          className="occasion-accordion"
+          onMouseLeave={() => setActiveIndex(DEFAULT_ACTIVE)}
         >
           {panels.map((panel, index) => {
             const isActive = activeIndex === index
@@ -96,18 +81,12 @@ export function ShopByOccasionSection() {
                 key={panel.id}
                 className="occasion-accordion__panel-wrap"
                 initial={false}
-                animate={
-                  isMobile
-                    ? {
-                        width: '100%',
-                        height: isActive ? mobileActiveHeight : MOBILE_INACTIVE_HEIGHT,
-                      }
-                    : { width: isActive ? activeWidth : inactiveWidth, height: '100%' }
-                }
-                transition={panelTransition}
-                onMouseEnter={() => {
-                  if (!isMobile) setActiveIndex(index)
+                animate={{
+                  width: isActive ? activeWidth : inactiveWidth,
+                  height: '100%',
                 }}
+                transition={panelTransition}
+                onMouseEnter={() => setActiveIndex(index)}
                 onFocusCapture={() => setActiveIndex(index)}
               >
                 <Link
@@ -126,9 +105,7 @@ export function ShopByOccasionSection() {
                         scale: isActive ? 1.06 : 1,
                         filter: isActive
                           ? 'grayscale(0) brightness(1)'
-                          : isMobile
-                            ? 'grayscale(0.35) brightness(0.82)'
-                            : 'grayscale(1) brightness(0.68)',
+                          : 'grayscale(1) brightness(0.68)',
                       }}
                       transition={{
                         ...contentTransition,
@@ -140,7 +117,7 @@ export function ShopByOccasionSection() {
                     className="occasion-accordion__overlay"
                     aria-hidden="true"
                     initial={false}
-                    animate={{ opacity: isActive ? 1 : isMobile ? 0.75 : 0.92 }}
+                    animate={{ opacity: isActive ? 1 : 0.92 }}
                     transition={contentTransition}
                   />
 
