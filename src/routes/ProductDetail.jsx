@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Accordion } from '@/components/ui/Accordion'
 import { ProductCarousel } from '@/features/product/components/ProductCarousel'
+import { OutOfStockInquiryForm } from '@/features/product/components/OutOfStockInquiryForm'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
 import { useProductDetail, useRelatedProducts } from '@/features/product/hooks'
 import { OfferCode } from '@/features/product/components/OfferCode'
@@ -44,7 +45,11 @@ function initialAttrsFromProduct(product) {
 export default function ProductDetail() {
   const { slug } = useParams()
   const { data: product, isLoading, isError } = useProductDetail(slug)
-  const { data: relatedProducts = [] } = useRelatedProducts(slug, { limit: 8 })
+  const { data: relatedProducts = [] } = useRelatedProducts(slug, {
+    limit: 8,
+    categorySlug: product?.category,
+    enabled: Boolean(slug && product),
+  })
 
   const [selectedAttrs, setSelectedAttrs] = useState({})
   const [quantity, setQuantity] = useState(1)
@@ -134,6 +139,12 @@ export default function ProductDetail() {
       ? selectedVariant.originalPrice
       : product?.originalPrice
   const displayCode = selectedVariant?.productCode || product?.productCode
+  const isAvailable = selectedVariant
+    ? Boolean(selectedVariant.inStock)
+    : Boolean(product?.inStock)
+  const maxOrderQty = selectedVariant?.quantity > 0
+    ? Math.min(8, selectedVariant.quantity)
+    : 8
 
   if (isLoading) {
     return (
@@ -182,29 +193,38 @@ export default function ProductDetail() {
   }
 
   const handleAddToCart = () => {
+    if (!isAvailable) return
     if (!isAuthenticated) {
       navigate('/login', { state: { redirectTo: `/product/${slug}` }, replace: true })
       return
     }
     const sizeGroup = (product.optionGroups || []).find((g) => g.isSize)
     const colorGroup = (product.optionGroups || []).find((g) => g.isColor)
+    const qty = Math.min(quantity, maxOrderQty)
     addItem(product, {
       size: sizeGroup ? selectedAttrs[sizeGroup.key] : undefined,
       color: colorGroup ? selectedAttrs[colorGroup.key] : undefined,
       attrs: selectedAttrs,
       variantId: selectedVariant?.id,
-      quantity,
+      quantity: qty,
     })
     showAddedToCartToast(
       { ...product, name: displayTitle },
       {
-        quantity,
+        quantity: qty,
         onViewBag: () => navigate('/cart'),
       }
     )
   }
 
-  const related = relatedProducts.filter((p) => p.id !== product.id).slice(0, 8)
+  const related = relatedProducts
+    .filter((p) => {
+      if (!p) return false
+      if (product.id != null && p.id != null && String(p.id) === String(product.id)) return false
+      if (product.slug && p.slug && String(p.slug) === String(product.slug)) return false
+      return true
+    })
+    .slice(0, 8)
   const optionGroups = product.optionGroups?.length
     ? product.optionGroups
     : [
@@ -358,49 +378,83 @@ export default function ProductDetail() {
             )
           })}
 
-          <div className="pdp-info__qty">
-            <p className="heading-sm">Quantity</p>
-            <div className="qty-stepper">
-              <button
-                type="button"
-                className="qty-stepper__btn"
-                onClick={() => setQuantity((n) => Math.max(1, n - 1))}
-                aria-label="Decrease quantity"
-              >
-                <Minus size={14} />
-              </button>
-              <span className="qty-stepper__value">{quantity}</span>
-              <button
-                type="button"
-                className="qty-stepper__btn"
-                onClick={() => setQuantity((n) => Math.min(8, n + 1))}
-                aria-label="Increase quantity"
-              >
-                <Plus size={14} />
-              </button>
+          {!isAvailable ? (
+            <div className="pdp-oos">
+              <OutOfStockInquiryForm
+                productId={product.id}
+                variantId={selectedVariant?.id}
+                disabled={!product.id || !selectedVariant?.id}
+              />
+              <div className="pdp-info__actions pdp-info__actions--oos">
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  className={`pdp-info__wish${inWishlist ? ' pdp-info__wish--active' : ''}`}
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      navigate('/login', { state: { redirectTo: `/product/${slug}` }, replace: true })
+                      return
+                    }
+                    toggleWishlist(product)
+                  }}
+                  aria-label={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+                >
+                  <Heart size={20} fill={inWishlist ? 'currentColor' : 'none'} />
+                </Button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <>
+              <div className="pdp-info__qty">
+                <p className="heading-sm">Quantity</p>
+                <div className="qty-stepper">
+                  <button
+                    type="button"
+                    className="qty-stepper__btn"
+                    onClick={() => setQuantity((n) => Math.max(1, n - 1))}
+                    aria-label="Decrease quantity"
+                  >
+                    <Minus size={14} />
+                  </button>
+                  <span className="qty-stepper__value">{quantity}</span>
+                  <button
+                    type="button"
+                    className="qty-stepper__btn"
+                    onClick={() => setQuantity((n) => Math.min(maxOrderQty, n + 1))}
+                    aria-label="Increase quantity"
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
+              </div>
 
-          <div className="pdp-info__actions">
-            <Button variant="primary" size="lg" fullWidth onClick={handleAddToCart}>
-              Add to Bag
-            </Button>
-            <Button
-              variant="secondary"
-              size="lg"
-              className={`pdp-info__wish${inWishlist ? ' pdp-info__wish--active' : ''}`}
-              onClick={() => {
-                if (!isAuthenticated) {
-                  navigate('/login', { state: { redirectTo: `/product/${slug}` }, replace: true })
-                  return
-                }
-                toggleWishlist(product)
-              }}
-              aria-label={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
-            >
-              <Heart size={20} fill={inWishlist ? 'currentColor' : 'none'} />
-            </Button>
-          </div>
+              <div className="pdp-info__actions">
+                <Button
+                  variant="primary"
+                  size="lg"
+                  fullWidth
+                  onClick={handleAddToCart}
+                >
+                  Add to Bag
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  className={`pdp-info__wish${inWishlist ? ' pdp-info__wish--active' : ''}`}
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      navigate('/login', { state: { redirectTo: `/product/${slug}` }, replace: true })
+                      return
+                    }
+                    toggleWishlist(product)
+                  }}
+                  aria-label={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+                >
+                  <Heart size={20} fill={inWishlist ? 'currentColor' : 'none'} />
+                </Button>
+              </div>
+            </>
+          )}
 
           {accordionItems.length > 0 && (
             <Accordion items={accordionItems} defaultValue="description" />
@@ -430,8 +484,8 @@ export default function ProductDetail() {
             <small>{formatPrice(displayOriginal)}</small>
           )}
         </div>
-        <Button variant="primary" size="md" onClick={handleAddToCart}>
-          Add to Bag
+        <Button variant="primary" size="md" onClick={handleAddToCart} disabled={!isAvailable}>
+          {isAvailable ? 'Add to Bag' : 'Not available'}
         </Button>
       </div>
     </div>

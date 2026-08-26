@@ -162,16 +162,60 @@ export async function getProductsByCategory(slug, { page = 1, limit = 50, signal
 /**
  * Related products for a product slug (shown on PDP).
  * GET /api/products/:slug/related
+ * Falls back to category → featured → catalog so the PDP section is rarely empty.
  */
-export async function getRelatedProducts(slug, { signal, limit } = {}) {
+export async function getRelatedProducts(slug, { signal, limit = 8, categorySlug } = {}) {
   if (!slug) return []
 
-  const payload = await http.get(API_ENDPOINTS.products.related(slug), {
-    params: limit ? { limit } : undefined,
-    signal,
-  })
+  const excludeCurrent = (list = []) =>
+    list
+      .filter((product) => {
+        if (!product) return false
+        if (product.slug != null && String(product.slug) === String(slug)) return false
+        return true
+      })
+      .slice(0, limit)
 
-  return extractProductList(payload)
+  let related = []
+  try {
+    const payload = await http.get(API_ENDPOINTS.products.related(slug), {
+      params: { limit },
+      signal,
+    })
+    related = excludeCurrent(extractProductList(payload))
+  } catch {
+    related = []
+  }
+  if (related.length) return related
+
+  if (categorySlug && categorySlug !== 'uncategorized') {
+    try {
+      const { products } = await getProductsByCategory(categorySlug, {
+        page: 1,
+        limit: Math.max(limit + 4, 16),
+        signal,
+      })
+      related = excludeCurrent(products)
+      if (related.length) return related
+    } catch {
+      // continue to broader fallbacks
+    }
+  }
+
+  try {
+    const featured = await getFeaturedProducts({ limit: Math.max(limit + 4, 12) })
+    related = excludeCurrent(featured)
+    if (related.length) return related
+  } catch {
+    // continue
+  }
+
+  try {
+    const { products } = await getProductCatalog()
+    return excludeCurrent(products)
+  } catch {
+    return []
+  }
 }
 
 async function fetchFullCatalog() {
@@ -477,6 +521,15 @@ export async function getFeaturedProducts({ limit = 12, force = false } = {}) {
   }
 
   return featuredInFlight
+}
+
+export async function createOosInquiry({ productId, variantId, email, phone }) {
+  return http.post(API_ENDPOINTS.oosInquiries.create, {
+    productId: String(productId),
+    variantId: String(variantId),
+    email,
+    phone,
+  })
 }
 
 export { mapProduct } from './mappers'

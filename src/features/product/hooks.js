@@ -53,11 +53,11 @@ export function useProductsByCategory(slug, params = {}) {
   })
 }
 
-export function useRelatedProducts(slug, { limit = 8 } = {}) {
+export function useRelatedProducts(slug, { limit = 8, categorySlug, enabled = true } = {}) {
   return useQuery({
-    queryKey: productKeys.related(slug),
-    queryFn: ({ signal }) => getRelatedProducts(slug, { signal, limit }),
-    enabled: !!slug,
+    queryKey: productKeys.related(slug, categorySlug || ''),
+    queryFn: ({ signal }) => getRelatedProducts(slug, { signal, limit, categorySlug }),
+    enabled: Boolean(slug) && enabled,
   })
 }
 

@@ -93,9 +93,29 @@ function collectImages(dto, variants) {
   return getDummyProductImages(dto.slug || dto.id || dto._id || dto.name)
 }
 
+function resolveVariantInStock(variant) {
+  if (!variant) return false
+
+  const trackInventory = variant.inventory?.trackInventory ?? variant.inventory?.tracked
+  if (trackInventory === false) {
+    return variant.availability?.purchasable !== false
+  }
+
+  const qtyRaw = variant.availability?.quantity ?? variant.inventory?.quantity
+  if (qtyRaw != null && qtyRaw !== '') {
+    return toNumber(qtyRaw) > 0
+  }
+
+  if (typeof variant.availability?.purchasable === 'boolean') {
+    return variant.availability.purchasable
+  }
+
+  return true
+}
+
 function pickPrimaryVariant(variants) {
   return (
-    variants.find((variant) => variant?.isActive !== false && variant?.availability?.purchasable) ||
+    variants.find((variant) => variant?.isActive !== false && resolveVariantInStock(variant)) ||
     variants.find((variant) => variant?.isActive !== false) ||
     variants[0] ||
     null
@@ -113,6 +133,8 @@ function deriveBadge(dto) {
 function mapVariant(variant) {
   if (!variant) return null
 
+  const quantity = toNumber(variant.availability?.quantity ?? variant.inventory?.quantity)
+
   return {
     id: variant.id || variant._id,
     sku: variant.sku,
@@ -120,8 +142,8 @@ function mapVariant(variant) {
     title: variant.title || null,
     price: toNumber(variant.finalPrice ?? variant.price?.current),
     originalPrice: toNumber(variant.price?.base),
-    inStock: Boolean(variant.availability?.purchasable),
-    quantity: toNumber(variant.availability?.quantity ?? variant.inventory?.quantity),
+    inStock: resolveVariantInStock(variant),
+    quantity,
     images: asArray(variant.images).map((image) => image.url).filter(Boolean),
     attributes: asArray(variant.attributes).map((attribute) => ({
       key: attribute.key,
@@ -170,7 +192,9 @@ export function mapProduct(dto) {
     colors: collectAttributeValues(variants, attributes, COLOR_KEYS),
     optionGroups: collectAttributeGroups(variants, attributes),
     images,
-    inStock: Boolean(dto.inStock ?? primaryVariant?.availability?.purchasable),
+    inStock: mappedVariants.length
+      ? mappedVariants.some((variant) => variant.inStock)
+      : Boolean(dto.inStock ?? resolveVariantInStock(primaryVariant)),
     isFeatured: Boolean(dto.isFeatured),
     soldCount: toNumber(dto.soldInfo?.count),
     soldLabel: dto.soldLabel || null,
@@ -353,6 +377,8 @@ export function extractProductList(payload) {
     payload.related,
     payload.relatedProducts,
     payload.data?.products,
+    payload.data?.related,
+    payload.data?.relatedProducts,
     payload.data,
     payload.items,
     payload.results,

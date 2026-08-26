@@ -186,6 +186,9 @@ export const API_ENDPOINTS = {
     available: '/coupons/available',
     validate: '/coupons/validate',
   },
+  oosInquiries: {
+    create: '/oos-inquiries',
+  },
   search: {
     query: '/search',
   },

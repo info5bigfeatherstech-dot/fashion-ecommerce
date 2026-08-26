@@ -60,6 +60,17 @@ export function ProductCard({ product, compact = false }) {
   const discount = formatDiscount(product.originalPrice, product.price)
   const inCartQty = cartLine?.quantity || 0
   const isInCart = cartQtyForProduct > 0
+  const defaultVariant = useMemo(() => {
+    if (!product.variants?.length) return null
+    if (defaultVariantId) {
+      return product.variants.find((v) => String(v.id) === defaultVariantId) || null
+    }
+    return product.variants.find((v) => v.inStock) || product.variants[0] || null
+  }, [product.variants, defaultVariantId])
+  const isAvailable = product.inStock !== false
+  const canQuickAdd = defaultVariant
+    ? Boolean(defaultVariant.inStock)
+    : isAvailable
 
   const requireAuth = () => {
     if (isAuthenticated) return true
@@ -70,6 +81,7 @@ export function ProductCard({ product, compact = false }) {
   const handleQuickAdd = (e) => {
     e.preventDefault()
     e.stopPropagation()
+    if (!canQuickAdd) return
     if (!requireAuth()) return
 
     addItem(product, { ...getDefaultOptions(product), quantity: 1 })
@@ -94,6 +106,7 @@ export function ProductCard({ product, compact = false }) {
   const handleIncrease = (e) => {
     e.preventDefault()
     e.stopPropagation()
+    if (!canQuickAdd) return
     if (!requireAuth()) return
 
     if (cartLine) {
@@ -119,14 +132,27 @@ export function ProductCard({ product, compact = false }) {
         'product-card',
         compact && 'product-card--compact',
         isInCart && 'product-card--in-cart',
+        !isAvailable && 'product-card--unavailable',
       )}
-      aria-label={isInCart ? `${product.name}, ${cartQtyForProduct} in bag` : product.name}
+      aria-label={
+        !isAvailable
+          ? `${product.name}, not available`
+          : isInCart
+            ? `${product.name}, ${cartQtyForProduct} in bag`
+            : product.name
+      }
     >
       <div className="product-card__media">
         {product.badge && (
           <div className="product-card__badge">
             <Badge badge={product.badge} />
           </div>
+        )}
+
+        {!isAvailable && (
+          <span className="product-card__unavailable" aria-hidden="true">
+            Not available
+          </span>
         )}
 
         {/* {isInCart && (
@@ -164,7 +190,7 @@ export function ProductCard({ product, compact = false }) {
             aria-hidden="true"
           />
         )}
-        {!compact && FEATURE_FLAGS.enableQuickAdd && (
+        {!compact && FEATURE_FLAGS.enableQuickAdd && canQuickAdd && (
           <div
             className={`product-card__quick-add${inCartQty > 0 ? ' product-card__quick-add--active' : ''}`}
             onClick={(e) => {

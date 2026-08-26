@@ -7,7 +7,7 @@ export const productKeys = {
   detailedById: (id) => [...productKeys.all, 'detailed', id],
   byCategory: (slug, params = {}) => [...productKeys.all, 'category', slug, params],
   byTag: (tag, params = {}) => [...productKeys.all, 'tag', tag, params],
-  related: (slug) => [...productKeys.all, 'related', slug],
+  related: (slug, categorySlug = '') => [...productKeys.all, 'related', slug, categorySlug || ''],
   search: (q, params = {}) => [...productKeys.all, 'search', String(q || '').trim().toLowerCase(), params],
   bestsellers: () => [...productKeys.all, 'bestsellers'],
   featured: () => [...productKeys.all, 'featured'],
