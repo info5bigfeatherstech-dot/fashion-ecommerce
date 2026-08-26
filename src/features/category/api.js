@@ -1,10 +1,9 @@
 const delay = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export const MEGA_MENUS = {
-  women: [
+  jewelry: [
     {
-      // When hovering Women, show ONLY the artificial jewelry categories requested.
-      title: 'Artificial Jewlery',
+      // title: 'Artificial Jewellery',
       href: null,
       links: [
         { label: 'Earings & Studs', href: '/shop/watches-accessories/jewelry' },
@@ -14,10 +13,24 @@ export const MEGA_MENUS = {
         { label: 'Mangalsutras', href: '/shop/watches-accessories/jewelry' },
         { label: 'Sets', href: '/shop/watches-accessories/jewelry' },
         { label: 'Gifting', href: '/shop/watches-accessories/jewelry' },
-        // { label: 'Trendings', href: '/shop/watches-accessories/jewelry' },
       ],
     },
   ],
+  // women: [
+  //   {
+  //     title: 'Artificial Jewellery',
+  //     href: null,
+  //     links: [
+  //       { label: 'Earings & Studs', href: '/shop/watches-accessories/jewelry' },
+  //       { label: 'Rings', href: '/shop/watches-accessories/jewelry' },
+  //       { label: 'Bracelets & Bangles', href: '/shop/watches-accessories/jewelry' },
+  //       { label: 'Necklace & Pendants', href: '/shop/watches-accessories/jewelry' },
+  //       { label: 'Mangalsutras', href: '/shop/watches-accessories/jewelry' },
+  //       { label: 'Sets', href: '/shop/watches-accessories/jewelry' },
+  //       { label: 'Gifting', href: '/shop/watches-accessories/jewelry' },
+  //     ],
+  //   },
+  // ],
   men: [
     {
       title: 'Clothing',

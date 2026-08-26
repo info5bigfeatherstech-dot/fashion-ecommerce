@@ -17,6 +17,7 @@ import { MEDIA_QUERIES } from '@/config/breakpoints'
 const MENU_CLOSE_DELAY = 280
 
 function navHref(item) {
+  if (item.href) return item.href
   if (item.slug === 'home') return '/'
   if (item.slug === 'new-arrivals') return '/shop/new-arrivals'
   if (item.slug === 'sale') return '/shop/sale'
@@ -54,10 +55,11 @@ export function Header() {
   }
 
   const categoryMap = {
-    women: 'women',
-    men: 'men',
-    kids: 'kids',
-    beauty: 'beauty',
+    jewelry: 'jewelry',
+    // women: 'women',
+    // men: 'men',
+    // kids: 'kids',
+    // beauty: 'beauty',
   }
 
   const openMenu = (slug) => {
@@ -252,7 +254,7 @@ export function Header() {
 
           {activeMenu && categoryMap[activeMenu] && (
             <div
-              className={`mega-menu ${activeMenu === 'women' ? 'mega-menu--women' : ''}`}
+              className={`mega-menu${activeMenu === 'jewelry' || activeMenu === 'women' ? ' mega-menu--women' : ''}`}
               onMouseEnter={() => openMenu(activeMenu)}
               onMouseLeave={scheduleClose}
             >

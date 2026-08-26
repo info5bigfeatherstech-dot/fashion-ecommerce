@@ -28,10 +28,16 @@ export const SALE_LIVE = {
 
 export const NAV_ITEMS = [
   { label: 'Home', slug: 'home', megaMenu: false },
-  { label: 'Women', slug: 'women', megaMenu: true },
-  { label: 'Men', slug: 'men', megaMenu: false },
-  { label: 'Youth', slug: 'youth', megaMenu: false },
-  { label: 'Kids', slug: 'kids', megaMenu: false },
+  {
+    label: 'Artificial Jewellery',
+    slug: 'jewelry',
+    megaMenu: true,
+    href: '/shop/watches-accessories/jewelry',
+  },
+  // { label: 'Women', slug: 'women', megaMenu: true },
+  // { label: 'Men', slug: 'men', megaMenu: false },
+  // { label: 'Youth', slug: 'youth', megaMenu: false },
+  // { label: 'Kids', slug: 'kids', megaMenu: false },
 ]
 
 /** Circular category chips on the homepage (below hero). */
