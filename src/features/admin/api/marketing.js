@@ -74,6 +74,27 @@ export async function updateAdminStaff(id, body) {
   return unwrapAdmin(payload)
 }
 
+export async function initiateAdminStaffPasswordReset(staffId) {
+  const payload = await adminPost(API_ENDPOINTS.admin.staffInitiateReset(staffId), {})
+  const inner = unwrapAdmin(payload)
+  return {
+    message: payload?.message || inner?.message || 'OTP sent to your email',
+    maskedEmail: inner?.maskedEmail || null,
+    expiresInSeconds: inner?.expiresInSeconds || 600,
+  }
+}
+
+export async function verifyAdminStaffPasswordReset(staffId, { otp, newPassword }) {
+  const payload = await adminPost(API_ENDPOINTS.admin.staffVerifyReset(staffId), {
+    otp,
+    newPassword,
+  })
+  const inner = unwrapAdmin(payload)
+  return {
+    message: payload?.message || inner?.message || 'Password reset successfully',
+  }
+}
+
 export async function deleteAdminStaff(id) {
   const payload = await adminDelete(API_ENDPOINTS.admin.staffById(id))
   return unwrapAdmin(payload)

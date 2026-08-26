@@ -2,7 +2,6 @@ import { getDummyProductImages } from './constants'
 
 const SIZE_KEYS = /size|capacity|fit/i
 const COLOR_KEYS = /colou?r|shade/i
-const NEW_ARRIVAL_WINDOW_MS = 1000 * 60 * 60 * 24 * 45
 
 function asArray(value) {
   return Array.isArray(value) ? value : []
@@ -15,13 +14,6 @@ function unique(values) {
 function toNumber(value, fallback = 0) {
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : fallback
-}
-
-function isRecent(isoDate) {
-  if (!isoDate) return false
-  const created = new Date(isoDate).getTime()
-  if (Number.isNaN(created)) return false
-  return Date.now() - created <= NEW_ARRIVAL_WINDOW_MS
 }
 
 function collectAttributeValues(variants, productAttributes, matcher) {
@@ -121,11 +113,34 @@ function pickPrimaryVariant(variants) {
   )
 }
 
+function normalizeBadgeKey(value) {
+  const raw = String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_]+/g, '-')
+  if (!raw) return null
+  if (raw === 'new' || raw === 'new-arrival' || raw === 'new-arrivals') return 'new'
+  if (raw === 'bestseller' || raw === 'best-seller') return 'bestseller'
+  if (raw === 'on-sale' || raw === 'sale') return 'sale'
+  if (raw === 'limited') return 'limited'
+  return null
+}
+
+/** Badge only from API fields (appliedTags / badge*) — no invented labels. */
 function deriveBadge(dto) {
-  const tags = asArray(dto.appliedTags)
-  if (tags.includes('on-sale') || dto.maxDiscountPercentage >= 40) return 'limited'
-  if (tags.includes('bestseller') || dto.isBestseller) return 'bestseller'
-  if (isRecent(dto.createdAt)) return 'new'
+  const explicit =
+    normalizeBadgeKey(dto.badge) ||
+    normalizeBadgeKey(dto.badgeType) ||
+    normalizeBadgeKey(dto.badgeLabel)
+  if (explicit) return explicit
+
+  const tags = asArray(dto.appliedTags).map((tag) => String(tag).toLowerCase())
+  // Prefer first matching applied tag order that matches API intent
+  for (const tag of tags) {
+    const fromTag = normalizeBadgeKey(tag)
+    if (fromTag) return fromTag
+  }
+  if (dto.isBestseller) return 'bestseller'
   return null
 }
 

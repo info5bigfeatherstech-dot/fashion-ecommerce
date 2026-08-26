@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
@@ -6,20 +6,44 @@ import { Button } from '@/components/ui/Button'
 import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
 import { HERO_SLIDES } from '@/config/site'
 
+const IMAGE_SLIDE_MS = 7000
+
+function bindHeroVideo(el) {
+  if (!el) return
+  el.muted = true
+  el.defaultMuted = true
+  el.volume = 0
+  el.setAttribute('muted', '')
+  el.playsInline = true
+  const play = () => {
+    el.currentTime = 0
+    el.play().catch(() => {})
+  }
+  if (el.readyState >= 2) play()
+  else el.addEventListener('loadeddata', play, { once: true })
+}
+
 export function HeroSection() {
   const [index, setIndex] = useState(0)
   const slide = HERO_SLIDES[index]
 
+  const goNext = useCallback(() => {
+    setIndex((current) => (current + 1) % HERO_SLIDES.length)
+  }, [])
+
+  const goPrev = useCallback(() => {
+    setIndex((current) => (current - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)
+  }, [])
+
+  // Image slides only — video slides advance via onEnded.
   useEffect(() => {
+    if (slide.video) return undefined
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     if (reduceMotion) return undefined
 
-    const timer = setInterval(() => {
-      setIndex((current) => (current + 1) % HERO_SLIDES.length)
-    }, 6500)
-
-    return () => clearInterval(timer)
-  }, [])
+    const timer = setTimeout(goNext, IMAGE_SLIDE_MS)
+    return () => clearTimeout(timer)
+  }, [slide.video, slide.id, index, goNext])
 
   return (
     <section className="hero" aria-roledescription="carousel" aria-label="Campaign highlights">
@@ -34,7 +58,24 @@ export function HeroSection() {
             transition={{ duration: 0.45, ease: 'easeOut' }}
           >
             <div className="hero__bg">
-              <img src={slide.image} alt={slide.alt} />
+              {slide.video ? (
+                <video
+                  key={slide.video}
+                  ref={bindHeroVideo}
+                  className="hero__video"
+                  src={slide.video}
+                  poster={slide.image}
+                  autoPlay
+                  muted
+                  playsInline
+                  preload="auto"
+                  disablePictureInPicture
+                  aria-label={slide.alt}
+                  onEnded={goNext}
+                />
+              ) : (
+                <img src={slide.image} alt={slide.alt} />
+              )}
             </div>
             <div className="hero__overlay" />
             <div className="hero__content">
@@ -59,7 +100,7 @@ export function HeroSection() {
         <button
           type="button"
           className="hero__nav hero__nav--prev"
-          onClick={() => setIndex((current) => (current - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)}
+          onClick={goPrev}
           aria-label="Previous slide"
         >
           <ChevronLeft size={22} />
@@ -67,7 +108,7 @@ export function HeroSection() {
         <button
           type="button"
           className="hero__nav hero__nav--next"
-          onClick={() => setIndex((current) => (current + 1) % HERO_SLIDES.length)}
+          onClick={goNext}
           aria-label="Next slide"
         >
           <ChevronRight size={22} />

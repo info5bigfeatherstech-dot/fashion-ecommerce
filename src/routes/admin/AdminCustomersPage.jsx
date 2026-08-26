@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Download, Heart, Search, ShoppingBag } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Download, Eye, Heart, Mail, Search, ShoppingBag } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   AdminEmpty,
@@ -10,6 +10,9 @@ import {
 } from '@/features/admin/components/AdminUi'
 import { AdminCartDetailsModal } from '@/features/admin/components/AdminCartDetailsModal'
 import { AdminCustomerDetailsModal } from '@/features/admin/components/AdminCustomerDetailsModal'
+import { BulkActionsMenu } from '@/features/admin/components/BulkActionsMenu'
+import { CartReminderEmailModal } from '@/features/admin/components/CartReminderEmailModal'
+import { CartReminderPushModal } from '@/features/admin/components/CartReminderPushModal'
 import { LeadsAutoPushToggle } from '@/features/admin/components/LeadsAutoPushToggle'
 import {
   useAdminUsers,
@@ -34,14 +37,28 @@ function userIdOf(user) {
   return user?._id || user?.id
 }
 
+function snapshotUser(user) {
+  return {
+    _id: userIdOf(user),
+    name: user?.name,
+    email: user?.email,
+    cartItemsCount: user?.cartItemsCount || 0,
+  }
+}
+
 export default function AdminCustomersPage() {
   const [page, setPage] = useState(1)
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [role, setRole] = useState('')
   const [selectedIds, setSelectedIds] = useState([])
+  const [selectedMeta, setSelectedMeta] = useState({})
   const [cartUser, setCartUser] = useState(null)
   const [detailUser, setDetailUser] = useState(null)
+  const [cartReminderOpen, setCartReminderOpen] = useState(false)
+  const [cartReminderRecipients, setCartReminderRecipients] = useState([])
+  const [cartPushOpen, setCartPushOpen] = useState(false)
+  const [cartPushRecipients, setCartPushRecipients] = useState([])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -70,12 +87,72 @@ export default function AdminCustomersPage() {
   const allSelected = users.length > 0 && users.every((u) => selectedIds.includes(userIdOf(u)))
 
   const handleSelectAll = (checked) => {
-    if (checked) setSelectedIds(users.map(userIdOf).filter(Boolean))
-    else setSelectedIds([])
+    if (checked) {
+      setSelectedIds(users.map(userIdOf).filter(Boolean))
+      setSelectedMeta((prev) => {
+        const next = { ...prev }
+        users.forEach((u) => {
+          const id = userIdOf(u)
+          if (id) next[id] = snapshotUser(u)
+        })
+        return next
+      })
+    } else {
+      setSelectedIds([])
+      setSelectedMeta({})
+    }
   }
 
-  const toggleUser = (id) => {
+  const toggleUser = (user) => {
+    const id = userIdOf(user)
+    if (!id) return
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+    setSelectedMeta((prev) => {
+      const next = { ...prev }
+      if (next[id]) delete next[id]
+      else next[id] = snapshotUser(user)
+      return next
+    })
+  }
+
+  const buildRecipientsFromSelection = useCallback(() => {
+    return selectedIds.map((id) => {
+      if (selectedMeta[id]) return selectedMeta[id]
+      const fromPage = users.find((u) => userIdOf(u) === id)
+      if (fromPage) return snapshotUser(fromPage)
+      return { _id: id, name: 'Customer', email: '—', cartItemsCount: 0 }
+    })
+  }, [selectedIds, selectedMeta, users])
+
+  const openCartReminder = (recipients) => {
+    if (!recipients?.length) return
+    setCartReminderRecipients(recipients)
+    setCartReminderOpen(true)
+  }
+
+  const openCartPush = (recipients) => {
+    if (!recipients?.length) return
+    setCartPushRecipients(recipients)
+    setCartPushOpen(true)
+  }
+
+  const handleBulkCartEmail = () => {
+    if (!selectedIds.length) return
+    openCartReminder(buildRecipientsFromSelection())
+  }
+
+  const handleBulkCartPush = () => {
+    if (!selectedIds.length) return
+    openCartPush(buildRecipientsFromSelection())
+  }
+
+  const handleSingleCartEmail = (user) => {
+    if (!userIdOf(user)) return
+    if ((user.cartItemsCount || 0) === 0) {
+      toast.warning('This customer has an empty cart.')
+      return
+    }
+    openCartReminder([snapshotUser(user)])
   }
 
   const handleExport = async () => {
@@ -132,6 +209,12 @@ export default function AdminCustomersPage() {
           )}
           {exportUsers.isPending ? 'Exporting…' : 'Export Data'}
         </button>
+
+        <BulkActionsMenu
+          count={selectedIds.length}
+          onCartEmail={handleBulkCartEmail}
+          onCartPush={handleBulkCartPush}
+        />
       </div>
 
       <div className="admin-card admin-card--flush admin-leads__card">
@@ -176,7 +259,7 @@ export default function AdminCustomersPage() {
                         <input
                           type="checkbox"
                           checked={selectedIds.includes(id)}
-                          onChange={() => toggleUser(id)}
+                          onChange={() => toggleUser(user)}
                           aria-label={`Select ${user.name || user.email || 'customer'}`}
                         />
                       </td>
@@ -222,7 +305,33 @@ export default function AdminCustomersPage() {
                           <small>{formatJoinedTime(user.createdAt)}</small>
                         </div>
                       </td>
-                      <td className="admin-leads__actions-col" />
+                      <td className="admin-leads__actions-col">
+                        <div className="admin-leads__row-actions">
+                          <button
+                            type="button"
+                            className="admin-leads__row-action"
+                            onClick={() => handleSingleCartEmail(user)}
+                            disabled={!(user.cartItemsCount > 0)}
+                            title={
+                              user.cartItemsCount > 0
+                                ? 'Send cart reminder email'
+                                : 'Empty cart — no reminder email'
+                            }
+                            aria-label="Send cart reminder email"
+                          >
+                            <Mail size={15} />
+                          </button>
+                          <button
+                            type="button"
+                            className="admin-leads__row-action"
+                            onClick={() => setDetailUser(user)}
+                            title="View customer details"
+                            aria-label="View customer details"
+                          >
+                            <Eye size={15} />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   )
                 })}
@@ -270,6 +379,24 @@ export default function AdminCustomersPage() {
           setDetailUser(null)
           setCartUser(user || { _id: id, id })
         }}
+      />
+
+      <CartReminderEmailModal
+        open={cartReminderOpen}
+        onClose={() => {
+          setCartReminderOpen(false)
+          setCartReminderRecipients([])
+        }}
+        recipients={cartReminderRecipients}
+      />
+
+      <CartReminderPushModal
+        open={cartPushOpen}
+        onClose={() => {
+          setCartPushOpen(false)
+          setCartPushRecipients([])
+        }}
+        recipients={cartPushRecipients}
       />
     </div>
   )

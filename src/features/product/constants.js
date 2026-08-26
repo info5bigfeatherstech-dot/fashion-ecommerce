@@ -9,6 +9,7 @@ export const PRICE_RANGES = [
 export const BADGE_OPTIONS = [
   { value: '', label: 'All' },
   { value: 'new', label: 'New' },
+  { value: 'sale', label: 'Sale' },
   { value: 'bestseller', label: 'Bestseller' },
   { value: 'limited', label: 'Limited' },
 ]

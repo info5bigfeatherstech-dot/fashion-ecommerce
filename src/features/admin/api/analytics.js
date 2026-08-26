@@ -1,5 +1,5 @@
 import { API_ENDPOINTS } from '@/api/endpoints'
-import { adminGet, adminGetBlob, downloadBlob, unwrapAdmin } from './client'
+import { adminGet, adminGetBlob, adminPost, adminPut, downloadBlob, unwrapAdmin } from './client'
 
 export async function getAdminUsers({ signal, page = 1, limit = 20, search = '', role = '' } = {}) {
   const params = { page, limit }
@@ -79,6 +79,48 @@ export async function exportAdminUsers({ search = '', role = '' } = {}) {
   const response = await adminGetBlob(API_ENDPOINTS.admin.usersExport, { params })
   const today = new Date().toISOString().slice(0, 10)
   downloadBlob(response.data, `customers_export_${today}.xlsx`)
+}
+
+export async function sendBulkCartReminderEmail(userIds = []) {
+  const ids = (Array.isArray(userIds) ? userIds : []).map(String).filter(Boolean)
+  const payload = await adminPost(
+    API_ENDPOINTS.admin.usersBulkCartReminderEmail,
+    { userIds: ids },
+    { timeout: 180000 }
+  )
+  const unwrapped = unwrapAdmin(payload)
+  if (unwrapped && typeof unwrapped === 'object' && !Array.isArray(unwrapped)) {
+    return {
+      ...unwrapped,
+      message: unwrapped.message || payload?.message,
+      sent: unwrapped.sent ?? payload?.sent,
+      skipped: unwrapped.skipped ?? payload?.skipped,
+      failed: unwrapped.failed ?? payload?.failed,
+      details: unwrapped.details || payload?.details || [],
+    }
+  }
+  return payload
+}
+
+export async function sendBulkCartReminderPush(userIds = []) {
+  const ids = (Array.isArray(userIds) ? userIds : []).map(String).filter(Boolean)
+  const payload = await adminPost(
+    API_ENDPOINTS.admin.usersBulkCartReminderPush,
+    { userIds: ids },
+    { timeout: 60000 }
+  )
+  const unwrapped = unwrapAdmin(payload)
+  if (unwrapped && typeof unwrapped === 'object' && !Array.isArray(unwrapped)) {
+    return {
+      ...unwrapped,
+      message: unwrapped.message || payload?.message,
+      sent: unwrapped.sent ?? payload?.sent,
+      skipped: unwrapped.skipped ?? payload?.skipped,
+      failed: unwrapped.failed ?? payload?.failed,
+      details: unwrapped.details || payload?.details || [],
+    }
+  }
+  return payload
 }
 
 export async function getAdminLeadsPushSettings({ signal } = {}) {

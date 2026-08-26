@@ -131,6 +131,8 @@ export const API_ENDPOINTS = {
     users: '/admin/analytics/users',
     userById: (userId) => `/admin/analytics/users/${encodeURIComponent(String(userId))}`,
     usersExport: '/admin/analytics/users/export',
+    usersBulkCartReminderEmail: '/admin/analytics/users/bulk-cart-reminder-email',
+    usersBulkCartReminderPush: '/admin/analytics/users/bulk-cart-reminder-push',
     leadsPushSettings: '/admin/analytics/push-settings',
     productReviews: '/admin/product-reviews',
     productReviewsGenerated: '/admin/product-reviews/generated',
@@ -162,6 +164,8 @@ export const API_ENDPOINTS = {
     staffProfilePasswordResetInit: '/admin/staff/profile/me/initiate-password-reset',
     staffProfilePasswordResetVerify: '/admin/staff/profile/me/verify-password-reset',
     staffById: (id) => `/admin/staff/${encodeURIComponent(String(id))}`,
+    staffInitiateReset: (id) => `/admin/staff/${encodeURIComponent(String(id))}/initiate-reset`,
+    staffVerifyReset: (id) => `/admin/staff/${encodeURIComponent(String(id))}/verify-reset`,
     returns: '/orders/admin/returns/requests',
     returnDetail: (orderId) =>
       `/orders/admin/returns/requests/${encodeURIComponent(String(orderId))}`,
@@ -177,6 +181,10 @@ export const API_ENDPOINTS = {
     oosInquiryStatus: (id) => `/admin/oos-inquiries/${encodeURIComponent(String(id))}/status`,
     shippingSettings: '/shipping-provider/admin/settings',
     shippingTest: '/shipping-provider/admin/shipmozo/test',
+    shippingWarehouses: '/shipping-provider/admin/shipmozo/warehouses',
+    shipmozoLabelSettings: '/shipping-provider/admin/shipmozo-label-settings',
+    shipmozoLabelSettingsPreview: '/shipping-provider/admin/shipmozo-label-settings/preview',
+    shipmozoLabelSettingsLogo: '/shipping-provider/admin/shipmozo-label-settings/logo',
   },
   delivery: {
     check: '/delivery/check-delivery',

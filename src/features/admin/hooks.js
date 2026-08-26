@@ -73,6 +73,8 @@ import {
   getAdminUserDetail,
   getAdminUsers,
   exportAdminUsers,
+  sendBulkCartReminderEmail,
+  sendBulkCartReminderPush,
   getAdminLeadsPushSettings,
   updateAdminLeadsPushSettings,
   getAdminWishlists,
@@ -80,6 +82,7 @@ import {
   hardDeleteAdminProduct,
   restoreAdminProduct,
   testAdminShippingConnection,
+  getAdminShipmozoWarehouses,
   toggleAdminCoupon,
   toggleAdminFreeShippingOffer,
   updateAdminCheckoutSettings,
@@ -88,6 +91,8 @@ import {
   updateAdminOosInquiryStatus,
   updateAdminShippingSettings,
   updateAdminStaff,
+  initiateAdminStaffPasswordReset,
+  verifyAdminStaffPasswordReset,
 } from './api'
 import { adminKeys } from './queryKeys'
 import { useAdminStore } from './store'
@@ -151,6 +156,16 @@ export function useUpdateAdminShippingSettings() {
 
 export function useTestAdminShippingConnection() {
   return useMutation({ mutationFn: testAdminShippingConnection })
+}
+
+export function useAdminShipmozoWarehouses({ enabled = false } = {}) {
+  const queryEnabled = useAdminQueryEnabled(enabled)
+  return useQuery({
+    queryKey: [...adminKeys.all, 'shipmozo-warehouses'],
+    queryFn: ({ signal }) => getAdminShipmozoWarehouses({ signal }),
+    enabled: queryEnabled,
+    staleTime: 1000 * 60,
+  })
 }
 
 export function useAdminDashboardSummary({ enabled = true } = {}) {
@@ -336,6 +351,14 @@ export function useRetryAdminReturnReversePickup() {
 
 export function useExportAdminUsers() {
   return useMutation({ mutationFn: exportAdminUsers })
+}
+
+export function useSendBulkCartReminderEmail() {
+  return useMutation({ mutationFn: sendBulkCartReminderEmail })
+}
+
+export function useSendBulkCartReminderPush() {
+  return useMutation({ mutationFn: sendBulkCartReminderPush })
 }
 
 export function useEnsureAdminOrderShipment() {
@@ -1100,6 +1123,19 @@ export function useUpdateAdminStaff() {
   return useMutation({
     mutationFn: ({ id, ...body }) => updateAdminStaff(id, body),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'staff'] }),
+  })
+}
+
+export function useInitiateAdminStaffPasswordReset() {
+  return useMutation({
+    mutationFn: (staffId) => initiateAdminStaffPasswordReset(staffId),
+  })
+}
+
+export function useVerifyAdminStaffPasswordReset() {
+  return useMutation({
+    mutationFn: ({ staffId, otp, newPassword }) =>
+      verifyAdminStaffPasswordReset(staffId, { otp, newPassword }),
   })
 }
 

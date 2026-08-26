@@ -156,6 +156,8 @@ export {
   getAdminUsers,
   getAdminUserDetail,
   exportAdminUsers,
+  sendBulkCartReminderEmail,
+  sendBulkCartReminderPush,
   getAdminLeadsPushSettings,
   updateAdminLeadsPushSettings,
   getAdminCarts,
@@ -179,6 +181,8 @@ export {
   createAdminStaff,
   updateAdminStaff,
   deleteAdminStaff,
+  initiateAdminStaffPasswordReset,
+  verifyAdminStaffPasswordReset,
   getAdminOosInquiries,
   updateAdminOosInquiryStatus,
 } from './api/marketing'
@@ -198,4 +202,10 @@ export {
   getAdminShippingSettings,
   updateAdminShippingSettings,
   testAdminShippingConnection,
+  getAdminShipmozoWarehouses,
+  getAdminShipmozoLabelSettings,
+  updateAdminShipmozoLabelSettings,
+  previewAdminShipmozoLabelSettings,
+  uploadAdminShipmozoLabelLogo,
+  deleteAdminShipmozoLabelLogo,
 } from './api/settings'

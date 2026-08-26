@@ -120,16 +120,28 @@ export default function AdminReviewsGeneratedPage() {
   const [editing, setEditing] = useState(null)
   const [busyId, setBusyId] = useState(null)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (pageOverride) => {
+    const pageToLoad = pageOverride ?? page
     setLoading(true)
     try {
-      const res = await getAdminProductReviews({ page, limit: 20, source: 'admin' })
+      const res = await getAdminProductReviews({ page: pageToLoad, limit: 20, source: 'admin' })
       if (res?.success === false) throw new Error(res?.message || 'Failed to load')
-      setReviews(Array.isArray(res?.reviews) ? res.reviews : [])
-      setPagination(res?.pagination || { total: 0, pages: 0, limit: 20 })
+      const list = Array.isArray(res?.reviews)
+        ? res.reviews
+        : Array.isArray(res?.data?.reviews)
+          ? res.data.reviews
+          : []
+      const pag = res?.pagination || res?.data?.pagination || {
+        total: list.length,
+        pages: 0,
+        limit: 20,
+      }
+      setReviews(list)
+      setPagination(pag)
     } catch (err) {
       toast.error(err?.message || 'Could not load reviews')
       setReviews([])
+      setPagination({ total: 0, pages: 0, limit: 20 })
     } finally {
       setLoading(false)
     }
@@ -152,18 +164,18 @@ export default function AdminReviewsGeneratedPage() {
       setResolveMeta({ status: 'loading', message: '' })
       try {
         const res = await resolveAdminProductByVariantCode(code)
-        if (res?.success === false || !res?.product?._id) {
+        const product = res?.product || res?.data?.product
+        if (res?.success === false || !product?._id) {
           throw new Error(res?.message || 'Not found')
         }
-        const p = res.product
-        const v = res.variant || {}
+        const v = res?.variant || res?.data?.variant || {}
         const thumb = Array.isArray(v.images) && v.images[0]?.url ? v.images[0].url : null
         setResolvedProduct({
-          id: String(p._id),
-          title: p.title || p.name || '—',
-          slug: p.slug || '',
+          id: String(product._id),
+          title: product.title || product.name || '—',
+          slug: product.slug || '',
           thumb,
-          productCode: res.matchedProductCode || code,
+          productCode: res?.matchedProductCode || res?.data?.matchedProductCode || code,
         })
         setResolveMeta({ status: 'ok', message: '' })
       } catch (err) {
@@ -195,7 +207,7 @@ export default function AdminReviewsGeneratedPage() {
       setResolvedProduct(null)
       setResolveMeta({ status: 'idle', message: '' })
       setPage(1)
-      await load()
+      await load(1)
     } catch (err) {
       toast.error(err?.message || 'Create failed')
     } finally {

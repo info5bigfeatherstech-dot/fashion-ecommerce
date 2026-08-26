@@ -49,10 +49,10 @@ function applyProductFilters(products, filters = {}) {
   } else if (filters.category === 'sale') {
     results = results.filter((product) => {
       const tags = Array.isArray(product.tags) ? product.tags : []
-      return tags.includes('on-sale') || product.badge === 'limited' || Boolean(product.originalPrice)
+      return tags.includes('on-sale') || product.badge === 'sale' || Boolean(product.originalPrice)
     })
   } else if (filters.category === 'new-arrivals') {
-    results = results.filter((product) => product.badge === 'new' || product.badge === 'limited')
+    results = results.filter((product) => product.badge === 'new' || product.badge === 'sale')
   } else if (filters.category === 'footwear') {
     results = results.filter((product) => FOOTWEAR_SUBS.has(product.subcategory))
   } else if (filters.category === 'bags') {

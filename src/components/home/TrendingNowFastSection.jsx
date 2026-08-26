@@ -3,16 +3,20 @@ import { Link } from 'react-router-dom'
 import { TrendingUp } from 'lucide-react'
 import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
 import { TrendingVideoReelModal } from '@/components/home/TrendingVideoReelModal'
-import video1 from '@/assets/167569-837244635_medium.mp4'
-import video2 from '@/assets/347325.mp4'
-import video3 from '@/assets/371392.mp4'
-import video4 from '@/assets/371392 (1).mp4'
+
+const CLOUDINARY_TRENDING_VIDEO =
+  'https://res.cloudinary.com/kiqmlqnj/video/upload/v1787745696/web_1.mp4'
 
 const TRENDING_VIDEOS = [
-  { id: 'trending-1', src: video1, title: 'Kundan Jewellery', label: 'Trending jewellery look 1' },
-  { id: 'trending-2', src: video2, title: 'Everyday Gold', label: 'Trending jewellery look 2' },
-  { id: 'trending-3', src: video3, title: 'Bridal Edit', label: 'Trending jewellery look 3' },
-  { id: 'trending-4', src: video4, title: 'Statement Drops', label: 'Trending jewellery look 4' },
+  { id: 'trending-1', src: CLOUDINARY_TRENDING_VIDEO, title: 'Kundan Jewellery', label: 'Trending jewellery look 1' },
+  {
+    id: 'trending-2',
+    src: 'https://res.cloudinary.com/kiqmlqnj/video/upload/v1787746151/web_2.mp4',
+    title: 'Everyday Gold',
+    label: 'Trending jewellery look 2',
+  },
+  { id: 'trending-3', src: CLOUDINARY_TRENDING_VIDEO, title: 'Bridal Edit', label: 'Trending jewellery look 3' },
+  { id: 'trending-4', src: CLOUDINARY_TRENDING_VIDEO, title: 'Statement Drops', label: 'Trending jewellery look 4' },
 ]
 
 function bindSilentLoop(el) {
@@ -33,7 +37,7 @@ export function TrendingNowFastSection() {
   const [activeIndex, setActiveIndex] = useState(null)
 
   return (
-    <section className="section container container--wide trending-now-section">
+    <section className="section container trending-now-section">
       <div className="section-header">
         <div>
           <Reveal x={-14} y={0}>

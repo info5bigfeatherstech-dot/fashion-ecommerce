@@ -158,7 +158,7 @@ export const cartSlice = (set, get) => ({
       set({ cartItems: [...previousItems, localLine] })
     }
 
-    if (!get().accessToken) return
+    if (!get().accessToken) return true
 
     try {
       const variantId = await ensureVariantId(product, options)
@@ -172,9 +172,11 @@ export const cartSlice = (set, get) => ({
         quantity,
       })
       get().replaceCartFromApi(cart)
+      return true
     } catch (error) {
       set({ cartItems: previousItems, ...previousMeta })
-      notifyBagError(error)
+      notifyCartError(error)
+      return false
     }
   },
 

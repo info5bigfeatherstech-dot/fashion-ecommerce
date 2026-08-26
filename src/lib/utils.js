@@ -41,6 +41,7 @@ export function getBadgeClass(badge) {
     new: 'badge--new',
     bestseller: 'badge--bestseller',
     limited: 'badge--limited',
+    sale: 'badge--sale',
   }
   return map[badge] || 'badge--neutral'
 }
@@ -50,6 +51,7 @@ export function getBadgeLabel(badge) {
     new: 'New',
     bestseller: 'Bestseller',
     limited: 'Limited',
+    sale: 'Sale',
   }
   return map[badge] || badge
 }

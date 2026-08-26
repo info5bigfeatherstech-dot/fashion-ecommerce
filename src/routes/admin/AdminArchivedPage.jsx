@@ -209,43 +209,43 @@ export default function AdminArchivedPage() {
               <h2>Archived Products</h2>
               <span className="admin-archived__count">{archivedCount} archived</span>
             </div>
-            {selectedSlugs.size > 0 && (
-              <div className="admin-archived__bulk">
-                <span className="admin-bulk-bar__badge">
-                  <Check size={14} aria-hidden />
-                  {selectedSlugs.size} selected
-                </span>
-                <button
-                  type="button"
-                  className="admin-archived__bulk-btn admin-archived__bulk-btn--restore"
-                  onClick={() => setBulkMode('restore')}
-                  disabled={actionBusy}
-                >
-                  <RotateCcw size={15} aria-hidden />
-                  Restore ({selectedSlugs.size})
-                </button>
-                <button
-                  type="button"
-                  className="admin-archived__bulk-btn admin-archived__bulk-btn--delete"
-                  onClick={() => setBulkMode('delete')}
-                  disabled={actionBusy}
-                >
-                  <Trash2 size={15} aria-hidden />
-                  Permanently Delete ({selectedSlugs.size})
-                </button>
-              </div>
-            )}
+            <div className="admin-archived__search">
+              <Search size={16} aria-hidden />
+              <input
+                type="search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search archived products..."
+                aria-label="Search archived products"
+              />
+            </div>
           </div>
-          <div className="admin-archived__search">
-            <Search size={18} aria-hidden />
-            <input
-              type="search"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search archived products..."
-              aria-label="Search archived products"
-            />
-          </div>
+          {selectedSlugs.size > 0 && (
+            <div className="admin-archived__bulk">
+              <span className="admin-bulk-bar__badge">
+                <Check size={14} aria-hidden />
+                {selectedSlugs.size} selected
+              </span>
+              <button
+                type="button"
+                className="admin-archived__bulk-btn admin-archived__bulk-btn--restore"
+                onClick={() => setBulkMode('restore')}
+                disabled={actionBusy}
+              >
+                <RotateCcw size={15} aria-hidden />
+                Restore ({selectedSlugs.size})
+              </button>
+              <button
+                type="button"
+                className="admin-archived__bulk-btn admin-archived__bulk-btn--delete"
+                onClick={() => setBulkMode('delete')}
+                disabled={actionBusy}
+              >
+                <Trash2 size={15} aria-hidden />
+                Permanently Delete ({selectedSlugs.size})
+              </button>
+            </div>
+          )}
         </div>
 
         {isLoading && <AdminLoading label="Loading archived products…" />}

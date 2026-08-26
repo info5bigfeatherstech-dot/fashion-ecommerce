@@ -2,13 +2,16 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Briefcase,
   Calendar,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   Clock,
   Download,
   Edit2,
   Eye,
   EyeOff,
+  KeyRound,
   Loader2,
   Lock,
   Mail,
@@ -16,6 +19,7 @@ import {
   Plus,
   Search,
   Shield,
+  ShieldCheck,
   Trash2,
   User,
   X,
@@ -28,7 +32,9 @@ import {
   useAdminStaffProfile,
   useCreateAdminStaff,
   useDeleteAdminStaff,
+  useInitiateAdminStaffPasswordReset,
   useUpdateAdminStaff,
+  useVerifyAdminStaffPasswordReset,
 } from '@/features/admin/hooks'
 import { ADMIN_ROLE_LABELS } from '@/features/admin/store'
 
@@ -273,28 +279,107 @@ function CreateStaffModal({ onClose, onSuccess }) {
 
 function EditStaffModal({ staff, onClose, onSuccess }) {
   const updateStaff = useUpdateAdminStaff()
+  const initiateReset = useInitiateAdminStaffPasswordReset()
+  const verifyReset = useVerifyAdminStaffPasswordReset()
+
   const [form, setForm] = useState({
     name: staff.name || '',
     email: staff.email || '',
     phone: staff.phone || '',
     role: staff.role || '',
     status: staff.status || 'active',
+    password: '',
   })
+  const [showPassword, setShowPassword] = useState(false)
+
+  const [pwOpen, setPwOpen] = useState(false)
+  const [otpSent, setOtpSent] = useState(false)
+  const [resetSuccess, setResetSuccess] = useState(false)
+  const [maskedEmail, setMaskedEmail] = useState('')
+  const [otp, setOtp] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [showNewPw, setShowNewPw] = useState(false)
 
   const set = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }))
+  const staffId = staff._id || staff.id
+
+  const resetPwFlow = () => {
+    setOtpSent(false)
+    setResetSuccess(false)
+    setMaskedEmail('')
+    setOtp('')
+    setNewPassword('')
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    const payload = {
+      name: form.name,
+      email: form.email,
+      phone: form.phone,
+      role: form.role,
+      status: form.status,
+    }
+    const password = String(form.password || '').trim()
+    if (password) {
+      if (password.length < 6) {
+        toast.error('Password must be at least 6 characters')
+        return
+      }
+      payload.password = password
+    }
+
     try {
       await updateStaff.mutateAsync({
-        id: staff._id || staff.id,
-        ...form,
+        id: staffId,
+        ...payload,
       })
-      toast.success('Staff member updated')
+      toast.success(password ? 'Staff member and password updated' : 'Staff member updated')
       onSuccess()
       onClose()
     } catch (err) {
       toast.error(err?.message || 'Could not update staff member')
+    }
+  }
+
+  const handleSendOtp = async () => {
+    try {
+      const result = await initiateReset.mutateAsync(staffId)
+      setOtpSent(true)
+      setResetSuccess(false)
+      setMaskedEmail(result?.maskedEmail || '')
+      toast.success(result?.message || 'OTP sent to your email')
+    } catch (err) {
+      toast.error(err?.message || 'Failed to send OTP')
+    }
+  }
+
+  const handleVerifyReset = async (e) => {
+    e.preventDefault()
+    if (!/^\d{6}$/.test(otp)) {
+      toast.error('Enter the 6-digit OTP from your email')
+      return
+    }
+    if (newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters')
+      return
+    }
+
+    try {
+      const result = await verifyReset.mutateAsync({
+        staffId,
+        otp,
+        newPassword,
+      })
+      setResetSuccess(true)
+      setOtpSent(false)
+      toast.success(result?.message || 'Password reset successfully')
+      setTimeout(() => {
+        setPwOpen(false)
+        resetPwFlow()
+      }, 1800)
+    } catch (err) {
+      toast.error(err?.message || 'Failed to reset password')
     }
   }
 
@@ -357,6 +442,31 @@ function EditStaffModal({ staff, onClose, onSuccess }) {
           </select>
         </label>
 
+        {/* <label className="admin-staff__field">
+          <span className="admin-staff__label">
+            Password <span className="admin-staff__optional">(optional — leave blank to keep current)</span>
+          </span>
+          <div className="admin-staff__input-wrap admin-staff__input-wrap--password">
+            <Lock size={16} aria-hidden />
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={form.password}
+              onChange={set('password')}
+              placeholder="Set a new password"
+              minLength={6}
+              autoComplete="new-password"
+            />
+            <button
+              type="button"
+              className="admin-staff__password-toggle"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+        </label> */}
+
         <div className="admin-staff__modal-actions">
           <button type="button" className="admin-staff__btn admin-staff__btn--ghost" onClick={onClose}>
             Cancel
@@ -367,6 +477,117 @@ function EditStaffModal({ staff, onClose, onSuccess }) {
           </button>
         </div>
       </form>
+
+      <div className="admin-staff__pw-reset">
+        <button
+          type="button"
+          className="admin-staff__pw-reset-toggle"
+          onClick={() => {
+            setPwOpen((v) => !v)
+            if (pwOpen) resetPwFlow()
+          }}
+          aria-expanded={pwOpen}
+        >
+          <span>
+            <KeyRound size={16} aria-hidden />
+            Reset Staff Password
+          </span>
+          {pwOpen ? <ChevronUp size={16} aria-hidden /> : <ChevronDown size={16} aria-hidden />}
+        </button>
+
+        {pwOpen ? (
+          <div className="admin-staff__pw-reset-body">
+            {resetSuccess ? (
+              <div className="admin-staff__pw-reset-success">
+                <ShieldCheck size={28} aria-hidden />
+                <p>Password reset successfully</p>
+              </div>
+            ) : !otpSent ? (
+              <div className="admin-staff__pw-reset-step">
+                <p>
+                  An OTP will be sent to <strong>your admin email</strong>
+                  {maskedEmail ? ` (${maskedEmail})` : ''}. Use it to confirm and set a new password for{' '}
+                  <strong>{staff.name || staff.email}</strong>.
+                </p>
+                <button
+                  type="button"
+                  className="admin-staff__btn admin-staff__btn--amber"
+                  onClick={handleSendOtp}
+                  disabled={initiateReset.isPending}
+                >
+                  {initiateReset.isPending ? <Loader2 size={15} className="admin-staff__spin" /> : <KeyRound size={15} />}
+                  {initiateReset.isPending ? 'Sending OTP…' : 'Send OTP to My Email'}
+                </button>
+              </div>
+            ) : (
+              <form className="admin-staff__pw-reset-step" onSubmit={handleVerifyReset}>
+                <p>
+                  Check your admin email for the 6-digit OTP
+                  {maskedEmail ? ` sent to ${maskedEmail}` : ''}. It expires in 10 minutes.
+                </p>
+
+                <label className="admin-staff__field">
+                  <span className="admin-staff__label">OTP Code</span>
+                  <input
+                    className="admin-staff__otp-input"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="6-digit OTP"
+                    maxLength={6}
+                    required
+                  />
+                </label>
+
+                <label className="admin-staff__field">
+                  <span className="admin-staff__label">New Password</span>
+                  <div className="admin-staff__input-wrap admin-staff__input-wrap--password">
+                    <Lock size={16} aria-hidden />
+                    <input
+                      type={showNewPw ? 'text' : 'password'}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Min. 6 characters"
+                      minLength={6}
+                      required
+                      autoComplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      className="admin-staff__password-toggle"
+                      onClick={() => setShowNewPw((v) => !v)}
+                      aria-label={showNewPw ? 'Hide password' : 'Show password'}
+                    >
+                      {showNewPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </label>
+
+                <div className="admin-staff__modal-actions">
+                  <button
+                    type="button"
+                    className="admin-staff__btn admin-staff__btn--ghost"
+                    onClick={handleSendOtp}
+                    disabled={verifyReset.isPending || initiateReset.isPending}
+                  >
+                    {initiateReset.isPending ? 'Sending…' : 'Resend OTP'}
+                  </button>
+                  <button
+                    type="submit"
+                    className="admin-staff__btn admin-staff__btn--primary"
+                    disabled={verifyReset.isPending || otp.length < 6}
+                  >
+                    {verifyReset.isPending ? <Loader2 size={16} className="admin-staff__spin" /> : null}
+                    {verifyReset.isPending ? 'Verifying…' : 'Confirm Reset'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        ) : null}
+      </div>
     </StaffModal>
   )
 }

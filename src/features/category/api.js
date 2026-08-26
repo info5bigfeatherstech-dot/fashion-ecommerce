@@ -14,7 +14,7 @@ export const MEGA_MENUS = {
         { label: 'Mangalsutras', href: '/shop/watches-accessories/jewelry' },
         { label: 'Sets', href: '/shop/watches-accessories/jewelry' },
         { label: 'Gifting', href: '/shop/watches-accessories/jewelry' },
-        { label: 'Trendings', href: '/shop/watches-accessories/jewelry' },
+        // { label: 'Trendings', href: '/shop/watches-accessories/jewelry' },
       ],
     },
   ],

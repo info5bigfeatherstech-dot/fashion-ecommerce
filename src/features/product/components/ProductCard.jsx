@@ -9,7 +9,6 @@ import { cn, formatPrice, formatDiscount } from '@/lib/utils'
 import { FEATURE_FLAGS } from '@/config/site'
 import { showAddedToCartToast } from '@/lib/cart-toast'
 import { resolveVariantId } from '@/features/product/mappers'
-import { OfferCode } from './OfferCode'
 
 const MAX_QUICK_QTY = 8
 
@@ -248,10 +247,9 @@ export function ProductCard({ product, compact = false }) {
             <span className="product-card__original">{formatPrice(product.originalPrice)}</span>
           )}
           {discount && (
-            <span className="product-card__discount">-{discount}%</span>
+            <span className="product-card__discount">{discount}%</span>
           )}
         </div>
-        <OfferCode compact />
         <div className="product-card__rating" data-empty={!(product.reviewCount > 0) ? 'true' : undefined}>
           <Star size={12} className="product-card__star" fill="currentColor" />
           <span>{product.rating}</span>

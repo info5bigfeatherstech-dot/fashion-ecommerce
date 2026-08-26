@@ -22,6 +22,7 @@ import {
   initiateAdminSelfPasswordReset,
   verifyAdminSelfPasswordReset,
 } from '@/features/admin/api/marketing'
+import LabelSettingsSection from '@/features/admin/components/LabelSettingsSection'
 import { useAdminStore } from '@/features/admin/store'
 import AdminSectionPage from './AdminSectionPage'
 
@@ -567,7 +568,7 @@ const META = {
   },
   label: {
     title: 'Label settings',
-    description: 'Shipping label and Shipmozo/Shiprocket label preferences.',
+    description: '',
   },
   orders: {
     title: 'Order settings',
@@ -637,6 +638,14 @@ export default function AdminSettingsSectionPage({ section = 'profile' }) {
     return (
       <div className="admin-page">
         <ProductDisplaySection />
+      </div>
+    )
+  }
+
+  if (section === 'label') {
+    return (
+      <div className="admin-page admin-label-settings-page">
+        <LabelSettingsSection />
       </div>
     )
   }

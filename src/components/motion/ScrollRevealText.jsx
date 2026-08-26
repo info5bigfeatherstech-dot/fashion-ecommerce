@@ -4,7 +4,7 @@ import { TextAnimate } from '@/components/ui/text-animate'
 
 const SLOW_TEXT = {
   animation: 'slideRight',
-  by: 'character',
+  by: 'word',
   duration: 1.65,
   delay: 0.12,
   once: true,
@@ -59,7 +59,7 @@ function animateNodes(children) {
 }
 
 /**
- * Home headings use Magic UI TextAnimate — characters slide in slowly from the left.
+ * Home headings use Magic UI TextAnimate — words slide in slowly from the left.
  */
 export function ScrollRevealText({
   as: Tag = 'h2',

@@ -11,6 +11,20 @@ const FLEX_INACTIVE = 1
 const PANEL_EASE = [0.22, 1, 0.36, 1]
 const PANEL_DURATION = 0.72
 
+function bindSilentLoop(el) {
+  if (!el) return
+  el.muted = true
+  el.defaultMuted = true
+  el.volume = 0
+  el.setAttribute('muted', '')
+  el.playsInline = true
+  const play = () => {
+    el.play().catch(() => {})
+  }
+  if (el.readyState >= 2) play()
+  else el.addEventListener('loadeddata', play, { once: true })
+}
+
 function useIsMobile(breakpoint = BREAKPOINTS.tablet) {
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth < breakpoint : false,
@@ -96,22 +110,46 @@ export function ShopByOccasionSection() {
                   onClick={() => setActiveIndex(index)}
                 >
                   <span className="occasion-accordion__media" aria-hidden="true">
-                    <motion.img
-                      src={panel.image}
-                      alt={panel.alt}
-                      loading="lazy"
-                      initial={false}
-                      animate={{
-                        scale: isActive ? 1.06 : 1,
-                        filter: isActive
-                          ? 'grayscale(0) brightness(1)'
-                          : 'grayscale(1) brightness(0.68)',
-                      }}
-                      transition={{
-                        ...contentTransition,
-                        delay: reduceMotion ? 0 : isActive ? 0.08 : 0,
-                      }}
-                    />
+                    {panel.video ? (
+                      <motion.video
+                        ref={bindSilentLoop}
+                        src={panel.video}
+                        poster={panel.image}
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        preload="metadata"
+                        initial={false}
+                        animate={{
+                          scale: isActive ? 1.06 : 1,
+                          filter: isActive
+                            ? 'grayscale(0) brightness(1)'
+                            : 'grayscale(1) brightness(0.68)',
+                        }}
+                        transition={{
+                          ...contentTransition,
+                          delay: reduceMotion ? 0 : isActive ? 0.08 : 0,
+                        }}
+                      />
+                    ) : (
+                      <motion.img
+                        src={panel.image}
+                        alt={panel.alt}
+                        loading="lazy"
+                        initial={false}
+                        animate={{
+                          scale: isActive ? 1.06 : 1,
+                          filter: isActive
+                            ? 'grayscale(0) brightness(1)'
+                            : 'grayscale(1) brightness(0.68)',
+                        }}
+                        transition={{
+                          ...contentTransition,
+                          delay: reduceMotion ? 0 : isActive ? 0.08 : 0,
+                        }}
+                      />
+                    )}
                   </span>
                   <motion.span
                     className="occasion-accordion__overlay"

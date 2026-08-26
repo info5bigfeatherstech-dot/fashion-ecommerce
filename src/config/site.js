@@ -10,12 +10,6 @@ export const SITE_CONTACT = {
   wholesaleEmail: 'fabuniqo@gmail.com',
 }
 
-export const PRODUCT_OFFER = {
-  code: 'VERA26',
-  label: 'Use code',
-  detail: 'Extra 10% off at checkout',
-}
-
 export const TOP_BANNER = {
   badge: 'Gift Season',
   headline: 'Get Every Gift with Every Purchase',
@@ -113,6 +107,7 @@ export const HERO_SLIDES = [
     subtitle: 'From Paris ateliers to Seoul streets — every piece designed, made, and owned by VERAÒ.',
     cta: 'Explore New Drops',
     href: '/shop/new-arrivals',
+    video: 'https://res.cloudinary.com/kiqmlqnj/video/upload/v1787745696/web_1.mp4',
     image: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1400&h=800&q=80',
     alt: 'VERAÒ Autumn Collection — model in layered silk and wool',
   },
@@ -193,6 +188,7 @@ export const SHOP_BY_OCCASION = {
       label: 'Party & Night Out Glamour',
       title: 'Party & Night Out Glamour',
       href: '/shop/new-arrivals',
+      video: 'https://res.cloudinary.com/kiqmlqnj/video/upload/v1787746151/web_2.mp4',
       image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=900&h=1200&q=80',
       alt: 'Statement jewelry for evening occasions',
     },
@@ -551,7 +547,7 @@ export const FOOTER_COLUMNS = [
       { label: 'Mangalsutras', href: '/shop/watches-accessories/jewelry' },
       { label: 'Sets', href: '/shop/watches-accessories/jewelry' },
       { label: 'Gifting', href: '/shop/watches-accessories/jewelry' },
-      { label: 'Trendings', href: '/shop/watches-accessories/jewelry' },
+      // { label: 'Trendings', href: '/shop/watches-accessories/jewelry' },
     ],
   },
   {

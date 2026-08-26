@@ -11,7 +11,7 @@ export function PriceBlock({ price, originalPrice, size = 'default' }) {
         <span className="product-card__original">{formatPrice(originalPrice)}</span>
       )}
       {discount && (
-        <span className="product-card__discount">-{discount}%</span>
+        <span className="product-card__discount">{discount}%</span>
       )}
     </div>
   )

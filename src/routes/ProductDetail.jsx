@@ -15,7 +15,6 @@ import { ProductCarousel } from '@/features/product/components/ProductCarousel'
 import { OutOfStockInquiryForm } from '@/features/product/components/OutOfStockInquiryForm'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
 import { useProductDetail, useRelatedProducts } from '@/features/product/hooks'
-import { OfferCode } from '@/features/product/components/OfferCode'
 import { resolveDisplayImages, resolveVariant, isAttrValueInStock } from '@/features/product/mappers'
 import { useAppStore } from '@/store'
 import { showAddedToCartToast } from '@/lib/cart-toast'
@@ -200,7 +199,7 @@ export default function ProductDetail() {
     })
   }
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!isAvailable) return
     if (!isAuthenticated) {
       navigate('/login', { state: { redirectTo: `/product/${slug}` }, replace: true })
@@ -209,13 +208,15 @@ export default function ProductDetail() {
     const sizeGroup = (product.optionGroups || []).find((g) => g.isSize)
     const colorGroup = (product.optionGroups || []).find((g) => g.isColor)
     const qty = Math.min(quantity, maxOrderQty)
-    addItem(product, {
+    const options = {
       size: sizeGroup ? selectedAttrs[sizeGroup.key] : undefined,
       color: colorGroup ? selectedAttrs[colorGroup.key] : undefined,
       attrs: selectedAttrs,
       variantId: selectedVariant?.id,
       quantity: qty,
-    })
+    }
+    const ok = await addItem(product, options)
+    if (ok === false) return
     showAddedToCartToast(
       { ...product, name: displayTitle },
       {
@@ -223,6 +224,26 @@ export default function ProductDetail() {
         onViewBag: () => navigate('/cart'),
       }
     )
+  }
+
+  const handleBuyNow = async () => {
+    if (!isAvailable) return
+    if (!isAuthenticated) {
+      navigate('/login', { state: { redirectTo: `/product/${slug}` }, replace: true })
+      return
+    }
+    const sizeGroup = (product.optionGroups || []).find((g) => g.isSize)
+    const colorGroup = (product.optionGroups || []).find((g) => g.isColor)
+    const qty = Math.min(quantity, maxOrderQty)
+    const ok = await addItem(product, {
+      size: sizeGroup ? selectedAttrs[sizeGroup.key] : undefined,
+      color: colorGroup ? selectedAttrs[colorGroup.key] : undefined,
+      attrs: selectedAttrs,
+      variantId: selectedVariant?.id,
+      quantity: qty,
+    })
+    if (ok === false) return
+    navigate('/checkout')
   }
 
   const related = relatedProducts
@@ -349,7 +370,6 @@ export default function ProductDetail() {
           </div>
 
           <PriceBlock price={displayPrice} originalPrice={displayOriginal} size="large" />
-          <OfferCode />
 
           {choosableGroups.map((group) => {
             const selected = selectedAttrs[group.key] ?? group.values[0]
@@ -446,10 +466,18 @@ export default function ProductDetail() {
                 <Button
                   variant="primary"
                   size="lg"
-                  fullWidth
+                  className="pdp-info__cta"
                   onClick={handleAddToCart}
                 >
                   Add to Bag
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  className="pdp-info__cta"
+                  onClick={handleBuyNow}
+                >
+                  Buy Now
                 </Button>
                 <Button
                   variant="secondary"
@@ -498,6 +526,9 @@ export default function ProductDetail() {
             <small>{formatPrice(displayOriginal)}</small>
           )}
         </div>
+        <Button variant="secondary" size="md" onClick={handleBuyNow} disabled={!isAvailable}>
+          Buy Now
+        </Button>
         <Button variant="primary" size="md" onClick={handleAddToCart} disabled={!isAvailable}>
           {isAvailable ? 'Add to Bag' : 'Not available'}
         </Button>
