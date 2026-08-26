@@ -98,64 +98,114 @@ function resolveSwatchColor(name) {
   return hashToColor(raw)
 }
 
-export function SizeSelector({ sizes, selected, onSelect, label = 'Size', showFitHint = true }) {
+function asUnavailableSet(values) {
+  if (!values) return new Set()
+  if (values instanceof Set) return values
+  return new Set(Array.isArray(values) ? values : [])
+}
+
+export function SizeSelector({
+  sizes,
+  selected,
+  onSelect,
+  label = 'Size',
+  showFitHint = true,
+  outOfStockValues,
+}) {
   if (!sizes?.length) return null
+  const unavailable = asUnavailableSet(outOfStockValues)
+  const selectedUnavailable = selected != null && unavailable.has(selected)
 
   return (
     <div className="pdp-option">
       <div className="pdp-option__head">
         <p className="heading-sm">
           {label}: <span className="pdp-option__value">{selected}</span>
+          {selectedUnavailable ? (
+            <span className="pdp-option__oos-label"> · Not available</span>
+          ) : null}
         </p>
         {showFitHint ? <span className="pdp-option__hint">True to size</span> : null}
       </div>
       <div className="size-selector">
-        {sizes.map((size) => (
-          <button
-            key={size}
-            type="button"
-            className={`size-selector__btn ${selected === size ? 'size-selector__btn--active' : ''}`}
-            onClick={() => onSelect(size)}
-            aria-pressed={selected === size}
-          >
-            {size}
-          </button>
-        ))}
+        {sizes.map((size) => {
+          const isOos = unavailable.has(size)
+          return (
+            <button
+              key={size}
+              type="button"
+              className={[
+                'size-selector__btn',
+                selected === size ? 'size-selector__btn--active' : '',
+                isOos ? 'size-selector__btn--oos' : '',
+              ].filter(Boolean).join(' ')}
+              onClick={() => onSelect(size)}
+              aria-pressed={selected === size}
+              title={isOos ? `${size} — Not available` : size}
+            >
+              {size}
+            </button>
+          )
+        })}
       </div>
     </div>
   )
 }
 
-export function ColorSelector({ colors, selected, onSelect, label = 'Color' }) {
+export function ColorSelector({
+  colors,
+  selected,
+  onSelect,
+  label = 'Color',
+  outOfStockValues,
+}) {
   if (!colors?.length) return null
+  const unavailable = asUnavailableSet(outOfStockValues)
+  const selectedUnavailable = selected != null && unavailable.has(selected)
 
   return (
     <div className="pdp-option">
       <div className="pdp-option__head">
         <p className="heading-sm">
           {label}: <span className="pdp-option__value">{selected}</span>
+          {selectedUnavailable ? (
+            <span className="pdp-option__oos-label"> · Not available</span>
+          ) : null}
         </p>
       </div>
       <div className="color-selector">
-        {colors.map((color) => (
-          <button
-            key={color}
-            type="button"
-            className={`color-selector__swatch ${selected === color ? 'color-selector__swatch--active' : ''}`}
-            style={{ backgroundColor: resolveSwatchColor(color) }}
-            onClick={() => onSelect(color)}
-            aria-pressed={selected === color}
-            aria-label={color}
-            title={color}
-          />
-        ))}
+        {colors.map((color) => {
+          const isOos = unavailable.has(color)
+          return (
+            <button
+              key={color}
+              type="button"
+              className={[
+                'color-selector__swatch',
+                selected === color ? 'color-selector__swatch--active' : '',
+                isOos ? 'color-selector__swatch--oos' : '',
+              ].filter(Boolean).join(' ')}
+              style={{ backgroundColor: resolveSwatchColor(color) }}
+              onClick={() => onSelect(color)}
+              aria-pressed={selected === color}
+              aria-label={isOos ? `${color}, not available` : color}
+              title={isOos ? `${color} — Not available` : color}
+            />
+          )
+        })}
       </div>
     </div>
   )
 }
 
 /** Generic attribute picker (Material, Style, etc.) — same button UI as size. */
-export function AttributeSelector({ values, selected, onSelect, label }) {
+export function AttributeSelector({
+  values,
+  selected,
+  onSelect,
+  label,
+  outOfStockValues,
+}) {
   return (
     <SizeSelector
       sizes={values}
@@ -163,6 +213,7 @@ export function AttributeSelector({ values, selected, onSelect, label }) {
       onSelect={onSelect}
       label={label}
       showFitHint={false}
+      outOfStockValues={outOfStockValues}
     />
   )
 }

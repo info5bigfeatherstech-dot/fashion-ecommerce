@@ -16,7 +16,7 @@ import { OutOfStockInquiryForm } from '@/features/product/components/OutOfStockI
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
 import { useProductDetail, useRelatedProducts } from '@/features/product/hooks'
 import { OfferCode } from '@/features/product/components/OfferCode'
-import { resolveDisplayImages, resolveVariant } from '@/features/product/mappers'
+import { resolveDisplayImages, resolveVariant, isAttrValueInStock } from '@/features/product/mappers'
 import { useAppStore } from '@/store'
 import { showAddedToCartToast } from '@/lib/cart-toast'
 import { scrollToTop } from '@/lib/lenis'
@@ -30,9 +30,11 @@ function formatLabel(value) {
 function initialAttrsFromProduct(product) {
   const groups = product?.optionGroups || []
   if (!groups.length) return {}
-  const firstVariant = product?.variants?.[0]
+  const preferred =
+    product?.variants?.find((variant) => variant?.inStock) ||
+    product?.variants?.[0]
   const fromVariant = {}
-  for (const attr of firstVariant?.attributes || []) {
+  for (const attr of preferred?.attributes || []) {
     if (attr?.key && attr?.value != null) fromVariant[attr.key] = attr.value
   }
   const next = {}
@@ -139,12 +141,18 @@ export default function ProductDetail() {
       ? selectedVariant.originalPrice
       : product?.originalPrice
   const displayCode = selectedVariant?.productCode || product?.productCode
-  const isAvailable = selectedVariant
-    ? Boolean(selectedVariant.inStock)
+  // Availability must follow the *selected* variant, not product-level stock
+  // (product.inStock is true if ANY variant has stock).
+  const isAvailable = product?.variants?.length
+    ? Boolean(selectedVariant?.inStock)
     : Boolean(product?.inStock)
   const maxOrderQty = selectedVariant?.quantity > 0
     ? Math.min(8, selectedVariant.quantity)
     : 8
+
+  useEffect(() => {
+    setQuantity(1)
+  }, [selectedVariant?.id])
 
   if (isLoading) {
     return (
@@ -174,19 +182,17 @@ export default function ProductDetail() {
   const handleAttrSelect = (key, value) => {
     setSelectedAttrs((prev) => {
       const next = { ...prev, [key]: value }
-      // Drop other axes that contradict the newly chosen value so Color=grey
-      // is not kept locked to a Black+Size variant.
+      // Keep the chosen value; align other axes to a matching variant
+      // (including out-of-stock ones) so Red OOS stays selected as Red.
       const matched = resolveVariant(product, { attrs: next })
       if (!matched) return next
       for (const attr of matched.attributes || []) {
         if (!attr?.key) continue
-        if (String(attr.key).toLowerCase() === String(key).toLowerCase()) continue
-        const current = next[attr.key]
-        if (current != null && String(current) !== String(attr.value)) {
-          next[attr.key] = attr.value
-        } else if (current == null) {
-          next[attr.key] = attr.value
+        if (String(attr.key).toLowerCase() === String(key).toLowerCase()) {
+          next[attr.key] = value
+          continue
         }
+        next[attr.key] = attr.value
       }
       return next
     })
@@ -345,6 +351,9 @@ export default function ProductDetail() {
 
           {choosableGroups.map((group) => {
             const selected = selectedAttrs[group.key] ?? group.values[0]
+            const outOfStockValues = (group.values || []).filter(
+              (value) => !isAttrValueInStock(product, selectedAttrs, group.key, value)
+            )
             if (group.isColor) {
               return (
                 <ColorSelector
@@ -352,6 +361,7 @@ export default function ProductDetail() {
                   label={group.label}
                   colors={group.values}
                   selected={selected}
+                  outOfStockValues={outOfStockValues}
                   onSelect={(value) => handleAttrSelect(group.key, value)}
                 />
               )
@@ -363,6 +373,7 @@ export default function ProductDetail() {
                   label={group.label}
                   sizes={group.values}
                   selected={selected}
+                  outOfStockValues={outOfStockValues}
                   onSelect={(value) => handleAttrSelect(group.key, value)}
                 />
               )
@@ -373,6 +384,7 @@ export default function ProductDetail() {
                 label={group.label}
                 values={group.values}
                 selected={selected}
+                outOfStockValues={outOfStockValues}
                 onSelect={(value) => handleAttrSelect(group.key, value)}
               />
             )

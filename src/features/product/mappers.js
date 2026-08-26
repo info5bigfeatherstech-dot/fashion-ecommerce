@@ -125,7 +125,7 @@ function pickPrimaryVariant(variants) {
 function deriveBadge(dto) {
   const tags = asArray(dto.appliedTags)
   if (tags.includes('on-sale') || dto.maxDiscountPercentage >= 40) return 'limited'
-  if (dto.isFeatured) return 'bestseller'
+  if (tags.includes('bestseller') || dto.isBestseller) return 'bestseller'
   if (isRecent(dto.createdAt)) return 'new'
   return null
 }
@@ -248,8 +248,31 @@ function scoreVariantAgainstAttrs(variant, entries) {
 }
 
 /**
+ * Whether any in-stock variant can satisfy this attribute value
+ * together with the rest of the current selection.
+ */
+export function isAttrValueInStock(product, selectedAttrs = {}, key, value) {
+  const variants = asArray(product?.variants)
+  if (!variants.length || key == null || value == null) return false
+
+  const trial = { ...(selectedAttrs || {}), [key]: value }
+  const entries = Object.entries(trial).filter(([, v]) => v != null && String(v).trim() !== '')
+
+  return variants.some((variant) => {
+    if (!variant?.inStock) return false
+    const hasValue = asArray(variant.attributes).some(
+      (a) => attrKeyEquals(a.key, key) && attrValueEquals(a.value, value)
+    )
+    if (!hasValue) return false
+    const { ok, score } = scoreVariantAgainstAttrs(variant, entries)
+    return ok && score > 0
+  })
+}
+
+/**
  * Resolve a variant from mapped product.variants using selected attrs / size / color.
- * Falls back to the first non-contradicting variant, then the first variant.
+ * Prefers an exact attribute match (even if out of stock) so OOS colors/sizes stay selected.
+ * Never falls back to a variant that contradicts the current selection.
  */
 export function resolveVariant(product, { size, color, variantId, attrs } = {}) {
   const variants = asArray(product?.variants)
@@ -273,7 +296,9 @@ export function resolveVariant(product, { size, color, variantId, attrs } = {}) 
   }
 
   const entries = Object.entries(selected).filter(([, v]) => v != null && String(v).trim() !== '')
-  if (!entries.length) return variants[0] || null
+  if (!entries.length) {
+    return variants.find((v) => v.inStock) || variants[0] || null
+  }
 
   const exact = variants.find((variant) => {
     const variantAttrs = asArray(variant.attributes)
@@ -288,14 +313,18 @@ export function resolveVariant(product, { size, color, variantId, attrs } = {}) 
   if (exact) return exact
 
   // Prefer full coverage of selected keys when the variant defines them
-  const fullCover = variants.find((variant) => {
+  const fullCoverMatches = variants.filter((variant) => {
     const { ok, score } = scoreVariantAgainstAttrs(variant, entries)
     return ok && score === entries.length
   })
-  if (fullCover) return fullCover
+  if (fullCoverMatches.length) {
+    return fullCoverMatches.find((v) => v.inStock) || fullCoverMatches[0]
+  }
 
   let best = null
   let bestScore = -1
+  let bestInStock = null
+  let bestInStockScore = -1
   for (const variant of variants) {
     const { ok, score } = scoreVariantAgainstAttrs(variant, entries)
     if (!ok || score <= 0) continue
@@ -303,19 +332,31 @@ export function resolveVariant(product, { size, color, variantId, attrs } = {}) 
       bestScore = score
       best = variant
     }
+    if (variant.inStock && score > bestInStockScore) {
+      bestInStockScore = score
+      bestInStock = variant
+    }
   }
+  // Prefer the matching OOS/exact attr selection over a different in-stock color.
+  // Only prefer in-stock when it matches at least as well as the best overall.
+  if (bestInStock && bestInStockScore >= bestScore) return bestInStock
   if (best) return best
 
   // Last resort: ignore size-like keys and match color (or other axes) only
   const nonSizeEntries = entries.filter(([key]) => !SIZE_KEYS.test(key))
   if (nonSizeEntries.length && nonSizeEntries.length < entries.length) {
+    const colorMatches = []
     for (const variant of variants) {
       const { ok, score } = scoreVariantAgainstAttrs(variant, nonSizeEntries)
-      if (ok && score > 0) return variant
+      if (ok && score > 0) colorMatches.push(variant)
+    }
+    if (colorMatches.length) {
+      return colorMatches.find((v) => v.inStock) || colorMatches[0]
     }
   }
 
-  return variants[0] || null
+  // Do not return an unrelated first variant — that hides real OOS selections.
+  return null
 }
 
 /** Gallery URLs for the active selection — never mix other colors' images. */
