@@ -1375,6 +1375,67 @@ select.input {
   text-transform: uppercase;
 }
 
+.filter-field__desktop {
+  display: block;
+}
+
+.filter-chips {
+  display: none;
+}
+
+.filter-chip {
+  flex-shrink: 0;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-paper);
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.filter-chip--active {
+  background: var(--color-ink);
+  color: var(--color-paper);
+  border-color: var(--color-ink);
+}
+
+.filter-chip:hover:not(.filter-chip--active) {
+  border-color: var(--color-ink);
+  color: var(--color-ink);
+}
+
+@media (max-width: 1279px) {
+  .filter-field__desktop {
+    display: none;
+  }
+
+  .filter-chips {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .filter-chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  .filter-field {
+    padding-block: 0.75rem;
+  }
+
+  .filter-field__label {
+    margin-bottom: 0.25rem;
+  }
+}
+
 /* ─── Badge ─── */
 
 .badge {
@@ -10094,6 +10155,7 @@ a.cart-item__name:hover {
 .account-main {
   display: grid;
   gap: var(--space-3);
+  min-width: 0;
 }
 
 .account-section {
@@ -10648,6 +10710,71 @@ a.cart-item__name:hover {
   .account-layout {
     padding-top: 10px;
     padding-bottom: calc(12px + var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
+    overflow-x: hidden;
+  }
+
+  .account-sidebar {
+    width: 100%;
+    min-width: 0;
+    overflow: visible;
+  }
+
+  .account-sidebar__card {
+    width: 100%;
+    overflow: visible;
+  }
+
+  .account-quick {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  .account-quick__tile {
+    min-height: 68px;
+    padding: 8px 4px;
+    font-size: 11px;
+  }
+
+  .account-menu {
+    overflow: visible;
+  }
+
+  .account-menu__link {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .account-signout {
+    width: 100%;
+    margin-bottom: var(--space-2);
+  }
+
+  .account-panel {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .account-panel--address-form {
+    padding: 14px;
+    border-radius: 12px;
+  }
+
+  .account-address-list {
+    grid-template-columns: 1fr;
+    max-width: none;
+  }
+
+  .account-address-card {
+    max-width: none;
+  }
+
+  .account-address-card__actions {
+    flex-direction: column;
+  }
+
+  .account-address-card__actions .btn {
+    width: 100%;
+    justify-content: center;
   }
 
   .account-section__header--profile,

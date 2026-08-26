@@ -337,7 +337,7 @@ function fmtDate(d) {
   return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-function ProductViewModal({ open, onOpenChange, product }) {
+export function ProductViewModal({ open, onOpenChange, product }) {
   const [activeVariantIndex, setActiveVariantIndex] = useState(0)
   const productKey = product?._id || product?.id || product?.slug || ''
 
