@@ -119,57 +119,63 @@ export default function Cart() {
             </button>
 
             <div className="cart-summary__body">
-            <div className="checkout-summary__head">
-              <h2 className="checkout-panel__title">Order Summary</h2>
-              <span className="body-sm text-muted">
-                {itemCount} {itemCount === 1 ? 'item' : 'items'}
-              </span>
-            </div>
+              <div className="checkout-summary__head">
+                <h2 className="checkout-panel__title">Order Summary</h2>
+                <span className="body-sm text-muted">
+                  {itemCount} {itemCount === 1 ? 'item' : 'items'}
+                </span>
+              </div>
 
-            <div className="cart-summary__shipping">
-              <div className="cart-summary__shipping-top">
-                <Truck size={16} />
-                <p className="body-sm">
-                  {shipping === 0 ? (
-                    <>You&apos;ve unlocked <strong>free shipping</strong></>
-                  ) : (
-                    <>
-                      Add <strong>{formatPrice(remainingForFreeShipping)}</strong> for free shipping
-                    </>
-                  )}
-                </p>
-              </div>
-              <div
-                className="cart-summary__progress"
-                role="progressbar"
-                aria-valuenow={Math.round(shippingProgress)}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-label="Progress toward free shipping"
-              >
-                <span style={{ width: `${shippingProgress}%` }} />
-              </div>
-            </div>
-
-            <div className="checkout-summary__rows">
-              <div className="checkout-summary__row">
-                <span>Subtotal</span>
-                <span>{formatPrice(cartTotal)}</span>
-              </div>
-              {totalDiscount > 0 && (
-                <div className="checkout-summary__row">
-                  <span>Discount</span>
-                  <span>-{formatPrice(totalDiscount)}</span>
+              <div className="cart-summary__shipping">
+                <div className="cart-summary__shipping-top">
+                  <Truck size={16} />
+                  <p className="body-sm">
+                    {shipping === 0 ? (
+                      <>You&apos;ve unlocked <strong>free shipping</strong></>
+                    ) : (
+                      <>
+                        Add <strong>{formatPrice(remainingForFreeShipping)}</strong> for free shipping
+                      </>
+                    )}
+                  </p>
                 </div>
-              )}
-              <div className="checkout-summary__row">
-                <span>Shipping</span>
-                <span>{shipping === 0 ? 'Free' : formatPrice(shipping)}</span>
+                <div
+                  className="cart-summary__progress"
+                  role="progressbar"
+                  aria-valuenow={Math.round(shippingProgress)}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label="Progress toward free shipping"
+                >
+                  <span style={{ width: `${shippingProgress}%` }} />
+                </div>
               </div>
-              <div className="checkout-summary__total">
-                <span>Total</span>
-                <span>{formatPrice(total)}</span>
+
+              <div className="checkout-summary__rows">
+                <div className="checkout-summary__row">
+                  <span>Subtotal</span>
+                  <span>{formatPrice(cartTotal)}</span>
+                </div>
+                {totalDiscount > 0 && (
+                  <div className="checkout-summary__row">
+                    <span>Discount</span>
+                    <span>-{formatPrice(totalDiscount)}</span>
+                  </div>
+                )}
+                <div className="checkout-summary__row">
+                  <span>Shipping</span>
+                  <span>{shipping === 0 ? 'Free' : formatPrice(shipping)}</span>
+                </div>
+                <div className="checkout-summary__total">
+                  <span>Total</span>
+                  <span>{formatPrice(total)}</span>
+                </div>
               </div>
+
+              <p className="cart-summary__secure">
+                <Sparkles size={14} />
+                Secure checkout · Easy returns
+              </p>
             </div>
 
             <Button
@@ -181,12 +187,6 @@ export default function Cart() {
               Proceed to Checkout
               <ArrowRight size={16} />
             </Button>
-
-            <p className="cart-summary__secure">
-              <Sparkles size={14} />
-              Secure checkout · Easy returns
-            </p>
-            </div>
           </aside>
         </div>
       </div>
