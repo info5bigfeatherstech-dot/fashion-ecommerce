@@ -1,20 +1,16 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ShoppingBag, Heart, User, MessageCircle, MapPin, Menu, Search, X, ChevronDown, ChevronRight, Warehouse, Home as HomeIcon } from 'lucide-react'
+import { ShoppingBag, Heart, User, MessageCircle, Menu, Search, X, ChevronRight, Warehouse, Home as HomeIcon } from 'lucide-react'
 import { SearchBar } from '@/features/search/components/SearchBar'
 import { CartDrawer } from '@/features/cart/components/CartDrawer'
-import { MegaMenuPanel } from '@/features/category/components/MegaMenu'
 import { useAppStore } from '@/store'
 import { useCartCount, useWishlistCount } from '@/store/selectors'
 import { SITE_NAME, NAV_ITEMS } from '@/config/site'
-import { MEGA_MENUS } from '@/features/category/api'
 import { BrandLogo } from './BrandLogo'
 import { SaleLiveBadge } from './SaleLiveBadge'
 import { getUserFirstName } from '@/lib/utils'
 import { MEDIA_QUERIES } from '@/config/breakpoints'
-
-const MENU_CLOSE_DELAY = 280
 
 function navHref(item) {
   if (item.href) return item.href
@@ -31,11 +27,8 @@ function isNavActive(item, pathname) {
 }
 
 export function Header() {
-  const [activeMenu, setActiveMenu] = useState(null)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
-  const [mobileSection, setMobileSection] = useState(null)
-  const closeTimer = useRef(null)
   const location = useLocation()
   const cartCount = useCartCount()
   const wishlistCount = useWishlistCount()
@@ -54,50 +47,10 @@ export function Header() {
     setMobileNavOpen(false)
   }
 
-  const categoryMap = {
-    jewelry: 'jewelry',
-    // women: 'women',
-    // men: 'men',
-    // kids: 'kids',
-    // beauty: 'beauty',
-  }
-
-  const openMenu = (slug) => {
-    if (closeTimer.current) {
-      clearTimeout(closeTimer.current)
-      closeTimer.current = null
-    }
-    setActiveMenu(slug)
-  }
-
-  const closeMenu = () => {
-    if (closeTimer.current) {
-      clearTimeout(closeTimer.current)
-      closeTimer.current = null
-    }
-    setActiveMenu(null)
-  }
-
-  const scheduleClose = () => {
-    if (closeTimer.current) clearTimeout(closeTimer.current)
-    closeTimer.current = setTimeout(() => {
-      setActiveMenu(null)
-      closeTimer.current = null
-    }, MENU_CLOSE_DELAY)
-  }
-
   useEffect(() => {
-    closeMenu()
     setMobileNavOpen(false)
     setSearchOpen(false)
-    setMobileSection(null)
   }, [location.pathname])
-
-  useEffect(() => {
-    return () => {
-      if (closeTimer.current) clearTimeout(closeTimer.current)
-    }
-  }, [])
 
   useEffect(() => {
     document.body.style.overflow = mobileNavOpen ? 'hidden' : ''
@@ -130,7 +83,7 @@ export function Header() {
   return (
     <>
       <header className={`header ${searchOpen ? 'header--search-open' : ''} ${mobileNavOpen ? 'header--menu-open' : ''}`}>
-        <div className="header__main" onMouseEnter={closeMenu}>
+        <div className="header__main">
           <div className="container header__main-inner">
             <button
               type="button"
@@ -166,14 +119,18 @@ export function Header() {
               >
                 {searchOpen ? <X size={18} /> : <Search size={18} />}
               </button>
-              {/* <Link to="/account" className="header__util header__util--desktop">
-                <MessageCircle size={18} />
-                <span className="header__util-label">Chat</span>
-              </Link> */}
-              {/* <Link to="/account" className="header__util header__util--desktop">
-                <MapPin size={18} />
-                <span className="header__util-label">Stores</span>
-              </Link> */}
+              <Link to="/wholesale" className="header__util header__util--desktop">
+                <span className="header__util-icon">
+                  <Warehouse size={22} />
+                </span>
+                <span className="header__util-label">Wholesale</span>
+              </Link>
+              <Link to="/contact" className="header__util header__util--desktop">
+                <span className="header__util-icon">
+                  <MessageCircle size={22} />
+                </span>
+                <span className="header__util-label">Contact Us</span>
+              </Link>
               <Link to="/wishlist" className="header__util header__util--icon" aria-label="Wishlist">
                 <span className="header__util-icon">
                   <Heart size={22} />
@@ -183,12 +140,15 @@ export function Header() {
                 </span>
                 <span className="header__util-label">Wishlist</span>
               </Link>
-              <Link to="/contact" className="header__util header__util--desktop">
+              <button type="button" className="header__util header__util--icon" onClick={openCart} aria-label="Shopping bag">
                 <span className="header__util-icon">
-                  <MessageCircle size={22} />
+                  <ShoppingBag size={24} />
+                  {cartCount > 0 && (
+                    <span className="header__badge-count">{cartCount}</span>
+                  )}
                 </span>
-                <span className="header__util-label">Contact Us</span>
-              </Link>
+                <span className="header__util-label">Bag</span>
+              </button>
               <Link
                 to="/profile"
                 className="header__util header__util--desktop"
@@ -200,49 +160,18 @@ export function Header() {
                 </span>
                 <span className="header__util-label">{accountLabel}</span>
               </Link>
-              <Link to="/wholesale" className="header__util header__util--desktop">
-                <span className="header__util-icon">
-                  <Warehouse size={22} />
-                </span>
-                <span className="header__util-label">Wholesale</span>
-              </Link>
-              <button type="button" className="header__util header__util--icon" onClick={openCart} aria-label="Shopping bag">
-                <span className="header__util-icon">
-                  <ShoppingBag size={24} />
-                  {cartCount > 0 && (
-                    <span className="header__badge-count">{cartCount}</span>
-                  )}
-                </span>
-                <span className="header__util-label">Bag</span>
-              </button>
             </div>
           </div>
         </div>
 
-        <div
-          className="header__nav-row"
-          onMouseLeave={scheduleClose}
-        >
+        <div className="header__nav-row">
           <div className="container header__nav-inner">
             <nav className="header__nav" aria-label="Main navigation">
               {NAV_ITEMS.map((item) => (
-                <div
-                  key={item.slug}
-                  onMouseEnter={() => {
-                    if (!item.megaMenu) {
-                      closeMenu()
-                      return
-                    }
-                    if (!window.matchMedia(MEDIA_QUERIES.desktop).matches) {
-                      closeMenu()
-                      return
-                    }
-                    openMenu(item.slug)
-                  }}
-                >
+                <div key={item.slug}>
                   <Link
                     to={navHref(item)}
-                    className={`header__nav-link ${isNavActive(item, location.pathname) ? 'header__nav-link--active' : ''}`}
+                    className={`header__nav-link${item.slug !== 'home' ? ' header__nav-link--category' : ''} ${isNavActive(item, location.pathname) ? 'header__nav-link--active' : ''}`}
                   >
                     {item.slug === 'home' ? <HomeIcon size={18} aria-hidden /> : item.label}
                   </Link>
@@ -251,16 +180,6 @@ export function Header() {
               <SaleLiveBadge />
             </nav>
           </div>
-
-          {activeMenu && categoryMap[activeMenu] && (
-            <div
-              className={`mega-menu${activeMenu === 'jewelry' || activeMenu === 'women' ? ' mega-menu--women' : ''}`}
-              onMouseEnter={() => openMenu(activeMenu)}
-              onMouseLeave={scheduleClose}
-            >
-              <MegaMenuPanel activeCategory={categoryMap[activeMenu]} />
-            </div>
-          )}
         </div>
       </header>
 
@@ -302,69 +221,17 @@ export function Header() {
               </div>
 
               <div className="drawer__body header__mobile-body">
-                {NAV_ITEMS.map((item) => {
-                  const columns = item.megaMenu ? MEGA_MENUS[categoryMap[item.slug]] : null
-                  const isExpanded = mobileSection === item.slug
-
-                  if (columns?.length) {
-                    return (
-                      <div key={item.slug} className="header__mobile-group">
-                        <button
-                          type="button"
-                          className={`header__mobile-link ${isNavActive(item, location.pathname) ? 'header__mobile-link--active' : ''}`}
-                          aria-expanded={isExpanded}
-                          onClick={() => setMobileSection(isExpanded ? null : item.slug)}
-                        >
-                          {item.label}
-                          <ChevronDown size={18} style={{ transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease' }} />
-                        </button>
-                        <AnimatePresence initial={false}>
-                          {isExpanded && (
-                            <motion.div
-                              className="header__mobile-sub"
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: 'auto', opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              transition={{ duration: 0.2 }}
-                            >
-                              {columns.flatMap((column) =>
-                                column.links.map((link) => (
-                                  <Link
-                                    key={`${item.slug}-${link.label}`}
-                                    to={link.href}
-                                    className="header__mobile-sublink"
-                                    onClick={() => setMobileNavOpen(false)}
-                                  >
-                                    {link.label}
-                                  </Link>
-                                ))
-                              )}
-                              <Link
-                                to={navHref(item)}
-                                className="header__mobile-sublink"
-                                onClick={() => setMobileNavOpen(false)}
-                              >
-                                Shop all {item.label}
-                              </Link>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    )
-                  }
-
-                  return (
-                    <Link
-                      key={item.slug}
-                      to={navHref(item)}
-                      className={`header__mobile-link ${isNavActive(item, location.pathname) ? 'header__mobile-link--active' : ''}`}
-                      onClick={() => setMobileNavOpen(false)}
-                    >
-                      {item.slug === 'home' ? <HomeIcon size={18} aria-hidden /> : item.label}
-                      <ChevronRight size={16} />
-                    </Link>
-                  )
-                })}
+                {NAV_ITEMS.map((item) => (
+                  <Link
+                    key={item.slug}
+                    to={navHref(item)}
+                    className={`header__mobile-link ${isNavActive(item, location.pathname) ? 'header__mobile-link--active' : ''}`}
+                    onClick={() => setMobileNavOpen(false)}
+                  >
+                    {item.slug === 'home' ? <HomeIcon size={18} aria-hidden /> : item.label}
+                    <ChevronRight size={16} />
+                  </Link>
+                ))}
 
                 <div className="header__mobile-sale">
                   <SaleLiveBadge />

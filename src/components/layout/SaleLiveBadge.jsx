@@ -11,10 +11,11 @@ export function SaleLiveBadge() {
       className={`sale-live-badge${isActive ? ' sale-live-badge--active' : ''}`}
       aria-label={`${SALE_LIVE.label} — shop sale`}
     >
-      <span className="sale-live-badge__dot" aria-hidden="true" />
+      <span className="sale-live-badge__live" aria-hidden="true">
+        <span className="sale-live-badge__dot" />
+        <span className="sale-live-badge__ring" />
+      </span>
       <span className="sale-live-badge__text">{SALE_LIVE.label}</span>
-      <span className="sale-live-badge__spark sale-live-badge__spark--1" aria-hidden="true">✦</span>
-      <span className="sale-live-badge__spark sale-live-badge__spark--2" aria-hidden="true">✦</span>
     </Link>
   )
 }

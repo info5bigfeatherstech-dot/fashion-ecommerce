@@ -79,13 +79,13 @@ export function Footer() {
 
         <div className="footer__bottom">
           <p className="body-sm" style={{ color: 'var(--color-neutral)' }}>
-            © {new Date().getFullYear()} {SITE_NAME}. All rights reserved. Every product designed and owned by us.
+            © {new Date().getFullYear()} {SITE_NAME}. All Rights Reserved.
           </p>
-          <div className="footer__payments">
+          {/* <div className="footer__payments">
             {PAYMENT_METHODS.map((method) => (
               <span key={method} className="footer__payment-icon">{method}</span>
             ))}
-          </div>
+          </div> */}
         </div>
       </div>
     </footer>

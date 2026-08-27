@@ -1,3 +1,5 @@
+import { JEWELRY_CATEGORIES } from '@/config/site'
+
 export const PRICE_RANGES = [
   { key: 'all', label: 'All prices' },
   { key: '0-200', label: 'Under ₹200', min: 0, max: 199 },
@@ -18,17 +20,8 @@ export const SIZE_OPTIONS = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
 
 export const COLOR_OPTIONS = ['Black', 'Ivory', 'Navy', 'Nude', 'White', 'Camel', 'Charcoal']
 
-export const TOP_CATEGORIES = [
-  { label: 'Women', slug: 'women' },
-  { label: 'Men', slug: 'men' },
-  { label: 'Kids', slug: 'kids' },
-  { label: 'Skincare', slug: 'skincare' },
-  { label: 'Makeup', slug: 'makeup' },
-  { label: 'Innerwear', slug: 'innerwear' },
-  { label: 'Watches', slug: 'watches-accessories' },
-  { label: 'Footwear', slug: 'footwear' },
-  { label: 'Bags', slug: 'bags' },
-]
+export const TOP_CATEGORIES = JEWELRY_CATEGORIES.map(({ label, slug }) => ({ label, slug }))
+
 
 const IMAGE_PARAMS = 'auto=format&fit=crop&w=800&h=1000&q=80'
 

@@ -16,7 +16,6 @@ export const TOP_BANNER = {
   message: 'Free Shipping on orders above ₹1099',
   href: '/shop/women',
   cta: 'Shop now',
-  terms: 'T&Cs apply. Offer valid while stocks last.',
 }
 
 export const SALE_LIVE = {
@@ -26,60 +25,67 @@ export const SALE_LIVE = {
   tag: 'on-sale',
 }
 
+/** Jewelry shop categories — each has its own navbar item and `/shop/:slug` page. */
+export const JEWELRY_CATEGORIES = [
+  { label: 'Earrings & Studs', slug: 'earrings-studs' },
+  { label: 'Rings', slug: 'rings' },
+  { label: 'Bracelets & Bangles', slug: 'bracelets-bangles' },
+  { label: 'Necklace & Pendants', slug: 'necklace-pendants' },
+  { label: 'Mangalsutras', slug: 'mangalsutras' },
+  { label: 'Sets', slug: 'sets' },
+  { label: 'Gifting', slug: 'gifting' },
+]
+
 export const NAV_ITEMS = [
   { label: 'Home', slug: 'home', megaMenu: false },
-  {
-    label: 'Artificial Jewellery',
-    slug: 'jewelry',
-    megaMenu: true,
-    href: '/shop/watches-accessories/jewelry',
-  },
-  // { label: 'Women', slug: 'women', megaMenu: true },
-  // { label: 'Men', slug: 'men', megaMenu: false },
-  // { label: 'Youth', slug: 'youth', megaMenu: false },
-  // { label: 'Kids', slug: 'kids', megaMenu: false },
+  ...JEWELRY_CATEGORIES.map(({ label, slug }) => ({
+    label,
+    slug,
+    megaMenu: false,
+    href: `/shop/${slug}`,
+  })),
 ]
 
 /** Circular category chips on the homepage (below hero). */
 export const HOME_CIRCLE_CATEGORIES = [
   {
     label: 'Earrings',
-    href: '/shop/watches-accessories/jewelry',
+    href: '/shop/earrings-studs',
     image: 'https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&w=400&h=400&q=80',
   },
   {
     label: 'Necklaces',
-    href: '/shop/watches-accessories/jewelry',
+    href: '/shop/necklace-pendants',
     image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=400&h=400&q=80',
   },
   {
     label: 'Rings',
-    href: '/shop/watches-accessories/jewelry',
+    href: '/shop/rings',
     image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557c?auto=format&fit=crop&w=400&h=400&q=80',
   },
   {
     label: 'Bracelets',
-    href: '/shop/watches-accessories/jewelry',
+    href: '/shop/bracelets-bangles',
     image: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?auto=format&fit=crop&w=400&h=400&q=80',
   },
   {
     label: 'Pendants',
-    href: '/shop/watches-accessories/jewelry',
+    href: '/shop/necklace-pendants',
     image: 'https://images.unsplash.com/photo-1611107683227-e9060eccd846?auto=format&fit=crop&w=400&h=400&q=80',
   },
   {
     label: 'Sets',
-    href: '/shop/watches-accessories/jewelry',
+    href: '/shop/sets',
     image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=400&h=400&q=80',
   },
   {
     label: 'Mangalsutras',
-    href: '/shop/watches-accessories/jewelry',
+    href: '/shop/mangalsutras',
     image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=400&h=400&q=80',
   },
   {
     label: 'Gifting',
-    href: '/shop/sale',
+    href: '/shop/gifting',
     image: 'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=400&h=400&q=80',
   },
 ]
@@ -237,7 +243,7 @@ export const CRAFTSMANSHIP_INSPECTION = {
   titleLead: 'Gold',
   titleAmp: '&',
   titleTrail: 'Diamond',
-  heading: '18K Solid Gold Natural Diamonds',
+  heading: 'Artificial Solid Gold Diamonds',
   body: 'Our jewelry pieces are handcrafted by skilled artisans using certified 18K gold and ethically sourced natural diamonds. Every gemstone is carefully selected for brilliance, clarity, and precision setting to ensure timeless elegance.',
   ctaLabel: 'Shop Jewelry',
   ctaHref: '/shop/women',
@@ -544,17 +550,11 @@ export const TRUST_ITEMS = [
 
 export const FOOTER_COLUMNS = [
   {
-    title: 'Artificial Jewlery',
-    links: [
-      { label: 'Earings & Studs', href: '/shop/watches-accessories/jewelry' },
-      { label: 'Rings', href: '/shop/watches-accessories/jewelry' },
-      { label: 'Bracelets & Bangles', href: '/shop/watches-accessories/jewelry' },
-      { label: 'Necklace & Pendants', href: '/shop/watches-accessories/jewelry' },
-      { label: 'Mangalsutras', href: '/shop/watches-accessories/jewelry' },
-      { label: 'Sets', href: '/shop/watches-accessories/jewelry' },
-      { label: 'Gifting', href: '/shop/watches-accessories/jewelry' },
-      // { label: 'Trendings', href: '/shop/watches-accessories/jewelry' },
-    ],
+    title: 'Artificial Jewellery',
+    links: JEWELRY_CATEGORIES.map(({ label, slug }) => ({
+      label,
+      href: `/shop/${slug}`,
+    })),
   },
   {
     title: 'Customer Service',

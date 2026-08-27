@@ -1,36 +1,8 @@
+import { JEWELRY_CATEGORIES } from '@/config/site'
+
 const delay = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export const MEGA_MENUS = {
-  jewelry: [
-    {
-      // title: 'Artificial Jewellery',
-      href: null,
-      links: [
-        { label: 'Earings & Studs', href: '/shop/watches-accessories/jewelry' },
-        { label: 'Rings', href: '/shop/watches-accessories/jewelry' },
-        { label: 'Bracelets & Bangles', href: '/shop/watches-accessories/jewelry' },
-        { label: 'Necklace & Pendants', href: '/shop/watches-accessories/jewelry' },
-        { label: 'Mangalsutras', href: '/shop/watches-accessories/jewelry' },
-        { label: 'Sets', href: '/shop/watches-accessories/jewelry' },
-        { label: 'Gifting', href: '/shop/watches-accessories/jewelry' },
-      ],
-    },
-  ],
-  // women: [
-  //   {
-  //     title: 'Artificial Jewellery',
-  //     href: null,
-  //     links: [
-  //       { label: 'Earings & Studs', href: '/shop/watches-accessories/jewelry' },
-  //       { label: 'Rings', href: '/shop/watches-accessories/jewelry' },
-  //       { label: 'Bracelets & Bangles', href: '/shop/watches-accessories/jewelry' },
-  //       { label: 'Necklace & Pendants', href: '/shop/watches-accessories/jewelry' },
-  //       { label: 'Mangalsutras', href: '/shop/watches-accessories/jewelry' },
-  //       { label: 'Sets', href: '/shop/watches-accessories/jewelry' },
-  //       { label: 'Gifting', href: '/shop/watches-accessories/jewelry' },
-  //     ],
-  //   },
-  // ],
   men: [
     {
       title: 'Clothing',
@@ -301,6 +273,17 @@ export const MEGA_MENUS = {
 }
 
 export const CATEGORY_TREE = {
+  ...Object.fromEntries(
+    JEWELRY_CATEGORIES.map(({ label, slug }) => [
+      slug,
+      {
+        label,
+        slug,
+        image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&h=500&fit=crop',
+        children: [],
+      },
+    ])
+  ),
   women: {
     label: 'Women',
     slug: 'women',
