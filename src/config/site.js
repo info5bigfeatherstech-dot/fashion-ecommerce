@@ -327,7 +327,7 @@ export const JEWELRY_ARCHIVE = [
 
 export const AS_SEEN_ON_YOU = {
   instagramHref: 'https://instagram.com/',
-  /** Dummy gallery until Instagram/UGC API is connected */
+  /** Fallback collage only when `/products/featured` returns no images */
   collage: [
     {
       id: 'spot-1',

@@ -200,6 +200,10 @@ export function mapProduct(dto) {
     originalPrice: originalPrice > price ? originalPrice : null,
     badge: deriveBadge(dto),
     tags: asArray(dto.appliedTags),
+    isTodayDeal:
+      asArray(dto.appliedTags).some(
+        (tag) => String(tag).toLowerCase() === 'today-arrival'
+      ) || Boolean(dto.isTodayDeal || dto.todayDeal),
     rating: toNumber(dto.rating?.value, 0),
     reviewCount: toNumber(dto.rating?.count, 0),
     sizes: collectAttributeValues(variants, attributes, SIZE_KEYS),

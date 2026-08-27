@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Accordion } from '@/components/ui/Accordion'
 import { ProductCarousel } from '@/features/product/components/ProductCarousel'
 import { OutOfStockInquiryForm } from '@/features/product/components/OutOfStockInquiryForm'
-import { ProductReviewsSection } from '@/features/reviews/components/ProductReviewsSection'
+import { ProductReviewCompose, ProductPublishedReviews } from '@/features/reviews/components/ProductReviewsSection'
 import { ProductRatingStars } from '@/features/reviews/components/ProductRatingStars'
 import { useProductReviews } from '@/features/reviews/hooks'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
@@ -21,7 +21,7 @@ import { useProductDetail, useRelatedProducts } from '@/features/product/hooks'
 import { resolveDisplayImages, resolveVariant, isAttrValueInStock } from '@/features/product/mappers'
 import { useAppStore } from '@/store'
 import { showAddedToCartToast } from '@/lib/cart-toast'
-import { scrollToTop } from '@/lib/lenis'
+import { scrollToTopSoon } from '@/lib/lenis'
 import { formatPrice } from '@/lib/utils'
 
 function formatLabel(value) {
@@ -61,6 +61,7 @@ export default function ProductDetail() {
   const [selectedAttrs, setSelectedAttrs] = useState({})
   const [quantity, setQuantity] = useState(1)
   const [showStickyBar, setShowStickyBar] = useState(false)
+  const [reviewFilterStar, setReviewFilterStar] = useState(null)
   const gallerySentinelRef = useRef(null)
 
   const addItem = useAppStore((s) => s.addItem)
@@ -75,7 +76,8 @@ export default function ProductDetail() {
     setSelectedAttrs({})
     setQuantity(1)
     setShowStickyBar(false)
-    scrollToTop()
+    setReviewFilterStar(null)
+    return scrollToTopSoon()
   }, [slug])
 
   useEffect(() => {
@@ -110,13 +112,11 @@ export default function ProductDetail() {
     }
   }, [slug, product?.id])
 
-  // Product + related content loads async; reset again so we don't land on "You May Also Like"
+  // Async product / related / reviews expand the page — re-pin to top as they settle.
   useLayoutEffect(() => {
-    if (isLoading || !product) return
-    scrollToTop()
-    const raf = requestAnimationFrame(() => scrollToTop())
-    return () => cancelAnimationFrame(raf)
-  }, [slug, isLoading, product?.id])
+    if (isLoading || !product) return undefined
+    return scrollToTopSoon([0, 80, 200, 450, 900])
+  }, [slug, isLoading, product?.id, relatedProducts.length])
 
   const selectedVariant = useMemo(() => {
     if (!product) return null
@@ -341,8 +341,15 @@ export default function ProductDetail() {
       </nav>
 
       <div className="pdp">
-        <div ref={gallerySentinelRef}>
-          <ProductGallery images={displayImages} name={displayTitle} />
+        <div className="pdp-media">
+          <div ref={gallerySentinelRef}>
+            <ProductGallery images={displayImages} name={displayTitle} />
+          </div>
+          <ProductReviewCompose
+            product={product}
+            filterStar={reviewFilterStar}
+            onFilterStarChange={setReviewFilterStar}
+          />
         </div>
 
         <div className="pdp-info">
@@ -514,7 +521,11 @@ export default function ProductDetail() {
         </section>
       )}
 
-      <ProductReviewsSection product={product} />
+      <ProductPublishedReviews
+        product={product}
+        filterStar={reviewFilterStar}
+        onFilterStarChange={setReviewFilterStar}
+      />
 
       <div
         className={`pdp-sticky-bar${showStickyBar ? ' pdp-sticky-bar--visible' : ''}`}

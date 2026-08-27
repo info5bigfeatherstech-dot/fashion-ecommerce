@@ -6,20 +6,23 @@ import { Header } from './Header'
 import { Footer } from './Footer'
 import { MobileBottomNav } from './MobileBottomNav'
 import { AuthModal } from '@/features/auth/components/AuthModal'
-import { scrollToTop } from '@/lib/lenis'
+import { scrollToTopSoon } from '@/lib/lenis'
 
 function ScrollToTop() {
   const { pathname, search, hash } = useLocation()
   const navType = useNavigationType()
 
   useLayoutEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual'
+    }
+  }, [])
+
+  useLayoutEffect(() => {
     if (hash) return
-    // Always reset on new navigations; POP can keep prior position
+    // Keep browser back/forward position; reset on normal navigations
     if (navType === 'POP') return
-    scrollToTop()
-    // After layout (images/skeletons), force top again so Lenis can't stick at bottom
-    const raf = requestAnimationFrame(() => scrollToTop())
-    return () => cancelAnimationFrame(raf)
+    return scrollToTopSoon()
   }, [pathname, search, hash, navType])
 
   return null

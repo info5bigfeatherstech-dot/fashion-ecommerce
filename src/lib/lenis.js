@@ -19,14 +19,30 @@ export function startLenis() {
 /** Jump to top immediately (works with or without Lenis). */
 export function scrollToTop() {
   const lenis = lenisInstance
-  // Stop Lenis so its RAF loop doesn't override the scroll position
-  lenis?.stop?.()
-  window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+
+  // Sync Lenis first so its internal offset matches window scroll.
+  if (lenis) {
+    lenis.scrollTo(0, { immediate: true, force: true })
+  }
+
+  window.scrollTo(0, 0)
   document.documentElement.scrollTop = 0
   document.body.scrollTop = 0
-  // Re-start Lenis on the next frame so it picks up the new position
-  requestAnimationFrame(() => {
-    lenis?.start?.()
-    lenis?.scrollTo?.(0, { immediate: true, force: true })
-  })
+}
+
+/**
+ * Reset scroll now and again after layout/images settle.
+ * Returns a cleanup function that clears pending timers.
+ */
+export function scrollToTopSoon(delays = [0, 50, 150, 350, 700]) {
+  scrollToTop()
+  const timers = delays
+    .filter((ms) => ms > 0)
+    .map((ms) => window.setTimeout(() => scrollToTop(), ms))
+  const raf = requestAnimationFrame(() => scrollToTop())
+
+  return () => {
+    cancelAnimationFrame(raf)
+    timers.forEach((id) => window.clearTimeout(id))
+  }
 }

@@ -1,25 +1,51 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { NEW_ARRIVALS_SLIDES } from '@/config/site'
 import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
 import { ReflectiveCard } from '@/components/ui/ReflectiveCard'
-import { useBestsellers } from '@/features/product/hooks'
+import { useProductsByTag } from '@/features/product/hooks'
+import { formatPrice } from '@/lib/utils'
 
 const AUTO_SLIDE_MS = 3500
+const TODAY_DEAL_TAG = 'today-arrival'
+const TODAY_DEAL_LIMIT = 12
+
+function productImage(product) {
+  return product?.image || product?.images?.[0] || null
+}
+
+/** Only products admin marked with the active Today Deals (`today-arrival`) tag. */
+function isActiveTodayDeal(product) {
+  if (!product) return false
+  if (product.isTodayDeal === true || product.todayDeal === true) return true
+  const tags = Array.isArray(product.tags) ? product.tags : []
+  return tags.some((tag) => String(tag).toLowerCase() === TODAY_DEAL_TAG)
+}
+
+function buildTodayDealSlides(products = []) {
+  return products
+    .filter((product) => isActiveTodayDeal(product) && product?.slug && productImage(product))
+    .map((product) => ({
+      id: `deal-${product.id || product.slug}`,
+      title: product.name || product.title || 'Today’s deal',
+      subtitle: product.price != null ? formatPrice(product.price) : 'Limited offer',
+      href: `/product/${product.slug}`,
+      image: productImage(product),
+    }))
+}
 
 export function NewArrivalsSection() {
   const trackRef = useRef(null)
   const pauseRef = useRef(false)
-  const { data: products = [] } = useBestsellers()
-
-  const slides = NEW_ARRIVALS_SLIDES.map((slide, index) => {
-    const productImage = products[index]?.images?.[0] || products[index]?.image
-    return {
-      ...slide,
-      image: productImage || slide.image,
-    }
+  const { data, isLoading } = useProductsByTag(TODAY_DEAL_TAG, {
+    page: 1,
+    limit: TODAY_DEAL_LIMIT,
   })
+
+  const slides = useMemo(
+    () => buildTodayDealSlides(data?.products ?? []),
+    [data?.products]
+  )
 
   const scrollByDir = useCallback((dir) => {
     const el = trackRef.current
@@ -42,29 +68,33 @@ export function NewArrivalsSection() {
   }, [])
 
   useEffect(() => {
+    if (slides.length < 2) return undefined
     const id = setInterval(() => {
       if (pauseRef.current) return
       scrollByDir(1)
     }, AUTO_SLIDE_MS)
     return () => clearInterval(id)
-  }, [scrollByDir])
+  }, [scrollByDir, slides.length])
+
+  // Hide the whole block unless at least one product has Today Deal active.
+  if (!isLoading && slides.length === 0) return null
 
   return (
     <section className="section container new-arrivals-section">
       <div className="section-header new-arrivals-header">
         <div className="new-arrivals-header__copy">
           <ScrollRevealText as="h2" className="new-arrivals-pill">
-            <span className="new-arrivals-pill__new">New</span>{' '}
-            <span className="new-arrivals-pill__arrivals">Arrivals</span>
+            <span className="new-arrivals-pill__new">Today’s</span>{' '}
+            <span className="new-arrivals-pill__arrivals">Deals</span>
           </ScrollRevealText>
           <Reveal delay={0.08}>
             <p className="new-arrivals-subheader">
-              Browse through our curated collections crafted for every mood, celebration, and everyday elegance.
+              Only products marked as Today Deals in admin appear here.
             </p>
           </Reveal>
         </div>
 
-        <Reveal delay={0.1} className="new-arrivals-nav" aria-label="New arrivals slider controls">
+        <Reveal delay={0.1} className="new-arrivals-nav" aria-label="Today’s deals slider controls">
           <button
             type="button"
             className="new-arrivals-nav__btn"
@@ -84,43 +114,45 @@ export function NewArrivalsSection() {
         </Reveal>
       </div>
 
-      <div
-        className="new-arrivals-slider"
-        onMouseEnter={() => { pauseRef.current = true }}
-        onMouseLeave={() => { pauseRef.current = false }}
-        onFocusCapture={() => { pauseRef.current = true }}
-        onBlurCapture={() => { pauseRef.current = false }}
-      >
-        <div className="new-arrivals-slider__track" ref={trackRef}>
-          {slides.map((slide, index) => (
-            <ReflectiveCard
-              key={slide.id}
-              as={Link}
-              to={slide.href}
-              className="new-arrivals-slide"
-              maxTilt={6}
-              glareOpacity={0.4}
-              aria-label={slide.title}
-            >
-              <img
-                src={slide.image}
-                alt={slide.title}
-                className="new-arrivals-slide__image"
-                loading="lazy"
-              />
-              <span className="new-arrivals-slide__shine" aria-hidden="true" />
-              <div className="new-arrivals-slide__overlay" />
-              <div className="new-arrivals-slide__copy">
-                <h3 className="new-arrivals-slide__title">{slide.title}</h3>
-                <p className="new-arrivals-slide__count">{slide.itemCount} Items</p>
-                {index === 0 && (
+      {isLoading ? (
+        <p className="body-sm text-muted">Loading today’s deals…</p>
+      ) : (
+        <div
+          className="new-arrivals-slider"
+          onMouseEnter={() => { pauseRef.current = true }}
+          onMouseLeave={() => { pauseRef.current = false }}
+          onFocusCapture={() => { pauseRef.current = true }}
+          onBlurCapture={() => { pauseRef.current = false }}
+        >
+          <div className="new-arrivals-slider__track" ref={trackRef}>
+            {slides.map((slide) => (
+              <ReflectiveCard
+                key={slide.id}
+                as={Link}
+                to={slide.href}
+                className="new-arrivals-slide"
+                maxTilt={6}
+                glareOpacity={0.4}
+                aria-label={slide.title}
+              >
+                <img
+                  src={slide.image}
+                  alt={slide.title}
+                  className="new-arrivals-slide__image"
+                  loading="lazy"
+                />
+                <span className="new-arrivals-slide__shine" aria-hidden="true" />
+                <div className="new-arrivals-slide__overlay" />
+                <div className="new-arrivals-slide__copy">
+                  <h3 className="new-arrivals-slide__title">{slide.title}</h3>
+                  <p className="new-arrivals-slide__count">{slide.subtitle}</p>
                   <span className="new-arrivals-slide__shop">Shop Now</span>
-                )}
-              </div>
-            </ReflectiveCard>
-          ))}
+                </div>
+              </ReflectiveCard>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </section>
   )
 }

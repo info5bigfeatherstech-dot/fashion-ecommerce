@@ -13,6 +13,7 @@ function mapPublicReview(review) {
     verifiedPurchase: Boolean(review.verifiedPurchase),
     createdAt: review.createdAt || null,
     source: review.source || null,
+    isActive: review.isActive !== false,
   }
 }
 
@@ -47,4 +48,46 @@ export async function getProductReviewsBundle(productId, { signal } = {}) {
   ])
 
   return { summary, reviews }
+}
+
+export async function getMyProductReview(productId, { signal } = {}) {
+  if (!productId) return null
+
+  const payload = await http.get(API_ENDPOINTS.productReviews.mine(productId), { signal })
+  const review = payload?.review ?? payload?.data?.review ?? null
+  if (!review) return null
+
+  return {
+    ...mapPublicReview(review),
+    isActive: review.isActive !== false,
+  }
+}
+
+export async function getProductReviewEligibility(productId, { signal } = {}) {
+  if (!productId) return null
+
+  const payload = await http.get(API_ENDPOINTS.productReviews.eligibility(productId), { signal })
+  return payload?.eligibility ?? payload?.data?.eligibility ?? null
+}
+
+/**
+ * Create a product review (stars + optional comment).
+ * Cold PDP: no images. Order-linked flows may pass orderId later.
+ */
+export async function submitProductReview({
+  productId,
+  rating,
+  comment = '',
+  orderId = '',
+} = {}) {
+  const id = String(productId || '').trim()
+  if (!id) throw new Error('Product is required')
+
+  const fd = new FormData()
+  fd.append('productId', id)
+  fd.append('rating', String(Math.max(1, Math.min(5, Number(rating) || 0))))
+  fd.append('comment', String(comment || '').trim())
+  if (orderId) fd.append('orderId', String(orderId))
+
+  return http.post(API_ENDPOINTS.productReviews.create, fd)
 }

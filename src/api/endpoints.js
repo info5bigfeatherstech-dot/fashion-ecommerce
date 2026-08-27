@@ -209,6 +209,11 @@ export const API_ENDPOINTS = {
       `/product-reviews/public/${encodeURIComponent(String(productId))}/summary`,
     list: (productId) =>
       `/product-reviews/public/${encodeURIComponent(String(productId))}`,
+    mine: (productId) =>
+      `/product-reviews/mine/${encodeURIComponent(String(productId))}`,
+    eligibility: (productId) =>
+      `/product-reviews/eligibility/${encodeURIComponent(String(productId))}`,
+    create: '/product-reviews',
   },
 }
 

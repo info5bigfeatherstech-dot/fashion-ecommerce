@@ -4,7 +4,7 @@ import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
 import { ReflectiveCard } from '@/components/ui/ReflectiveCard'
 import { AS_SEEN_ON_YOU } from '@/config/site'
-import { useBestsellers } from '@/features/product/hooks'
+import { useFeaturedProducts } from '@/features/product/hooks'
 
 function InstagramIcon({ size = 16 }) {
   return (
@@ -28,33 +28,40 @@ function InstagramIcon({ size = 16 }) {
 
 const COLLAGE_IMAGE_LIMIT = 8
 
+function productPrimaryImage(product) {
+  if (product?.image) return product.image
+  const images = (product?.images || []).filter(Boolean)
+  return images[0] || null
+}
+
+/** One tile per featured product (admin “Featured” flag → `/products/featured`). */
 function buildCollageItems(products = [], fallback = []) {
   const items = []
   const seen = new Set()
 
   for (const product of products) {
-    const images = (product.images || []).filter(Boolean)
-    if (!images.length && product.image) images.push(product.image)
-    if (!images.length) continue
-
-    for (const image of images) {
-      if (seen.has(image)) continue
-      seen.add(image)
-      items.push({
-        id: `api-${product.id}-${items.length}`,
-        image,
-        alt: product.name,
-        href: `/product/${product.slug}`,
-      })
-      if (items.length >= COLLAGE_IMAGE_LIMIT) return items
-    }
+    if (!product?.slug) continue
+    const image = productPrimaryImage(product)
+    if (!image || seen.has(image)) continue
+    seen.add(image)
+    items.push({
+      id: `featured-${product.id || product.slug}`,
+      image,
+      alt: product.name || product.title || 'Featured product',
+      href: `/product/${product.slug}`,
+      name: product.name || product.title || '',
+    })
+    if (items.length >= COLLAGE_IMAGE_LIMIT) return items
   }
 
-  for (const spot of fallback) {
-    if (seen.has(spot.image)) continue
-    seen.add(spot.image)
-    items.push(spot)
-    if (items.length >= COLLAGE_IMAGE_LIMIT) break
+  // Only pad with static spots when the featured API returned nothing usable.
+  if (items.length === 0) {
+    for (const spot of fallback) {
+      if (seen.has(spot.image)) continue
+      seen.add(spot.image)
+      items.push(spot)
+      if (items.length >= COLLAGE_IMAGE_LIMIT) break
+    }
   }
 
   return items
@@ -90,7 +97,7 @@ function CollageCard({ item, index }) {
         <span className="as-seen-collage__shine" aria-hidden="true" />
         <span className="as-seen-collage__overlay">
           <InstagramIcon size={14} />
-          View look
+          {item.name ? 'Shop now' : 'View look'}
         </span>
       </ReflectiveCard>
     </motion.div>
@@ -98,11 +105,8 @@ function CollageCard({ item, index }) {
 }
 
 export function AsSeenOnYouSection() {
-  const { data: products = [], isLoading } = useBestsellers()
-  const collageItems = buildCollageItems(
-    products.slice(0, 48),
-    AS_SEEN_ON_YOU.collage || []
-  )
+  const { data: products = [], isLoading } = useFeaturedProducts({ limit: COLLAGE_IMAGE_LIMIT })
+  const collageItems = buildCollageItems(products, AS_SEEN_ON_YOU.collage || [])
 
   return (
     <section className="section container as-seen-section">
@@ -139,7 +143,9 @@ export function AsSeenOnYouSection() {
           ))}
         </div>
       ) : (
-        <p className="body-sm text-muted">No gallery images available yet.</p>
+        <p className="body-sm text-muted">
+          No featured products yet. Mark products as Featured in admin to show them here.
+        </p>
       )}
 
       <p className="section-footnote">

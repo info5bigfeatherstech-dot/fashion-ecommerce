@@ -24,6 +24,16 @@ export function setupInterceptors() {
           config.headers.Authorization = `Bearer ${token}`
         }
       }
+
+      // Let the browser set multipart boundary for FormData bodies.
+      if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+        if (config.headers && typeof config.headers.delete === 'function') {
+          config.headers.delete('Content-Type')
+        } else if (config.headers) {
+          delete config.headers['Content-Type']
+        }
+      }
+
       return config
     },
     (error) => Promise.reject(normalizeApiError(error))
