@@ -1,41 +1,30 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { TrendingUp } from 'lucide-react'
 import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
-import { TrendingVideoReelModal } from '@/components/home/TrendingVideoReelModal'
+import { JEWELRY_CATEGORIES } from '@/config/site'
+import { CATEGORY_BANNERS } from '@/config/categoryBanners'
 
-const CLOUDINARY_TRENDING_VIDEO =
-  'https://res.cloudinary.com/kiqmlqnj/video/upload/v1787745696/web_1.mp4'
-
-const TRENDING_VIDEOS = [
-  { id: 'trending-1', src: CLOUDINARY_TRENDING_VIDEO, title: 'Kundan Jewellery', label: 'Trending jewellery look 1' },
-  {
-    id: 'trending-2',
-    src: 'https://res.cloudinary.com/kiqmlqnj/video/upload/v1787746151/web_2.mp4',
-    title: 'Everyday Gold',
-    label: 'Trending jewellery look 2',
-  },
-  { id: 'trending-3', src: CLOUDINARY_TRENDING_VIDEO, title: 'Bridal Edit', label: 'Trending jewellery look 3' },
-  { id: 'trending-4', src: CLOUDINARY_TRENDING_VIDEO, title: 'Statement Drops', label: 'Trending jewellery look 4' },
+/** Four trending category tiles — each image opens that shop category. */
+const TRENDING_CATEGORY_SLUGS = [
+  'earrings-studs',
+  'rings',
+  'bracelets-bangles',
+  'necklace-pendants',
 ]
 
-function bindSilentLoop(el) {
-  if (!el) return
-  el.muted = true
-  el.defaultMuted = true
-  el.volume = 0
-  el.setAttribute('muted', '')
-  el.playsInline = true
-  const play = () => {
-    el.play().catch(() => {})
+const TRENDING_CATEGORIES = TRENDING_CATEGORY_SLUGS.map((slug) => {
+  const nav = JEWELRY_CATEGORIES.find((item) => item.slug === slug)
+  const banner = CATEGORY_BANNERS[slug]
+  return {
+    id: slug,
+    label: nav?.label || banner?.title || slug,
+    href: `/shop/${slug}`,
+    image: banner?.image,
+    alt: banner?.alt || nav?.label || 'Category',
   }
-  if (el.readyState >= 2) play()
-  else el.addEventListener('loadeddata', play, { once: true })
-}
+}).filter((item) => item.image)
 
 export function TrendingNowFastSection() {
-  const [activeIndex, setActiveIndex] = useState(null)
-
   return (
     <section className="section container trending-now-section">
       <div className="section-header">
@@ -56,48 +45,31 @@ export function TrendingNowFastSection() {
           </Reveal>
         </div>
         <Reveal delay={0.12}>
-          <Link to="/shop?sort=rating" className="section-header__link">View All</Link>
+          <Link to="/shop/earrings-studs" className="section-header__link">View All</Link>
         </Reveal>
       </div>
+
       <Reveal delay={0.1}>
         <div className="trending-now-videos" role="list">
-          {TRENDING_VIDEOS.map((clip, index) => (
-            <div key={clip.id} className="trending-now-videos__item" role="listitem">
-              <button
-                type="button"
+          {TRENDING_CATEGORIES.map((item) => (
+            <div key={item.id} className="trending-now-videos__item" role="listitem">
+              <Link
+                to={item.href}
                 className="trending-now-videos__open"
-                onClick={() => setActiveIndex(index)}
-                aria-label={`Open ${clip.title || clip.label}`}
+                aria-label={`Shop ${item.label}`}
               >
-                <video
-                  ref={bindSilentLoop}
+                <img
+                  src={item.image}
+                  alt={item.alt}
                   className="trending-now-videos__video"
-                  src={clip.src}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  preload="metadata"
-                  disablePictureInPicture
-                  disableRemotePlayback
-                  controlsList="nodownload nofullscreen noremoteplayback"
-                  tabIndex={-1}
-                  aria-hidden="true"
+                  loading="lazy"
                 />
-              </button>
+                <span className="trending-now-videos__label">{item.label}</span>
+              </Link>
             </div>
           ))}
         </div>
       </Reveal>
-
-      {activeIndex != null ? (
-        <TrendingVideoReelModal
-          videos={TRENDING_VIDEOS}
-          index={activeIndex}
-          onIndexChange={setActiveIndex}
-          onClose={() => setActiveIndex(null)}
-        />
-      ) : null}
     </section>
   )
 }

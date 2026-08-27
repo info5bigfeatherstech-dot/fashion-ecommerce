@@ -104,10 +104,9 @@ export function ShopByOccasionSection() {
                 onFocusCapture={() => setActiveIndex(index)}
               >
                 <Link
-                  to={panel.href}
+                  to={panel.href || '/shop/sets'}
                   className={`occasion-accordion__panel${isActive ? ' is-active' : ''}`}
-                  aria-label={panel.title}
-                  onClick={() => setActiveIndex(index)}
+                  aria-label={`Shop ${panel.title}`}
                 >
                   <span className="occasion-accordion__media" aria-hidden="true">
                     {panel.video ? (

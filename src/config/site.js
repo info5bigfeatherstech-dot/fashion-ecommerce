@@ -11,7 +11,6 @@ export const SITE_CONTACT = {
 }
 
 export const TOP_BANNER = {
-  badge: 'Gift Season',
   headline: 'Get Every Gift with Every Purchase',
   message: 'Free Shipping on orders above ₹1099',
   href: '/shop/women',
@@ -61,7 +60,7 @@ export const HOME_CIRCLE_CATEGORIES = [
   {
     label: 'Rings',
     href: '/shop/rings',
-    image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557c?auto=format&fit=crop&w=400&h=400&q=80',
+    image: 'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?auto=format&fit=crop&w=400&h=400&q=80',
   },
   {
     label: 'Bracelets',
@@ -123,26 +122,6 @@ export const HERO_SLIDES = [
     image: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1400&h=800&q=80',
     alt: 'VERAÒ Autumn Collection — model in layered silk and wool',
   },
-  {
-    id: 'beauty',
-    eyebrow: 'Beauty Ritual',
-    title: 'Skin, Color, Craft',
-    subtitle: 'Lab-made formulas and pigment that belong to this house — skincare and makeup, no third party.',
-    cta: 'Shop Beauty',
-    href: '/shop/skincare',
-    image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1400&h=800&q=80',
-    alt: 'VERAÒ skincare ritual — close portrait with luminous skin',
-  },
-  {
-    id: 'atelier',
-    eyebrow: 'Limited Edition',
-    title: 'The Atelier Collection',
-    subtitle: 'Hand-finished pieces in limited quantities. Once they are gone, they are gone.',
-    cta: 'Shop the Collection',
-    href: '/shop/women',
-    image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1400&h=800&q=80',
-    alt: 'VERAÒ Atelier Collection — curated garments in a boutique interior',
-  },
 ]
 
 export const LATEST_COLLECTIONS = [
@@ -181,7 +160,7 @@ export const SHOP_BY_OCCASION = {
       // number: '01',
       label: 'Everyday Elegance',
       title: 'Everyday Elegance',
-      href: '/shop/women',
+      href: '/shop/sets',
       image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=900&h=1200&q=80',
       alt: 'Delicate jewelry for everyday wear',
     },
@@ -190,7 +169,7 @@ export const SHOP_BY_OCCASION = {
       // number: '02',
       label: 'Office',
       title: 'Office',
-      href: '/shop/women',
+      href: '/shop/sets',
       image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=900&h=1200&q=80',
       alt: 'Minimal jewelry styled for the workplace',
     },
@@ -199,7 +178,7 @@ export const SHOP_BY_OCCASION = {
       // number: '03',
       label: 'Party & Night Out Glamour',
       title: 'Party & Night Out Glamour',
-      href: '/shop/new-arrivals',
+      href: '/shop/sets',
       video: 'https://res.cloudinary.com/kiqmlqnj/video/upload/v1787746151/web_2.mp4',
       image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=900&h=1200&q=80',
       alt: 'Statement jewelry for evening occasions',
@@ -209,7 +188,7 @@ export const SHOP_BY_OCCASION = {
       // number: '04',
       label: 'Festival Radiance',
       title: 'Festival Radiance',
-      href: '/shop/women',
+      href: '/shop/sets',
       image: 'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=900&h=1200&q=80',
       alt: 'Festive jewelry for celebrations',
     },
@@ -218,7 +197,7 @@ export const SHOP_BY_OCCASION = {
       // number: '05',
       label: 'Wedding Royalty',
       title: 'Wedding Royalty',
-      href: '/shop/women',
+      href: '/shop/sets',
       image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=900&h=1200&q=80',
       alt: 'Bridal and wedding jewelry collection',
     },

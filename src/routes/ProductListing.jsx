@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useParams, useSearchParams, Link } from 'react-router-dom'
 import { SlidersHorizontal, X } from 'lucide-react'
 import { ProductCard } from '@/features/product/components/ProductCard'
@@ -14,9 +14,13 @@ import {
 } from '@/components/ui/Select'
 import { useProductListing } from '@/features/product/hooks'
 import { PRICE_RANGES } from '@/features/product/api'
-import { CATEGORY_TREE } from '@/features/category/api'
+import { CATEGORY_TREE, DEFAULT_CATEGORY_IMAGE } from '@/features/category/api'
+import { useCircleCategories } from '@/features/category/hooks'
 import { getCategoryLanding } from '@/config/categoryLandings'
+import { getCategoryBanner, CATEGORY_BANNERS } from '@/config/categoryBanners'
 import { CategoryLanding } from '@/components/category/CategoryLanding'
+import { CategoryBanner } from '@/components/category/CategoryBanner'
+import { CategoryComingSoon } from '@/components/category/CategoryComingSoon'
 
 const SORT_OPTIONS = [
   { value: '', label: 'Featured' },
@@ -45,7 +49,7 @@ export default function ProductListing() {
   const priceRange = PRICE_RANGES.find((range) => range.key === priceKey)
 
   const isSoonCollection =
-    (!subcategory && !search && (category === 'men' || category === 'kids'))
+    (!subcategory && !search && (category === 'men' || category === 'kids' || category === 'gifting'))
 
   const filters = {
     category: resolvedCategory || undefined,
@@ -61,6 +65,27 @@ export default function ProductListing() {
   }
 
   const { data, isLoading } = useProductListing(filters)
+  const { data: circleCategories = [] } = useCircleCategories()
+
+  const apiCategoryImage = useMemo(() => {
+    if (!category) return null
+    const match = circleCategories.find((item) => {
+      const href = String(item.href || '')
+      return href === `/shop/${category}` || href.endsWith(`/${category}`)
+    })
+    const image = match?.image || null
+    // Ignore generic placeholder so curated banner art can show.
+    if (!image || image === DEFAULT_CATEGORY_IMAGE) return null
+    return image
+  }, [circleCategories, category])
+
+  const categoryBanner = useMemo(() => {
+    if (subcategory || search || landing) return null
+    return getCategoryBanner(category, {
+      label: categoryInfo?.label,
+      image: apiCategoryImage,
+    })
+  }, [subcategory, search, landing, category, categoryInfo?.label, apiCategoryImage])
 
   const title = search
     ? `Results for "${search}"`
@@ -107,6 +132,18 @@ export default function ProductListing() {
   }
 
   if (isSoonCollection) {
+    if (category === 'gifting') {
+      return (
+        <CategoryComingSoon
+          title="Gifting"
+          image={CATEGORY_BANNERS.gifting?.image}
+          subtitle="A gift edit worth waiting for — thoughtful jewelry for birthdays, festivals, and every celebration."
+          exploreHref="/shop/earrings-studs"
+          exploreLabel="Explore Earrings & Studs"
+        />
+      )
+    }
+
     const isMen = category === 'men'
     const soonLabel = categoryInfo?.label || category
     const soonImage = isMen
@@ -125,7 +162,7 @@ export default function ProductListing() {
             <h1 className="soon__title">{soonLabel}</h1>
             <p className="soon__subtitle">
               We're crafting something special. The {soonLabel.toLowerCase()} collection
-              is being designed with the same care and attention you expect from VERAÒ.
+              is being designed with the same care and attention you expect from FABUNIQO.
             </p>
             <div className="soon__notify">
               <input
@@ -166,7 +203,7 @@ export default function ProductListing() {
 
           <div className="soon__cta-row">
             <Button asChild variant="accent" size="lg">
-              <Link to="/shop/women">Explore Women's Collection</Link>
+              <Link to="/shop/earrings-studs">Explore Earrings & Studs</Link>
             </Button>
             <Button asChild variant="secondary" size="lg">
               <Link to="/">Back to Home</Link>
@@ -178,9 +215,10 @@ export default function ProductListing() {
   }
 
   return (
-    <div className={landing ? 'plp-page' : 'container'}>
+    <div className={landing || categoryBanner ? 'plp-page' : 'container'}>
       {landing && <CategoryLanding landing={landing} />}
-      <div className={landing ? 'container' : undefined}>
+      {!landing && categoryBanner && <CategoryBanner banner={categoryBanner} />}
+      <div className={landing || categoryBanner ? 'container' : undefined}>
       <nav className="breadcrumb" aria-label="Breadcrumb">
         <Link to="/">Home</Link>
         <span className="breadcrumb__sep">/</span>
@@ -196,8 +234,8 @@ export default function ProductListing() {
       </nav>
 
       <div className="plp-header">
-        {landing ? (
-          <h2 className="display-lg">Shop All {title}</h2>
+        {landing || categoryBanner ? (
+          <h2 className="display-lg"> {title}</h2>
         ) : (
           <h1 className="display-lg">{title}</h1>
         )}

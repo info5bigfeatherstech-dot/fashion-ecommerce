@@ -4,6 +4,8 @@ import { ApiError } from '@/api/errors'
 import { JEWELRY_CATEGORIES } from '@/config/site'
 import { mapCircleCategories } from './mappers'
 
+export { DEFAULT_CATEGORY_IMAGE } from './mappers'
+
 const delay = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export async function getPublicCategories({ signal } = {}) {

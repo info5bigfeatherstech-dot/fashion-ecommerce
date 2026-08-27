@@ -6,14 +6,13 @@ import { TOP_BANNER } from '@/config/site'
 function BannerPromoItem() {
   return (
     <span className="top-banner__item">
-      <span className="top-banner__badge">{TOP_BANNER.badge}</span>
       <span className="top-banner__copy">
         <Gift className="top-banner__icon" aria-hidden="true" strokeWidth={1.75} />
         <span className="top-banner__headline">{TOP_BANNER.headline}</span>
         <span className="top-banner__divider" aria-hidden="true" />
         <span className="top-banner__message">
           <Truck className="top-banner__message-icon" aria-hidden="true" strokeWidth={1.75} />
-          {TOP_BANNER.message}
+          <strong>{TOP_BANNER.message}</strong>
         </span>
       </span>
       <span className="top-banner__cta">
@@ -41,7 +40,7 @@ export function PromoBanner() {
         </span>
         {!reduceMotion && (
           <span className="sr-only">
-            {TOP_BANNER.badge}. {TOP_BANNER.headline}. {TOP_BANNER.message}. {TOP_BANNER.cta}
+            {TOP_BANNER.headline}. {TOP_BANNER.message}. {TOP_BANNER.cta}
           </span>
         )}
       </Link>
