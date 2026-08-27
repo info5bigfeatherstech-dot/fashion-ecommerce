@@ -10,7 +10,9 @@ import { AccountOrderDetail } from '@/routes/account/AccountOrderDetail'
 export function AccountOrdersTab() {
   const location = useLocation()
   const [selectedOrderId, setSelectedOrderId] = useState(location.state?.openOrderId ?? null)
-  const { data, isLoading, isError, error, refetch, isFetching } = useUserOrders()
+  const { data, isLoading, isError, error, refetch, isFetching } = useUserOrders({
+    refetchOnMount: 'always',
+  })
   const orders = data?.orders ?? []
   const { orders: enrichedOrders, isHydrating } = useOrdersWithDetails(orders, {
     enabled: !selectedOrderId,

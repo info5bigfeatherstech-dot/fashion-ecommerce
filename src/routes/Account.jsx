@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useMemo } from 'react'
+import { NavLink, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ChevronRight, Heart, MapPin, Package, ShoppingBag, UserRound } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Input, InputGroup } from '@/components/ui/Input'
@@ -12,18 +12,22 @@ import { AccountCartTab } from '@/routes/account/AccountCartTab'
 import { AccountOrdersTab } from '@/routes/account/AccountOrdersTab'
 import { AccountWishlistTab } from '@/routes/account/AccountWishlistTab'
 
+const ACCOUNT_SECTIONS = new Set(['orders', 'wishlist', 'cart', 'profile', 'addresses'])
+
 const ACCOUNT_QUICK_LINKS = [
-  { id: 'orders', label: 'Orders', icon: Package },
-  { id: 'wishlist', label: 'Wishlist', icon: Heart, badge: 'wishlist' },
-  { id: 'cart', label: 'Cart', icon: ShoppingBag, badge: 'cart' },
+  { id: 'orders', label: 'Orders', icon: Package, to: '/account/orders' },
+  { id: 'wishlist', label: 'Wishlist', icon: Heart, badge: 'wishlist', to: '/account/wishlist' },
+  { id: 'cart', label: 'Cart', icon: ShoppingBag, badge: 'cart', to: '/account/cart' },
 ]
 
 const ACCOUNT_MENU_LINKS = [
-  { id: 'profile', label: 'Profile information', icon: UserRound },
-  { id: 'addresses', label: 'Saved addresses', icon: MapPin },
+  { id: 'profile', label: 'Profile information', icon: UserRound, to: '/account/profile' },
+  { id: 'addresses', label: 'Saved addresses', icon: MapPin, to: '/account/addresses' },
 ]
 
-export default function Account({ initialActiveTab = 'orders' } = {}) {
+export default function Account() {
+  const { section } = useParams()
+  const location = useLocation()
   const user = useAppStore((s) => s.user)
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
   const openAuthModal = useAppStore((s) => s.openAuthModal)
@@ -31,9 +35,12 @@ export default function Account({ initialActiveTab = 'orders' } = {}) {
   const cartCount = useCartCount()
   const wishlistCount = useWishlistCount()
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState(initialActiveTab)
 
-  const badgeCounts = { cart: cartCount, wishlist: wishlistCount }
+  const activeTab = ACCOUNT_SECTIONS.has(section) ? section : null
+  const badgeCounts = useMemo(
+    () => ({ cart: cartCount, wishlist: wishlistCount }),
+    [cartCount, wishlistCount]
+  )
 
   const handleLogout = async () => {
     await logout()
@@ -41,18 +48,21 @@ export default function Account({ initialActiveTab = 'orders' } = {}) {
   }
 
   useEffect(() => {
-    setActiveTab(initialActiveTab)
-  }, [initialActiveTab])
-
-  useEffect(() => {
     if (!isAuthenticated) {
-      openAuthModal({ redirectTo: '/account', mode: 'login' })
+      const redirectTo = location.pathname.startsWith('/account')
+        ? location.pathname
+        : '/account/orders'
+      openAuthModal({ redirectTo, mode: 'login' })
       navigate('/', { replace: true })
     }
-  }, [isAuthenticated, navigate, openAuthModal])
+  }, [isAuthenticated, location.pathname, navigate, openAuthModal])
 
   if (!isAuthenticated) {
     return null
+  }
+
+  if (!activeTab) {
+    return <Navigate to="/account/orders" replace />
   }
 
   return (
@@ -75,16 +85,17 @@ export default function Account({ initialActiveTab = 'orders' } = {}) {
             const count = link.badge ? badgeCounts[link.badge] : 0
 
             return (
-              <button
+              <NavLink
                 key={link.id}
-                type="button"
-                className={`account-quick__tile ${activeTab === link.id ? 'account-quick__tile--active' : ''}`}
-                onClick={() => setActiveTab(link.id)}
+                to={link.to}
+                className={({ isActive }) =>
+                  `account-quick__tile${isActive ? ' account-quick__tile--active' : ''}`
+                }
               >
                 <Icon size={18} />
                 <span>{link.label}</span>
                 {count > 0 && <b>{count}</b>}
-              </button>
+              </NavLink>
             )
           })}
         </div>
@@ -93,16 +104,17 @@ export default function Account({ initialActiveTab = 'orders' } = {}) {
           {ACCOUNT_MENU_LINKS.map((link) => {
             const Icon = link.icon
             return (
-              <button
+              <NavLink
                 key={link.id}
-                type="button"
-                className={`account-menu__link ${activeTab === link.id ? 'account-menu__link--active' : ''}`}
-                onClick={() => setActiveTab(link.id)}
+                to={link.to}
+                className={({ isActive }) =>
+                  `account-menu__link${isActive ? ' account-menu__link--active' : ''}`
+                }
               >
                 <Icon size={18} />
                 <span>{link.label}</span>
                 <ChevronRight size={16} />
-              </button>
+              </NavLink>
             )
           })}
         </nav>
@@ -140,7 +152,7 @@ export default function Account({ initialActiveTab = 'orders' } = {}) {
                 <p className="heading-sm">FABUNIQO Customer</p>
                 <h3 className="display-md account-hero__title">{user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim()}</h3>
                 <p className="body-lg text-muted">Manage your details, delivery addresses, and upcoming orders from one place.</p>
-              </div>  
+              </div>
             </div>
 
             <div className="account-panel">

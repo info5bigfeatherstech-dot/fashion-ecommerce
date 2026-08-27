@@ -88,7 +88,7 @@ export function ProductCard({ product, compact = false }) {
     addItem(product, { ...getDefaultOptions(product), quantity: 1 })
     showAddedToCartToast(product, {
       quantity: 1,
-      onViewBag: () => navigate('/cart'),
+      onViewBag: () => navigate('/account/cart'),
     })
   }
 

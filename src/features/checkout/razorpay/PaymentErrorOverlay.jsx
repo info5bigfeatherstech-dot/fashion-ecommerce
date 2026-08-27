@@ -19,7 +19,7 @@ export function PaymentErrorOverlay({ error, orderId, onRetry, onClose }) {
           </Button>
           {orderId ? (
             <Button type="button" variant="primary" asChild>
-              <Link to="/account" state={{ openOrderId: orderId }} onClick={onClose}>
+              <Link to="/account/orders" state={{ openOrderId: orderId }} onClick={onClose}>
                 View order
               </Link>
             </Button>

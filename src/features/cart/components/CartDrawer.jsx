@@ -7,6 +7,7 @@ import { useAppStore } from '@/store'
 import { useCartTotal } from '@/store/selectors'
 import { formatPrice } from '@/lib/utils'
 import { useCart } from '@/features/cart/hooks'
+import { prefetchCheckoutRoute } from '@/features/checkout/prefetchRoute'
 import { CartItem } from './CartItem'
 import { CheckoutAddressModal } from '@/components/checkout/CheckoutAddressModal'
 
@@ -106,13 +107,14 @@ export function CartDrawer() {
                   fullWidth
                   className="drawer__cta-link"
                   onClick={() => {
+                    void prefetchCheckoutRoute()
                     closeCart()
                     setCheckoutAddressOpen(true)
                   }}
                 >
                   Proceed to Checkout <ArrowRight size={16} />
                 </Button>
-                <Link to="/cart" onClick={closeCart} style={{ display: 'block', textAlign: 'center', marginTop: 'var(--space-2)' }}>
+                <Link to="/account/cart" onClick={closeCart} style={{ display: 'block', textAlign: 'center', marginTop: 'var(--space-2)' }}>
                   <span className="body-sm section-header__link">View Full Bag</span>
                 </Link>
               </div>

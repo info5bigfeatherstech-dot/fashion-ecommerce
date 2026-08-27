@@ -33,7 +33,7 @@ export function AuthModal() {
     }
     setAuthError('')
     closeAuthModal()
-    navigate(authRedirectTo || '/profile', { replace: true })
+    navigate(authRedirectTo || '/account/profile', { replace: true })
   }
 
   const handleOpenChange = (open) => {

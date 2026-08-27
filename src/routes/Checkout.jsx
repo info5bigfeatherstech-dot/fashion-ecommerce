@@ -747,7 +747,7 @@ export default function Checkout() {
     <div className="checkout-page">
       <div className="container checkout-page__inner">
         <div className="checkout-page__header">
-          <Link to="/cart" className="checkout-back">
+          <Link to="/account/cart" className="checkout-back">
             <ArrowLeft size={16} />
             Back to bag
           </Link>
@@ -1117,7 +1117,7 @@ export default function Checkout() {
           <aside className="checkout-summary">
             <div className="checkout-summary__head">
               <h2 className="checkout-panel__title">Order summary</h2>
-              <Link to="/cart" className="body-sm section-header__link">
+              <Link to="/account/cart" className="body-sm section-header__link">
                 Edit bag
               </Link>
             </div>

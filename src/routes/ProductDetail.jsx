@@ -226,7 +226,7 @@ export default function ProductDetail() {
       { ...product, name: displayTitle },
       {
         quantity: qty,
-        onViewBag: () => navigate('/cart'),
+        onViewBag: () => navigate('/account/cart'),
       }
     )
   }

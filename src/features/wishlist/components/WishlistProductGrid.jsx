@@ -126,7 +126,7 @@ export function WishlistProductGrid({
                     size="sm"
                     onClick={() => {
                       addItem(product)
-                      showAddedToCartToast(product, { onViewBag: () => navigate('/cart') })
+                      showAddedToCartToast(product, { onViewBag: () => navigate('/account/cart') })
                     }}
                   >
                     <ShoppingBag size={14} />
@@ -175,7 +175,7 @@ export function WishlistProductGrid({
                       fullWidth
                       onClick={() => {
                         addItem(product)
-                        showAddedToCartToast(product, { onViewBag: () => navigate('/cart') })
+                        showAddedToCartToast(product, { onViewBag: () => navigate('/account/cart') })
                       }}
                     >
                       <ShoppingBag size={14} />

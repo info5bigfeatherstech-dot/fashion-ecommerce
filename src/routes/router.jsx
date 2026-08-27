@@ -4,15 +4,12 @@ import { Layout } from '@/components/layout/Layout'
 import Home from './Home'
 import ProductListing from './ProductListing'
 import ProductDetail from './ProductDetail'
-import Cart from './Cart'
 import Wishlist from './Wishlist'
 import Login from './Login'
 import Register from './Register'
-import Profile from './Profile'
+import Checkout from './Checkout'
 
-const Checkout = lazy(() => import('./Checkout'))
 const Account = lazy(() => import('./Account'))
-const AddToCart = lazy(() => import('./AddToCart'))
 const Wholesale = lazy(() => import('./Wholesale'))
 const ContactUs = lazy(() => import('./ContactUs'))
 const AdminLogin = lazy(() => import('./admin/AdminLogin'))
@@ -53,14 +50,15 @@ export const router = createBrowserRouter([
       { path: 'shop/:category', element: <ProductListing /> },
       { path: 'shop/:category/:subcategory', element: <ProductListing /> },
       { path: 'product/:slug', element: <ProductDetail /> },
-      { path: 'cart', element: <Cart /> },
+      { path: 'cart', element: <Navigate to="/account/cart" replace /> },
       { path: 'checkout', element: <Checkout /> },
       { path: 'wishlist', element: <Wishlist /> },
-      { path: 'add-to-cart', element: <AddToCart /> },
+      { path: 'add-to-cart', element: <Navigate to="/account/cart" replace /> },
       { path: 'login', element: <Login /> },
       { path: 'register', element: <Register /> },
-      { path: 'profile', element: <Profile /> },
-      { path: 'account', element: <Account /> },
+      { path: 'profile', element: <Navigate to="/account/profile" replace /> },
+      { path: 'account', element: <Navigate to="/account/orders" replace /> },
+      { path: 'account/:section', element: <Account /> },
       { path: 'wholesale', element: <Wholesale /> },
       { path: 'contact', element: <ContactUs /> },
     ],

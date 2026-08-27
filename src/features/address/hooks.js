@@ -8,11 +8,12 @@ import {
 } from './api'
 import { addressKeys } from './queryKeys'
 
-export function useAddresses({ enabled = true } = {}) {
+export function useAddresses({ enabled = true, refetchOnMount } = {}) {
   return useQuery({
     queryKey: addressKeys.list(),
     queryFn: ({ signal }) => listAddresses({ signal }),
     enabled,
+    ...(refetchOnMount !== undefined ? { refetchOnMount } : {}),
   })
 }
 

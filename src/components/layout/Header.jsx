@@ -42,7 +42,7 @@ export function Header() {
   const handleMyAccountClick = (event) => {
     if (!isAuthenticated) {
       event.preventDefault()
-      openAuthModal({ redirectTo: '/profile', mode: 'login' })
+      openAuthModal({ redirectTo: '/account/profile', mode: 'login' })
     }
     setMobileNavOpen(false)
   }
@@ -150,7 +150,7 @@ export function Header() {
                 <span className="header__util-label">Bag</span>
               </button>
               <Link
-                to="/profile"
+                to="/account/profile"
                 className="header__util header__util--desktop"
                 onClick={handleMyAccountClick}
                 aria-label="My Account"
@@ -238,7 +238,7 @@ export function Header() {
                 </div>
 
                 <div className="header__mobile-extras">
-                  <Link to="/profile" onClick={handleMyAccountClick} aria-label="My Account">
+                  <Link to="/account/profile" onClick={handleMyAccountClick} aria-label="My Account">
                     <User size={16} /> {accountLabel} <ChevronRight size={16} />
                   </Link>
                   <Link to="/wholesale" onClick={() => setMobileNavOpen(false)}>

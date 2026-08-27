@@ -5,7 +5,7 @@ import { orderKeys } from './queryKeys'
 import { getOrderItems, mergeOrderWithDetail } from './utils'
 import { useAppStore } from '@/store'
 
-export function useUserOrders({ enabled = true } = {}) {
+export function useUserOrders({ enabled = true, refetchOnMount } = {}) {
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
   const accessToken = useAppStore((s) => s.accessToken)
 
@@ -14,6 +14,7 @@ export function useUserOrders({ enabled = true } = {}) {
     queryFn: ({ signal }) => getUserOrders({ signal }),
     enabled: enabled && isAuthenticated && Boolean(accessToken),
     staleTime: 1000 * 30,
+    ...(refetchOnMount !== undefined ? { refetchOnMount } : {}),
   })
 }
 

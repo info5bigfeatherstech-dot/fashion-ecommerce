@@ -23,7 +23,7 @@ export function cartItemNeedsHydration(item) {
 /**
  * Server cart query — keeps Zustand mirror in sync when authenticated.
  */
-export function useCart({ enabled = true } = {}) {
+export function useCart({ enabled = true, refetchOnMount } = {}) {
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
   const accessToken = useAppStore((s) => s.accessToken)
   const replaceCartFromApi = useAppStore((s) => s.replaceCartFromApi)
@@ -33,6 +33,7 @@ export function useCart({ enabled = true } = {}) {
     queryFn: ({ signal }) => getCart({ signal }),
     enabled: enabled && isAuthenticated && Boolean(accessToken),
     staleTime: 1000 * 60 * 2,
+    ...(refetchOnMount !== undefined ? { refetchOnMount } : {}),
   })
 
   useEffect(() => {

@@ -10466,6 +10466,8 @@ a.cart-item__name:hover {
   font-weight: 600;
   color: var(--color-ink);
   position: relative;
+  text-decoration: none;
+  cursor: pointer;
 }
 
 .account-quick__tile b {
@@ -10510,8 +10512,10 @@ a.cart-item__name:hover {
   border-bottom: 1px solid rgba(221, 215, 204, 0.55);
   background: transparent;
   text-align: left;
+  text-decoration: none;
   font-size: 14px;
   color: var(--color-ink);
+  cursor: pointer;
 }
 
 .account-menu__link:last-child {

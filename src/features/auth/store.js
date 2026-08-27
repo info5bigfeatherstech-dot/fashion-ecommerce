@@ -34,23 +34,23 @@ export const authSlice = (set, get) => ({
   /** Global sign-in / register modal (opened from header, cart, etc.) */
   authModalOpen: false,
   authModalMode: 'login',
-  authRedirectTo: '/profile',
+  authRedirectTo: '/account/profile',
 
   setCheckoutAddress: (address) => set({ checkoutAddress: address }),
   clearCheckoutAddress: () => set({ checkoutAddress: null }),
 
-  openAuthModal: ({ redirectTo = '/profile', mode = 'login' } = {}) =>
+  openAuthModal: ({ redirectTo = '/account/profile', mode = 'login' } = {}) =>
     set({
       authModalOpen: true,
       authModalMode: mode === 'register' ? 'register' : 'login',
-      authRedirectTo: redirectTo || '/profile',
+      authRedirectTo: redirectTo || '/account/profile',
     }),
 
   closeAuthModal: () =>
     set({
       authModalOpen: false,
       authModalMode: 'login',
-      authRedirectTo: '/profile',
+      authRedirectTo: '/account/profile',
     }),
 
   clearUser: () => {

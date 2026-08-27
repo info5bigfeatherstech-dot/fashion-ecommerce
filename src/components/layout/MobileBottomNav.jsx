@@ -8,8 +8,20 @@ const NAV_LINKS = [
   { to: '/', label: 'Home', icon: Home },
   { to: '/shop/women', label: 'Categories', icon: LayoutGrid },
   { to: '/wishlist', label: 'Wishlist', icon: Heart, badge: 'wishlistCount' },
-  { to: '/cart', label: 'Bag', icon: ShoppingBag, badge: 'cartCount' },
-  { to: '/profile', label: 'Account', icon: User, requiresAuth: true },
+  {
+    to: '/account/cart',
+    label: 'Bag',
+    icon: ShoppingBag,
+    badge: 'cartCount',
+    requiresAuth: true,
+  },
+  {
+    to: '/account/profile',
+    label: 'Account',
+    icon: User,
+    requiresAuth: true,
+    isAccountHome: true,
+  },
 ]
 
 export function MobileBottomNav() {
@@ -24,27 +36,35 @@ export function MobileBottomNav() {
 
   const badges = { cartCount, wishlistCount }
 
-  const handleAccountClick = (event) => {
+  const handleAuthLinkClick = (event, redirectTo) => {
     if (!isAuthenticated) {
       event.preventDefault()
-      openAuthModal({ redirectTo: '/profile', mode: 'login' })
+      openAuthModal({ redirectTo, mode: 'login' })
     }
   }
 
   return (
     <nav className="mobile-nav" aria-label="Mobile bottom navigation">
-      {NAV_LINKS.map(({ to, label, icon: Icon, badge, requiresAuth }) => {
-        const isActive = location.pathname === to || (to !== '/' && location.pathname.startsWith(to))
+      {NAV_LINKS.map(({ to, label, icon: Icon, badge, requiresAuth, isAccountHome }) => {
+        let active = false
+        if (to === '/account/cart') {
+          active = location.pathname === '/account/cart'
+        } else if (isAccountHome) {
+          active = location.pathname.startsWith('/account') && location.pathname !== '/account/cart'
+        } else {
+          active = location.pathname === to || (to !== '/' && location.pathname.startsWith(to))
+        }
+
         const count = badge ? badges[badge] : 0
-        const linkLabel = requiresAuth ? accountLabel : label
+        const linkLabel = isAccountHome ? accountLabel : label
 
         return (
           <Link
             key={to}
             to={to}
-            className={`mobile-nav__link ${isActive ? 'mobile-nav__link--active' : ''}`}
-            onClick={requiresAuth ? handleAccountClick : undefined}
-            aria-label={requiresAuth ? 'My Account' : undefined}
+            className={`mobile-nav__link ${active ? 'mobile-nav__link--active' : ''}`}
+            onClick={requiresAuth ? (event) => handleAuthLinkClick(event, to) : undefined}
+            aria-label={isAccountHome ? 'My Account' : undefined}
           >
             <Icon size={20} />
             {linkLabel}

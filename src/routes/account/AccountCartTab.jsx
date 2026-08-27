@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ShoppingBag } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { CheckoutAddressModal } from '@/components/checkout/CheckoutAddressModal'
 import { CartItem } from '@/features/cart/components/CartItem'
 import { useCart } from '@/features/cart/hooks'
+import { prefetchCheckoutRoute } from '@/features/checkout/prefetchRoute'
 import { useAppStore } from '@/store'
 import { useCartTotal } from '@/store/selectors'
 import { formatPrice } from '@/lib/utils'
@@ -18,6 +19,26 @@ export function AccountCartTab() {
 
   useCart({ enabled: isAuthenticated })
   const bagCount = cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0)
+
+  // Warm Checkout while the user reviews the bag (before they open the modal).
+  useEffect(() => {
+    if (!isAuthenticated || cartItems.length === 0) return
+    const idle = window.requestIdleCallback
+      ? window.requestIdleCallback(() => { void prefetchCheckoutRoute() }, { timeout: 1500 })
+      : window.setTimeout(() => { void prefetchCheckoutRoute() }, 200)
+    return () => {
+      if (window.cancelIdleCallback && typeof idle === 'number') {
+        window.cancelIdleCallback(idle)
+      } else {
+        window.clearTimeout(idle)
+      }
+    }
+  }, [isAuthenticated, cartItems.length])
+
+  const openCheckoutAddress = () => {
+    void prefetchCheckoutRoute()
+    setCheckoutAddressOpen(true)
+  }
 
   return (
     <>
@@ -33,8 +54,8 @@ export function AccountCartTab() {
             )}
           </div>
           {cartItems.length > 0 && (
-            <Link to="/cart">
-              <Button variant="secondary" size="sm">Open full bag</Button>
+            <Link to="/shop/women">
+              <Button variant="secondary" size="sm">Continue shopping</Button>
             </Link>
           )}
         </div>
@@ -78,7 +99,8 @@ export function AccountCartTab() {
                 variant="primary"
                 fullWidth
                 className="account-bag__cta"
-                onClick={() => setCheckoutAddressOpen(true)}
+                onClick={openCheckoutAddress}
+                onPointerEnter={() => { void prefetchCheckoutRoute() }}
               >
                 Proceed to checkout
               </Button>

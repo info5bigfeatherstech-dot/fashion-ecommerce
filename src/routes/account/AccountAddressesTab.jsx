@@ -27,7 +27,7 @@ export function AccountAddressesTab() {
     isLoading: addressesLoading,
     isError: addressesFailed,
     error: addressesError,
-  } = useAddresses({ enabled: isAuthenticated })
+  } = useAddresses({ enabled: isAuthenticated, refetchOnMount: 'always' })
   const createAddress = useCreateAddress()
   const deleteAddress = useDeleteAddress()
   const setDefaultAddress = useSetDefaultAddress()

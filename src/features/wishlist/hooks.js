@@ -15,7 +15,7 @@ import { useAppStore } from '@/store'
 /**
  * Server wishlist query — keeps Zustand mirror in sync when authenticated.
  */
-export function useWishlist({ enabled = true } = {}) {
+export function useWishlist({ enabled = true, refetchOnMount } = {}) {
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
   const accessToken = useAppStore((s) => s.accessToken)
   const replaceWishlistFromApi = useAppStore((s) => s.replaceWishlistFromApi)
@@ -25,6 +25,7 @@ export function useWishlist({ enabled = true } = {}) {
     queryFn: ({ signal }) => getWishlist({ signal }),
     enabled: enabled && isAuthenticated && Boolean(accessToken),
     staleTime: 1000 * 30,
+    ...(refetchOnMount !== undefined ? { refetchOnMount } : {}),
   })
 
   useEffect(() => {

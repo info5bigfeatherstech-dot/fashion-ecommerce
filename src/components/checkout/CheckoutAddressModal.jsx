@@ -15,6 +15,7 @@ import {
 } from '@/features/address/components/AddressFormFields'
 import { useAddresses, useCreateAddress } from '@/features/address/hooks'
 import { prefetchCheckoutForAddress } from '@/features/checkout/hooks'
+import { prefetchCheckoutRoute } from '@/features/checkout/prefetchRoute'
 import { applyFieldErrors } from '@/features/address/mappers'
 import {
   ADDRESS_CONTACT_FIELDS,
@@ -91,6 +92,9 @@ export function CheckoutAddressModal({ open, onOpenChange, onProceed }) {
       return
     }
 
+    // Warm the lazy Checkout chunk while the user picks an address.
+    void prefetchCheckoutRoute()
+
     const preferredId = checkoutAddress?.id
     let nextId = null
 
@@ -108,13 +112,19 @@ export function CheckoutAddressModal({ open, onOpenChange, onProceed }) {
     prefetchCheckoutForAddress(queryClient, { addressId: selectedAddressId })
   }, [open, queryClient, selectedAddressId])
 
-  const handleProceed = () => {
-    if (!selectedAddress) return
-    setCheckoutAddress(selectedAddress)
-    prefetchCheckoutForAddress(queryClient, { addressId: selectedAddress.id })
-    void import('@/routes/Checkout')
+  const goToCheckout = (address) => {
+    if (!address) return
+    setCheckoutAddress(address)
+    prefetchCheckoutForAddress(queryClient, { addressId: address.id })
+    // Kick the shared route promise, then navigate immediately — do not await
+    // (await kept the heavy account page on screen under "Opening checkout…").
+    void prefetchCheckoutRoute()
     onProceed?.()
     onOpenChange?.(false)
+  }
+
+  const handleProceed = () => {
+    goToCheckout(selectedAddress)
   }
 
   const openNewAddressForm = () => {
@@ -143,11 +153,7 @@ export function CheckoutAddressModal({ open, onOpenChange, onProceed }) {
       toast.success(result.message || 'Address saved')
       setSelectedAddressId(result.address?.id || null)
       if (continueAfter && result.address) {
-        setCheckoutAddress(result.address)
-        prefetchCheckoutForAddress(queryClient, { addressId: result.address.id })
-        void import('@/routes/Checkout')
-        onProceed?.()
-        onOpenChange?.(false)
+        goToCheckout(result.address)
       } else {
         setView('list')
         setFormStep(0)
@@ -186,7 +192,7 @@ export function CheckoutAddressModal({ open, onOpenChange, onProceed }) {
               Sign in to choose a saved delivery address or add a new one.
             </p>
             <Button asChild variant="primary">
-              <Link to="/login" state={{ redirectTo: '/cart' }}>
+              <Link to="/login" state={{ redirectTo: '/account/cart' }}>
                 Sign in
               </Link>
             </Button>
