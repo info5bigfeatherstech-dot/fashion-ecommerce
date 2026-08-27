@@ -2,12 +2,13 @@ export const SITE_NAME = 'FABUNIQO'
 export const SITE_TAGLINE = 'Artificial jewelry for everyday shine.'
 
 export const SITE_CONTACT = {
-  email: 'support.fabuniqo@gmail.com ',
+  email: 'support.fabuniqo@gmail.com',
   phone: '+91 98765 43210',
   phoneHref: 'tel:+919876543210',
-  emailHref: 'mailto:support.fabuniqo@gmail.com ',
-  /** Wholesale inquiry form destination */
+  emailHref: 'mailto:support.fabuniqo@gmail.com',
+  /** Form submissions (wholesale + contact) — must be activated on FormSubmit */
   wholesaleEmail: 'fabuniqo@gmail.com',
+  contactEmail: 'fabuniqo@gmail.com',
 }
 
 export const TOP_BANNER = {
@@ -160,8 +161,9 @@ export const SHOP_BY_OCCASION = {
       // number: '01',
       label: 'Everyday Elegance',
       title: 'Everyday Elegance',
-      href: '/shop/sets',
+      href: '/shop/earrings-studs',
       image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=900&h=1200&q=80',
+      video: 'https://res.cloudinary.com/kiqmlqnj/video/upload/v1787820656/FabUniqo.everyday_elegance_3.mp4',
       alt: 'Delicate jewelry for everyday wear',
     },
     {
@@ -169,7 +171,8 @@ export const SHOP_BY_OCCASION = {
       // number: '02',
       label: 'Office',
       title: 'Office',
-      href: '/shop/sets',
+      href: '/shop/necklace-pendants',
+      video: 'https://res.cloudinary.com/kiqmlqnj/video/upload/v1787820660/FabUniqo.office_2.mp4',
       image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=900&h=1200&q=80',
       alt: 'Minimal jewelry styled for the workplace',
     },
@@ -178,8 +181,8 @@ export const SHOP_BY_OCCASION = {
       // number: '03',
       label: 'Party & Night Out Glamour',
       title: 'Party & Night Out Glamour',
-      href: '/shop/sets',
-      video: 'https://res.cloudinary.com/kiqmlqnj/video/upload/v1787746151/web_2.mp4',
+      href: '/shop/bracelets-bangles',
+      video: 'https://res.cloudinary.com/kiqmlqnj/video/upload/v1787820648/party_Night_Out_Glamour_6.mp4',
       image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=900&h=1200&q=80',
       alt: 'Statement jewelry for evening occasions',
     },
@@ -188,8 +191,9 @@ export const SHOP_BY_OCCASION = {
       // number: '04',
       label: 'Festival Radiance',
       title: 'Festival Radiance',
-      href: '/shop/sets',
+      href: '/shop/earrings-studs',
       image: 'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=900&h=1200&q=80',
+      video: 'https://res.cloudinary.com/kiqmlqnj/video/upload/v1787820653/FabUniqo.Festive_Radiance_1.mp4',
       alt: 'Festive jewelry for celebrations',
     },
     {
@@ -199,6 +203,7 @@ export const SHOP_BY_OCCASION = {
       title: 'Wedding Royalty',
       href: '/shop/sets',
       image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=900&h=1200&q=80',
+      video: 'https://res.cloudinary.com/kiqmlqnj/video/upload/v1787820648/FabUniqo.Wedding_Royality_9.mp4',
       alt: 'Bridal and wedding jewelry collection',
     },
   ],
@@ -539,18 +544,19 @@ export const FOOTER_COLUMNS = [
     title: 'Customer Service',
     links: [
       { label: 'Contact Us', href: '/contact' },
-      { label: 'Shipping Info', href: '/account' },
-      { label: 'Returns & Exchanges', href: '/account' },
-      { label: 'Size Guide', href: '/account' },
-      { label: 'Track Order', href: '/account' },
-      { label: 'FAQ', href: '/account' },
+      { label: 'Shipping Info', href: '/policies/shipping-policy' },
+      { label: 'Returns & Exchanges', href: '/policies/return-refund' },
+      { label: 'Track Order', href: '/account/orders' },
     ],
   },
   {
-    title: 'About',
+    title: 'Policies',
     links: [
-      { label: 'Our Story', href: '/account' },
-      { label: 'Careers', href: '/account' },
+      { label: 'Return & Refund', href: '/policies/return-refund' },
+      { label: 'Order Cancellation Policy', href: '/policies/order-cancellation' },
+      { label: 'Privacy Policy', href: '/policies/privacy-policy' },
+      { label: 'Shipping Policy', href: '/policies/shipping-policy' },
+      { label: 'Terms & Conditions', href: '/policies/terms-conditions' },
     ],
   },
 ]

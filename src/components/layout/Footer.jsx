@@ -69,10 +69,10 @@ export function Footer() {
                 <Mail size={16} aria-hidden="true" />
                 {SITE_CONTACT.email}
               </a>
-              <a href={SITE_CONTACT.phoneHref} className="footer__contact-link">
+              {/* <a href={SITE_CONTACT.phoneHref} className="footer__contact-link">
                 <Phone size={16} aria-hidden="true" />
                 {SITE_CONTACT.phone}
-              </a>
+              </a> */}
             </div>
           </FooterSection>
         </div>

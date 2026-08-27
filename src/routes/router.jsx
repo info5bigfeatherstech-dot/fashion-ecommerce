@@ -12,6 +12,7 @@ import Checkout from './Checkout'
 const Account = lazy(() => import('./Account'))
 const Wholesale = lazy(() => import('./Wholesale'))
 const ContactUs = lazy(() => import('./ContactUs'))
+const Policy = lazy(() => import('./Policy'))
 const AdminLogin = lazy(() => import('./admin/AdminLogin'))
 const AdminDashboardPage = lazy(() => import('./admin/AdminDashboardPage'))
 const AdminOrdersPage = lazy(() => import('./admin/AdminOrdersPage'))
@@ -61,6 +62,7 @@ export const router = createBrowserRouter([
       { path: 'account/:section', element: <Account /> },
       { path: 'wholesale', element: <Wholesale /> },
       { path: 'contact', element: <ContactUs /> },
+      { path: 'policies/:slug', element: <Policy /> },
     ],
   },
   { path: '/admin/login', element: <AdminLogin /> },

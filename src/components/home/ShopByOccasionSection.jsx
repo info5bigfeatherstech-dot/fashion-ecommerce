@@ -120,8 +120,11 @@ export function ShopByOccasionSection() {
                         playsInline
                         preload="metadata"
                         initial={false}
+                        style={{ transformOrigin: 'center center' }}
                         animate={{
-                          scale: isActive ? 1.06 : 1,
+                          x: '-50%',
+                          y: '-50%',
+                          scale: isActive ? 1.05 : 1,
                           filter: isActive
                             ? 'grayscale(0) brightness(1)'
                             : 'grayscale(1) brightness(0.68)',
@@ -137,8 +140,11 @@ export function ShopByOccasionSection() {
                         alt={panel.alt}
                         loading="lazy"
                         initial={false}
+                        style={{ transformOrigin: 'center center' }}
                         animate={{
-                          scale: isActive ? 1.06 : 1,
+                          x: '-50%',
+                          y: '-50%',
+                          scale: isActive ? 1.05 : 1,
                           filter: isActive
                             ? 'grayscale(0) brightness(1)'
                             : 'grayscale(1) brightness(0.68)',

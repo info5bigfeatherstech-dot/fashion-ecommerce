@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/Button'
 import { Input, InputGroup } from '@/components/ui/Input'
 import { SITE_CONTACT } from '@/config/site'
 
-const CONTACT_EMAIL = SITE_CONTACT.email?.trim() || 'support.fabuniqo@gmail.com'
+const CONTACT_EMAIL =
+  SITE_CONTACT.contactEmail || SITE_CONTACT.wholesaleEmail || SITE_CONTACT.email?.trim() || 'fabuniqo@gmail.com'
 
 const REASON_OPTIONS = [
   'Order Status',
@@ -40,14 +41,22 @@ export default function ContactUs() {
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(contactSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      phone: '',
+      reason: '',
+      message: '',
+    },
   })
 
   const onSubmit = async (data) => {
     try {
       const formData = new FormData()
-      formData.append('_subject', `Contact Us — ${data.reason}`)
+      formData.append('_subject', `Contact Us — ${data.reason} — ${data.name}`)
       formData.append('_template', 'table')
       formData.append('_captcha', 'false')
+      formData.append('_replyto', data.email)
       formData.append('Name', data.name)
       formData.append('Email', data.email)
       formData.append('Phone', data.phone)
@@ -65,7 +74,13 @@ export default function ContactUs() {
       }
 
       setSubmitted(true)
-      reset()
+      reset({
+        name: '',
+        email: '',
+        phone: '',
+        reason: '',
+        message: '',
+      })
     } catch {
       toast.error('Could not send message. Please try again or email us directly.')
     }
@@ -94,6 +109,10 @@ export default function ContactUs() {
             <li>Returns and exchange requests</li>
             <li>Product questions and sizing help</li>
           </ul>
+          <p className="body-sm text-muted" style={{ marginTop: 'var(--space-3)' }}>
+            Or email{' '}
+            <a href={SITE_CONTACT.emailHref}>{SITE_CONTACT.email}</a>
+          </p>
         </aside>
 
         <div className="card wholesale-page__form-card">

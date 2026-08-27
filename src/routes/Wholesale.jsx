@@ -117,6 +117,9 @@ export default function Wholesale() {
       formData.append('_subject', `Wholesale inquiry — ${data.companyName || data.contactName}`)
       formData.append('_template', 'table')
       formData.append('_captcha', 'false')
+      if (data.businessEmail) {
+        formData.append('_replyto', data.businessEmail)
+      }
       formData.append('Contact Person Name', data.contactName)
       formData.append('Business Email', data.businessEmail || '—')
       formData.append('Phone / WhatsApp Number', data.phone)
