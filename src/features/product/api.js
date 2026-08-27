@@ -1,6 +1,7 @@
 import { http } from '@/api/http'
 import { API_ENDPOINTS, PRODUCT_CATALOG_MAX_PAGES, PRODUCT_CATALOG_PAGE_SIZE } from '@/api/endpoints'
 import { ApiError } from '@/api/errors'
+import { formatDiscount } from '@/lib/utils'
 import { extractProduct, extractProductList, mapPagination, mapProductList } from './mappers'
 
 export {
@@ -8,6 +9,9 @@ export {
   BADGE_OPTIONS,
   SIZE_OPTIONS,
   COLOR_OPTIONS,
+  MAIN_COLOR_OPTIONS,
+  PLATING_OPTIONS,
+  DISCOUNT_OPTIONS,
   TOP_CATEGORIES,
 } from './constants'
 
@@ -39,6 +43,71 @@ function matchesSearch(product, query) {
     .toLowerCase()
 
   return haystack.includes(query)
+}
+
+function matchesAttrValue(values = [], target) {
+  const needle = String(target || '').trim().toLowerCase()
+  if (!needle) return true
+  return values.some((value) => String(value).trim().toLowerCase() === needle)
+}
+
+function productDiscountPct(product) {
+  return formatDiscount(product.originalPrice, product.price) || 0
+}
+
+/**
+ * Query params for GET /products/all (and category) filter support.
+ * Backend filters by these keys when provided.
+ */
+export function buildProductQueryParams(filters = {}) {
+  const params = {}
+
+  if (filters.minPrice != null && filters.minPrice !== '') {
+    params.minPrice = Number(filters.minPrice)
+  }
+  if (filters.maxPrice != null && filters.maxPrice !== '') {
+    params.maxPrice = Number(filters.maxPrice)
+  }
+  if (filters.color) {
+    params.color = filters.color
+    params.mainColor = filters.color
+  }
+  if (filters.plating) {
+    params.plating = filters.plating
+    params.metalColor = filters.plating
+  }
+  if (filters.minDiscount != null && filters.minDiscount !== '') {
+    params.minDiscount = Number(filters.minDiscount)
+    params.discount = Number(filters.minDiscount)
+  }
+
+  const tags = []
+  if (filters.tags) tags.push(String(filters.tags))
+  if (filters.discountTag) tags.push(String(filters.discountTag))
+  if (filters.onSale) tags.push('on-sale')
+  if (tags.length) {
+    params.tags = [...new Set(tags)].join(',')
+  }
+
+  if (filters.sort) params.sort = filters.sort
+  if (filters.page) params.page = filters.page
+  if (filters.limit) params.limit = filters.limit
+
+  return params
+}
+
+function hasServerFilterParams(params = {}) {
+  return Boolean(
+    params.minPrice != null ||
+      params.maxPrice != null ||
+      params.color ||
+      params.mainColor ||
+      params.plating ||
+      params.metalColor ||
+      params.minDiscount != null ||
+      params.discount != null ||
+      params.tags
+  )
 }
 
 function applyProductFilters(products, filters = {}) {
@@ -100,7 +169,23 @@ function applyProductFilters(products, filters = {}) {
   }
 
   if (filters.color) {
-    results = results.filter((product) => product.colors.includes(filters.color))
+    results = results.filter((product) => matchesAttrValue(product.colors, filters.color))
+  }
+
+  if (filters.plating) {
+    results = results.filter((product) => matchesAttrValue(product.platings || [], filters.plating))
+  }
+
+  if (filters.minDiscount != null) {
+    const min = Number(filters.minDiscount)
+    results = results.filter((product) => productDiscountPct(product) >= min)
+  }
+
+  if (filters.discountTag) {
+    const tag = String(filters.discountTag).toLowerCase()
+    results = results.filter((product) =>
+      (product.tags || []).some((item) => String(item).toLowerCase() === tag)
+    )
   }
 
   if (filters.search) {
@@ -326,14 +411,19 @@ export async function getProductsByTag(tag, { page = 1, limit = 25, signal, ...p
 export async function getProducts(filters = {}) {
   const category = filters.category
   const searchQuery = String(filters.search || '').trim()
+  const queryParams = buildProductQueryParams(filters)
   const tag =
     filters.tags ||
+    filters.discountTag ||
     (category === 'sale' ? 'on-sale' : category === 'today-arrival' ? 'today-arrival' : null)
 
   // Prefer dedicated search API when a query is present
   if (searchQuery.length >= 2) {
     try {
-      const { products, pagination, total } = await searchProducts(searchQuery)
+      const { products, pagination, total } = await searchProducts(searchQuery, {
+        page: filters.page || 1,
+        limit: filters.limit || 12,
+      })
       const filtered = applyProductFilters(products, { ...filters, search: undefined })
       return {
         products: filtered,
@@ -348,17 +438,54 @@ export async function getProducts(filters = {}) {
     }
   }
 
+  // When shop filters are active, hit /products/all with query params first
+  if (hasServerFilterParams(queryParams) && !SPECIAL_CATEGORIES.has(category)) {
+    try {
+      const pageParams = {
+        page: filters.page || 1,
+        limit: filters.limit || PRODUCT_CATALOG_PAGE_SIZE,
+        ...queryParams,
+      }
+      if (category && !SPECIAL_CATEGORIES.has(category)) {
+        pageParams.category = category
+      }
+      if (filters.subcategory) {
+        pageParams.subcategory = filters.subcategory
+      }
+
+      const { products, pagination } = await fetchProductsPage(pageParams)
+      const filtered = applyProductFilters(products, {
+        ...filters,
+        // Keep category/subcategory client checks if API ignored them
+        tags: undefined,
+        onSale: undefined,
+      })
+      return {
+        products: filtered,
+        total: filtered.length === products.length ? pagination.total || products.length : filtered.length,
+        pagination: {
+          ...pagination,
+          total: filtered.length === products.length ? pagination.total || products.length : filtered.length,
+        },
+      }
+    } catch {
+      // Fall through to category / catalog paths
+    }
+  }
+
   // Sale / tagged collections — server-side tags filter
   if (tag) {
     try {
       const { products, pagination, total } = await getProductsByTag(tag, {
         page: filters.page || 1,
         limit: filters.limit || 25,
+        ...queryParams,
       })
       const filtered = applyProductFilters(products, {
         ...filters,
         category: undefined,
         tags: undefined,
+        discountTag: undefined,
         onSale: undefined,
       })
       return {
@@ -377,7 +504,11 @@ export async function getProducts(filters = {}) {
   // Prefer dedicated category API for real category slugs
   if (category && !SPECIAL_CATEGORIES.has(category)) {
     try {
-      const { products, pagination, total } = await getProductsByCategory(category)
+      const { products, pagination, total } = await getProductsByCategory(category, {
+        page: filters.page || 1,
+        limit: filters.limit || 50,
+        ...queryParams,
+      })
       const filtered = applyProductFilters(products, { ...filters, category: undefined })
       return {
         products: filtered,

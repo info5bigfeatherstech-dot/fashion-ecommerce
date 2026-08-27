@@ -75,7 +75,7 @@
   /* Layout */
   --header-height: 76px;
   --logo-height: 56px;
-  --logo-inner-scale: 2.35;
+  --logo-inner-scale: 2.6;
   --mobile-nav-height: 64px;
   --container-max: 1480px;
   --container-narrow: 1040px;
@@ -104,7 +104,7 @@
     --category-icon: 156px;
     --header-height: 92px;
     --logo-height: 72px;
-    --logo-inner-scale: 2.5;
+    --logo-inner-scale: 2.75;
   }
 }
 
@@ -112,7 +112,7 @@
   :root {
     --header-height: 96px;
     --logo-height: 80px;
-    --logo-inner-scale: 2.65;
+    --logo-inner-scale: 2.9;
     --container-max: min(1480px, calc(var(--bp-xl) - var(--space-8)));
   }
 }
@@ -121,7 +121,7 @@
   :root {
     --header-height: 68px;
     --logo-height: 48px;
-    --logo-inner-scale: 2.2;
+    --logo-inner-scale: 2.4;
     --space-8: 48px;
     --space-10: 56px;
   }
@@ -1292,7 +1292,7 @@ select.input {
 
 .select-trigger:hover,
 .select-trigger[data-state='open'] {
-  border-color: var(--color-ink);
+  border-color: var(--color-gold);
 }
 
 .select-trigger[data-placeholder] {
@@ -2899,8 +2899,8 @@ html.modal-open.lenis body {
 
 .top-banner__icon {
   flex-shrink: 0;
-  width: 14px;
-  height: 14px;
+  width: 17px;
+  height: 17px;
   color: rgb(98, 76, 22);
   opacity: 0.95;
 }
@@ -2989,7 +2989,11 @@ html.modal-open.lenis body {
     font-size: 0.5625rem;
   }
 
-  .top-banner__icon,
+  .top-banner__icon {
+    width: 15px;
+    height: 15px;
+  }
+
   .top-banner__message-icon {
     width: 12px;
     height: 12px;
@@ -3011,14 +3015,14 @@ html.modal-open.lenis body {
 .header {
   position: relative;
   z-index: var(--z-header);
-  background-color: #000;
-  border-bottom: 1px solid transparent;
+  background-color: var(--color-white);
+  border-bottom: 1px solid var(--color-border);
   overflow: visible;
 }
 
 .header__main {
-  background-color: #000;
-  color: var(--color-paper);
+  background-color: var(--color-white);
+  color: var(--color-ink);
 }
 
 .header__main-inner {
@@ -3037,11 +3041,11 @@ html.modal-open.lenis body {
   flex: 0 0 auto;
   width: auto;
   height: calc(var(--header-height) - 20px);
-  padding: 1px 14px;
+  padding: 1px 6px;
   overflow: hidden;
-  background-color: var(--color-white);
-  border-radius: var(--radius-sm);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08);
+  background-color: transparent;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .header__logo .brand-logo {
@@ -3053,6 +3057,8 @@ html.modal-open.lenis body {
   object-position: center center;
   transform: scale(var(--logo-inner-scale));
   transform-origin: center center;
+  /* Knock out baked white/cream logo plate on light header */
+  mix-blend-mode: multiply;
 }
 
 .brand-logo {
@@ -3067,13 +3073,13 @@ html.modal-open.lenis body {
   height: 100%;
   width: auto;
   min-width: 240px;
-  transform: scale(2.5);
+  transform: scale(2.75);
   transform-origin: center;
 }
 
 .brand-logo--footer {
   height: clamp(56px, 9vw, 72px);
-  transform: scale(2.3);
+  transform: scale(2.6);
   transform-origin: center;
   filter: invert(1) brightness(1.2);
 }
@@ -3115,7 +3121,7 @@ html.modal-open.lenis body {
   }
 }
 
-/* Mobile: hamburger, icon-only utils, collapsible search */
+/* Mobile: hamburger + logo on row 1; search icon / search bar on row 2 */
 @media (max-width: 767px) {
   .header__main-inner {
     gap: var(--space-1);
@@ -3130,23 +3136,44 @@ html.modal-open.lenis body {
     min-width: var(--touch-min);
   }
 
+  .header__menu-btn {
+    order: 1;
+  }
+
   .header__logo {
+    order: 2;
     height: calc(var(--header-height) - 16px);
     padding: 1px 10px;
+    margin-right: auto;
   }
 
   .header__util:not(.header__util--icon),
-  .header__util--desktop {
-    display: none;
+  .header__util--desktop,
+  .header__util--mobile-hide {
+    display: none !important;
+  }
+
+  .header__utils {
+    order: 3;
+    flex: 1 0 100%;
+    width: 100%;
+    justify-content: flex-start;
+    min-width: 0;
   }
 
   .header__search {
     display: none;
-    order: 5;
-    flex: 1 0 100%;
-    width: 100%;
+    order: 3;
+    flex: 1 1 auto;
+    min-width: 0;
     max-width: none;
-    margin-top: 0;
+    width: auto;
+    margin: 0;
+  }
+
+  .header--search-open .header__utils {
+    flex: 0 0 auto;
+    width: auto;
   }
 
   .header--search-open .header__search {
@@ -3205,7 +3232,7 @@ html.modal-open.lenis body {
   position: relative;
   min-width: var(--touch-min);
   min-height: var(--touch-min);
-  color: var(--color-paper);
+  color: var(--color-ink);
   transition: color var(--transition-fast);
 }
 
@@ -3257,13 +3284,13 @@ html.modal-open.lenis body {
   max-width: 140px;
   min-height: 32px;
   padding: 4px 12px;
-  border: 1px solid rgba(250, 247, 242, 0.28);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
   font-family: var(--font-ui);
   font-size: 10px;
   font-weight: 500;
   line-height: 1;
-  color: var(--color-paper);
+  color: var(--color-ink);
   white-space: nowrap;
   transition: color var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast);
 }
@@ -3304,8 +3331,9 @@ html.modal-open.lenis body {
 
 .header__nav-row {
   position: relative;
-  background-color: var(--color-white);
-  border-top: 1px solid var(--color-border);
+  background-color: #000;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--color-paper);
 }
 
 .header__nav-inner {
@@ -3331,7 +3359,7 @@ html.modal-open.lenis body {
 .header__nav-link {
   font-family: var(--font-ui);
   font-size: var(--text-sm);
-  font-weight: 500;
+  font-weight: var(--weight-bold);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding-block: var(--space-2);
@@ -3340,6 +3368,7 @@ html.modal-open.lenis body {
   align-items: center;
   position: relative;
   white-space: nowrap;
+  color: rgba(250, 247, 242, 0.92);
   transition: color var(--transition-fast);
 }
 
@@ -3351,7 +3380,7 @@ html.modal-open.lenis body {
 .header__nav-link--category {
   font-size: var(--text-xs);
   letter-spacing: 0.06em;
-  font-weight: 500;
+  font-weight: var(--weight-bold);
 }
 
 /* ─── Sale is live badge ─── */
@@ -8438,6 +8467,10 @@ a.cart-item__name:hover {
   display: none;
 }
 
+.plp-sidebar__mobile-foot {
+  display: none;
+}
+
 .plp-sidebar {
   display: flex;
   flex-direction: column;
@@ -8468,7 +8501,7 @@ a.cart-item__name:hover {
 }
 
 .plp-sidebar__clear:hover {
-  color: var(--color-accent);
+  color: var(--color-gold);
 }
 
 .filter-group {
@@ -8596,11 +8629,18 @@ a.cart-item__name:hover {
   }
 
   .plp-sidebar__mobile-foot {
+    display: block;
     position: sticky;
     bottom: 0;
     margin-top: var(--space-3);
     padding-top: var(--space-2);
     background: linear-gradient(180deg, transparent, var(--color-paper) 24%);
+  }
+
+  .plp-sidebar__mobile-foot .btn--primary:hover:not(:disabled) {
+    background-color: var(--color-gold);
+    border-color: var(--color-gold);
+    color: var(--color-ink);
   }
 }
 

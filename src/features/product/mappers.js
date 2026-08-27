@@ -1,7 +1,8 @@
 import { getDummyProductImages } from './constants'
 
 const SIZE_KEYS = /size|capacity|fit/i
-const COLOR_KEYS = /colou?r|shade/i
+const COLOR_KEYS = /colou?r|shade|main\s*colou?r/i
+const PLATING_KEYS = /plating|metal|finish|coating/i
 
 function asArray(value) {
   return Array.isArray(value) ? value : []
@@ -208,6 +209,7 @@ export function mapProduct(dto) {
     reviewCount: toNumber(dto.rating?.count, 0),
     sizes: collectAttributeValues(variants, attributes, SIZE_KEYS),
     colors: collectAttributeValues(variants, attributes, COLOR_KEYS),
+    platings: collectAttributeValues(variants, attributes, PLATING_KEYS),
     optionGroups: collectAttributeGroups(variants),
     images,
     inStock: mappedVariants.length

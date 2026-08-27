@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/Select'
 import { useProductListing } from '@/features/product/hooks'
-import { PRICE_RANGES } from '@/features/product/api'
+import { PRICE_RANGES, DISCOUNT_OPTIONS } from '@/features/product/api'
 import { CATEGORY_TREE, DEFAULT_CATEGORY_IMAGE } from '@/features/category/api'
 import { useCircleCategories } from '@/features/category/hooks'
 import { getCategoryLanding } from '@/config/categoryLandings'
@@ -36,17 +36,17 @@ export default function ProductListing() {
 
   const sort = searchParams.get('sort') || ''
   const search = searchParams.get('q') || ''
-  const badge = searchParams.get('badge') || ''
   const priceKey = searchParams.get('price') || 'all'
-  const size = searchParams.get('size') || ''
   const color = searchParams.get('color') || ''
-  const onSale = searchParams.get('sale') === '1'
+  const plating = searchParams.get('plating') || ''
+  const discount = searchParams.get('discount') || ''
 
   const specials = ['new-arrivals', 'sale']
   const resolvedCategory = specials.includes(category) ? category : category
   const categoryInfo = CATEGORY_TREE[category] || null
   const landing = !subcategory && !search ? getCategoryLanding(category) : null
   const priceRange = PRICE_RANGES.find((range) => range.key === priceKey)
+  const discountOption = DISCOUNT_OPTIONS.find((option) => option.value === discount)
 
   const isSoonCollection =
     (!subcategory && !search && (category === 'men' || category === 'kids' || category === 'gifting'))
@@ -54,12 +54,12 @@ export default function ProductListing() {
   const filters = {
     category: resolvedCategory || undefined,
     subcategory: subcategory || undefined,
-    badge: badge || undefined,
     minPrice: priceRange?.min,
     maxPrice: priceRange?.max,
-    size: size || undefined,
     color: color || undefined,
-    onSale: onSale || undefined,
+    plating: plating || undefined,
+    minDiscount: discountOption?.minDiscount,
+    discountTag: discountOption?.tag,
     sort: sort || undefined,
     search: search || undefined,
   }
@@ -119,15 +119,13 @@ export default function ProductListing() {
     subcategory,
     categoryInfo,
     priceKey,
-    badge,
-    size,
     color,
-    onSale,
+    plating,
+    discount,
     onPriceChange: (key) => updateParam('price', key === 'all' ? '' : key),
-    onBadgeChange: (value) => updateParam('badge', value),
-    onSizeChange: (value) => updateParam('size', value),
     onColorChange: (value) => updateParam('color', value),
-    onSaleChange: (checked) => updateParam('sale', checked ? '1' : ''),
+    onPlatingChange: (value) => updateParam('plating', value),
+    onDiscountChange: (value) => updateParam('discount', value),
     onClear: clearFilters,
   }
 

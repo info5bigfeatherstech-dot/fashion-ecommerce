@@ -7,19 +7,10 @@ import {
   SelectValue,
 } from '@/components/ui/Select'
 import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/DropdownMenu'
-import { Button } from '@/components/ui/Button'
-import {
   PRICE_RANGES,
-  BADGE_OPTIONS,
-  SIZE_OPTIONS,
-  COLOR_OPTIONS,
+  MAIN_COLOR_OPTIONS,
+  PLATING_OPTIONS,
+  DISCOUNT_OPTIONS,
   TOP_CATEGORIES,
 } from '../api'
 
@@ -44,15 +35,13 @@ export function ProductFilters({
   subcategory,
   categoryInfo,
   priceKey,
-  badge,
-  size,
   color,
-  onSale,
+  plating,
+  discount,
   onPriceChange,
-  onBadgeChange,
-  onSizeChange,
   onColorChange,
-  onSaleChange,
+  onPlatingChange,
+  onDiscountChange,
   onClear,
 }) {
   const navigate = useNavigate()
@@ -68,7 +57,6 @@ export function ProductFilters({
         </button>
       </div>
 
-      {/* ── Category ── */}
       <div className="filter-field">
         <label className="filter-field__label" htmlFor="filter-category">Category</label>
         <div className="filter-field__desktop">
@@ -101,7 +89,6 @@ export function ProductFilters({
         </ChipGroup>
       </div>
 
-      {/* ── Type ── */}
       {subcategories.length > 0 && (
         <div className="filter-field">
           <label className="filter-field__label" htmlFor="filter-type">Type</label>
@@ -145,12 +132,11 @@ export function ProductFilters({
         </div>
       )}
 
-      {/* ── Price ── */}
       <div className="filter-field">
-        <label className="filter-field__label" htmlFor="filter-price">Price</label>
+        <label className="filter-field__label" htmlFor="filter-price">Price Range</label>
         <div className="filter-field__desktop">
-          <Select value={priceKey} onValueChange={onPriceChange}>
-            <SelectTrigger id="filter-price" aria-label="Price">
+          <Select value={priceKey || 'all'} onValueChange={onPriceChange}>
+            <SelectTrigger id="filter-price" aria-label="Price Range">
               <SelectValue placeholder="All prices" />
             </SelectTrigger>
             <SelectContent>
@@ -166,7 +152,7 @@ export function ProductFilters({
           {PRICE_RANGES.map((range) => (
             <FilterChip
               key={range.key}
-              active={priceKey === range.key}
+              active={(priceKey || 'all') === range.key}
               onClick={() => onPriceChange(range.key)}
             >
               {range.label}
@@ -175,16 +161,18 @@ export function ProductFilters({
         </ChipGroup>
       </div>
 
-      {/* ── Status ── */}
       <div className="filter-field">
-        <label className="filter-field__label" htmlFor="filter-status">Status</label>
+        <label className="filter-field__label" htmlFor="filter-color">Main Color</label>
         <div className="filter-field__desktop">
-          <Select value={badge || 'all'} onValueChange={(value) => onBadgeChange(value === 'all' ? '' : value)}>
-            <SelectTrigger id="filter-status" aria-label="Status">
-              <SelectValue placeholder="All" />
+          <Select
+            value={color || 'all'}
+            onValueChange={(value) => onColorChange(value === 'all' ? '' : value)}
+          >
+            <SelectTrigger id="filter-color" aria-label="Main Color">
+              <SelectValue placeholder="All colors" />
             </SelectTrigger>
             <SelectContent>
-              {BADGE_OPTIONS.map((option) => (
+              {MAIN_COLOR_OPTIONS.map((option) => (
                 <SelectItem key={option.value || 'all'} value={option.value || 'all'}>
                   {option.label}
                 </SelectItem>
@@ -193,11 +181,11 @@ export function ProductFilters({
           </Select>
         </div>
         <ChipGroup>
-          {BADGE_OPTIONS.map((option) => (
+          {MAIN_COLOR_OPTIONS.map((option) => (
             <FilterChip
               key={option.value || 'all'}
-              active={(badge || '') === option.value}
-              onClick={() => onBadgeChange(option.value)}
+              active={(color || '') === option.value}
+              onClick={() => onColorChange(option.value)}
             >
               {option.label}
             </FilterChip>
@@ -205,97 +193,68 @@ export function ProductFilters({
         </ChipGroup>
       </div>
 
-      {/* ── Size ── */}
       <div className="filter-field">
-        <label className="filter-field__label">Size</label>
+        <label className="filter-field__label" htmlFor="filter-plating">Plating / Metal Color</label>
         <div className="filter-field__desktop">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="secondary" size="sm" className="select-trigger">
-                {size || 'All sizes'}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuLabel>Size</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {SIZE_OPTIONS.map((option) => (
-                <DropdownMenuCheckboxItem
-                  key={option}
-                  checked={size === option}
-                  onCheckedChange={(checked) => onSizeChange(checked ? option : '')}
-                >
-                  {option}
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-        <ChipGroup>
-          <FilterChip
-            active={!size}
-            onClick={() => onSizeChange('')}
+          <Select
+            value={plating || 'all'}
+            onValueChange={(value) => onPlatingChange(value === 'all' ? '' : value)}
           >
-            All
-          </FilterChip>
-          {SIZE_OPTIONS.map((option) => (
-            <FilterChip
-              key={option}
-              active={size === option}
-              onClick={() => onSizeChange(size === option ? '' : option)}
-            >
-              {option}
-            </FilterChip>
-          ))}
-        </ChipGroup>
-      </div>
-
-      {/* ── Color ── */}
-      <div className="filter-field">
-        <label className="filter-field__label" htmlFor="filter-color">Color</label>
-        <div className="filter-field__desktop">
-          <Select value={color || 'all'} onValueChange={(value) => onColorChange(value === 'all' ? '' : value)}>
-            <SelectTrigger id="filter-color" aria-label="Color">
-              <SelectValue placeholder="All colors" />
+            <SelectTrigger id="filter-plating" aria-label="Plating / Metal Color">
+              <SelectValue placeholder="All plating" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All colors</SelectItem>
-              {COLOR_OPTIONS.map((option) => (
-                <SelectItem key={option} value={option}>
-                  {option}
+              {PLATING_OPTIONS.map((option) => (
+                <SelectItem key={option.value || 'all'} value={option.value || 'all'}>
+                  {option.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <ChipGroup>
-          <FilterChip
-            active={!color}
-            onClick={() => onColorChange('')}
-          >
-            All
-          </FilterChip>
-          {COLOR_OPTIONS.map((option) => (
+          {PLATING_OPTIONS.map((option) => (
             <FilterChip
-              key={option}
-              active={color === option}
-              onClick={() => onColorChange(color === option ? '' : option)}
+              key={option.value || 'all'}
+              active={(plating || '') === option.value}
+              onClick={() => onPlatingChange(option.value)}
             >
-              {option}
+              {option.label}
             </FilterChip>
           ))}
         </ChipGroup>
       </div>
 
-      {/* ── On Sale ── */}
       <div className="filter-field">
-        <label className="filter-check">
-          <input
-            type="checkbox"
-            checked={onSale}
-            onChange={(e) => onSaleChange(e.target.checked)}
-          />
-          <span>On sale</span>
-        </label>
+        <label className="filter-field__label" htmlFor="filter-discount">Discount</label>
+        <div className="filter-field__desktop">
+          <Select
+            value={discount || 'all'}
+            onValueChange={(value) => onDiscountChange(value === 'all' ? '' : value)}
+          >
+            <SelectTrigger id="filter-discount" aria-label="Discount">
+              <SelectValue placeholder="All discounts" />
+            </SelectTrigger>
+            <SelectContent>
+              {DISCOUNT_OPTIONS.map((option) => (
+                <SelectItem key={option.value || 'all'} value={option.value || 'all'}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <ChipGroup>
+          {DISCOUNT_OPTIONS.map((option) => (
+            <FilterChip
+              key={option.value || 'all'}
+              active={(discount || '') === option.value}
+              onClick={() => onDiscountChange(option.value)}
+            >
+              {option.label}
+            </FilterChip>
+          ))}
+        </ChipGroup>
       </div>
     </aside>
   )

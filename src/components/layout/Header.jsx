@@ -131,7 +131,7 @@ export function Header() {
                 </span>
                 <span className="header__util-label">Contact Us</span>
               </Link>
-              <Link to="/wishlist" className="header__util header__util--icon" aria-label="Wishlist">
+              <Link to="/wishlist" className="header__util header__util--icon header__util--mobile-hide" aria-label="Wishlist">
                 <span className="header__util-icon">
                   <Heart size={22} />
                   {wishlistCount > 0 && (
@@ -140,7 +140,7 @@ export function Header() {
                 </span>
                 <span className="header__util-label">Wishlist</span>
               </Link>
-              <button type="button" className="header__util header__util--icon" onClick={openCart} aria-label="Shopping bag">
+              <button type="button" className="header__util header__util--icon header__util--mobile-hide" onClick={openCart} aria-label="Shopping bag">
                 <span className="header__util-icon">
                   <ShoppingBag size={24} />
                   {cartCount > 0 && (

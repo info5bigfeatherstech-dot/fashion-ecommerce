@@ -2,12 +2,44 @@ import { JEWELRY_CATEGORIES } from '@/config/site'
 
 export const PRICE_RANGES = [
   { key: 'all', label: 'All prices' },
-  { key: '0-200', label: 'Under ₹200', min: 0, max: 199 },
-  { key: '200-500', label: '₹200 – ₹500', min: 200, max: 500 },
-  { key: '500-1000', label: '₹500 – ₹1,000', min: 500, max: 1000 },
-  { key: '1000-plus', label: '₹1,000 & above', min: 1000 },
+  { key: 'under-99', label: 'Under ₹99', min: 0, max: 98.99 },
+  { key: '99-199', label: '₹99 - ₹199', min: 99, max: 199 },
+  { key: '199-299', label: '₹199 - ₹299', min: 199, max: 299 },
+  { key: '299-599', label: '₹299 - ₹599', min: 299, max: 599 },
+  { key: '599-999', label: '₹599 - ₹999', min: 599, max: 999 },
+  { key: 'above-999', label: 'Above ₹999', min: 999.01 },
 ]
 
+export const MAIN_COLOR_OPTIONS = [
+  { value: '', label: 'All colors' },
+  { value: 'Ruby Red', label: 'Ruby Red' },
+  { value: 'Emerald Green', label: 'Emerald Green' },
+  { value: 'Sapphire Blue', label: 'Sapphire Blue' },
+  { value: 'Mint Green', label: 'Mint Green' },
+  { value: 'Baby Pink', label: 'Baby Pink' },
+  { value: 'Clear White / Diamond', label: 'Clear White / Diamond' },
+  { value: 'Multi-Color', label: 'Multi-Color' },
+]
+
+export const PLATING_OPTIONS = [
+  { value: '', label: 'All plating' },
+  { value: 'Gold Plated', label: 'Gold Plated' },
+  { value: 'Silver Plated', label: 'Silver Plated' },
+  { value: 'Rose Gold Plated', label: 'Rose Gold Plated' },
+  { value: 'Oxidized / Antique Silver', label: 'Oxidized / Antique Silver' },
+  { value: 'Rhodium Plated', label: 'Rhodium Plated' },
+]
+
+export const DISCOUNT_OPTIONS = [
+  { value: '', label: 'All discounts' },
+  { value: '10', label: '10% Off & Above', minDiscount: 10 },
+  { value: '20', label: '20% Off & Above', minDiscount: 20 },
+  { value: '30', label: '30% Off & Above', minDiscount: 30 },
+  { value: '50', label: '50% Off & Above', minDiscount: 50 },
+  { value: 'mega-clearance', label: 'Mega Clearance Sale', tag: 'mega-clearance' },
+]
+
+/** @deprecated Fashion badges — kept for older URLs */
 export const BADGE_OPTIONS = [
   { value: '', label: 'All' },
   { value: 'new', label: 'New' },
@@ -16,12 +48,13 @@ export const BADGE_OPTIONS = [
   { value: 'limited', label: 'Limited' },
 ]
 
+/** @deprecated Clothing sizes — jewelry PLP no longer uses these */
 export const SIZE_OPTIONS = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
 
-export const COLOR_OPTIONS = ['Black', 'Ivory', 'Navy', 'Nude', 'White', 'Camel', 'Charcoal']
+/** @deprecated Fashion colors — use MAIN_COLOR_OPTIONS */
+export const COLOR_OPTIONS = MAIN_COLOR_OPTIONS.filter((o) => o.value).map((o) => o.value)
 
 export const TOP_CATEGORIES = JEWELRY_CATEGORIES.map(({ label, slug }) => ({ label, slug }))
-
 
 const IMAGE_PARAMS = 'auto=format&fit=crop&w=800&h=1000&q=80'
 
