@@ -6,7 +6,8 @@ import { SearchBar } from '@/features/search/components/SearchBar'
 import { CartDrawer } from '@/features/cart/components/CartDrawer'
 import { useAppStore } from '@/store'
 import { useCartCount, useWishlistCount } from '@/store/selectors'
-import { SITE_NAME, NAV_ITEMS } from '@/config/site'
+import { SITE_NAME } from '@/config/site'
+import { useHeaderNavItems } from '@/features/category/hooks'
 import { BrandLogo } from './BrandLogo'
 import { SaleLiveBadge } from './SaleLiveBadge'
 import { getUserFirstName } from '@/lib/utils'
@@ -36,6 +37,7 @@ export function Header() {
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
   const user = useAppStore((s) => s.user)
   const openAuthModal = useAppStore((s) => s.openAuthModal)
+  const { navItems } = useHeaderNavItems()
   const accountFirstName = getUserFirstName(user)
   const accountLabel = isAuthenticated && accountFirstName ? accountFirstName : 'My Account'
 
@@ -167,7 +169,7 @@ export function Header() {
         <div className="header__nav-row">
           <div className="container header__nav-inner">
             <nav className="header__nav" aria-label="Main navigation">
-              {NAV_ITEMS.map((item) => (
+              {navItems.map((item) => (
                 <div key={item.slug}>
                   <Link
                     to={navHref(item)}
@@ -221,7 +223,7 @@ export function Header() {
               </div>
 
               <div className="drawer__body header__mobile-body">
-                {NAV_ITEMS.map((item) => (
+                {navItems.map((item) => (
                   <Link
                     key={item.slug}
                     to={navHref(item)}

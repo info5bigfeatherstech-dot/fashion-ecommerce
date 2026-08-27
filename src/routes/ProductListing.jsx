@@ -15,7 +15,7 @@ import {
 import { useProductListing } from '@/features/product/hooks'
 import { PRICE_RANGES, DISCOUNT_OPTIONS } from '@/features/product/api'
 import { CATEGORY_TREE, DEFAULT_CATEGORY_IMAGE } from '@/features/category/api'
-import { useCircleCategories } from '@/features/category/hooks'
+import { useCircleCategories, useCategoryLabel } from '@/features/category/hooks'
 import { getCategoryLanding } from '@/config/categoryLandings'
 import { getCategoryBanner, CATEGORY_BANNERS } from '@/config/categoryBanners'
 import { CategoryLanding } from '@/components/category/CategoryLanding'
@@ -24,6 +24,7 @@ import { CategoryComingSoon } from '@/components/category/CategoryComingSoon'
 
 const SORT_OPTIONS = [
   { value: '', label: 'Featured' },
+  { value: 'newest', label: 'Newest' },
   { value: 'price-asc', label: 'Price: Low to High' },
   { value: 'price-desc', label: 'Price: High to Low' },
   { value: 'rating', label: 'Top Rated' },
@@ -66,6 +67,7 @@ export default function ProductListing() {
 
   const { data, isLoading } = useProductListing(filters)
   const { data: circleCategories = [] } = useCircleCategories()
+  const apiCategoryLabel = useCategoryLabel(category)
 
   const apiCategoryImage = useMemo(() => {
     if (!category) return null
@@ -79,13 +81,15 @@ export default function ProductListing() {
     return image
   }, [circleCategories, category])
 
+  const resolvedCategoryLabel = categoryInfo?.label || apiCategoryLabel || null
+
   const categoryBanner = useMemo(() => {
     if (subcategory || search || landing) return null
     return getCategoryBanner(category, {
-      label: categoryInfo?.label,
+      label: resolvedCategoryLabel,
       image: apiCategoryImage,
     })
-  }, [subcategory, search, landing, category, categoryInfo?.label, apiCategoryImage])
+  }, [subcategory, search, landing, category, resolvedCategoryLabel, apiCategoryImage])
 
   const title = search
     ? `Results for "${search}"`
@@ -95,7 +99,7 @@ export default function ProductListing() {
         ? 'New Arrivals'
         : category === 'sale'
           ? 'Sale'
-          : categoryInfo?.label || 'All Products'
+          : resolvedCategoryLabel || (category ? String(category).replace(/-/g, ' ') : 'All Products')
 
   const updateParam = (key, value) => {
     const params = new URLSearchParams(searchParams)

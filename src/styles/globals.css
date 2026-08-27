@@ -3073,14 +3073,10 @@ html.modal-open.lenis body {
   height: 100%;
   width: auto;
   min-width: 240px;
-  transform: scale(2.75);
-  transform-origin: center;
-}
-
-.brand-logo--footer {
-  height: clamp(32px, 5vw, 48px);
-  transform: scale(2.75);
-  transform-origin: center;
+  transform: scale(var(--logo-inner-scale));
+  transform-origin: center center;
+  background-color: transparent;
+  border: 0;
 }
 
 .header__util.header__menu-btn,
@@ -4172,7 +4168,7 @@ html.modal-open.lenis body {
   overflow: hidden;
   background-color: var(--color-ink);
   color: var(--color-paper);
-  padding-block: clamp(var(--space-6), 6vw, var(--space-8));
+  padding-block: 0 0;
   padding-bottom: calc(clamp(var(--space-6), 6vw, var(--space-8)) + var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
 }
 
@@ -4189,9 +4185,28 @@ html.modal-open.lenis body {
   pointer-events: none;
 }
 
+/* White band holds the same cropped logo as the header — nothing leaks onto black */
+.footer__brand-bar {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  background-color: #ffffff;
+  overflow: hidden;
+}
+
+.footer__brand-bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: var(--header-height);
+  /* Extra bottom padding so the logo sits clearly inside white, not on the black edge */
+  padding-block: 8px 20px;
+}
+
 .footer__content {
   position: relative;
   z-index: 1;
+  padding-top: clamp(var(--space-6), 6vw, var(--space-8));
 }
 
 .footer__brand {
@@ -4202,11 +4217,58 @@ html.modal-open.lenis body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  max-width: min(280px, 90vw);
-  padding: 12px 20px;
-  background-color: white;
-  border-radius: var(--radius-md);
+  flex: 0 0 auto;
+  width: auto;
+  height: calc(var(--header-height) - 20px);
+  padding: 1px 6px;
+  overflow: hidden;
+  background-color: transparent;
+  border: 0 !important;
+  border-radius: 0;
+  box-shadow: none !important;
+  outline: none;
   text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.footer__logo:focus,
+.footer__logo:focus-visible,
+.footer__logo:active {
+  outline: none;
+  box-shadow: none;
+}
+
+.footer__logo img,
+.footer__logo .brand-logo {
+  display: block;
+  height: 100%;
+  width: auto;
+  max-width: none;
+  min-width: 240px;
+  object-fit: contain;
+  object-position: center center;
+  transform: scale(var(--logo-inner-scale));
+  transform-origin: center center;
+  background-color: transparent;
+  border: 0 !important;
+  outline: none;
+  box-shadow: none !important;
+  /* PNG has baked-in white; multiply lifts it so only the mark shows on the white bar */
+  mix-blend-mode: multiply;
+}
+
+@media (max-width: 767px) {
+  .footer__logo {
+    height: calc(var(--header-height) - 16px);
+    padding: 1px 10px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .footer__logo {
+    height: calc(var(--header-height) - 22px);
+    padding: 1px 18px;
+  }
 }
 
 .footer__contact {

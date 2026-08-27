@@ -68,7 +68,14 @@ const JEWELRY_SLUGS = new Set(JEWELRY_CATEGORIES.map((c) => c.slug))
 export function getCategoryBanner(slug, { label, image } = {}) {
   if (!slug) return null
   const base = CATEGORY_BANNERS[slug]
-  if (!base && !JEWELRY_SLUGS.has(slug) && slug !== 'sale') return null
+  // Allow banners for any shop slug (API categories), not only the old static jewelry list.
+  const known =
+    Boolean(base) ||
+    JEWELRY_SLUGS.has(slug) ||
+    slug === 'sale' ||
+    Boolean(label) ||
+    Boolean(image)
+  if (!known) return null
 
   const fallbackTitle =
     label ||

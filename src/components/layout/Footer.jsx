@@ -1,14 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronDown, Mail, Phone } from 'lucide-react'
-import { SiFacebook, SiInstagram, SiThreads } from 'react-icons/si'
-import { SITE_NAME, SITE_CONTACT, FOOTER_COLUMNS, PAYMENT_METHODS } from '@/config/site'
+import { Mail } from 'lucide-react'
+import { SiFacebook, SiInstagram } from 'react-icons/si'
+import { SITE_NAME, SITE_CONTACT, FOOTER_COLUMNS } from '@/config/site'
+import { useFooterShopLinks } from '@/features/category/hooks'
 import { FooterBrandMark } from './BrandLogo'
 
 const SOCIAL_LINKS = [
   { label: 'Instagram', href: 'https://www.instagram.com/fabuniqo?igsi=MXFwZHdpcmF4bWV0ag==', Icon: SiInstagram },
   { label: 'Facebook', href: 'https://www.facebook.com/share/1PYm15KDNA/', Icon: SiFacebook },
-  // { label: 'Instagram Threads', href: '#', Icon: SiThreads },
 ]
 
 function FooterSection({ title, children, defaultOpen = false }) {
@@ -24,6 +24,14 @@ export function Footer() {
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' ? window.matchMedia('(max-width: 767px)').matches : false
   )
+  const { links: shopLinks } = useFooterShopLinks()
+
+  const columns = useMemo(() => {
+    const shopColumn = shopLinks.length
+      ? [{ title: 'Shop', links: shopLinks }]
+      : []
+    return [...shopColumn, ...FOOTER_COLUMNS]
+  }, [shopLinks])
 
   useEffect(() => {
     const media = window.matchMedia('(max-width: 767px)')
@@ -34,19 +42,21 @@ export function Footer() {
 
   return (
     <footer className="footer">
-      <div className="container footer__content">
-        <div className="footer__brand">
+      <div className="footer__brand-bar">
+        <div className="container footer__brand-bar-inner">
           <Link to="/" className="footer__logo" aria-label={`${SITE_NAME} home`}>
             <FooterBrandMark />
           </Link>
         </div>
+      </div>
 
+      <div className="container footer__content">
         <div className="footer__grid">
-          {FOOTER_COLUMNS.map((col) => (
+          {columns.map((col) => (
             <FooterSection key={col.title} title={col.title} defaultOpen={!isMobile}>
               <ul>
                 {col.links.map((link) => (
-                  <li key={link.label}>
+                  <li key={`${col.title}-${link.href}-${link.label}`}>
                     <Link to={link.href} className="footer__link">{link.label}</Link>
                   </li>
                 ))}
@@ -69,10 +79,6 @@ export function Footer() {
                 <Mail size={16} aria-hidden="true" />
                 {SITE_CONTACT.email}
               </a>
-              {/* <a href={SITE_CONTACT.phoneHref} className="footer__contact-link">
-                <Phone size={16} aria-hidden="true" />
-                {SITE_CONTACT.phone}
-              </a> */}
             </div>
           </FooterSection>
         </div>
@@ -81,11 +87,6 @@ export function Footer() {
           <p className="body-sm" style={{ color: 'var(--color-neutral)' }}>
             © {new Date().getFullYear()} {SITE_NAME}. All Rights Reserved.
           </p>
-          {/* <div className="footer__payments">
-            {PAYMENT_METHODS.map((method) => (
-              <span key={method} className="footer__payment-icon">{method}</span>
-            ))}
-          </div> */}
         </div>
       </div>
     </footer>

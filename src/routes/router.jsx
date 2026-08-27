@@ -1,6 +1,7 @@
 import { lazy } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { Layout } from '@/components/layout/Layout'
+import { RouteErrorBoundary } from '@/components/routing/RouteErrorBoundary'
 import Home from './Home'
 import ProductListing from './ProductListing'
 import ProductDetail from './ProductDetail'
@@ -8,6 +9,7 @@ import Wishlist from './Wishlist'
 import Login from './Login'
 import Register from './Register'
 import Checkout from './Checkout'
+import NotFound from './NotFound'
 
 const Account = lazy(() => import('./Account'))
 const Wholesale = lazy(() => import('./Wholesale'))
@@ -46,8 +48,10 @@ export const router = createBrowserRouter([
   {
     path: '/',
     element: <Layout />,
+    errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, element: <Home /> },
+      { path: 'shop', element: <ProductListing /> },
       { path: 'shop/:category', element: <ProductListing /> },
       { path: 'shop/:category/:subcategory', element: <ProductListing /> },
       { path: 'product/:slug', element: <ProductDetail /> },
@@ -63,12 +67,14 @@ export const router = createBrowserRouter([
       { path: 'wholesale', element: <Wholesale /> },
       { path: 'contact', element: <ContactUs /> },
       { path: 'policies/:slug', element: <Policy /> },
+      { path: '*', element: <NotFound /> },
     ],
   },
   { path: '/admin/login', element: <AdminLogin /> },
   {
     path: '/admin',
     element: <AdminShell />,
+    errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, element: <Navigate to="dashboard" replace /> },
       { path: 'dashboard', element: <AdminDashboardPage /> },

@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Select,
@@ -6,12 +7,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/Select'
+import { useCircleCategories } from '@/features/category/hooks'
+import { slugFromShopHref } from '@/features/category/nav'
 import {
   PRICE_RANGES,
   MAIN_COLOR_OPTIONS,
   PLATING_OPTIONS,
   DISCOUNT_OPTIONS,
-  TOP_CATEGORIES,
 } from '../api'
 
 function ChipGroup({ children }) {
@@ -45,8 +47,33 @@ export function ProductFilters({
   onClear,
 }) {
   const navigate = useNavigate()
+  const { data: apiCategories = [] } = useCircleCategories()
   const subcategories = categoryInfo?.children || []
   const typeValue = subcategory || 'all'
+
+  const categoryOptions = useMemo(() => {
+    const fromApi = apiCategories
+      .map((item) => {
+        const slug = slugFromShopHref(item.href)
+        if (!slug) return null
+        return { slug, label: item.label }
+      })
+      .filter(Boolean)
+
+    if (!category) return fromApi
+    if (fromApi.some((item) => item.slug === category)) return fromApi
+
+    // Keep current URL category selectable even if API briefly lags
+    return [
+      {
+        slug: category,
+        label: categoryInfo?.label || String(category).replace(/-/g, ' '),
+      },
+      ...fromApi,
+    ]
+  }, [apiCategories, category, categoryInfo?.label])
+
+  const activeCategory = category || categoryOptions[0]?.slug || ''
 
   return (
     <aside className="plp-sidebar" aria-label="Product filters">
@@ -57,37 +84,39 @@ export function ProductFilters({
         </button>
       </div>
 
-      <div className="filter-field">
-        <label className="filter-field__label" htmlFor="filter-category">Category</label>
-        <div className="filter-field__desktop">
-          <Select
-            value={category || TOP_CATEGORIES[0].slug}
-            onValueChange={(value) => navigate(`/shop/${value}`)}
-          >
-            <SelectTrigger id="filter-category" aria-label="Category">
-              <SelectValue placeholder="Select category" />
-            </SelectTrigger>
-            <SelectContent>
-              {TOP_CATEGORIES.map((item) => (
-                <SelectItem key={item.slug} value={item.slug}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <ChipGroup>
-          {TOP_CATEGORIES.map((item) => (
-            <FilterChip
-              key={item.slug}
-              active={(category || TOP_CATEGORIES[0].slug) === item.slug}
-              onClick={() => navigate(`/shop/${item.slug}`)}
+      {categoryOptions.length > 0 ? (
+        <div className="filter-field">
+          <label className="filter-field__label" htmlFor="filter-category">Category</label>
+          <div className="filter-field__desktop">
+            <Select
+              value={activeCategory}
+              onValueChange={(value) => navigate(`/shop/${value}`)}
             >
-              {item.label}
-            </FilterChip>
-          ))}
-        </ChipGroup>
-      </div>
+              <SelectTrigger id="filter-category" aria-label="Category">
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categoryOptions.map((item) => (
+                  <SelectItem key={item.slug} value={item.slug}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <ChipGroup>
+            {categoryOptions.map((item) => (
+              <FilterChip
+                key={item.slug}
+                active={activeCategory === item.slug}
+                onClick={() => navigate(`/shop/${item.slug}`)}
+              >
+                {item.label}
+              </FilterChip>
+            ))}
+          </ChipGroup>
+        </div>
+      ) : null}
 
       {subcategories.length > 0 && (
         <div className="filter-field">

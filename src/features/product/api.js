@@ -199,6 +199,12 @@ function applyProductFilters(products, filters = {}) {
     results = [...results].sort((a, b) => b.price - a.price)
   } else if (filters.sort === 'rating') {
     results = [...results].sort((a, b) => b.rating - a.rating || b.reviewCount - a.reviewCount)
+  } else if (filters.sort === 'newest') {
+    results = [...results].sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0
+      return bTime - aTime
+    })
   }
 
   return results

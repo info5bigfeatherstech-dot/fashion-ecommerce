@@ -211,7 +211,8 @@ export function AdminBulkUploadModal({ open, onOpenChange, onComplete }) {
     simulateProgress()
     try {
       const fd = new FormData()
-      fd.append('csv', csvFile)
+      // Backend multer.single('csvFile') — field name must match exactly
+      fd.append('csvFile', csvFile)
       const raw = await previewAdminBulkCsv(fd)
       const normalized = normalizePreview(raw)
       setPreview(normalized)
@@ -239,7 +240,8 @@ export function AdminBulkUploadModal({ open, onOpenChange, onComplete }) {
     simulateProgress()
     try {
       const fd = new FormData()
-      fd.append('csv', csvFile)
+      // Backend expects csvFile (preview/import) and imagesZip (ZIP mode)
+      fd.append('csvFile', csvFile)
       if (imageMode === 'zip' && zipFile) fd.append('imagesZip', zipFile)
       const raw = imageMode === 'zip'
         ? await importAdminBulkWithZip(fd)

@@ -25,7 +25,11 @@ export const SALE_LIVE = {
   tag: 'on-sale',
 }
 
-/** Jewelry shop categories — each has its own navbar item and `/shop/:slug` page. */
+export const NAV_ITEMS = [
+  { label: 'Home', slug: 'home', megaMenu: false },
+]
+
+/** @deprecated Prefer API categories via useHeaderNavItems / useFooterShopLinks */
 export const JEWELRY_CATEGORIES = [
   { label: 'Earrings & Studs', slug: 'earrings-studs' },
   { label: 'Rings', slug: 'rings' },
@@ -34,16 +38,6 @@ export const JEWELRY_CATEGORIES = [
   { label: 'Mangalsutras', slug: 'mangalsutras' },
   { label: 'Sets', slug: 'sets' },
   { label: 'Gifting', slug: 'gifting' },
-]
-
-export const NAV_ITEMS = [
-  { label: 'Home', slug: 'home', megaMenu: false },
-  ...JEWELRY_CATEGORIES.map(({ label, slug }) => ({
-    label,
-    slug,
-    megaMenu: false,
-    href: `/shop/${slug}`,
-  })),
 ]
 
 /** Circular category chips on the homepage (below hero). */
@@ -548,14 +542,8 @@ export const TRUST_ITEMS = [
   { title: 'Quality Checked', description: 'Every jewelry piece is checked before dispatch' },
 ]
 
+/** Static footer columns (shop categories come from the categories API). */
 export const FOOTER_COLUMNS = [
-  {
-    title: 'Artificial Jewellery',
-    links: JEWELRY_CATEGORIES.map(({ label, slug }) => ({
-      label,
-      href: `/shop/${slug}`,
-    })),
-  },
   {
     title: 'Customer Service',
     links: [
