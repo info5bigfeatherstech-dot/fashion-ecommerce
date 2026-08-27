@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { useAppStore } from '@/store'
 import { cn, formatPrice, formatDiscount } from '@/lib/utils'
+import { getProductRatingDisplay } from '@/lib/productRatingDisplay'
 import { FEATURE_FLAGS } from '@/config/site'
 import { showAddedToCartToast } from '@/lib/cart-toast'
 import { resolveVariantId } from '@/features/product/mappers'
@@ -57,6 +58,7 @@ export function ProductCard({ product, compact = false }) {
   }, [isAuthenticated, cartItems, productId])
 
   const discount = formatDiscount(product.originalPrice, product.price)
+  const ratingDisplay = useMemo(() => getProductRatingDisplay(product), [product])
   const inCartQty = cartLine?.quantity || 0
   const isInCart = cartQtyForProduct > 0
   const defaultVariant = useMemo(() => {
@@ -250,10 +252,10 @@ export function ProductCard({ product, compact = false }) {
             <span className="product-card__discount">{discount}%</span>
           )}
         </div>
-        <div className="product-card__rating" data-empty={!(product.reviewCount > 0) ? 'true' : undefined}>
+        <div className="product-card__rating">
           <Star size={12} className="product-card__star" fill="currentColor" />
-          <span>{product.rating}</span>
-          <span>({product.reviewCount})</span>
+          <span>{Number(ratingDisplay.average).toFixed(1)}</span>
+          <span>({ratingDisplay.count})</span>
         </div>
       </div>
     </Link>

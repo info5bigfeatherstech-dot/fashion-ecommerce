@@ -1,12 +1,12 @@
-import logo from '@/assets/logo1.png'
+import headerLogo from '@/assets/FabUniqo- Fashion Uniquely yours.png'
 import { SITE_NAME } from '@/config/site'
 
 export function BrandLogo({ className = '', variant = 'default' }) {
-  const variantClass = variant === 'footer' ? 'brand-logo--footer' : ''
+  const variantClass = variant === 'footer' ? 'brand-logo--footer' : 'brand-logo--header'
 
   return (
     <img
-      src={logo}
+      src={headerLogo}
       alt={SITE_NAME}
       className={`brand-logo ${variantClass} ${className}`.trim()}
     />

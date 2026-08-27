@@ -1,6 +1,28 @@
+import { http } from '@/api/http'
+import { API_ENDPOINTS } from '@/api/endpoints'
+import { ApiError } from '@/api/errors'
 import { JEWELRY_CATEGORIES } from '@/config/site'
+import { mapCircleCategories } from './mappers'
 
 const delay = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms))
+
+export async function getPublicCategories({ signal } = {}) {
+  const payload = await http.get(API_ENDPOINTS.categories.list, { signal })
+
+  if (payload?.success === false) {
+    throw new ApiError({
+      message: payload?.message || 'Failed to load categories',
+      status: 400,
+      code: 'CATEGORIES_FETCH_FAILED',
+      details: payload,
+    })
+  }
+
+  const raw = payload?.categories ?? payload?.data?.categories ?? payload?.data ?? payload
+  const list = Array.isArray(raw) ? raw : []
+
+  return mapCircleCategories(list)
+}
 
 export const MEGA_MENUS = {
   men: [

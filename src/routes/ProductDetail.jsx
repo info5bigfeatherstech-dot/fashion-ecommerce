@@ -1,6 +1,6 @@
 import { useLayoutEffect, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { Star, Heart, Minus, Plus } from 'lucide-react'
+import { Heart, Minus, Plus } from 'lucide-react'
 import { ProductGallery } from '@/features/product/components/ProductGallery'
 import { PriceBlock } from '@/features/product/components/PriceBlock'
 import {
@@ -13,6 +13,9 @@ import { Badge } from '@/components/ui/Badge'
 import { Accordion } from '@/components/ui/Accordion'
 import { ProductCarousel } from '@/features/product/components/ProductCarousel'
 import { OutOfStockInquiryForm } from '@/features/product/components/OutOfStockInquiryForm'
+import { ProductReviewsSection } from '@/features/reviews/components/ProductReviewsSection'
+import { ProductRatingStars } from '@/features/reviews/components/ProductRatingStars'
+import { useProductReviews } from '@/features/reviews/hooks'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
 import { useProductDetail, useRelatedProducts } from '@/features/product/hooks'
 import { resolveDisplayImages, resolveVariant, isAttrValueInStock } from '@/features/product/mappers'
@@ -47,6 +50,8 @@ function initialAttrsFromProduct(product) {
 export default function ProductDetail() {
   const { slug } = useParams()
   const { data: product, isLoading, isError } = useProductDetail(slug)
+  const { data: reviewData } = useProductReviews(product?.id)
+  const reviewSummary = reviewData?.summary ?? null
   const { data: relatedProducts = [] } = useRelatedProducts(slug, {
     limit: 8,
     categorySlug: product?.category,
@@ -355,19 +360,12 @@ export default function ProductDetail() {
             <p className="pdp-info__code">{displayCode}</p>
           )}
 
-          <div className="pdp-info__rating">
-            <span className="pdp-info__stars" aria-hidden="true">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star
-                  key={i}
-                  size={14}
-                  fill={i < Math.round(product.rating) ? 'currentColor' : 'none'}
-                />
-              ))}
-            </span>
-            <span>{product.rating}</span>
-            <span className="text-muted">({product.reviewCount} reviews)</span>
-          </div>
+          <ProductRatingStars
+            product={product}
+            reviewSummary={reviewSummary}
+            className="pdp-info__rating"
+            countClassName="text-muted"
+          />
 
           <PriceBlock price={displayPrice} originalPrice={displayOriginal} size="large" />
 
@@ -515,6 +513,8 @@ export default function ProductDetail() {
           <ProductCarousel products={related} />
         </section>
       )}
+
+      <ProductReviewsSection product={product} />
 
       <div
         className={`pdp-sticky-bar${showStickyBar ? ' pdp-sticky-bar--visible' : ''}`}

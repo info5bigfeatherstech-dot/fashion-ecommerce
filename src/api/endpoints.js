@@ -200,6 +200,16 @@ export const API_ENDPOINTS = {
   search: {
     query: '/search',
   },
+  categories: {
+    list: '/categories/categories',
+    byId: (id) => `/categories/categories/${encodeURIComponent(String(id))}`,
+  },
+  productReviews: {
+    summary: (productId) =>
+      `/product-reviews/public/${encodeURIComponent(String(productId))}/summary`,
+    list: (productId) =>
+      `/product-reviews/public/${encodeURIComponent(String(productId))}`,
+  },
 }
 
 export const PRODUCT_CATALOG_PAGE_SIZE = 50

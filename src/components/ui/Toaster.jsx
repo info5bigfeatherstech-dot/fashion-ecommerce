@@ -3,9 +3,12 @@ import { Toaster as Sonner } from 'sonner'
 export function Toaster() {
   return (
     <Sonner
-      position="top-right"
-      closeButton
+      position="bottom-right"
+      closeButton={false}
       richColors={false}
+      offset={20}
+      gap={12}
+      visibleToasts={3}
       toastOptions={{
         classNames: {
           toast: 'sonner-toast',
