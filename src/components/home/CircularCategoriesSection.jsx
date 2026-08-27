@@ -73,7 +73,7 @@ export function CircularCategoriesSection() {
   }
 
   return (
-    <section className="circle-categories" aria-labelledby="circle-categories-heading">
+    <section id="circular-categories" className="circle-categories" aria-labelledby="circle-categories-heading">
       <div className="container circle-categories__inner">
         <div className="section-header circle-categories__header">
           <div>

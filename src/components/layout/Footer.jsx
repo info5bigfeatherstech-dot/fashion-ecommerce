@@ -6,9 +6,9 @@ import { SITE_NAME, SITE_CONTACT, FOOTER_COLUMNS, PAYMENT_METHODS } from '@/conf
 import { FooterBrandMark } from './BrandLogo'
 
 const SOCIAL_LINKS = [
-  { label: 'Instagram', href: '#', Icon: SiInstagram },
-  { label: 'Facebook', href: '#', Icon: SiFacebook },
-  { label: 'Instagram Threads', href: '#', Icon: SiThreads },
+  { label: 'Instagram', href: 'https://www.instagram.com/fabuniqo?igsi=MXFwZHdpcmF4bWV0ag==', Icon: SiInstagram },
+  { label: 'Facebook', href: 'https://www.facebook.com/share/1PYm15KDNA/', Icon: SiFacebook },
+  // { label: 'Instagram Threads', href: '#', Icon: SiThreads },
 ]
 
 function FooterSection({ title, children, defaultOpen = false }) {
@@ -56,14 +56,14 @@ export function Footer() {
           <FooterSection title="Follow Us" defaultOpen={!isMobile}>
             <div className="footer__social">
               {SOCIAL_LINKS.map(({ label, href, Icon }) => (
-                <a key={label} href={href} className="footer__link footer__social-link" aria-label={label}>
+                <a key={label} href={href} className="footer__link footer__social-link" aria-label={label} target="_blank" rel="noopener noreferrer">
                   <Icon size={26} aria-hidden />
                   <span className="sr-only">{label}</span>
                 </a>
               ))}
             </div>
           </FooterSection>
-          <FooterSection title="Contact" defaultOpen={!isMobile}>
+          <FooterSection title="Customer Support" defaultOpen={!isMobile}>
             <div className="footer__contact">
               <a href={SITE_CONTACT.emailHref} className="footer__contact-link">
                 <Mail size={16} aria-hidden="true" />

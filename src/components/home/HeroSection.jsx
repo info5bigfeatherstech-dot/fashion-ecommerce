@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
 import { HERO_SLIDES } from '@/config/site'
@@ -45,6 +44,14 @@ export function HeroSection() {
 
   if (!slide) return null
 
+  const handleScrollToCategory = (e) => {
+    e.preventDefault()
+    const categorySection = document.getElementById('circular-categories')
+    if (categorySection) {
+      categorySection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
   return (
     <section className="hero" aria-label="Campaign highlight">
       <div className="hero__frame">
@@ -80,9 +87,9 @@ export function HeroSection() {
               <p className="hero__subtitle">{slide.subtitle}</p>
             </Reveal>
             <Reveal y={18} delay={0.32}>
-              <Link to={slide.href}>
-                <Button variant="accent" size="lg">{slide.cta}</Button>
-              </Link>
+              <Button variant="accent" size="lg" onClick={handleScrollToCategory}>
+                {slide.cta}
+              </Button>
             </Reveal>
           </div>
         </div>

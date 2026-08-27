@@ -113,15 +113,31 @@ export const CATEGORY_STRIP = [
 
 export const HERO_SLIDES = [
   {
-    id: 'autumn',
-    eyebrow: 'Autumn / Winter 2026',
-    title: 'The World Wears One House',
-    subtitle: 'From Paris ateliers to Seoul streets — every piece designed, made, and owned by VERAÒ.',
+    id: 'fabuniqo-main',
+    eyebrow: 'FABUNIQO — Fashion Uniquely Yours',
+    title: 'Style That Speaks Your Language',
+    subtitle: 'From trendsetting Korean & Western daily wear to gorgeous ethnic sets — discover your perfect piece.',
     cta: 'Explore New Drops',
     href: '/shop/new-arrivals',
     video: 'https://res.cloudinary.com/kiqmlqnj/video/upload/v1787745696/web_1.mp4',
     image: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1400&h=800&q=80',
-    alt: 'VERAÒ Autumn Collection — model in layered silk and wool',
+    alt: 'FABUNIQO Jewelry Collection — Trendsetting Korean & Western designs',
+    // features: [
+    //   {
+    //     text: 'Trendsetting Korean & Western Daily Wear',
+    //   },
+    //   {
+    //     text: 'Premium Antique & Oxidized Statement Jewelry',
+    //   },
+    //   {
+    //     text: 'Gorgeous Ethnic Sets & Mangalsutras',
+    //   },
+    //   {
+    //     text: 'Starting at Just ₹29',
+    //     subtext: 'Unbeatable Wholesale & Retail Styles',
+    //     highlight: true,
+    //   },
+    // ],
   },
 ]
 
