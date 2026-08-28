@@ -39,28 +39,16 @@ export async function getAdminProductsArchived({ signal, page = 1, limit = 50 } 
   return payload
 }
 
-export async function getAdminCategories({ signal } = {}) {
-  const payload = await adminGet(API_ENDPOINTS.admin.categories, { signal })
-  return unwrapAdmin(payload)
-}
-
-export async function createAdminCategory({ name, description = '', parent = '', status = 'active' } = {}) {
-  const fd = new FormData()
-  fd.append('name', name)
-  if (description) fd.append('description', description)
-  if (parent) fd.append('parent', parent)
-  if (status) fd.append('status', status)
-  const axiosClient = (await import('@/api/axiosClient')).default
-  const response = await axiosClient.request({
-    method: 'POST',
-    url: API_ENDPOINTS.admin.categories,
-    data: fd,
-    headers: { 'Content-Type': 'multipart/form-data' },
-    useAdminAuth: true,
-  })
-  const data = unwrapAdmin(response.data)
-  return data?.category || data
-}
+export {
+  getAdminCategories,
+  createAdminCategory,
+  updateAdminCategory,
+  deleteAdminCategory,
+  reorderAdminCategories,
+  toggleAdminCategoryVisibility,
+  getCategoryImageUrl,
+  normalizeAdminCategoriesPayload,
+} from './categories'
 
 export async function exportAdminProducts() {
   const response = await adminGetBlob(API_ENDPOINTS.admin.productsExport)

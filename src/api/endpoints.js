@@ -144,6 +144,10 @@ export const API_ENDPOINTS = {
       `/admin/products/variant/${encodeURIComponent(String(code))}`,
     seoOverview: '/admin/seo-analytics/overview',
     categories: '/categories/admin/categories',
+    categoryById: (id) => `/categories/admin/categories/${encodeURIComponent(String(id))}`,
+    categoryReorder: '/categories/admin/categories/reorder',
+    categoryToggleVisibility: (id) =>
+      `/categories/admin/categories/${encodeURIComponent(String(id))}/toggle-visibility`,
     rtoReport: '/admin/rto/report',
     carts: '/admin/analytics/carts',
     cartsAbandoned: '/admin/analytics/carts/abandoned',

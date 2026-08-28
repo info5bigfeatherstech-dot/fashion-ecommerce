@@ -55,6 +55,12 @@ import {
   getAdminProductsArchived,
   getAdminProductsLowStock,
   getAdminCategories,
+  createAdminCategory,
+  updateAdminCategory,
+  deleteAdminCategory,
+  reorderAdminCategories,
+  toggleAdminCategoryVisibility,
+  normalizeAdminCategoriesPayload,
   exportAdminProducts,
   createAdminProduct,
   updateAdminProduct,
@@ -95,7 +101,13 @@ import {
   verifyAdminStaffPasswordReset,
 } from './api'
 import { adminKeys } from './queryKeys'
+import { categoryKeys } from '@/features/category/queryKeys'
 import { useAdminStore } from './store'
+
+function invalidateCategoryQueries(queryClient) {
+  queryClient.invalidateQueries({ queryKey: adminKeys.categories() })
+  queryClient.invalidateQueries({ queryKey: categoryKeys.list() })
+}
 
 function useAdminQueryEnabled(enabled = true) {
   const isAuthenticated = useAdminStore((s) => s.isAuthenticated)
@@ -789,10 +801,54 @@ export function useHardDeleteAdminProduct() {
 export function useAdminCategories({ enabled = true } = {}) {
   const queryEnabled = useAdminQueryEnabled(enabled)
   return useQuery({
-    queryKey: [...adminKeys.all, 'categories'],
+    queryKey: adminKeys.categories(),
     queryFn: ({ signal }) => getAdminCategories({ signal }),
     enabled: queryEnabled,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
+    select: (payload) => {
+      const categories = payload?.categories ?? normalizeAdminCategoriesPayload(payload)
+      return Array.isArray(categories) ? categories : []
+    },
+  })
+}
+
+export function useCreateAdminCategory() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: createAdminCategory,
+    onSuccess: () => invalidateCategoryQueries(queryClient),
+  })
+}
+
+export function useUpdateAdminCategory() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...payload }) => updateAdminCategory(id, payload),
+    onSuccess: () => invalidateCategoryQueries(queryClient),
+  })
+}
+
+export function useDeleteAdminCategory() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: deleteAdminCategory,
+    onSuccess: () => invalidateCategoryQueries(queryClient),
+  })
+}
+
+export function useReorderAdminCategories() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: reorderAdminCategories,
+    onSuccess: () => invalidateCategoryQueries(queryClient),
+  })
+}
+
+export function useToggleAdminCategoryVisibility() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, isHidden }) => toggleAdminCategoryVisibility(id, isHidden),
+    onSuccess: () => invalidateCategoryQueries(queryClient),
   })
 }
 

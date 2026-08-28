@@ -1200,8 +1200,8 @@ export default function AdminProductsPage() {
                 type="button"
                 className="admin-products__category-add"
                 onClick={() => setShowCategoryModal(true)}
-                title="Add New Category"
-                aria-label="Add new category"
+                title="Manage categories"
+                aria-label="Manage categories"
               >
                 <Plus size={14} aria-hidden />
               </button>
@@ -1405,6 +1405,7 @@ export default function AdminProductsPage() {
       />
       {showCategoryModal && (
         <CategoryQuickModal
+          selectOnCreate={false}
           onSelect={(catId) => {
             setCategoryFilter(catId)
             setPage(1)

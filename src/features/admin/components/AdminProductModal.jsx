@@ -795,11 +795,9 @@ export function AdminProductModal({
 
           {showCategoryModal ? (
             <CategoryQuickModal
+              selectOnCreate
               onSelect={(catId) => setFormData((p) => ({ ...p, category: catId }))}
-              onCreated={(category) => {
-                setCategories((prev) => [...prev, category])
-                onCategoriesChange?.()
-              }}
+              onCreated={() => onCategoriesChange?.()}
               onClose={() => setShowCategoryModal(false)}
             />
           ) : null}

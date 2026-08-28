@@ -48,4 +48,5 @@ export const adminKeys = {
   rtoOrders: (page) => [...adminKeys.all, 'rto-orders', page],
   rtoAnalytics: () => [...adminKeys.all, 'rto-analytics'],
   oosInquiries: (page, days, search) => [...adminKeys.all, 'oos', page, days, search || ''],
+  categories: () => [...adminKeys.all, 'categories'],
 }
