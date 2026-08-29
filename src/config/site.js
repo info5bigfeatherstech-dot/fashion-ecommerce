@@ -2,6 +2,7 @@ import craftsmanshipImage from '../assets/Heavy Set.png';
 import earringsImage from '../assets/Earrings.png';
 import braceletsImage from '../assets/(6) Bracelets & Bangles.png';
 import chokerNecklaceImage from '../assets/(2) Green Beads Stone Choker Necklace with Earrings Set for Party Wedding Jewellery (1).png';
+import heartPendantNecklaceImage from '../assets/C6-009-1 Best Friend Heart Pendant Necklace Set Matching Friendship Chain for Girls  (2).png';
 import giftBoxImage from '../assets/(10) Build A Gift Box.png';
 import starting29Image from '../assets/Artificial Jewellery Starting 29 rs only  at FabUniqo.png';
 
@@ -467,7 +468,7 @@ export const JEWELLERY_FEST = {
       productName: 'Necklaces & Pendants Statement',
       fallbackPrice: 69,
       href: '/product/festival',
-      image: chokerNecklaceImage,
+      image: heartPendantNecklaceImage,
     },
     {
       id: 'party',

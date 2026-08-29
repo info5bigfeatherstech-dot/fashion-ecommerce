@@ -1,13 +1,14 @@
 import { Link } from 'react-router-dom'
 import { useReducedMotion } from 'framer-motion'
-import { ArrowRight, Gift, Truck } from 'lucide-react'
+import { ArrowRight, Truck } from 'lucide-react'
 import { TOP_BANNER } from '@/config/site'
+import giftIcon from '@/assets/6664427.ico'
 
 function BannerPromoItem() {
   return (
     <span className="top-banner__item">
       <span className="top-banner__copy">
-        <Gift className="top-banner__icon" aria-hidden="true" strokeWidth={1.75} />
+        <img src={giftIcon} alt="" className="top-banner__icon" aria-hidden="true" />
         <span className="top-banner__headline">{TOP_BANNER.headline}</span>
         <span className="top-banner__divider" aria-hidden="true" />
         <span className="top-banner__message">

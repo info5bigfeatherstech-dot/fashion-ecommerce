@@ -3,6 +3,17 @@ import { TrendingUp } from 'lucide-react'
 import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
 import { JEWELRY_CATEGORIES } from '@/config/site'
 import { CATEGORY_BANNERS } from '@/config/categoryBanners'
+import earringsImg from '@/assets/Earrings.png'
+import ringsImg from '@/assets/(7) Silver Tone Floral Pattern Ring for Women with Elegant Design (2).png'
+import braceletsImg from '@/assets/(6) Bracelets & Bangles.png'
+import necklaceImg from '@/assets/(2) Green Beads Stone Choker Necklace with Earrings Set for Party Wedding Jewellery (1).png'
+
+const CATEGORY_IMAGES = {
+  'earrings-studs': earringsImg,
+  'rings': ringsImg,
+  'bracelets-bangles': braceletsImg,
+  'necklace-pendants': necklaceImg,
+}
 
 /** Four trending category tiles — each image opens that shop category. */
 const TRENDING_CATEGORY_SLUGS = [
@@ -19,7 +30,7 @@ const TRENDING_CATEGORIES = TRENDING_CATEGORY_SLUGS.map((slug) => {
     id: slug,
     label: nav?.label || banner?.title || slug,
     href: `/shop/${slug}`,
-    image: banner?.image,
+    image: CATEGORY_IMAGES[slug] || banner?.image,
     alt: banner?.alt || nav?.label || 'Category',
   }
 }).filter((item) => item.image)

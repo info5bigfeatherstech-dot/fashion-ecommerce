@@ -83,8 +83,8 @@ export function Footer() {
           </FooterSection>
         </div>
 
-        <div className="footer__bottom">
-          <p className="body-sm" style={{ color: 'var(--color-neutral)' }}>
+        <div className="footer__bottom" style={{ justifyContent: 'center', textAlign: 'center' }}>
+          <p className="body-sm" style={{ color: 'var(--color-neutral)', textAlign: 'center', width: '100%' }}>
             © {new Date().getFullYear()} {SITE_NAME}. All Rights Reserved.
           </p>
         </div>
