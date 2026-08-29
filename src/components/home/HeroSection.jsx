@@ -3,8 +3,6 @@ import { Button } from '@/components/ui/Button'
 import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
 import { HERO_SLIDES } from '@/config/site'
 
-const slide = HERO_SLIDES[0]
-
 function useHeroVideo(src) {
   const ref = useRef(null)
 
@@ -40,6 +38,7 @@ function useHeroVideo(src) {
 }
 
 export function HeroSection() {
+  const slide = HERO_SLIDES[0]
   const videoRef = useHeroVideo(slide?.video)
 
   if (!slide) return null
