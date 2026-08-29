@@ -6,7 +6,7 @@ import { getUserFirstName } from '@/lib/utils'
 
 const NAV_LINKS = [
   { to: '/', label: 'Home', icon: Home },
-  { to: '/shop/women', label: 'Categories', icon: LayoutGrid },
+  { to: '/product-all', label: 'Categories', icon: LayoutGrid },
   { to: '/wishlist', label: 'Wishlist', icon: Heart, badge: 'wishlistCount' },
   {
     to: '/account/cart',

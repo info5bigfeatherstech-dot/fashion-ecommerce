@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ShoppingBag, Heart, User, MessageCircle, Menu, Search, X, ChevronRight, Warehouse, Home as HomeIcon } from 'lucide-react'
+import { ShoppingBag, Heart, User, MessageCircle, Menu, Search, X, ChevronRight, Warehouse, Home as HomeIcon, LayoutGrid } from 'lucide-react'
 import { SearchBar } from '@/features/search/components/SearchBar'
 import { CartDrawer } from '@/features/cart/components/CartDrawer'
 import { useAppStore } from '@/store'
@@ -187,17 +187,13 @@ export function Header() {
                 </div>
               ))}
               <div>
-                <Link 
-                  to="/#circular-categories" 
-                  className="header__nav-link header__nav-link--category"
-                  onClick={(e) => {
-                    if (location.pathname === '/') {
-                      e.preventDefault();
-                      document.getElementById('circular-categories')?.scrollIntoView({ behavior: 'smooth' });
-                    }
-                  }}
+                <Link
+                  to="/product-all"
+                  className={`product-all-nav-btn${location.pathname === '/product-all' ? ' product-all-nav-btn--active' : ''}`}
+                  aria-label="Product All — browse every category"
                 >
-                  View All
+                  <LayoutGrid size={13} aria-hidden="true" />
+                  <span>Product All</span>
                 </Link>
               </div>
               <SaleLiveBadge />
@@ -255,6 +251,16 @@ export function Header() {
                     <ChevronRight size={16} />
                   </Link>
                 ))}
+
+                <Link
+                  to="/product-all"
+                  className={`header__mobile-link header__mobile-link--product-all ${location.pathname === '/product-all' ? 'header__mobile-link--active' : ''}`}
+                  onClick={() => setMobileNavOpen(false)}
+                >
+                  <LayoutGrid size={18} aria-hidden />
+                  Product All
+                  <ChevronRight size={16} />
+                </Link>
 
                 <div className="header__mobile-sale">
                   <SaleLiveBadge />
