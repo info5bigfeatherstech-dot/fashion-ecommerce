@@ -44,9 +44,9 @@ export function TrendingNowFastSection() {
             </p>
           </Reveal>
         </div>
-        <Reveal delay={0.12}>
+        {/* <Reveal delay={0.12}>
           <Link to="/shop/earrings-studs" className="section-header__link">View All</Link>
-        </Reveal>
+        </Reveal> */}
       </div>
 
       <Reveal delay={0.1}>

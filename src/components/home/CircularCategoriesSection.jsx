@@ -92,11 +92,11 @@ export function CircularCategoriesSection() {
               </p>
             </Reveal>
           </div>
-          <Reveal delay={0.12}>
+          {/* <Reveal delay={0.12}>
             <Link to="/shop/women" className="section-header__link">
               View all
             </Link>
-          </Reveal>
+          </Reveal> */}
         </div>
 
         {categories.length > 0 ? (

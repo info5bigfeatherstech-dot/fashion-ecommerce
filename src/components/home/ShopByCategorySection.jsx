@@ -5,7 +5,7 @@ import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
 
 export function ShopByCategorySection() {
   return (
-    <section className="section container">
+    <section id="shop-by-category" className="section container">
       <div className="section-header">
         <div>
           <ScrollRevealText as="h2" className="display-md">

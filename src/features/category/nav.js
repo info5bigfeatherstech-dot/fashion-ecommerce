@@ -34,6 +34,13 @@ export function buildHeaderNavItems(categories = []) {
     })
   }
 
+  items.push({
+    label: 'Gifting',
+    slug: 'gifting',
+    href: '/gifting',
+    megaMenu: false,
+  })
+
   return [home, ...items]
 }
 

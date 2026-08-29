@@ -39,19 +39,19 @@ export function JewelleryFestSection() {
   const { hours, minutes, seconds } = useCountdown(endAt)
 
   const categoryCards = useMemo(() => {
-    return JEWELLERY_FEST.categories.map((category, index) => {
-      const product = products[index] || products[index % Math.max(products.length, 1)]
-      const startingAt = category.fallbackPrice ?? product?.price
-      const image = product?.images?.[0] || product?.image
+    return JEWELLERY_FEST.categories.map((category) => {
+      const startingAt = category.fallbackPrice ?? 29
+      const image = category.image
+      const productHref = `/product/${category.slug || category.id}`
 
       return {
         ...category,
         startingAt,
         image,
-        productHref: product?.slug ? `/product/${product.slug}` : category.href,
+        productHref,
       }
     })
-  }, [products])
+  }, [])
 
   return (
     <section className="section container">

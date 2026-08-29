@@ -4840,6 +4840,14 @@ html.modal-open.lenis body {
   transition: background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast);
 }
 
+.circle-categories__btn--prev {
+  margin-right: 16px;
+}
+
+.circle-categories__btn--next {
+  margin-left: 16px;
+}
+
 .circle-categories__btn:hover:not(:disabled) {
   background-color: var(--color-white);
   border-color: var(--color-ink);
@@ -4859,8 +4867,8 @@ html.modal-open.lenis body {
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
   padding-block: var(--space-3);
-  padding-inline: var(--space-4);
-  margin-inline: calc(var(--space-4) * -1);
+  padding-inline: 16px;
+  margin-inline: -16px;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
@@ -4879,14 +4887,14 @@ html.modal-open.lenis body {
   flex-direction: column;
   align-items: center;
   gap: var(--space-1);
-  width: clamp(80px, 20vw, 124px);
+  width: clamp(100px, 25vw, 160px);
   text-decoration: none;
   color: inherit;
 }
 
 .circle-categories__ring-card {
-  width: clamp(80px, 20vw, var(--category-icon));
-  height: clamp(80px, 20vw, var(--category-icon));
+  width: clamp(100px, 25vw, 160px);
+  height: clamp(100px, 25vw, 160px);
   flex-shrink: 0;
   border-radius: var(--radius-full);
   transition: transform var(--transition-base);

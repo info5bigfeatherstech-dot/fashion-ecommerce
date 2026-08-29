@@ -169,7 +169,7 @@ export function Header() {
         <div className="header__nav-row">
           <div className="container header__nav-inner">
             <nav className="header__nav" aria-label="Main navigation">
-              {navItems.map((item) => (
+              {navItems.slice(0, 5).map((item) => (
                 <div key={item.slug}>
                   <Link
                     to={navHref(item)}
@@ -179,6 +179,20 @@ export function Header() {
                   </Link>
                 </div>
               ))}
+              <div>
+                <Link 
+                  to="/#circular-categories" 
+                  className="header__nav-link header__nav-link--category"
+                  onClick={(e) => {
+                    if (location.pathname === '/') {
+                      e.preventDefault();
+                      document.getElementById('circular-categories')?.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                >
+                  View All
+                </Link>
+              </div>
               <SaleLiveBadge />
             </nav>
           </div>

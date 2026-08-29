@@ -20,9 +20,9 @@ export function BestsellersSection() {
             </p>
           </Reveal>
         </div>
-        <Reveal delay={0.12}>
+        {/* <Reveal delay={0.12}>
           <Link to="/shop?sort=rating" className="section-header__link">Shop All</Link>
-        </Reveal>
+        </Reveal> */}
       </div>
       {isLoading ? (
         <ProductGridSkeleton count={4} />

@@ -11,7 +11,10 @@ const DEFAULT_YEAR = 2024
 export function TheArchiveSection() {
   const [activeYear, setActiveYear] = useState(DEFAULT_YEAR)
   const entry = JEWELRY_ARCHIVE.find((item) => item.year === activeYear) || JEWELRY_ARCHIVE[0]
-  const yearShort = String(entry.year).slice(-2)
+  if (!entry) return null
+
+  const yearShort = entry.year ? String(entry.year).slice(-2) : ''
+  const hasTimeline = JEWELRY_ARCHIVE.length > 1 && JEWELRY_ARCHIVE.some((item) => item.year)
 
   return (
     <section className="section container jewelry-archive" aria-label="Jewelry archive">
@@ -21,13 +24,15 @@ export function TheArchiveSection() {
 
       <div className="jewelry-archive__layout">
         <div className="jewelry-archive__copy">
-          <p className="jewelry-archive__watermark" aria-hidden="true">
-            {yearShort}
-          </p>
+          {yearShort && (
+            <p className="jewelry-archive__watermark" aria-hidden="true">
+              {yearShort}
+            </p>
+          )}
 
           <AnimatePresence mode="wait">
             <motion.div
-              key={`copy-${entry.year}`}
+              key={`copy-${entry.year || entry.title}`}
               className="jewelry-archive__copy-inner"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -43,32 +48,34 @@ export function TheArchiveSection() {
             </motion.div>
           </AnimatePresence>
 
-          <div className="jewelry-archive__timeline" role="tablist" aria-label="Archive years">
-            <div className="jewelry-archive__timeline-track" aria-hidden="true" />
-            {JEWELRY_ARCHIVE.map((item) => {
-              const isActive = item.year === activeYear
-              return (
-                <button
-                  key={item.year}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  className={`jewelry-archive__year${isActive ? ' is-active' : ''}`}
-                  onClick={() => setActiveYear(item.year)}
-                >
-                  <span className="jewelry-archive__year-tick" aria-hidden="true" />
-                  <span className="jewelry-archive__year-label">{item.year}</span>
-                </button>
-              )
-            })}
-          </div>
+          {hasTimeline && (
+            <div className="jewelry-archive__timeline" role="tablist" aria-label="Archive years">
+              <div className="jewelry-archive__timeline-track" aria-hidden="true" />
+              {JEWELRY_ARCHIVE.map((item, idx) => {
+                const isActive = item.year === activeYear
+                return (
+                  <button
+                    key={item.year || idx}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    className={`jewelry-archive__year${isActive ? ' is-active' : ''}`}
+                    onClick={() => setActiveYear(item.year)}
+                  >
+                    <span className="jewelry-archive__year-tick" aria-hidden="true" />
+                    <span className="jewelry-archive__year-label">{item.year}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         <div className="jewelry-archive__media">
           <ImageReveal>
             <AnimatePresence mode="wait">
               <motion.div
-                key={entry.year}
+                key={entry.year || entry.title}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}

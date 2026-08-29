@@ -10,6 +10,7 @@ import Login from './Login'
 import Register from './Register'
 import Checkout from './Checkout'
 import NotFound from './NotFound'
+import Gifting from './Gifting'
 
 const Account = lazy(() => import('./Account'))
 const Wholesale = lazy(() => import('./Wholesale'))
@@ -66,6 +67,7 @@ export const router = createBrowserRouter([
       { path: 'account/:section', element: <Account /> },
       { path: 'wholesale', element: <Wholesale /> },
       { path: 'contact', element: <ContactUs /> },
+      { path: 'gifting', element: <Gifting /> },
       { path: 'policies/:slug', element: <Policy /> },
       { path: '*', element: <NotFound /> },
     ],
