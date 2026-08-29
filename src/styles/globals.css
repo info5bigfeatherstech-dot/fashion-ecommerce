@@ -13638,6 +13638,12 @@ a.cart-item__name:hover {
 
 .admin-sidebar__logo .brand-logo {
   height: 36px;
+  mix-blend-mode: multiply;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  outline: none;
+  clip-path: inset(1px);
 }
 
 .admin-sidebar__title {
