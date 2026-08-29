@@ -41,7 +41,7 @@ export function JewelleryFestSection() {
   const categoryCards = useMemo(() => {
     return JEWELLERY_FEST.categories.map((category, index) => {
       const product = products[index] || products[index % Math.max(products.length, 1)]
-      const startingAt = product?.price ?? category.fallbackPrice
+      const startingAt = category.fallbackPrice ?? product?.price
       const image = product?.images?.[0] || product?.image
 
       return {
@@ -116,8 +116,12 @@ export function JewelleryFestSection() {
                 <div className="jewellery-fest__card-body">
                   <h4 className="jewellery-fest__card-title">{item.title}</h4>
                   <p className="jewellery-fest__card-meta">
-                    <span className="jewellery-fest__discount">{item.discount}% OFF</span>
-                    <span aria-hidden="true"> · </span>
+                    {item.discount && (
+                      <>
+                        <span className="jewellery-fest__discount">{item.discount}% OFF</span>
+                        <span aria-hidden="true"> · </span>
+                      </>
+                    )}
                     Starting at {formatPrice(item.startingAt)}
                   </p>
                 </div>

@@ -73,7 +73,7 @@ export function CraftsmanshipSection() {
   const data = CRAFTSMANSHIP_INSPECTION
 
   return (
-    <section className="section container craft-inspect" aria-label="Craftsmanship inspection">
+    <section className="section container craft-inspect" aria-label="DESIGNED TO SHINE">
       <div className="craft-inspect__layout">
         <div className="craft-inspect__media">
           <ImageReveal>

@@ -16,7 +16,7 @@ export function TheArchiveSection() {
   return (
     <section className="section container jewelry-archive" aria-label="Jewelry archive">
       <ScrollRevealText as="h2" className="jewelry-archive__heading">
-        Jewelry <span className="heading-accent">Archive</span>
+        Jewelry <span className="heading-accent">Edit</span>
       </ScrollRevealText>
 
       <div className="jewelry-archive__layout">
