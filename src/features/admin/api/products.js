@@ -48,6 +48,7 @@ export {
   toggleAdminCategoryVisibility,
   getCategoryImageUrl,
   normalizeAdminCategoriesPayload,
+  sortAdminCategories,
 } from './categories'
 
 export async function exportAdminProducts() {

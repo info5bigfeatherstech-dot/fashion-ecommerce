@@ -148,6 +148,7 @@ export {
   toggleAdminCategoryVisibility,
   getCategoryImageUrl,
   normalizeAdminCategoriesPayload,
+  sortAdminCategories,
   exportAdminProducts,
   createAdminProduct,
   updateAdminProduct,

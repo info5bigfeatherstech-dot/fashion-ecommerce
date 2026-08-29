@@ -20414,9 +20414,10 @@ button.admin-stats-chip:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
   background: rgba(15, 23, 42, 0.52);
   backdrop-filter: blur(3px);
+  overflow: hidden;
 }
 
 .admin-cat__dialog {
@@ -20424,12 +20425,14 @@ button.admin-stats-chip:hover {
   flex-direction: column;
   width: 100%;
   max-width: 560px;
-  max-height: min(92vh, calc(100dvh - 32px));
+  max-height: min(90vh, calc(100dvh - 32px));
+  height: min(90vh, calc(100dvh - 32px));
   border-radius: 16px;
   background: #fff;
   border: 1px solid #e2e8f0;
   box-shadow: 0 24px 48px rgba(15, 23, 42, 0.24);
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .admin-cat__header {
@@ -20484,10 +20487,13 @@ button.admin-stats-chip:hover {
 }
 
 .admin-cat__body {
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   padding: 16px 20px;
   display: flex;
   flex-direction: column;
@@ -20498,6 +20504,7 @@ button.admin-stats-chip:hover {
   display: flex;
   align-items: flex-start;
   gap: 8px;
+  flex-wrap: wrap;
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid #fecaca;
@@ -20505,6 +20512,27 @@ button.admin-stats-chip:hover {
   color: #b91c1c;
   font-size: 13px;
   line-height: 1.4;
+}
+
+.admin-cat__retry {
+  margin-left: auto;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: #fff;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-cat__retry:hover:not(:disabled) {
+  background: #fee2e2;
+}
+
+.admin-cat__retry:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .admin-cat__loading {
@@ -20796,10 +20824,7 @@ button.admin-stats-chip:hover {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 280px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding-right: 2px;
+  flex-shrink: 0;
 }
 
 .admin-cat__empty {
@@ -20883,6 +20908,11 @@ button.admin-stats-chip:hover {
   justify-content: center;
   background: #f1f5f9;
   color: #94a3b8;
+}
+
+.admin-cat__row-thumb--hidden {
+  filter: grayscale(1);
+  opacity: 0.65;
 }
 
 .admin-cat__row-select {
@@ -21011,20 +21041,47 @@ button.admin-stats-chip:hover {
   background: #fafbfc;
 }
 
+.admin-cat__legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f8fafc;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.admin-cat__legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.admin-cat__legend-icon {
+  color: #94a3b8;
+}
+
+.admin-cat__legend-icon--on {
+  color: #16a34a;
+}
+
+.admin-cat__legend-sep {
+  color: #e2e8f0;
+}
+
 @media (max-width: 640px) {
   .admin-cat__overlay {
     padding: 10px;
-    align-items: flex-end;
+    align-items: center;
   }
 
   .admin-cat__dialog {
     max-height: min(94vh, calc(100dvh - 20px));
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-  }
-
-  .admin-cat__list {
-    max-height: 220px;
+    height: min(94vh, calc(100dvh - 20px));
+    border-radius: 16px;
   }
 }
 

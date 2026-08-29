@@ -61,6 +61,7 @@ import {
   reorderAdminCategories,
   toggleAdminCategoryVisibility,
   normalizeAdminCategoriesPayload,
+  sortAdminCategories,
   exportAdminProducts,
   createAdminProduct,
   updateAdminProduct,
@@ -798,17 +799,15 @@ export function useHardDeleteAdminProduct() {
   })
 }
 
-export function useAdminCategories({ enabled = true } = {}) {
+export function useAdminCategories({ enabled = true, refetchOnMount = false } = {}) {
   const queryEnabled = useAdminQueryEnabled(enabled)
   return useQuery({
     queryKey: adminKeys.categories(),
     queryFn: ({ signal }) => getAdminCategories({ signal }),
     enabled: queryEnabled,
-    staleTime: 1000 * 60 * 2,
-    select: (payload) => {
-      const categories = payload?.categories ?? normalizeAdminCategoriesPayload(payload)
-      return Array.isArray(categories) ? categories : []
-    },
+    staleTime: 1000 * 30,
+    refetchOnMount: refetchOnMount ? 'always' : true,
+    select: (payload) => sortAdminCategories(normalizeAdminCategoriesPayload(payload)),
   })
 }
 

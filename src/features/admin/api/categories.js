@@ -30,9 +30,47 @@ async function adminMultipartRequest(method, url, formData) {
   }
 }
 
+/** Flatten nested category trees; dedupe by id (offer admin returns flat, some routes use tree). */
+function flattenCategoryTree(items, acc = [], seen = new Set()) {
+  for (const item of Array.isArray(items) ? items : []) {
+    if (!item || typeof item !== 'object') continue
+    const id = item._id ?? item.id
+    if (id != null && seen.has(String(id))) continue
+    if (id != null) seen.add(String(id))
+    const { children, ...rest } = item
+    acc.push(rest)
+    if (Array.isArray(children) && children.length > 0) {
+      flattenCategoryTree(children, acc, seen)
+    }
+  }
+  return acc
+}
+
+/**
+ * Normalize admin category list responses (offer-compatible).
+ * Handles: { categories }, { data: { categories } }, { data: [...] }, raw arrays, nested trees.
+ */
 export function normalizeAdminCategoriesPayload(payload) {
-  const raw = payload?.categories ?? payload?.data?.categories ?? payload
-  return Array.isArray(raw) ? raw : []
+  if (!payload) return []
+  if (Array.isArray(payload)) return flattenCategoryTree(payload)
+
+  if (Array.isArray(payload.categories)) {
+    return flattenCategoryTree(payload.categories)
+  }
+
+  const data = payload.data
+  if (Array.isArray(data)) return flattenCategoryTree(data)
+  if (data && typeof data === 'object' && Array.isArray(data.categories)) {
+    return flattenCategoryTree(data.categories)
+  }
+
+  return []
+}
+
+export function sortAdminCategories(categories = []) {
+  return [...categories].sort(
+    (a, b) => (a.order ?? 0) - (b.order ?? 0) || String(a.name || '').localeCompare(String(b.name || ''))
+  )
 }
 
 export function getCategoryImageUrl(category) {
@@ -89,8 +127,14 @@ function unwrapCategoryRecord(payload) {
 export async function getAdminCategories({ signal } = {}) {
   const payload = await adminGet(API_ENDPOINTS.admin.categories, { signal })
   const unwrapped = unwrapAdmin(payload)
-  const categories = normalizeAdminCategoriesPayload(unwrapped)
-  return { ...(typeof unwrapped === 'object' && unwrapped ? unwrapped : {}), categories }
+  let categories = normalizeAdminCategoriesPayload(payload)
+  if (!categories.length) {
+    categories = normalizeAdminCategoriesPayload(unwrapped)
+  }
+  return {
+    ...(typeof unwrapped === 'object' && unwrapped && !Array.isArray(unwrapped) ? unwrapped : {}),
+    categories: sortAdminCategories(categories),
+  }
 }
 
 export async function createAdminCategory({
@@ -162,7 +206,9 @@ export async function reorderAdminCategories(orderedCategories = []) {
   try {
     const payload = await adminPost(API_ENDPOINTS.admin.categoryReorder, { categories })
     const unwrapped = unwrapAdmin(payload)
-    return normalizeAdminCategoriesPayload(unwrapped)
+    let list = normalizeAdminCategoriesPayload(unwrapped)
+    if (!list.length) list = normalizeAdminCategoriesPayload(payload)
+    return sortAdminCategories(list)
   } catch (error) {
     const message =
       error?.response?.data?.message ||
