@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ShoppingBag, Heart, User, MessageCircle, Menu, Search, X, ChevronRight, Warehouse, Home as HomeIcon } from 'lucide-react'
@@ -40,6 +40,13 @@ export function Header() {
   const { navItems } = useHeaderNavItems()
   const accountFirstName = getUserFirstName(user)
   const accountLabel = isAuthenticated && accountFirstName ? accountFirstName : 'My Account'
+
+  const desktopNavItems = useMemo(() => {
+    const home = navItems.find((item) => item.slug === 'home') || { label: 'Home', slug: 'home' }
+    const gifting = navItems.find((item) => item.slug === 'gifting') || { label: 'Gifting', slug: 'gifting', href: '/gifting' }
+    const categories = navItems.filter((item) => item.slug !== 'home' && item.slug !== 'gifting').slice(0, 4)
+    return [home, ...categories, gifting]
+  }, [navItems])
 
   const handleMyAccountClick = (event) => {
     if (!isAuthenticated) {
@@ -169,7 +176,7 @@ export function Header() {
         <div className="header__nav-row">
           <div className="container header__nav-inner">
             <nav className="header__nav" aria-label="Main navigation">
-              {navItems.slice(0, 5).map((item) => (
+              {desktopNavItems.map((item) => (
                 <div key={item.slug}>
                   <Link
                     to={navHref(item)}
