@@ -37,7 +37,7 @@ const TRENDING_CATEGORIES = TRENDING_CATEGORY_SLUGS.map((slug) => {
 
 export function TrendingNowFastSection() {
   return (
-    <section className="section container trending-now-section">
+    <section id="trending-now" className="section container trending-now-section">
       <div className="section-header">
         <div>
           <Reveal x={-14} y={0}>
@@ -66,6 +66,7 @@ export function TrendingNowFastSection() {
             <div key={item.id} className="trending-now-videos__item" role="listitem">
               <Link
                 to={item.href}
+                state={{ fromSection: 'trending-now' }}
                 className="trending-now-videos__open"
                 aria-label={`Shop ${item.label}`}
               >

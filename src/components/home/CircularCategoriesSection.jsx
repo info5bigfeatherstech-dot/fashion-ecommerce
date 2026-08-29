@@ -129,6 +129,7 @@ export function CircularCategoriesSection() {
                 <Reveal key={category.id} delay={index * 0.04} className="circle-categories__item-wrap">
                   <Link
                     to={category.href}
+                    state={{ fromSection: 'circular-categories' }}
                     className="circle-categories__item"
                     role="listitem"
                     aria-label={category.label}

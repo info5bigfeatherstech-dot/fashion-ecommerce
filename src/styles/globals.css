@@ -1718,19 +1718,15 @@ html.modal-open.lenis body {
 
 .modal-content--auth-register {
   padding: 0;
-  max-width: min(1040px, calc(100vw - 16px));
-  width: calc(100% - 16px);
-  max-height: min(92vh, calc(100dvh - 16px));
-  overflow: hidden;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  max-width: min(620px, calc(100vw - 20px));
+  width: calc(100% - 20px);
+  max-height: min(90vh, calc(100dvh - 16px));
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   background: var(--color-paper);
-}
-
-.modal-content--auth-register::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
 }
 
 .modal-content--auth .modal-header {
@@ -1967,25 +1963,17 @@ html.modal-open.lenis body {
   width: 100%;
 }
 
-/* Register modal: more “page-like” */
+/* Register modal: sleek & compact */
 .auth-modal--register {
   width: 100%;
-  max-height: min(92vh, calc(100dvh - 16px));
-  overflow: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  max-height: none;
+  overflow: visible;
   background: linear-gradient(180deg, rgba(250, 247, 242, 1), rgba(248, 242, 236, 1));
   border-radius: inherit;
 }
 
-.auth-modal--register::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
-}
-
 .auth-modal__register-hero {
-  padding: clamp(var(--space-3), 3vw, var(--space-4)) clamp(var(--space-3), 3vw, var(--space-5)) clamp(var(--space-2), 2.5vw, var(--space-3));
+  padding: 12px 18px;
   background: linear-gradient(135deg, rgba(224, 57, 106, 0.95) 0%, rgba(20, 18, 15, 0.92) 60%, rgba(20, 18, 15, 1) 100%);
   color: var(--color-paper);
   position: relative;
@@ -2005,76 +1993,56 @@ html.modal-open.lenis body {
 .auth-modal__register-hero-inner {
   position: relative;
   z-index: 1;
-  max-width: 620px;
-}
-
-.auth-modal__eyebrow {
-  display: inline-flex;
-  align-items: center;
-  min-height: 32px;
-  padding: 0 14px;
-  margin-bottom: var(--space-2);
-  border-radius: 999px;
-  background: rgba(250, 247, 242, 0.14);
-  border: 1px solid rgba(250, 247, 242, 0.22);
-  color: rgba(255, 245, 248, 0.96);
-  font-family: var(--font-ui);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
 
 .auth-modal__register-title {
   color: var(--color-white);
-  text-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
+  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .auth-modal__register-subtitle {
-  max-width: 520px;
   color: rgba(250, 247, 242, 0.95);
   opacity: 1;
 }
 
-.auth-modal__register-features {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
-  margin-top: var(--space-2);
-}
-
-.auth-modal__register-features span {
-  display: inline-flex;
-  align-items: center;
-  padding: 7px 12px;
-  border-radius: 999px;
-  background: rgba(250, 247, 242, 0.1);
-  border: 1px solid rgba(250, 247, 242, 0.18);
-  color: rgba(250, 247, 242, 0.96);
-  font-size: var(--text-sm);
-  line-height: 1;
-}
-
 .auth-modal__register-body {
-  display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  gap: var(--space-3);
-  padding: clamp(var(--space-2), 2.5vw, var(--space-4));
-  align-items: start;
+  display: block;
+  padding: 12px 16px;
 }
 
 .auth-modal__register-form {
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.95);
   border: 1px solid rgba(221, 215, 204, 0.8);
-  border-radius: 18px;
-  padding: clamp(var(--space-3), 2.5vw, var(--space-4));
-  box-shadow: var(--shadow-lg);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow-md);
   min-width: 0;
 }
 
-.auth-modal__register-side {
-  display: flex;
-  align-items: flex-start;
+.auth-modal__register-form .form-grid {
+  gap: 8px !important;
+}
+
+.auth-modal__register-form .input-group-label {
+  font-size: 0.76rem;
+  margin-bottom: 2px;
+  font-weight: 500;
+}
+
+.auth-modal__register-form .input,
+.auth-modal__register-form .select-trigger {
+  height: 36px !important;
+  min-height: 36px !important;
+  padding: 4px 10px !important;
+  font-size: 0.84rem !important;
+  border-radius: 8px !important;
+}
+
+.auth-modal__register-form .btn {
+  height: 38px !important;
+  font-size: 0.88rem !important;
+  border-radius: 8px !important;
+  margin-top: 4px;
 }
 
 .auth-modal__register-side .card {
@@ -2939,8 +2907,13 @@ html.modal-open.lenis body {
   color: var(--color-ink);
 }
 
-.top-banner__message strong {
-  font-weight: inherit;
+.top-banner__amount {
+  font-size: 1.25em;
+  font-weight: 800;
+  color: var(--color-ink);
+  letter-spacing: 0.02em;
+  margin-left: 2px;
+  display: inline-block;
 }
 
 .top-banner__message-icon {

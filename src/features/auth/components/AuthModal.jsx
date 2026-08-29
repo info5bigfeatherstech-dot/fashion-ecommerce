@@ -56,21 +56,15 @@ export function AuthModal() {
           <>
             <div className="auth-modal__register-hero" aria-hidden="true">
               <div className="auth-modal__register-hero-inner">
-                <p className="auth-modal__eyebrow">Create Account</p>
                 <h3
-                  className="display-md auth-modal__register-title"
-                  style={{ marginBottom: 'var(--space-1)', fontFamily: 'var(--font-italic-serif)' }}
+                  className="auth-modal__register-title"
+                  style={{ marginBottom: '2px', fontFamily: 'var(--font-italic-serif)', fontSize: '1.25rem' }}
                 >
                   Join the Fashion circle
                 </h3>
-                <p className="body-sm auth-modal__register-subtitle">
+                <p className="auth-modal__register-subtitle" style={{ fontSize: '0.82rem', margin: 0 }}>
                   Get early access to drops, save your wishlist, and check out faster.
                 </p>
-                <div className="auth-modal__register-features">
-                  <span>Wishlist saving</span>
-                  <span>Faster checkout later</span>
-                  <span>Member-only drops</span>
-                </div>
               </div>
             </div>
 
@@ -82,18 +76,6 @@ export function AuthModal() {
                 error={authError}
                 setError={setAuthError}
               />
-
-              <div className="auth-modal__register-side">
-                <div className="card" style={{ padding: 'var(--space-4)' }}>
-                  <p className="heading-sm text-accent" style={{ marginBottom: 'var(--space-2)' }}>
-                    What you get
-                  </p>
-                  <ul style={{ margin: 0, paddingLeft: '18px' }}>
-                    <li className="body-sm" style={{ marginBottom: 'var(--space-1)' }}>Save wishlist items</li>
-                    <li className="body-sm" style={{ marginBottom: 'var(--space-1)' }}>Quick checkout</li>
-                  </ul>
-                </div>
-              </div>
             </div>
           </>
         ) : (

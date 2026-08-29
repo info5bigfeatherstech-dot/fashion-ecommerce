@@ -5,6 +5,10 @@ import { TOP_BANNER } from '@/config/site'
 import giftIcon from '@/assets/6664427.ico'
 
 function BannerPromoItem() {
+  const match = TOP_BANNER.message.match(/^(.*?)(₹\s*\d[\d,]*.*)$/)
+  const prefix = match ? match[1] : TOP_BANNER.message
+  const price = match ? match[2] : ''
+
   return (
     <span className="top-banner__item">
       <span className="top-banner__copy">
@@ -13,11 +17,10 @@ function BannerPromoItem() {
         <span className="top-banner__divider" aria-hidden="true" />
         <span className="top-banner__message">
           <Truck className="top-banner__message-icon" aria-hidden="true" strokeWidth={1.75} />
-          <strong>
-            {TOP_BANNER.message.replace('₹', '').split(/(\d[\d,]*)/)[0]}
-            <span style={{ fontSize: '1.15em', fontWeight: 'inherit' }}>₹</span>
-            {TOP_BANNER.message.replace(/.*?₹/, '')}
-          </strong>
+          <span>
+            {prefix}
+            {price && <span className="top-banner__amount">{price}</span>}
+          </span>
         </span>
       </span>
       <span className="top-banner__cta">
