@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   AlertTriangle,
   Eye,
@@ -14,7 +15,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/Button'
-import { getCategoryImageUrl } from '@/features/admin/api/categories'
+import { getCategoryImageUrl, sortAdminCategories } from '@/features/admin/api/categories'
 import {
   useAdminCategories,
   useCreateAdminCategory,
@@ -23,6 +24,20 @@ import {
   useToggleAdminCategoryVisibility,
   useUpdateAdminCategory,
 } from '@/features/admin/hooks'
+
+function isCategoryHidden(cat) {
+  return cat?.status === 'inactive' || cat?.isHidden === true
+}
+
+function mergeCategoryIntoList(list, category) {
+  if (!category) return list
+  const id = category._id || category.id
+  if (!id) return list
+  const next = list.some((c) => (c._id || c.id) === id)
+    ? list.map((c) => ((c._id || c.id) === id ? { ...c, ...category } : c))
+    : [...list, category]
+  return sortAdminCategories(next)
+}
 
 function CategoryImagePreview({ src, isNewFile, onClear, onReplace, onUploadClick }) {
   const [loaded, setLoaded] = useState(false)
@@ -101,7 +116,7 @@ function CategoryRow({
   onDragOver,
   onDrop,
 }) {
-  const isHidden = cat.status === 'inactive'
+  const isHidden = isCategoryHidden(cat)
   const catImgUrl = getCategoryImageUrl(cat)
   const catId = cat._id || cat.id
 
@@ -126,7 +141,12 @@ function CategoryRow({
       </div>
 
       {catImgUrl ? (
-        <img src={catImgUrl} alt="" className="admin-cat__row-thumb" loading="lazy" />
+        <img
+          src={catImgUrl}
+          alt=""
+          className={`admin-cat__row-thumb ${isHidden ? 'admin-cat__row-thumb--hidden' : ''}`}
+          loading="lazy"
+        />
       ) : (
         <div className="admin-cat__row-thumb admin-cat__row-thumb--empty">
           <ImageIcon size={14} aria-hidden />
@@ -186,7 +206,9 @@ function CategoryRow({
 }
 
 export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, selectOnCreate = true }) {
-  const { data: categories = [], isLoading, isError, error, refetch, isFetching } = useAdminCategories()
+  const { data: categories = [], isLoading, isError, error, refetch, isFetching } = useAdminCategories({
+    refetchOnMount: true,
+  })
   const createCategory = useCreateAdminCategory()
   const updateCategory = useUpdateAdminCategory()
   const deleteCategory = useDeleteAdminCategory()
@@ -219,11 +241,21 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
 
   useEffect(() => {
     if (dragSourceIndexRef.current !== null) return
-    const sorted = [...categories].sort(
-      (a, b) => (a.order ?? 0) - (b.order ?? 0) || String(a.name).localeCompare(String(b.name))
-    )
-    setOrderedCategories(sorted)
+    setOrderedCategories(sortAdminCategories(categories))
   }, [categories])
+
+  // Offer-style: always fetch fresh list when modal opens
+  useEffect(() => {
+    refetch().catch(() => {})
+  }, [refetch])
+
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prevOverflow
+    }
+  }, [])
 
   useEffect(() => {
     const onKeyDown = (e) => {
@@ -313,7 +345,11 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
       const id = category?._id || category?.id
       toast.success('Category created')
       onCreated?.(category)
-      await refetch()
+      setOrderedCategories((prev) => mergeCategoryIntoList(prev, category))
+      const result = await refetch()
+      if (result.data?.length) {
+        setOrderedCategories(sortAdminCategories(result.data))
+      }
       if (selectOnCreate && id) onSelect?.(id)
       if (selectOnCreate) onClose()
       else resetForm()
@@ -341,7 +377,11 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
       })
       toast.success('Category updated')
       onCreated?.(category)
-      await refetch()
+      setOrderedCategories((prev) => mergeCategoryIntoList(prev, category))
+      const result = await refetch()
+      if (result.data?.length) {
+        setOrderedCategories(sortAdminCategories(result.data))
+      }
       resetForm()
     } catch (err) {
       setActionError(err?.message || 'Could not update category')
@@ -355,6 +395,7 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
       toast.success('Category archived')
       setConfirmDeleteId(null)
       if ((editingCat?._id || editingCat?.id) === id) resetForm()
+      setOrderedCategories((prev) => prev.filter((c) => (c._id || c.id) !== id))
       onCreated?.()
       await refetch()
     } catch (err) {
@@ -365,10 +406,16 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
   const handleToggleVisibility = useCallback(
     async (cat) => {
       const id = cat._id || cat.id
-      const wasHidden = cat.status === 'inactive'
+      const wasHidden = isCategoryHidden(cat)
       setOrderedCategories((prev) =>
         prev.map((c) =>
-          (c._id || c.id) === id ? { ...c, status: wasHidden ? 'active' : 'inactive' } : c
+          (c._id || c.id) === id
+            ? {
+                ...c,
+                status: wasHidden ? 'active' : 'inactive',
+                isHidden: !wasHidden,
+              }
+            : c
         )
       )
       setActionError('')
@@ -432,11 +479,13 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
       await reorderCategories.mutateAsync(orderedCategories)
       toast.success('Category order saved')
       setHasReordered(false)
-      await refetch()
+      const result = await refetch()
+      if (result.data?.length) {
+        setOrderedCategories(sortAdminCategories(result.data))
+      }
     } catch (err) {
       setActionError(err?.message || 'Failed to save order')
-      const sorted = [...categories].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-      setOrderedCategories(sorted)
+      setOrderedCategories(sortAdminCategories(categories))
       setHasReordered(false)
     }
   }
@@ -448,10 +497,11 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
     reorderCategories.isPending ||
     toggleVisibility.isPending
 
-  const listEmpty = !isLoading && orderedCategories.length === 0
+  const listEmpty = !isLoading && !isFetching && orderedCategories.length === 0
   const loadError = isError ? error?.message || 'Could not load categories' : ''
+  const showInitialLoading = isLoading && orderedCategories.length === 0
 
-  return (
+  const modal = (
     <div
       className="admin-cat__overlay"
       onClick={() => {
@@ -478,15 +528,25 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
           </button>
         </header>
 
-        <div className="admin-cat__body">
+        <div
+          className="admin-cat__body"
+          data-lenis-prevent
+          onWheel={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+        >
           {(actionError || loadError) && (
             <div className="admin-cat__error" role="alert">
               <AlertTriangle size={16} aria-hidden />
               <span>{actionError || loadError}</span>
+              {loadError ? (
+                <button type="button" className="admin-cat__retry" onClick={() => refetch()} disabled={isFetching}>
+                  Retry
+                </button>
+              ) : null}
             </div>
           )}
 
-          {isLoading ? (
+          {showInitialLoading ? (
             <div className="admin-cat__loading">
               <RefreshCw size={18} className="admin-cat__spin" aria-hidden />
               Loading categories…
@@ -520,7 +580,7 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
                   setFormName(e.target.value)
                   setActionError('')
                 }}
-                placeholder="e.g. Earrings & Studs"
+                placeholder="Category name (e.g. Electronics)"
                 disabled={busy}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
@@ -638,6 +698,25 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
               ))
             )}
           </div>
+
+          {orderedCategories.length > 0 ? (
+            <div className="admin-cat__legend">
+              <span>
+                <Eye size={12} aria-hidden className="admin-cat__legend-icon admin-cat__legend-icon--on" />
+                Visible
+              </span>
+              <span className="admin-cat__legend-sep">|</span>
+              <span>
+                <EyeOff size={12} aria-hidden className="admin-cat__legend-icon" />
+                Hidden
+              </span>
+              <span className="admin-cat__legend-sep">|</span>
+              <span>
+                <GripVertical size={12} aria-hidden className="admin-cat__legend-icon" />
+                Drag to reorder
+              </span>
+            </div>
+          ) : null}
         </div>
 
         <footer className="admin-cat__footer">
@@ -648,4 +727,6 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
       </div>
     </div>
   )
+
+  return createPortal(modal, document.body)
 }
