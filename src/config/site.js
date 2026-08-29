@@ -111,7 +111,7 @@ export const HERO_SLIDES = [
     eyebrow: 'FABUNIQO — Fashion Uniquely Yours',
     title: 'Style That Speaks Your Language',
     subtitle: 'From trendsetting Korean & Western daily wear to gorgeous ethnic sets — discover your perfect piece.',
-    cta: 'Exclusive Offers • Limited Stock',
+    cta: 'Explore New Drops',
     href: '/shop/new-arrivals',
     video: 'https://res.cloudinary.com/kiqmlqnj/video/upload/v1787745696/web_1.mp4',
     image: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1400&h=800&q=80',
@@ -429,7 +429,7 @@ export const JEWELLERY_FEST = {
   eyebrow: 'Limited Time',
   title: 'Jewellery Edit',
   offerLabel: 'SPECIAL LAUNCH OFFER',
-  ctaLabel: 'EXPLORE JEWELLERY',
+  ctaLabel: 'Exclusive Offers',
   ctaHref: '/shop/sale',
   panelTitle: 'Jewellery for every moment',
   /** Ends at end of the current local day (resets daily). */
@@ -442,16 +442,16 @@ export const JEWELLERY_FEST = {
       href: '/shop/women',
     },
     {
-      id: 'festival',
-      title: 'Necklaces & Pendants Statement styles for every occasion',
-      fallbackPrice: 69,
-      href: '/shop/women',
-    },
-    {
       id: 'office',
       title: 'Rings & Bracelets Minimal styles, made to shine',
       fallbackPrice: 49,
       href: '/shop/new-arrivals',
+    },
+    {
+      id: 'festival',
+      title: 'Necklaces & Pendants Statement styles for every occasion',
+      fallbackPrice: 69,
+      href: '/shop/women',
     },
     {
       id: 'party',

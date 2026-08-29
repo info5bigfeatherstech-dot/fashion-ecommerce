@@ -12,7 +12,11 @@ function BannerPromoItem() {
         <span className="top-banner__divider" aria-hidden="true" />
         <span className="top-banner__message">
           <Truck className="top-banner__message-icon" aria-hidden="true" strokeWidth={1.75} />
-          <strong>{TOP_BANNER.message}</strong>
+          <strong>
+            {TOP_BANNER.message.replace('₹', '').split(/(\d[\d,]*)/)[0]}
+            <span style={{ fontSize: '1.15em', fontWeight: 'inherit' }}>₹</span>
+            {TOP_BANNER.message.replace(/.*?₹/, '')}
+          </strong>
         </span>
       </span>
       <span className="top-banner__cta">
