@@ -4521,25 +4521,39 @@ html.modal-open.lenis body {
 
 .hero__eyebrow {
   font-family: 'Montserrat', sans-serif;
-  font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
-  letter-spacing: 0.12em;
+  font-size: clamp(0.8rem, 1.25vw, 0.98rem);
+  font-weight: 600;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
+  color: rgba(250, 247, 242, 0.92);
   margin-bottom: var(--space-2);
-  opacity: 0.85;
+  display: block;
 }
 
 .hero__title {
   font-family: var(--font-display);
-  font-size: clamp(var(--text-2xl), 7vw, var(--text-5xl));
+  font-size: clamp(1.85rem, 4.8vw, 3rem);
   font-weight: var(--weight-regular);
-  line-height: var(--leading-tight);
+  line-height: 1.15;
   letter-spacing: -0.02em;
-  margin-bottom: var(--space-2);
-  max-width: min(22ch, 100%);
+  margin-bottom: var(--space-3);
+  max-width: min(24ch, 100%);
+  color: #ffffff;
+  text-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
   overflow-wrap: normal;
   word-break: normal;
   hyphens: none;
+}
+
+.hero__title-gold {
+  font-family: var(--font-italic-serif, Georgia, serif);
+  font-style: italic;
+  background: linear-gradient(135deg, #ffffff 0%, #f7e4b5 40%, #e6c575 75%, #c4993a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
+  font-weight: 500;
+  padding-right: 4px;
 }
 
 .hero__subtitle {

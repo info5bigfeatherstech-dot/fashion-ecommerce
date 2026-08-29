@@ -80,7 +80,14 @@ export function HeroSection() {
               <p className="hero__eyebrow">{slide.eyebrow}</p>
             </Reveal>
             <ScrollRevealText as="h1" className="hero__title">
-              {slide.title}
+              {slide.title.includes('Speaks Your Language') ? (
+                <>
+                  {slide.title.split('Speaks Your Language')[0]}
+                  <span className="hero__title-gold">Speaks Your Language</span>
+                </>
+              ) : (
+                slide.title
+              )}
             </ScrollRevealText>
             <Reveal y={18} delay={0.2}>
               <p className="hero__subtitle">{slide.subtitle}</p>
