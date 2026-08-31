@@ -103,11 +103,16 @@ import {
 } from './api'
 import { adminKeys } from './queryKeys'
 import { categoryKeys } from '@/features/category/queryKeys'
+import { productKeys } from '@/features/product/queryKeys'
 import { useAdminStore } from './store'
 
 function invalidateCategoryQueries(queryClient) {
   queryClient.invalidateQueries({ queryKey: adminKeys.categories() })
   queryClient.invalidateQueries({ queryKey: categoryKeys.list() })
+}
+
+function invalidateStorefrontTagQueries(queryClient) {
+  queryClient.invalidateQueries({ queryKey: productKeys.all })
 }
 
 function useAdminQueryEnabled(enabled = true) {
@@ -859,7 +864,10 @@ export function useCreateAdminProduct() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: createAdminProduct,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'products-all'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products-all'] })
+      invalidateStorefrontTagQueries(queryClient)
+    },
   })
 }
 
@@ -867,7 +875,10 @@ export function useUpdateAdminProduct() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ slug, formData }) => updateAdminProduct(slug, formData),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'products-all'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products-all'] })
+      invalidateStorefrontTagQueries(queryClient)
+    },
   })
 }
 
@@ -955,7 +966,10 @@ export function useBulkUpdateAdminProductFlags() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: bulkUpdateAdminProductFlags,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'products-all'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products-all'] })
+      invalidateStorefrontTagQueries(queryClient)
+    },
   })
 }
 

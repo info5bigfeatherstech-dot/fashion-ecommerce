@@ -26,6 +26,8 @@ export function useProductsByTag(tag, params = {}) {
     queryKey: productKeys.byTag(tag, params),
     queryFn: ({ signal }) => getProductsByTag(tag, { ...params, signal }),
     enabled: Boolean(tag),
+    staleTime: 1000 * 60,
+    refetchOnWindowFocus: true,
   })
 }
 

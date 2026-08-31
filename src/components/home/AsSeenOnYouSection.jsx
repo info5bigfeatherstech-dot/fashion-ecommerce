@@ -4,7 +4,10 @@ import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
 import { ReflectiveCard } from '@/components/ui/ReflectiveCard'
 import { AS_SEEN_ON_YOU } from '@/config/site'
-import { useFeaturedProducts } from '@/features/product/hooks'
+import { useProductsByTag } from '@/features/product/hooks'
+
+const JEWELLERY_SPOTTED_TAG = 'jewellery-spotted'
+const COLLAGE_LIMIT = 8
 
 function InstagramIcon({ size = 16 }) {
   return (
@@ -26,7 +29,7 @@ function InstagramIcon({ size = 16 }) {
   )
 }
 
-const COLLAGE_IMAGE_LIMIT = 8
+const COLLAGE_IMAGE_LIMIT = COLLAGE_LIMIT
 
 function productPrimaryImage(product) {
   if (product?.image) return product.image
@@ -34,7 +37,7 @@ function productPrimaryImage(product) {
   return images[0] || null
 }
 
-/** One tile per featured product (admin “Featured” flag → `/products/featured`). */
+/** One tile per Jewellery Spotted tagged product. */
 function buildCollageItems(products = [], fallback = []) {
   const items = []
   const seen = new Set()
@@ -45,7 +48,7 @@ function buildCollageItems(products = [], fallback = []) {
     if (!image || seen.has(image)) continue
     seen.add(image)
     items.push({
-      id: `featured-${product.id || product.slug}`,
+      id: `spotted-${product.id || product.slug}`,
       image,
       alt: product.name || product.title || 'Featured product',
       href: `/product/${product.slug}`,
@@ -54,7 +57,7 @@ function buildCollageItems(products = [], fallback = []) {
     if (items.length >= COLLAGE_IMAGE_LIMIT) return items
   }
 
-  // Only pad with static spots when the featured API returned nothing usable.
+  // Pad with static spots only when no tagged products returned from API.
   if (items.length === 0) {
     for (const spot of fallback) {
       if (seen.has(spot.image)) continue
@@ -105,8 +108,11 @@ function CollageCard({ item, index }) {
 }
 
 export function AsSeenOnYouSection() {
-  const { data: products = [], isLoading } = useFeaturedProducts({ limit: COLLAGE_IMAGE_LIMIT })
-  const collageItems = buildCollageItems(products, AS_SEEN_ON_YOU.collage || [])
+  const { data, isLoading } = useProductsByTag(JEWELLERY_SPOTTED_TAG, {
+    page: 1,
+    limit: COLLAGE_IMAGE_LIMIT,
+  })
+  const collageItems = buildCollageItems(data?.products ?? [], AS_SEEN_ON_YOU.collage || [])
 
   return (
     <section className="section container as-seen-section">
@@ -144,7 +150,7 @@ export function AsSeenOnYouSection() {
         </div>
       ) : (
         <p className="body-sm text-muted">
-          No featured products yet. Mark products as Featured in admin to show them here.
+          No Jewellery Spotted products yet. Mark products with the Jewellery Spotted tag in admin to show them here.
         </p>
       )}
 

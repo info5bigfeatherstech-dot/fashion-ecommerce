@@ -614,71 +614,44 @@ export async function searchProducts(query, { page = 1, limit = 12, signal } = {
 }
 
 /**
- * Products filtered by applied tag (e.g. on-sale, today-arrival).
- * GET /api/products/all?tags=on-sale&page=1&limit=25
+ * Products filtered by marketing tag (ProductTag collection on backend).
+ * GET /api/products/all?tags=today-arrival&page=1&limit=25
  */
-export async function getProductsByTag(tag, { page = 1, limit = 25, signal, ...params } = {}) {
-  const normalized = String(tag || '').trim().toLowerCase()
+export async function getProductsByTag(tag, { page = 1, limit = 25, signal, cacheBust = false, ...params } = {}) {
+  const normalized = String(tag || '').trim().toLowerCase().replace(/_/g, '-')
   if (!normalized) {
     return { products: [], total: 0, pagination: mapPagination(null) }
   }
 
-  // 1. Query server endpoint with tags parameter
   try {
-    const { products, raw } = await fetchProductsPage(
-      { page: 1, limit: 50, tags: normalized, ...params },
-      { signal }
-    )
-    const matched = products.filter(
-      (p) =>
-        p.isTodayDeal === true ||
-        p.todayDeal === true ||
-        (Array.isArray(p.tags) && p.tags.some((t) => String(t).toLowerCase() === normalized))
-    )
-    if (matched.length > 0) {
-      return {
-        products: matched.slice((page - 1) * limit, page * limit),
-        total: matched.length,
-        pagination: mapPagination(null, matched.length),
-        raw,
-      }
+    const requestParams = {
+      page,
+      limit,
+      tags: normalized,
+      ...params,
     }
-  } catch (err) {
-    // API tag route failed
-  }
+    if (cacheBust) requestParams._cb = '1'
 
-  // 2. Query full live API product catalog and filter for todayDeal flag / tag
-  try {
-    const { products: catalogProducts } = await getProductCatalog()
-    const matched = catalogProducts.filter(
-      (p) =>
-        p.isTodayDeal === true ||
-        p.todayDeal === true ||
-        (Array.isArray(p.tags) && p.tags.some((t) => String(t).toLowerCase() === normalized))
-    )
-    if (matched.length > 0) {
-      return {
-        products: matched.slice((page - 1) * limit, page * limit),
-        total: matched.length,
-        pagination: mapPagination(null, matched.length),
-      }
+    const payload = await http.get(API_ENDPOINTS.products.all, {
+      params: requestParams,
+      signal,
+    })
+
+    const products = mapProductList(payload.products)
+    const pagination = mapPagination(payload.pagination, products.length)
+
+    return {
+      products,
+      total: pagination.total ?? products.length,
+      pagination,
+      raw: payload,
     }
-  } catch (err) {
-    // Catalog API failed
-  }
-
-  // 3. Fallback to local catalog items if API is empty/offline
-  const fallback = FEST_PRODUCTS.filter(
-    (p) =>
-      p.isTodayDeal === true ||
-      p.todayDeal === true ||
-      (Array.isArray(p.tags) && p.tags.some((t) => String(t).toLowerCase() === normalized))
-  )
-
-  return {
-    products: fallback.slice((page - 1) * limit, page * limit),
-    total: fallback.length,
-    pagination: mapPagination(null, fallback.length),
+  } catch {
+    return {
+      products: [],
+      total: 0,
+      pagination: mapPagination(null),
+    }
   }
 }
 
