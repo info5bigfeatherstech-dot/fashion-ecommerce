@@ -22,20 +22,26 @@ export async function getPublicCategories({ signal } = {}) {
 
   const mappedApi = mapCircleCategories(list)
 
-  // Merge default categories with API categories so all categories exist
-  const existingSlugs = new Set(
-    mappedApi.map((c) => {
-      const match = String(c.href || '').match(/\/shop\/([^/?#]+)/i)
-      return match?.[1] ? decodeURIComponent(match[1]) : c.id
-    })
-  )
+  // Merge default categories with API categories so all categories exist without duplicates
+  const existingKeys = new Set()
+  mappedApi.forEach((c) => {
+    if (c.id) existingKeys.add(String(c.id).toLowerCase())
+    if (c.slug) existingKeys.add(String(c.slug).toLowerCase())
+    if (c.label) existingKeys.add(String(c.label).toLowerCase().replace(/[^a-z0-9]/g, ''))
+    const match = String(c.href || '').match(/\/shop\/([^/?#]+)/i)
+    if (match?.[1]) existingKeys.add(decodeURIComponent(match[1]).toLowerCase())
+  })
 
   const defaultCats = JEWELRY_CATEGORIES.map((cat) => ({
     id: cat.slug,
     label: cat.label,
     href: `/shop/${cat.slug}`,
     image: '',
-  })).filter((cat) => !existingSlugs.has(cat.id))
+  })).filter((cat) => {
+    const normSlug = String(cat.slug || '').toLowerCase()
+    const normLabel = String(cat.label || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+    return !existingKeys.has(normSlug) && !existingKeys.has(normLabel)
+  })
 
   return [...mappedApi, ...defaultCats]
 }

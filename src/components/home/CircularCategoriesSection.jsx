@@ -9,7 +9,8 @@ import { useCircleCategories } from '@/features/category/hooks'
 const AUTOPLAY_MS = 3200
 
 export function CircularCategoriesSection() {
-  const { data: categories = [] } = useCircleCategories()
+  const { data: rawCategories = [] } = useCircleCategories()
+  const categories = rawCategories.filter((c) => Boolean(c?.image && String(c.image).trim()))
   const reduceMotion = useReducedMotion()
   const trackRef = useRef(null)
   const pauseRef = useRef(false)
