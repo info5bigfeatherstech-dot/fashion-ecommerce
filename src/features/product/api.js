@@ -300,14 +300,14 @@ export function buildProductQueryParams(filters = {}) {
 function hasServerFilterParams(params = {}) {
   return Boolean(
     params.minPrice != null ||
-      params.maxPrice != null ||
-      params.color ||
-      params.mainColor ||
-      params.plating ||
-      params.metalColor ||
-      params.minDiscount != null ||
-      params.discount != null ||
-      params.tags
+    params.maxPrice != null ||
+    params.color ||
+    params.mainColor ||
+    params.plating ||
+    params.metalColor ||
+    params.minDiscount != null ||
+    params.discount != null ||
+    params.tags
   )
 }
 
@@ -435,19 +435,40 @@ export async function getProductsByCategory(slug, { page = 1, limit = 50, signal
     return { products: [], total: 0, pagination: mapPagination(null) }
   }
 
-  const payload = await http.get(API_ENDPOINTS.products.byCategory(slug), {
-    params: { page, limit, ...params },
-    signal,
-  })
+  try {
+    const payload = await http.get(API_ENDPOINTS.products.byCategory(slug), {
+      params: { page, limit, ...params },
+      signal,
+    })
 
-  const products = extractProductList(payload)
-  const pagination = mapPagination(payload?.pagination ?? payload?.data?.pagination, products.length)
+    const products = extractProductList(payload)
+    if (products.length > 0) {
+      const pagination = mapPagination(payload?.pagination ?? payload?.data?.pagination, products.length)
+      return {
+        products,
+        total: pagination.total || products.length,
+        pagination,
+        raw: payload,
+      }
+    }
+  } catch (err) {
+    // API call failed or returned empty
+  }
 
+  const cleanSlug = String(slug).toLowerCase()
+  const localMatching = FEST_PRODUCTS.filter(
+    (p) =>
+      p.category === slug ||
+      (p.aliases && p.aliases.includes(slug)) ||
+      (p.tags && p.tags.includes(slug)) ||
+      String(p.categoryLabel || '').toLowerCase().includes(cleanSlug)
+  )
+
+  const products = localMatching.slice((page - 1) * limit, page * limit)
   return {
     products,
-    total: pagination.total || products.length,
-    pagination,
-    raw: payload,
+    total: localMatching.length,
+    pagination: mapPagination(null, localMatching.length),
   }
 }
 
@@ -597,21 +618,67 @@ export async function searchProducts(query, { page = 1, limit = 12, signal } = {
  * GET /api/products/all?tags=on-sale&page=1&limit=25
  */
 export async function getProductsByTag(tag, { page = 1, limit = 25, signal, ...params } = {}) {
-  const normalized = String(tag || '').trim()
+  const normalized = String(tag || '').trim().toLowerCase()
   if (!normalized) {
     return { products: [], total: 0, pagination: mapPagination(null) }
   }
 
-  const { products, pagination, raw } = await fetchProductsPage(
-    { page, limit, tags: normalized, ...params },
-    { signal }
+  // 1. Query server endpoint with tags parameter
+  try {
+    const { products, raw } = await fetchProductsPage(
+      { page: 1, limit: 50, tags: normalized, ...params },
+      { signal }
+    )
+    const matched = products.filter(
+      (p) =>
+        p.isTodayDeal === true ||
+        p.todayDeal === true ||
+        (Array.isArray(p.tags) && p.tags.some((t) => String(t).toLowerCase() === normalized))
+    )
+    if (matched.length > 0) {
+      return {
+        products: matched.slice((page - 1) * limit, page * limit),
+        total: matched.length,
+        pagination: mapPagination(null, matched.length),
+        raw,
+      }
+    }
+  } catch (err) {
+    // API tag route failed
+  }
+
+  // 2. Query full live API product catalog and filter for todayDeal flag / tag
+  try {
+    const { products: catalogProducts } = await getProductCatalog()
+    const matched = catalogProducts.filter(
+      (p) =>
+        p.isTodayDeal === true ||
+        p.todayDeal === true ||
+        (Array.isArray(p.tags) && p.tags.some((t) => String(t).toLowerCase() === normalized))
+    )
+    if (matched.length > 0) {
+      return {
+        products: matched.slice((page - 1) * limit, page * limit),
+        total: matched.length,
+        pagination: mapPagination(null, matched.length),
+      }
+    }
+  } catch (err) {
+    // Catalog API failed
+  }
+
+  // 3. Fallback to local catalog items if API is empty/offline
+  const fallback = FEST_PRODUCTS.filter(
+    (p) =>
+      p.isTodayDeal === true ||
+      p.todayDeal === true ||
+      (Array.isArray(p.tags) && p.tags.some((t) => String(t).toLowerCase() === normalized))
   )
 
   return {
-    products,
-    total: pagination.total || products.length,
-    pagination,
-    raw,
+    products: fallback.slice((page - 1) * limit, page * limit),
+    total: fallback.length,
+    pagination: mapPagination(null, fallback.length),
   }
 }
 
@@ -776,10 +843,10 @@ export async function getProductBySlug(slug, { signal } = {}) {
       throw error instanceof ApiError
         ? error
         : new ApiError({
-            message: 'Product not found',
-            status: 404,
-            code: 'PRODUCT_NOT_FOUND',
-          })
+          message: 'Product not found',
+          status: 404,
+          code: 'PRODUCT_NOT_FOUND',
+        })
     }
     // Fall through to catalog lookup for transient/network issues
   }

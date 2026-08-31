@@ -42,13 +42,21 @@ export function JewelleryFestSection() {
     return JEWELLERY_FEST.categories.map((category) => {
       const startingAt = category.fallbackPrice ?? 29
       const image = category.image
-      const productHref = `/product/${category.slug || category.id}`
+      const targetCategory = category.categorySlug || category.slug || 'all'
+      const priceFilter =
+        category.priceKey ||
+        (startingAt <= 99 ? 'under-99' : startingAt <= 199 ? '99-199' : '199-299')
+
+      const categoryHref =
+        category.href && category.href.startsWith('/shop/')
+          ? category.href
+          : `/shop/${targetCategory}?price=${priceFilter}`
 
       return {
         ...category,
         startingAt,
         image,
-        productHref,
+        categoryHref,
       }
     })
   }, [])
@@ -104,7 +112,7 @@ export function JewelleryFestSection() {
 
           <div className="jewellery-fest__list">
             {categoryCards.map((item) => (
-              <Link key={item.id} to={item.productHref} className="jewellery-fest__card">
+              <Link key={item.id} to={item.categoryHref} className="jewellery-fest__card">
                 {item.image && (
                   <img
                     src={item.image}

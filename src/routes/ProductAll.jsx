@@ -45,10 +45,10 @@ function CategoryProductRow({ category }) {
                 aria-label={product.name || product.title}
               >
                 <span className="product-all-row__image">
-                  {product.image ? (
+                  {product.image || product.images?.[0] ? (
                     <img
-                      src={product.image}
-                      alt=""
+                      src={product.image || product.images?.[0]}
+                      alt={product.name || product.title || ''}
                       loading="lazy"
                     />
                   ) : (

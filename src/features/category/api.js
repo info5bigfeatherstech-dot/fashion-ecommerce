@@ -9,21 +9,35 @@ export { DEFAULT_CATEGORY_IMAGE } from './mappers'
 const delay = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export async function getPublicCategories({ signal } = {}) {
-  const payload = await http.get(API_ENDPOINTS.categories.list, { signal })
-
-  if (payload?.success === false) {
-    throw new ApiError({
-      message: payload?.message || 'Failed to load categories',
-      status: 400,
-      code: 'CATEGORIES_FETCH_FAILED',
-      details: payload,
-    })
+  let list = []
+  try {
+    const payload = await http.get(API_ENDPOINTS.categories.list, { signal })
+    if (payload?.success !== false) {
+      const raw = payload?.categories ?? payload?.data?.categories ?? payload?.data ?? payload
+      if (Array.isArray(raw)) list = raw
+    }
+  } catch (err) {
+    console.warn('API request for public categories failed, using default categories list', err)
   }
 
-  const raw = payload?.categories ?? payload?.data?.categories ?? payload?.data ?? payload
-  const list = Array.isArray(raw) ? raw : []
+  const mappedApi = mapCircleCategories(list)
 
-  return mapCircleCategories(list)
+  // Merge default categories with API categories so all categories exist
+  const existingSlugs = new Set(
+    mappedApi.map((c) => {
+      const match = String(c.href || '').match(/\/shop\/([^/?#]+)/i)
+      return match?.[1] ? decodeURIComponent(match[1]) : c.id
+    })
+  )
+
+  const defaultCats = JEWELRY_CATEGORIES.map((cat) => ({
+    id: cat.slug,
+    label: cat.label,
+    href: `/shop/${cat.slug}`,
+    image: '',
+  })).filter((cat) => !existingSlugs.has(cat.id))
+
+  return [...mappedApi, ...defaultCats]
 }
 
 export const MEGA_MENUS = {

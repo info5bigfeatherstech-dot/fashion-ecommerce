@@ -14,12 +14,14 @@ function productImage(product) {
   return product?.image || product?.images?.[0] || null
 }
 
-/** Only products admin marked with the active Today Deals (`today-arrival`) tag. */
 function isActiveTodayDeal(product) {
   if (!product) return false
-  if (product.isTodayDeal === true || product.todayDeal === true) return true
+  if (Boolean(product.isTodayDeal) || Boolean(product.todayDeal)) return true
   const tags = Array.isArray(product.tags) ? product.tags : []
-  return tags.some((tag) => String(tag).toLowerCase() === TODAY_DEAL_TAG)
+  return tags.some((tag) => {
+    const t = String(tag).toLowerCase().trim()
+    return t === TODAY_DEAL_TAG || t === 'today-deal' || t === 'today'
+  })
 }
 
 function buildTodayDealSlides(products = []) {

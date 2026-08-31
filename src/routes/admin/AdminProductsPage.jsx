@@ -774,12 +774,12 @@ export default function AdminProductsPage() {
   const { data, isLoading, isError, error, refetch } = useAdminProductsAll({
     page,
     search,
-    limit: 15,
+    limit: 20,
     enabled: !showLowStockOnly,
   })
   const lowStockListQuery = useAdminProductsLowStock({
     page,
-    limit: 15,
+    limit: 20,
     enabled: showLowStockOnly,
   })
 
@@ -811,6 +811,11 @@ export default function AdminProductsPage() {
     listData?.total ??
     listData?.data?.totalProducts ??
     listData?.data?.total
+
+  const totalPages =
+    pagination?.totalPages ??
+    pagination?.pages ??
+    (listTotal != null && listTotal > 0 ? Math.ceil(listTotal / 20) : undefined)
 
   const categories = useMemo(() => {
     const raw = categoriesData?.categories || categoriesData
@@ -1381,7 +1386,7 @@ export default function AdminProductsPage() {
             </table>
           </div>
         )}
-        <AdminPagination page={page} totalPages={pagination?.totalPages} onPageChange={setPage} />
+        <AdminPagination page={page} totalPages={totalPages} onPageChange={setPage} />
       </div>
 
       <AdminProductModal
