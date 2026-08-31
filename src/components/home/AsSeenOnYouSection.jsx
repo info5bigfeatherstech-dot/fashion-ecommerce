@@ -35,7 +35,7 @@ function productPrimaryImage(product) {
 }
 
 /** One tile per Jewellery Spotted tagged product. */
-function buildCollageItems(products = [], fallback = []) {
+function buildCollageItems(products = []) {
   const items = []
   const seen = new Set()
 
@@ -52,16 +52,6 @@ function buildCollageItems(products = [], fallback = []) {
       name: product.name || product.title || '',
     })
     if (items.length >= COLLAGE_IMAGE_LIMIT) return items
-  }
-
-  // Pad with static spots only when no tagged products returned from API.
-  if (items.length === 0) {
-    for (const spot of fallback) {
-      if (seen.has(spot.image)) continue
-      seen.add(spot.image)
-      items.push(spot)
-      if (items.length >= COLLAGE_IMAGE_LIMIT) break
-    }
   }
 
   return items
@@ -106,7 +96,7 @@ function CollageCard({ item, index }) {
 
 export function AsSeenOnYouSection() {
   const { data: products = [], isLoading } = useJewellerySpotted({ limit: COLLAGE_IMAGE_LIMIT })
-  const collageItems = buildCollageItems(products, AS_SEEN_ON_YOU.collage || [])
+  const collageItems = buildCollageItems(products)
 
   return (
     <section className="section container as-seen-section">

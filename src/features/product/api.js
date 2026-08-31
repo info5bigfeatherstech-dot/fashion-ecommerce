@@ -939,7 +939,7 @@ export async function getJewellerySpotted({ limit = 12, signal } = {}) {
       return res.products
     }
   } catch (err) {
-    console.warn('API request for jewellery-spotted tag failed, using fallback', err)
+    console.warn('API request for jewellery-spotted tag failed', err)
   }
 
   const { products } = await getProductCatalog()
@@ -948,7 +948,7 @@ export async function getJewellerySpotted({ limit = 12, signal } = {}) {
   )
   if (matched.length > 0) return matched.slice(0, limit)
 
-  return products.filter((p) => p.isFeatured).slice(0, limit)
+  return []
 }
 
 export async function createOosInquiry({ productId, variantId, email, phone }) {
