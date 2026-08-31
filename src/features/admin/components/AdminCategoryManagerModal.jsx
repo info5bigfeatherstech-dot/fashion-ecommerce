@@ -185,7 +185,7 @@ function CategoryRow({
             onClick={() => onDeleteConfirm(catId)}
             disabled={deleteLoading}
           >
-            {deleteLoading ? '…' : 'Delete'}
+            {deleteLoading ? '…' : 'Delete forever'}
           </button>
           <button type="button" className="admin-cat__row-delete-no" onClick={onDeleteCancel}>
             Cancel
@@ -194,9 +194,14 @@ function CategoryRow({
       ) : (
         <button
           type="button"
-          className="admin-cat__row-icon admin-cat__row-icon--danger"
-          onClick={() => onDeleteRequest(catId)}
-          title="Delete category"
+          className={`admin-cat__row-icon admin-cat__row-icon--danger${isHidden ? '' : ' is-disabled'}`}
+          onClick={() => onDeleteRequest(cat)}
+          disabled={!isHidden}
+          title={
+            isHidden
+              ? 'Permanently delete category'
+              : 'Hide category first — only inactive categories can be deleted'
+          }
         >
           <Trash2 size={15} aria-hidden />
         </button>
@@ -388,18 +393,36 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
     }
   }
 
+  const handleDeleteRequest = useCallback((cat) => {
+    if (!cat) return
+    const id = cat._id || cat.id
+    if (!isCategoryHidden(cat)) {
+      setActionError('Hide this category first (eye icon). Only inactive categories can be permanently deleted.')
+      setConfirmDeleteId(null)
+      return
+    }
+    setActionError('')
+    setConfirmDeleteId(id)
+  }, [])
+
   const handleDelete = async (id) => {
     setActionError('')
+    const cat = orderedCategories.find((c) => (c._id || c.id) === id)
+    if (cat && !isCategoryHidden(cat)) {
+      setActionError('Hide this category first (eye icon). Only inactive categories can be permanently deleted.')
+      setConfirmDeleteId(null)
+      return
+    }
     try {
       await deleteCategory.mutateAsync(id)
-      toast.success('Category archived')
+      toast.success('Category permanently deleted')
       setConfirmDeleteId(null)
       if ((editingCat?._id || editingCat?.id) === id) resetForm()
       setOrderedCategories((prev) => prev.filter((c) => (c._id || c.id) !== id))
       onCreated?.()
       await refetch()
     } catch (err) {
-      setActionError(err?.message || 'Could not delete category')
+      setActionError(err?.message || 'Could not permanently delete category')
     }
   }
 
@@ -687,7 +710,7 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
                   onSelect={handleSelect}
                   onEdit={openEdit}
                   onToggleVisibility={handleToggleVisibility}
-                  onDeleteRequest={setConfirmDeleteId}
+                  onDeleteRequest={handleDeleteRequest}
                   onDeleteConfirm={handleDelete}
                   onDeleteCancel={() => setConfirmDeleteId(null)}
                   onDragStart={handleDragStart}

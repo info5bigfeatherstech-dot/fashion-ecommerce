@@ -1,4 +1,12 @@
 import { useState } from 'react'
+import { ADMIN_PRODUCT_MARKETING_TAGS } from '@/features/admin/constants/productMarketingTags'
+
+const MARKETING_TOGGLE_CLASS = {
+  'today-arrival': 'pf-toggle--today',
+  'jewellery-spotted': 'pf-toggle--spotted',
+  'bestselling-jewelry': 'pf-toggle--bestselling',
+}
+
 const TAX_RATE_OPTIONS = [
   { value: 0, label: "0% (Nil Rated)" },
   { value: 5, label: "5% (GST)" },
@@ -255,6 +263,41 @@ export default function ProductFormBody({
               >
                 <span className="pf-toggle__knob" />
               </button>
+            </div>
+
+            <div className="admin-product-tags-form">
+              <p className="admin-product-tags-form__hint">
+                Homepage sections (storefront wiring uses these tags later)
+              </p>
+              {ADMIN_PRODUCT_MARKETING_TAGS.map((tag) => {
+                const isOn = Boolean(formData.marketingTags?.[tag.id])
+                const toggleClass = MARKETING_TOGGLE_CLASS[tag.id] || 'pf-toggle--today'
+                return (
+                  <div key={tag.id} className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <span className="text-sm font-medium text-gray-700">{tag.label}</span>
+                      <span className="admin-product-tags-form__desc">{tag.description}</span>
+                    </div>
+                    <button
+                      type="button"
+                      aria-pressed={isOn}
+                      title={tag.description}
+                      onClick={() =>
+                        setFormData((p) => ({
+                          ...p,
+                          marketingTags: {
+                            ...(p.marketingTags || {}),
+                            [tag.id]: !isOn,
+                          },
+                        }))
+                      }
+                      className={`pf-toggle ${toggleClass}${isOn ? ' is-on' : ''}`}
+                    >
+                      <span className="pf-toggle__knob" />
+                    </button>
+                  </div>
+                )
+              })}
             </div>
 
             <div className="space-y-2">

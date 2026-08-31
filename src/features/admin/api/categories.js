@@ -168,27 +168,33 @@ export async function updateAdminCategory(
   return unwrapCategoryRecord(data)
 }
 
-export async function deleteAdminCategory(id) {
+/** Permanently remove an inactive category from the database. Active categories must be hidden first. */
+export async function hardDeleteAdminCategory(id) {
   if (!id) {
     throw new ApiError({ message: 'Category id is required', status: 400, code: 'ID_REQUIRED' })
   }
 
   try {
-    await adminDelete(API_ENDPOINTS.admin.categoryById(id))
+    await adminDelete(API_ENDPOINTS.admin.categoryHardDelete(id))
     return id
   } catch (error) {
     const message =
-      error?.response?.data?.message ||
       error?.message ||
-      'Failed to delete category'
+      error?.response?.data?.message ||
+      'Failed to permanently delete category'
     throw new ApiError({
       message,
-      status: error?.response?.status || 500,
-      code: 'CATEGORY_DELETE_FAILED',
-      details: error?.response?.data,
+      status: error?.status || error?.response?.status || 500,
+      code: 'CATEGORY_HARD_DELETE_FAILED',
+      details: error?.details || error?.response?.data,
       cause: error,
     })
   }
+}
+
+/** @deprecated Offer admin uses soft archive; fashion admin uses {@link hardDeleteAdminCategory}. */
+export async function deleteAdminCategory(id) {
+  return hardDeleteAdminCategory(id)
 }
 
 export async function reorderAdminCategories(orderedCategories = []) {

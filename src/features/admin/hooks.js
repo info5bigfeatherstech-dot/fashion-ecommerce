@@ -57,7 +57,7 @@ import {
   getAdminCategories,
   createAdminCategory,
   updateAdminCategory,
-  deleteAdminCategory,
+  hardDeleteAdminCategory,
   reorderAdminCategories,
   toggleAdminCategoryVisibility,
   normalizeAdminCategoriesPayload,
@@ -830,7 +830,7 @@ export function useUpdateAdminCategory() {
 export function useDeleteAdminCategory() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: deleteAdminCategory,
+    mutationFn: hardDeleteAdminCategory,
     onSuccess: () => invalidateCategoryQueries(queryClient),
   })
 }

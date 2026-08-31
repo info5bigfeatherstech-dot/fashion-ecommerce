@@ -144,6 +144,7 @@ export {
   createAdminCategory,
   updateAdminCategory,
   deleteAdminCategory,
+  hardDeleteAdminCategory,
   reorderAdminCategories,
   toggleAdminCategoryVisibility,
   getCategoryImageUrl,
@@ -158,6 +159,7 @@ export {
   toggleAdminProductFeatured,
   bulkUpdateAdminProductStatus,
   bulkUpdateAdminProductFlags,
+  syncAdminProductMarketingTags,
 } from './api/products'
 
 export {

@@ -28,6 +28,7 @@ import { AdminConfirmDialog } from '@/features/admin/components/AdminConfirmDial
 import { AdminProductModal } from '@/features/admin/components/AdminProductModal'
 import { AdminProductStatsBar } from '@/features/admin/components/AdminProductStatsBar'
 import { CategoryQuickModal } from '@/features/admin/components/product-form/CategoryQuickModal'
+import { ADMIN_PRODUCT_MARKETING_TAGS } from '@/features/admin/constants/productMarketingTags'
 import {
   useAdminCategories,
   useAdminProductsActiveCount,
@@ -756,9 +757,11 @@ export default function AdminProductsPage() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [todayArrival, setTodayArrival] = useState(false)
-  const [onSale, setOnSale] = useState(false)
+  const [jewellerySpotted, setJewellerySpotted] = useState(false)
+  const [bestsellingJewelry, setBestsellingJewelry] = useState(false)
   const [todayIndeterminate, setTodayIndeterminate] = useState(false)
-  const [saleIndeterminate, setSaleIndeterminate] = useState(false)
+  const [spottedIndeterminate, setSpottedIndeterminate] = useState(false)
+  const [bestsellingIndeterminate, setBestsellingIndeterminate] = useState(false)
   const [flagLoading, setFlagLoading] = useState(false)
   const [showEcomMenu, setShowEcomMenu] = useState(false)
   const [showWholesaleMenu, setShowWholesaleMenu] = useState(false)
@@ -891,9 +894,11 @@ export default function AdminProductsPage() {
   useEffect(() => {
     if (selectedSlugs.size === 0) {
       setTodayArrival(false)
-      setOnSale(false)
+      setJewellerySpotted(false)
+      setBestsellingJewelry(false)
       setTodayIndeterminate(false)
-      setSaleIndeterminate(false)
+      setSpottedIndeterminate(false)
+      setBestsellingIndeterminate(false)
       setShowEcomMenu(false)
       setShowWholesaleMenu(false)
       return
@@ -902,12 +907,15 @@ export default function AdminProductsPage() {
     const selected = products.filter((p) => selectedSlugs.has(p.slug))
     const total = selected.length
     const todayCount = selected.filter((p) => p.tags?.includes('today-arrival')).length
-    const saleCount = selected.filter((p) => p.tags?.includes('on-sale')).length
+    const spottedCount = selected.filter((p) => p.tags?.includes('jewellery-spotted')).length
+    const bestsellingCount = selected.filter((p) => p.tags?.includes('bestselling-jewelry')).length
 
     setTodayArrival(todayCount === total)
     setTodayIndeterminate(todayCount > 0 && todayCount < total)
-    setOnSale(saleCount === total)
-    setSaleIndeterminate(saleCount > 0 && saleCount < total)
+    setJewellerySpotted(spottedCount === total)
+    setSpottedIndeterminate(spottedCount > 0 && spottedCount < total)
+    setBestsellingJewelry(bestsellingCount === total)
+    setBestsellingIndeterminate(bestsellingCount > 0 && bestsellingCount < total)
   }, [selectedSlugs, products])
 
   const handleExport = async () => {
@@ -944,7 +952,8 @@ export default function AdminProductsPage() {
 
     const stateMap = {
       'today-arrival': [todayArrival, setTodayArrival, todayIndeterminate],
-      'on-sale': [onSale, setOnSale, saleIndeterminate],
+      'jewellery-spotted': [jewellerySpotted, setJewellerySpotted, spottedIndeterminate],
+      'bestselling-jewelry': [bestsellingJewelry, setBestsellingJewelry, bestsellingIndeterminate],
     }
     const stateEntry = stateMap[flagType]
     if (!stateEntry) return
@@ -1072,20 +1081,24 @@ export default function AdminProductsPage() {
               </button>
             </div>
             <div className="admin-bulk-bar__actions">
-              <BulkFlagToggle
-                label="Today Deals"
-                checked={todayArrival}
-                indeterminate={todayIndeterminate}
-                loading={flagLoading}
-                onChange={() => handleBulkFlagUpdate('today-arrival')}
-              />
-              <BulkFlagToggle
-                label="On Sale"
-                checked={onSale}
-                indeterminate={saleIndeterminate}
-                loading={flagLoading}
-                onChange={() => handleBulkFlagUpdate('on-sale')}
-              />
+              {ADMIN_PRODUCT_MARKETING_TAGS.map((tag) => {
+                const stateById = {
+                  'today-arrival': [todayArrival, todayIndeterminate],
+                  'jewellery-spotted': [jewellerySpotted, spottedIndeterminate],
+                  'bestselling-jewelry': [bestsellingJewelry, bestsellingIndeterminate],
+                }
+                const [checked, indeterminate] = stateById[tag.id] || [false, false]
+                return (
+                  <BulkFlagToggle
+                    key={tag.id}
+                    label={tag.bulkLabel}
+                    checked={checked}
+                    indeterminate={indeterminate}
+                    loading={flagLoading}
+                    onChange={() => handleBulkFlagUpdate(tag.id)}
+                  />
+                )
+              })}
               <BulkChannelDropdown
                 label="Set as Ecom"
                 tone="ecom"
@@ -1297,6 +1310,13 @@ export default function AdminProductsPage() {
                           <div className="admin-product-cell__text">
                             <strong>{product.name || product.title || '—'}</strong>
                             <span>{product.title && product.name ? product.title : (product.sku || product.slug || '')}</span>
+                            {Array.isArray(product.tags) && product.tags.length > 0 ? (
+                              <span className="admin-product-tags">
+                                {ADMIN_PRODUCT_MARKETING_TAGS.filter((tag) => product.tags.includes(tag.id)).map((tag) => (
+                                  <span key={tag.id} className="admin-product-tags__chip">{tag.shortLabel}</span>
+                                ))}
+                              </span>
+                            ) : null}
                           </div>
                         </div>
                       </td>

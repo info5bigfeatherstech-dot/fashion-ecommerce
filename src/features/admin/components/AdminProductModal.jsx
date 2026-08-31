@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import * as Dialog from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
@@ -10,6 +10,7 @@ import { BrandModal } from '@/features/admin/components/product-form/BrandModal'
 import { CategoryQuickModal } from '@/features/admin/components/product-form/CategoryQuickModal'
 import AttributeModal from '@/features/admin/components/product-form/AttributeModal'
 import CustomMessageModal from '@/features/admin/components/product-form/CustomMessageModal'
+import { marketingTagsFromProductTags } from '@/features/admin/constants/productMarketingTags'
 import {
   emptyProductForm,
   formatIndianRupee,
@@ -27,6 +28,7 @@ import {
   createAdminProduct,
   deleteAdminProductVariant,
   getAdminProductBySlug,
+  syncAdminProductMarketingTags,
   updateAdminProduct,
   updateAdminProductVariant,
 } from '@/features/admin/api/products'
@@ -129,6 +131,7 @@ export function AdminProductModal({
   const [error, setError] = useState('')
   /** Full product from GET — used to preserve wholesale eligibility on partial saves. */
   const [loadedProduct, setLoadedProduct] = useState(null)
+  const savedMarketingTagsRef = useRef(null)
 
   useEffect(() => {
     setCategories(categoriesProp)
@@ -146,12 +149,15 @@ export function AdminProductModal({
     if (!isEdit) {
       setFormData(emptyProductForm())
       setLoadedProduct(null)
+      savedMarketingTagsRef.current = null
       setLoadingProduct(false)
       return
     }
 
     // Hydrate immediately from list row, then refresh from full product GET.
-    setFormData(productToEditForm(product))
+    const initialForm = productToEditForm(product)
+    setFormData(initialForm)
+    savedMarketingTagsRef.current = { ...(initialForm.marketingTags || {}) }
     setLoadedProduct(product || null)
     let cancelled = false
     const slug = product.slug
@@ -162,7 +168,9 @@ export function AdminProductModal({
         const full = await getAdminProductBySlug(slug)
         if (!cancelled && full) {
           setLoadedProduct(full)
-          setFormData(productToEditForm(full))
+          const nextForm = productToEditForm(full)
+          setFormData(nextForm)
+          savedMarketingTagsRef.current = { ...(nextForm.marketingTags || {}) }
         }
       } catch {
         // List row hydration is enough to show the form if detail fetch fails.
@@ -684,6 +692,11 @@ export function AdminProductModal({
           attributes: formData.variants?.[0]?.attributes || formData.attributes || [],
         })
         await updateAdminProduct(product.slug, fd)
+        await syncAdminProductMarketingTags(
+          product.slug,
+          formData.marketingTags,
+          savedMarketingTagsRef.current || marketingTagsFromProductTags(loadedProduct?.tags ?? product?.tags)
+        )
         toast.success('Product updated')
         onOpenChange(false)
         onSaved?.()
@@ -706,7 +719,11 @@ export function AdminProductModal({
     setSaving(true)
     try {
       const fd = buildCreateProductFormData(formData)
-      await createAdminProduct(fd)
+      const created = await createAdminProduct(fd)
+      const slug = created?.product?.slug || created?.slug
+      if (slug) {
+        await syncAdminProductMarketingTags(slug, formData.marketingTags, {})
+      }
       toast.success('Product created')
       onOpenChange(false)
       onSaved?.()

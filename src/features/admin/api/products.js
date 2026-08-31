@@ -1,5 +1,9 @@
 import { API_ENDPOINTS } from '@/api/endpoints'
+import { ApiError } from '@/api/errors'
 import { buildVariantCatalogApiPayload } from '@/lib/variantCatalogForm'
+import {
+  ADMIN_PRODUCT_MARKETING_TAG_IDS,
+} from '@/features/admin/constants/productMarketingTags'
 import {
   adminDelete,
   adminGet,
@@ -44,6 +48,7 @@ export {
   createAdminCategory,
   updateAdminCategory,
   deleteAdminCategory,
+  hardDeleteAdminCategory,
   reorderAdminCategories,
   toggleAdminCategoryVisibility,
   getCategoryImageUrl,
@@ -163,12 +168,80 @@ export async function bulkUpdateAdminProductStatus({ slugs, channel, status }) {
 }
 
 export async function bulkUpdateAdminProductFlags({ slugs, flagType, value }) {
-  const payload = await adminPut(API_ENDPOINTS.admin.productsUpdateFlags, {
-    slugs,
-    flagType,
-    value,
-  })
-  return unwrapAdmin(payload)
+  const normalizedSlugs = (Array.isArray(slugs) ? slugs : [])
+    .map((s) => String(s || '').trim())
+    .filter(Boolean)
+  if (!normalizedSlugs.length) {
+    throw new ApiError({ message: 'At least one product slug is required', status: 400, code: 'SLUGS_REQUIRED' })
+  }
+  const normalizedFlag = String(flagType || '').trim().replace(/_/g, '-')
+  if (!normalizedFlag) {
+    throw new ApiError({ message: 'flagType is required', status: 400, code: 'FLAG_REQUIRED' })
+  }
+  if (typeof value !== 'boolean') {
+    throw new ApiError({ message: 'value must be a boolean', status: 400, code: 'INVALID_VALUE' })
+  }
+
+  try {
+    const payload = await adminPut(API_ENDPOINTS.admin.productsUpdateFlags, {
+      slugs: normalizedSlugs,
+      flagType: normalizedFlag,
+      value,
+    })
+    return unwrapAdmin(payload)
+  } catch (error) {
+    const message =
+      error?.response?.data?.message ||
+      error?.message ||
+      'Failed to update product flags'
+    throw new ApiError({
+      message,
+      status: error?.response?.status || 500,
+      code: 'PRODUCT_FLAGS_FAILED',
+      details: error?.response?.data,
+      cause: error,
+    })
+  }
+}
+
+/**
+ * Sync marketing tags for one product (single or bulk admin toggles / product form save).
+ */
+export async function syncAdminProductMarketingTags(slug, nextTags = {}, previousTags = {}) {
+  const normalizedSlug = String(slug || '').trim()
+  if (!normalizedSlug) {
+    throw new ApiError({ message: 'Product slug is required', status: 400, code: 'SLUG_REQUIRED' })
+  }
+
+  const prev = previousTags && typeof previousTags === 'object' && !Array.isArray(previousTags)
+    ? previousTags
+    : marketingTagsFromList(previousTags)
+
+  const next = nextTags && typeof nextTags === 'object' && !Array.isArray(nextTags)
+    ? nextTags
+    : marketingTagsFromList(nextTags)
+
+  const updates = ADMIN_PRODUCT_MARKETING_TAG_IDS.filter(
+    (tagId) => Boolean(next[tagId]) !== Boolean(prev[tagId])
+  ).map((tagId) =>
+    bulkUpdateAdminProductFlags({
+      slugs: [normalizedSlug],
+      flagType: tagId,
+      value: Boolean(next[tagId]),
+    })
+  )
+
+  if (!updates.length) return { updated: 0 }
+
+  await Promise.all(updates)
+  return { updated: updates.length }
+}
+
+function marketingTagsFromList(tags) {
+  const list = Array.isArray(tags) ? tags : []
+  return Object.fromEntries(
+    ADMIN_PRODUCT_MARKETING_TAG_IDS.map((id) => [id, list.includes(id)])
+  )
 }
 
 export async function downloadAdminBulkUploadTemplate() {

@@ -145,6 +145,8 @@ export const API_ENDPOINTS = {
     seoOverview: '/admin/seo-analytics/overview',
     categories: '/categories/admin/categories',
     categoryById: (id) => `/categories/admin/categories/${encodeURIComponent(String(id))}`,
+    categoryHardDelete: (id) =>
+      `/categories/admin/categories/${encodeURIComponent(String(id))}/hard`,
     categoryReorder: '/categories/admin/categories/reorder',
     categoryToggleVisibility: (id) =>
       `/categories/admin/categories/${encodeURIComponent(String(id))}/toggle-visibility`,

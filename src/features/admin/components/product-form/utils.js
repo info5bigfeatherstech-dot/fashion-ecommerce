@@ -1,3 +1,8 @@
+import {
+  emptyMarketingTagsState,
+  marketingTagsFromProductTags,
+} from '@/features/admin/constants/productMarketingTags'
+
 export const formatIndianRupee = (amount) =>
   new Intl.NumberFormat('en-IN', {
     style: 'currency',
@@ -77,6 +82,7 @@ export function emptyProductForm() {
     soldInfo: { enabled: false, count: 0 },
     fomo: { enabled: false, type: 'viewing_now', viewingNow: 0, productLeft: 0, customMessage: '' },
     isFeatured: false,
+    marketingTags: emptyMarketingTagsState(),
     status: 'draft',
   }
 }
@@ -170,6 +176,7 @@ export function productToEditForm(product) {
     })),
     variants,
     isFeatured: Boolean(product.isFeatured),
+    marketingTags: marketingTagsFromProductTags(product.tags),
     status: product.status || 'draft',
     ProductCode: String(main.productCode || main.ProductCode || ''),
     price: {
