@@ -1636,11 +1636,11 @@ select.input {
   box-shadow: var(--shadow-lg);
 }
 
-.modal-content > .modal-header {
+.modal-content>.modal-header {
   flex-shrink: 0;
 }
 
-.modal-content > :not(.modal-header) {
+.modal-content> :not(.modal-header) {
   flex: 1 1 auto;
   overflow-y: auto;
   overflow-x: hidden;
@@ -3632,6 +3632,7 @@ html.modal-open.lenis body {
 }
 
 @keyframes product-all-nav-shine {
+
   0%,
   50% {
     transform: translateX(-120%);
@@ -3870,8 +3871,13 @@ html.modal-open.lenis body {
 }
 
 @keyframes product-all-skeleton {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -9300,7 +9306,9 @@ a.cart-item__name:hover {
   transition: opacity 0.15s;
 }
 
-.checkout-back:hover { opacity: 0.7; }
+.checkout-back:hover {
+  opacity: 0.7;
+}
 
 .checkout-page__heading {
   flex: 1;
@@ -9449,7 +9457,7 @@ a.cart-item__name:hover {
   border-radius: 14px;
   padding: 16px;
   border: none;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
 }
 
 .checkout-panel__head {
@@ -9463,7 +9471,7 @@ a.cart-item__name:hover {
 }
 
 /* Step number badge next to title */
-.checkout-panel__head > div > p.heading-sm {
+.checkout-panel__head>div>p.heading-sm {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -9746,7 +9754,7 @@ a.cart-item__name:hover {
   color: var(--color-muted);
 }
 
-.checkout-address-empty > div {
+.checkout-address-empty>div {
   flex: 1 1 180px;
   min-width: 0;
 }
@@ -9826,15 +9834,22 @@ a.cart-item__name:hover {
   color: var(--color-ink);
 }
 
-.checkout-info-card svg { flex-shrink: 0; color: #888; }
-.checkout-info-card p { margin: 0; font-size: var(--text-sm); }
+.checkout-info-card svg {
+  flex-shrink: 0;
+  color: #888;
+}
+
+.checkout-info-card p {
+  margin: 0;
+  font-size: var(--text-sm);
+}
 
 /* ── Price breakdown (summary rows) ── */
 .checkout-summary {
   background: #fff;
   border-radius: 14px;
   padding: 16px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
   margin-top: 12px;
 }
 
@@ -9943,7 +9958,7 @@ a.cart-item__name:hover {
   background:
     radial-gradient(circle at top, rgba(232, 160, 32, 0.08), transparent 45%),
     #fff;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
 .checkout-success__icon {
@@ -11592,7 +11607,8 @@ a.cart-item__name:hover {
   }
 
   .checkout-summary {
-    display: none;
+    display: block;
+    margin-top: 12px;
   }
 
   .checkout-panel {
@@ -11619,19 +11635,9 @@ a.cart-item__name:hover {
   }
 
   .checkout-submit-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 90;
-    margin: 0;
-    padding: 12px 14px;
-    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-    border-radius: 0;
-    border: 0;
-    border-top: 1px solid rgba(221, 215, 204, 0.9);
-    background: rgba(255, 255, 255, 0.96);
-    backdrop-filter: blur(12px);
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #ede8e0;
   }
 
   .checkout-submit-bar .checkout-step-actions--split {
@@ -11711,18 +11717,8 @@ a.cart-item__name:hover {
 
 @media (min-width: 768px) and (max-width: 1279px) {
   .checkout-summary {
-    display: none;
-  }
-
-  .checkout-submit-bar {
-    position: sticky;
-    bottom: 0;
-    z-index: 10;
-    padding: var(--space-2);
-    border-radius: 14px;
-    border: 1px solid rgba(221, 215, 204, 0.9);
-    background: rgba(255, 255, 255, 0.92);
-    backdrop-filter: blur(8px);
+    display: block;
+    margin-top: 12px;
   }
 }
 

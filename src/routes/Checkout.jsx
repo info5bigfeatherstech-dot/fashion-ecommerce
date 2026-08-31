@@ -681,10 +681,14 @@ export default function Checkout() {
       toast.error('Your bag is empty')
       return
     }
+    setShowRazorpay(false)
+    setRazorpayOrderData(null)
     setCheckoutStep(CHECKOUT_STEP.DELIVERY)
   }
 
   const goToReviewStep = () => {
+    setShowRazorpay(false)
+    setRazorpayOrderData(null)
     setCheckoutStep(CHECKOUT_STEP.REVIEW)
   }
 
@@ -710,6 +714,8 @@ export default function Checkout() {
       toast.error('Quote expired — refresh and try again')
       return
     }
+    setShowRazorpay(false)
+    setRazorpayOrderData(null)
     setCheckoutStep(CHECKOUT_STEP.PAYMENT)
   }
 
@@ -720,11 +726,11 @@ export default function Checkout() {
     || isRecoveringCheckout
   const deliveryHint = activeQuote
     ? [
-        activeQuote.isDeliverable
-          ? (activeQuote.deliveryEstimate || 'Deliverable to this address')
-          : 'Not deliverable to this address',
-        activeQuote.courierName,
-      ].filter(Boolean).join(' · ')
+      activeQuote.isDeliverable
+        ? (activeQuote.deliveryEstimate || 'Deliverable to this address')
+        : 'Not deliverable to this address',
+      activeQuote.courierName,
+    ].filter(Boolean).join(' · ')
     : null
 
   const checkoutUserName = user?.name
@@ -955,9 +961,8 @@ export default function Checkout() {
 
                 {(deliveryHint || quoteLoading) && (
                   <p
-                    className={`body-sm checkout-delivery-hint${
-                      activeQuote && !activeQuote.isDeliverable ? ' checkout-delivery-hint--warn' : ''
-                    }`}
+                    className={`body-sm checkout-delivery-hint${activeQuote && !activeQuote.isDeliverable ? ' checkout-delivery-hint--warn' : ''
+                      }`}
                   >
                     {quoteLoading && 'Calculating shipping and totals…'}
                     {!quoteLoading && deliveryHint}
@@ -988,10 +993,10 @@ export default function Checkout() {
                       }}>3</span>
                       <h2 className="checkout-panel__title">Payment</h2>
                     </div>
-                    <span className="checkout-secure">
+                    {/* <span className="checkout-secure">
                       <Lock size={14} />
                       Encrypted
-                    </span>
+                    </span> */}
                   </div>
 
                   <input type="hidden" {...register('paymentMethod')} />
@@ -1162,12 +1167,19 @@ export default function Checkout() {
             {/* ── CTA buttons inside price card ── */}
             <div className="checkout-submit-bar">
               {isPaymentStep ? (
-                <>
+                <div key="step3-container">
                   <div className="checkout-step-actions checkout-step-actions--split">
-                    <Button type="button" variant="secondary" size="lg" onClick={() => setCheckoutStep(CHECKOUT_STEP.DELIVERY)}>
+                    <Button
+                      key="btn-payment-back"
+                      type="button"
+                      variant="secondary"
+                      size="lg"
+                      onClick={() => setCheckoutStep(CHECKOUT_STEP.DELIVERY)}
+                    >
                       Back
                     </Button>
                     <Button
+                      key="btn-payment-submit"
                       form="checkout-form"
                       type="submit"
                       variant="primary"
@@ -1193,24 +1205,44 @@ export default function Checkout() {
                       ? 'Pay when your order arrives — no online payment now.'
                       : 'Secured by Razorpay · your card details never touch our servers.'}
                   </p>
-                </>
+                </div>
               ) : isDeliveryStep ? (
-                <div className="checkout-step-actions checkout-step-actions--split">
-                  <Button type="button" variant="secondary" size="lg" onClick={goToReviewStep}>
+                <div key="step2-container" className="checkout-step-actions checkout-step-actions--split">
+                  <Button
+                    key="btn-delivery-back"
+                    type="button"
+                    variant="secondary"
+                    size="lg"
+                    onClick={goToReviewStep}
+                  >
                     Back
                   </Button>
                   <Button
+                    key="btn-delivery-next"
                     type="button"
                     variant="primary"
                     size="lg"
-                    onClick={goToPaymentStep}
+                    onClick={(e) => {
+                      e?.preventDefault?.()
+                      goToPaymentStep()
+                    }}
                     disabled={!checkoutAddress?.id || quoteLoading || Boolean(activeQuote && !activeQuote.isDeliverable)}
                   >
                     {quoteLoading ? 'Calculating…' : 'Continue to payment'}
                   </Button>
                 </div>
               ) : (
-                <Button type="button" variant="primary" size="lg" fullWidth onClick={goToDeliveryStep}>
+                <Button
+                  key="btn-review-next"
+                  type="button"
+                  variant="primary"
+                  size="lg"
+                  fullWidth
+                  onClick={(e) => {
+                    e?.preventDefault?.()
+                    goToDeliveryStep()
+                  }}
+                >
                   Continue to delivery
                 </Button>
               )}
