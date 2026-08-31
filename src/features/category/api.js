@@ -2,7 +2,7 @@ import { http } from '@/api/http'
 import { API_ENDPOINTS } from '@/api/endpoints'
 import { ApiError } from '@/api/errors'
 import { JEWELRY_CATEGORIES } from '@/config/site'
-import { mapCircleCategories } from './mappers'
+import { mapCircleCategories, mapMovingFastCategories } from './mappers'
 
 export { DEFAULT_CATEGORY_IMAGE } from './mappers'
 
@@ -38,6 +38,19 @@ export async function getPublicCategories({ signal } = {}) {
   })).filter((cat) => !existingSlugs.has(cat.id))
 
   return [...mappedApi, ...defaultCats]
+}
+
+export async function getMovingFastCategories({ signal, cacheBust = false } = {}) {
+  try {
+    const params = cacheBust ? { _cb: '1' } : undefined
+    const payload = await http.get(API_ENDPOINTS.categories.movingFast, { signal, params })
+    if (payload?.success === false) return []
+    const raw = payload?.categories ?? payload?.data?.categories ?? payload?.data ?? []
+    return mapMovingFastCategories(Array.isArray(raw) ? raw : [])
+  } catch (err) {
+    console.warn('Moving Fast categories API failed', err)
+    return []
+  }
 }
 
 export const MEGA_MENUS = {

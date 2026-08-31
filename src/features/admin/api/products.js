@@ -51,6 +51,8 @@ export {
   hardDeleteAdminCategory,
   reorderAdminCategories,
   toggleAdminCategoryVisibility,
+  toggleAdminCategoryMovingFast,
+  MOVING_FAST_CATEGORY_MAX,
   getCategoryImageUrl,
   normalizeAdminCategoriesPayload,
   sortAdminCategories,

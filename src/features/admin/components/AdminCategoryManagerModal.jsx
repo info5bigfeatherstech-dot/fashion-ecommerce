@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   AlertTriangle,
@@ -11,16 +11,22 @@ import {
   RefreshCw,
   Save,
   Trash2,
+  TrendingUp,
   X,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/Button'
-import { getCategoryImageUrl, sortAdminCategories } from '@/features/admin/api/categories'
+import {
+  getCategoryImageUrl,
+  MOVING_FAST_CATEGORY_MAX,
+  sortAdminCategories,
+} from '@/features/admin/api/categories'
 import {
   useAdminCategories,
   useCreateAdminCategory,
   useDeleteAdminCategory,
   useReorderAdminCategories,
+  useToggleAdminCategoryMovingFast,
   useToggleAdminCategoryVisibility,
   useUpdateAdminCategory,
 } from '@/features/admin/hooks'
@@ -105,9 +111,12 @@ function CategoryRow({
   isDraggingOver,
   deleteLoading,
   toggleLoading,
+  movingFastLoading,
+  movingFastCount,
   onSelect,
   onEdit,
   onToggleVisibility,
+  onToggleMovingFast,
   onDeleteRequest,
   onDeleteConfirm,
   onDeleteCancel,
@@ -119,6 +128,24 @@ function CategoryRow({
   const isHidden = isCategoryHidden(cat)
   const catImgUrl = getCategoryImageUrl(cat)
   const catId = cat._id || cat.id
+  const isInMovingFast = cat.showInMovingFast === true
+  const movingFastDisabled =
+    isHidden ||
+    movingFastLoading ||
+    (!isInMovingFast && movingFastCount >= MOVING_FAST_CATEGORY_MAX) ||
+    (!isInMovingFast && !catImgUrl)
+
+  let movingFastTitle = isInMovingFast
+    ? 'Remove from Moving Fast section'
+    : 'Add to Moving Fast section (homepage)'
+
+  if (isHidden) {
+    movingFastTitle = 'Show category first to use Moving Fast'
+  } else if (!catImgUrl && !isInMovingFast) {
+    movingFastTitle = 'Upload a category image before adding to Moving Fast'
+  } else if (!isInMovingFast && movingFastCount >= MOVING_FAST_CATEGORY_MAX) {
+    movingFastTitle = `Maximum ${MOVING_FAST_CATEGORY_MAX} categories in Moving Fast`
+  }
 
   return (
     <div
@@ -166,6 +193,16 @@ function CategoryRow({
         title={isHidden ? 'Show category' : 'Hide category'}
       >
         {isHidden ? <EyeOff size={15} aria-hidden /> : <Eye size={15} aria-hidden />}
+      </button>
+
+      <button
+        type="button"
+        className={`admin-cat__row-icon admin-cat__row-icon--moving-fast${isInMovingFast ? ' is-on' : ''}`}
+        onClick={() => onToggleMovingFast(cat)}
+        disabled={movingFastDisabled}
+        title={movingFastTitle}
+      >
+        <TrendingUp size={15} aria-hidden />
       </button>
 
       <button
@@ -219,10 +256,16 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
   const deleteCategory = useDeleteAdminCategory()
   const reorderCategories = useReorderAdminCategories()
   const toggleVisibility = useToggleAdminCategoryVisibility()
+  const toggleMovingFast = useToggleAdminCategoryMovingFast()
 
   const [orderedCategories, setOrderedCategories] = useState([])
   const [hasReordered, setHasReordered] = useState(false)
   const [dragOverIndex, setDragOverIndex] = useState(null)
+
+  const movingFastCount = useMemo(
+    () => orderedCategories.filter((cat) => cat.showInMovingFast === true && !isCategoryHidden(cat)).length,
+    [orderedCategories]
+  )
 
   const dragSourceIndexRef = useRef(null)
   const orderedCatsRef = useRef([])
@@ -437,6 +480,7 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
                 ...c,
                 status: wasHidden ? 'active' : 'inactive',
                 isHidden: !wasHidden,
+                showInMovingFast: wasHidden ? c.showInMovingFast : false,
               }
             : c
         )
@@ -452,6 +496,28 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
       }
     },
     [toggleVisibility, refetch]
+  )
+
+  const handleToggleMovingFast = useCallback(
+    async (cat) => {
+      const id = cat._id || cat.id
+      const next = !cat.showInMovingFast
+      setOrderedCategories((prev) =>
+        prev.map((c) =>
+          (c._id || c.id) === id ? { ...c, showInMovingFast: next } : c
+        )
+      )
+      setActionError('')
+      try {
+        await toggleMovingFast.mutateAsync({ id, showInMovingFast: next })
+        toast.message(next ? 'Added to Moving Fast' : 'Removed from Moving Fast')
+        await refetch()
+      } catch (err) {
+        setActionError(err?.message || 'Could not update Moving Fast category')
+        await refetch()
+      }
+    },
+    [toggleMovingFast, refetch]
   )
 
   const handleSelect = useCallback(
@@ -518,7 +584,8 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
     updateCategory.isPending ||
     deleteCategory.isPending ||
     reorderCategories.isPending ||
-    toggleVisibility.isPending
+    toggleVisibility.isPending ||
+    toggleMovingFast.isPending
 
   const listEmpty = !isLoading && !isFetching && orderedCategories.length === 0
   const loadError = isError ? error?.message || 'Could not load categories' : ''
@@ -673,7 +740,9 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
           </div>
 
           <div className="admin-cat__toolbar">
-            <p className="admin-cat__toolbar-hint">Drag to reorder · toggle visibility · edit or delete</p>
+            <p className="admin-cat__toolbar-hint">
+              Drag to reorder · eye = visibility · trending = Moving Fast ({movingFastCount}/{MOVING_FAST_CATEGORY_MAX})
+            </p>
             <div className="admin-cat__toolbar-actions">
               {isFetching && !isLoading ? (
                 <span className="admin-cat__refreshing">
@@ -707,9 +776,12 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
                   isDraggingOver={dragOverIndex === index}
                   deleteLoading={deleteCategory.isPending}
                   toggleLoading={toggleVisibility.isPending}
+                  movingFastLoading={toggleMovingFast.isPending}
+                  movingFastCount={movingFastCount}
                   onSelect={handleSelect}
                   onEdit={openEdit}
                   onToggleVisibility={handleToggleVisibility}
+                  onToggleMovingFast={handleToggleMovingFast}
                   onDeleteRequest={handleDeleteRequest}
                   onDeleteConfirm={handleDelete}
                   onDeleteCancel={() => setConfirmDeleteId(null)}
@@ -732,6 +804,11 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
               <span>
                 <EyeOff size={12} aria-hidden className="admin-cat__legend-icon" />
                 Hidden
+              </span>
+              <span className="admin-cat__legend-sep">|</span>
+              <span>
+                <TrendingUp size={12} aria-hidden className="admin-cat__legend-icon admin-cat__legend-icon--on" />
+                Moving Fast
               </span>
               <span className="admin-cat__legend-sep">|</span>
               <span>

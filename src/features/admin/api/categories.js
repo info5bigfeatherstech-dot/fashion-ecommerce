@@ -230,6 +230,41 @@ export async function reorderAdminCategories(orderedCategories = []) {
   }
 }
 
+export const MOVING_FAST_CATEGORY_MAX = 4
+
+export async function toggleAdminCategoryMovingFast(id, showInMovingFast) {
+  if (!id) {
+    throw new ApiError({ message: 'Category id is required', status: 400, code: 'ID_REQUIRED' })
+  }
+  if (typeof showInMovingFast !== 'boolean') {
+    throw new ApiError({
+      message: 'showInMovingFast must be a boolean',
+      status: 400,
+      code: 'INVALID_VALUE',
+    })
+  }
+
+  try {
+    const payload = await adminPatch(API_ENDPOINTS.admin.categoryToggleMovingFast(id), {
+      showInMovingFast: Boolean(showInMovingFast),
+    })
+    const unwrapped = unwrapAdmin(payload)
+    return unwrapCategoryRecord(unwrapped)
+  } catch (error) {
+    const message =
+      error?.response?.data?.message ||
+      error?.message ||
+      'Failed to update Moving Fast category'
+    throw new ApiError({
+      message,
+      status: error?.response?.status || 500,
+      code: 'CATEGORY_MOVING_FAST_FAILED',
+      details: error?.response?.data,
+      cause: error,
+    })
+  }
+}
+
 export async function toggleAdminCategoryVisibility(id, isHidden) {
   if (!id) {
     throw new ApiError({ message: 'Category id is required', status: 400, code: 'ID_REQUIRED' })

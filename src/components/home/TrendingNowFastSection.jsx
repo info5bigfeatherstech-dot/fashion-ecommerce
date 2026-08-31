@@ -1,41 +1,16 @@
 import { Link } from 'react-router-dom'
 import { TrendingUp } from 'lucide-react'
 import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
-import { JEWELRY_CATEGORIES } from '@/config/site'
-import { CATEGORY_BANNERS } from '@/config/categoryBanners'
-import earringsImg from '@/assets/Earrings.png'
-import ringsImg from '@/assets/(7) Silver Tone Floral Pattern Ring for Women with Elegant Design (2).png'
-import braceletsImg from '@/assets/(6) Bracelets & Bangles.png'
-import necklaceImg from '@/assets/(2) Green Beads Stone Choker Necklace with Earrings Set for Party Wedding Jewellery (1).png'
-
-const CATEGORY_IMAGES = {
-  'earrings-studs': earringsImg,
-  'rings': ringsImg,
-  'bracelets-bangles': braceletsImg,
-  'necklace-pendants': necklaceImg,
-}
-
-/** Four trending category tiles — each image opens that shop category. */
-const TRENDING_CATEGORY_SLUGS = [
-  'earrings-studs',
-  'rings',
-  'bracelets-bangles',
-  'necklace-pendants',
-]
-
-const TRENDING_CATEGORIES = TRENDING_CATEGORY_SLUGS.map((slug) => {
-  const nav = JEWELRY_CATEGORIES.find((item) => item.slug === slug)
-  const banner = CATEGORY_BANNERS[slug]
-  return {
-    id: slug,
-    label: nav?.label || banner?.title || slug,
-    href: `/shop/${slug}`,
-    image: CATEGORY_IMAGES[slug] || banner?.image,
-    alt: banner?.alt || nav?.label || 'Category',
-  }
-}).filter((item) => item.image)
+import { ProductGridSkeleton } from '@/components/ui/Skeleton'
+import { useMovingFastCategories } from '@/features/category/hooks'
 
 export function TrendingNowFastSection() {
+  const { data: categories = [], isLoading } = useMovingFastCategories()
+
+  if (!isLoading && categories.length === 0) {
+    return null
+  }
+
   return (
     <section id="trending-now" className="section container trending-now-section">
       <div className="section-header">
@@ -55,32 +30,33 @@ export function TrendingNowFastSection() {
             </p>
           </Reveal>
         </div>
-        {/* <Reveal delay={0.12}>
-          <Link to="/shop/earrings-studs" className="section-header__link">View All</Link>
-        </Reveal> */}
       </div>
 
       <Reveal delay={0.1}>
-        <div className="trending-now-videos" role="list">
-          {TRENDING_CATEGORIES.map((item) => (
-            <div key={item.id} className="trending-now-videos__item" role="listitem">
-              <Link
-                to={item.href}
-                state={{ fromSection: 'trending-now' }}
-                className="trending-now-videos__open"
-                aria-label={`Shop ${item.label}`}
-              >
-                <img
-                  src={item.image}
-                  alt={item.alt}
-                  className="trending-now-videos__video"
-                  loading="lazy"
-                />
-                <span className="trending-now-videos__label">{item.label}</span>
-              </Link>
-            </div>
-          ))}
-        </div>
+        {isLoading ? (
+          <ProductGridSkeleton count={4} />
+        ) : (
+          <div className="trending-now-videos" role="list">
+            {categories.map((item) => (
+              <div key={item.id} className="trending-now-videos__item" role="listitem">
+                <Link
+                  to={item.href}
+                  state={{ fromSection: 'trending-now' }}
+                  className="trending-now-videos__open"
+                  aria-label={`Shop ${item.label}`}
+                >
+                  <img
+                    src={item.image}
+                    alt={item.label}
+                    className="trending-now-videos__video"
+                    loading="lazy"
+                  />
+                  <span className="trending-now-videos__label">{item.label}</span>
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
       </Reveal>
     </section>
   )

@@ -150,6 +150,8 @@ export const API_ENDPOINTS = {
     categoryReorder: '/categories/admin/categories/reorder',
     categoryToggleVisibility: (id) =>
       `/categories/admin/categories/${encodeURIComponent(String(id))}/toggle-visibility`,
+    categoryToggleMovingFast: (id) =>
+      `/categories/admin/categories/${encodeURIComponent(String(id))}/toggle-moving-fast`,
     rtoReport: '/admin/rto/report',
     carts: '/admin/analytics/carts',
     cartsAbandoned: '/admin/analytics/carts/abandoned',
@@ -208,6 +210,7 @@ export const API_ENDPOINTS = {
   },
   categories: {
     list: '/categories/categories',
+    movingFast: '/categories/categories/moving-fast',
     byId: (id) => `/categories/categories/${encodeURIComponent(String(id))}`,
   },
   productReviews: {
