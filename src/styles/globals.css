@@ -1627,32 +1627,67 @@ select.input {
   max-width: min(480px, calc(100vw - 24px));
   width: calc(100% - 24px);
   max-height: min(90vh, calc(100dvh - 24px));
-  overflow-y: auto;
-  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
   box-shadow: var(--shadow-lg);
 }
 
+.modal-content > .modal-header {
+  flex-shrink: 0;
+}
+
+.modal-content > :not(.modal-header) {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+}
+
+/* Sleek rounded scrollbars inside modal */
+.modal-content::-webkit-scrollbar,
+.modal-content *::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.modal-content::-webkit-scrollbar-track,
+.modal-content *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-content::-webkit-scrollbar-thumb,
+.modal-content *::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.18);
+  border-radius: 999px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover,
+.modal-content *::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.32);
+}
+
 @media (max-width: 767px) {
   .modal-content {
-    top: auto;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    transform: none;
-    width: 100%;
-    max-width: none;
-    max-height: min(92dvh, calc(100dvh - env(safe-area-inset-top, 0px)));
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    padding: var(--space-3);
+    top: 50%;
+    left: 50%;
+    bottom: auto;
+    right: auto;
+    transform: translate(-50%, -50%);
+    width: calc(100% - 24px);
+    max-width: min(560px, calc(100vw - 24px));
+    max-height: min(88dvh, calc(100dvh - 32px));
+    border-radius: 20px;
+    padding: clamp(16px, 4vw, 24px);
   }
 
   .modal-content--auth,
   .modal-content--auth-register {
-    max-height: min(96dvh, calc(100dvh - 8px));
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    max-height: min(92dvh, calc(100dvh - 24px));
+    border-radius: 20px;
   }
 }
 
