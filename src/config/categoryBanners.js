@@ -1,4 +1,5 @@
 import { JEWELRY_CATEGORIES } from '@/config/site'
+import { formatCategoryTitle } from '@/lib/utils'
 import CustomizedGiftBox from '@/assets/Customized Gift Box.png'
 
 /**
@@ -77,15 +78,18 @@ export function getCategoryBanner(slug, { label, image } = {}) {
     Boolean(image)
   if (!known) return null
 
-  const fallbackTitle =
+  const rawTitle =
     label ||
+    base?.title ||
     JEWELRY_CATEGORIES.find((c) => c.slug === slug)?.label ||
     String(slug).replace(/-/g, ' ')
 
+  const formattedTitle = formatCategoryTitle(rawTitle)
+
   return {
-    title: base?.title || fallbackTitle,
-    subtitle: base?.subtitle || `Shop the latest ${fallbackTitle.toLowerCase()} from FABUNIQO.`,
+    title: formattedTitle,
+    subtitle: base?.subtitle || `Shop the latest ${formattedTitle} from FABUNIQO.`,
     image: image || base?.image || CATEGORY_BANNERS['earrings-studs'].image,
-    alt: base?.alt || `${fallbackTitle} collection`,
+    alt: base?.alt || `${formattedTitle} collection`,
   }
 }

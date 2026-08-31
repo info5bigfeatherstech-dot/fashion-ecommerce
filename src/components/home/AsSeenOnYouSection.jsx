@@ -4,7 +4,7 @@ import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
 import { ReflectiveCard } from '@/components/ui/ReflectiveCard'
 import { AS_SEEN_ON_YOU } from '@/config/site'
-import { useFeaturedProducts } from '@/features/product/hooks'
+import { useJewellerySpotted } from '@/features/product/hooks'
 
 function InstagramIcon({ size = 16 }) {
   return (
@@ -105,7 +105,7 @@ function CollageCard({ item, index }) {
 }
 
 export function AsSeenOnYouSection() {
-  const { data: products = [], isLoading } = useFeaturedProducts({ limit: COLLAGE_IMAGE_LIMIT })
+  const { data: products = [], isLoading } = useJewellerySpotted({ limit: COLLAGE_IMAGE_LIMIT })
   const collageItems = buildCollageItems(products, AS_SEEN_ON_YOU.collage || [])
 
   return (

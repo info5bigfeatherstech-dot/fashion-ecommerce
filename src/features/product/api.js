@@ -895,11 +895,27 @@ export async function getProductDetailedById(id, { signal } = {}) {
   return product
 }
 
-export async function getBestsellers() {
+export async function getBestsellers({ limit = 12, signal } = {}) {
+  try {
+    const res = await getProductsByTag('bestselling-jewelry', { page: 1, limit, signal })
+    if (res?.products && res.products.length > 0) {
+      return res.products
+    }
+  } catch (err) {
+    console.warn('API request for bestselling-jewelry tag failed, using fallback', err)
+  }
+
   const { products } = await getProductCatalog()
-  return [...products].sort(
-    (a, b) => b.soldCount - a.soldCount || b.reviewCount - a.reviewCount || Number(b.isFeatured) - Number(a.isFeatured)
+  const matched = products.filter(
+    (p) => Array.isArray(p.tags) && p.tags.some((t) => String(t).toLowerCase() === 'bestselling-jewelry')
   )
+  if (matched.length > 0) return matched.slice(0, limit)
+
+  return [...products]
+    .sort(
+      (a, b) => b.soldCount - a.soldCount || b.reviewCount - a.reviewCount || Number(b.isFeatured) - Number(a.isFeatured)
+    )
+    .slice(0, limit)
 }
 
 export async function getNewArrivals() {
@@ -941,6 +957,25 @@ export async function getFeaturedProducts({ limit = 12, force = false } = {}) {
   }
 
   return featuredInFlight
+}
+
+export async function getJewellerySpotted({ limit = 12, signal } = {}) {
+  try {
+    const res = await getProductsByTag('jewellery-spotted', { page: 1, limit, signal })
+    if (res?.products && res.products.length > 0) {
+      return res.products
+    }
+  } catch (err) {
+    console.warn('API request for jewellery-spotted tag failed, using fallback', err)
+  }
+
+  const { products } = await getProductCatalog()
+  const matched = products.filter(
+    (p) => Array.isArray(p.tags) && p.tags.some((t) => String(t).toLowerCase() === 'jewellery-spotted')
+  )
+  if (matched.length > 0) return matched.slice(0, limit)
+
+  return products.filter((p) => p.isFeatured).slice(0, limit)
 }
 
 export async function createOosInquiry({ productId, variantId, email, phone }) {

@@ -55,3 +55,36 @@ export function getBadgeLabel(badge) {
   }
   return map[badge] || badge
 }
+
+export function formatCategoryTitle(str) {
+  if (!str) return ''
+  const s = String(str).trim()
+
+  const knownTitles = {
+    'bracelets-bangles': 'Bracelets & Bangles',
+    'bracelets and bangles': 'Bracelets & Bangles',
+    'necklace-pendants': 'Necklace & Pendants',
+    'necklace and pendants': 'Necklace & Pendants',
+    'necklaces-pendants': 'Necklaces & Pendants',
+    'earrings-studs': 'Earrings & Studs',
+    'earrings and studs': 'Earrings & Studs',
+    'mangalsutras': 'Mangalsutras',
+    'rings': 'Rings',
+    'sets': 'Sets',
+    'gifting': 'Gifting',
+    'new-arrivals': 'New Arrivals',
+    'sale': 'Sale',
+  }
+
+  const lower = s.toLowerCase()
+  if (knownTitles[lower]) return knownTitles[lower]
+
+  return s
+    .replace(/[-_]+/g, ' ')
+    .split(' ')
+    .map((word) => {
+      if (word.toLowerCase() === 'and' || word === '&') return '&'
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    })
+    .join(' ')
+}

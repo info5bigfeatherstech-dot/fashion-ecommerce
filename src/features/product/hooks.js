@@ -7,6 +7,7 @@ import {
   getNewArrivals,
   getBeautyProducts,
   getFeaturedProducts,
+  getJewellerySpotted,
   getProductsByCategory,
   getProductsByTag,
   getRelatedProducts,
@@ -71,10 +72,10 @@ export function useProductSearch(query, { page = 1, limit = 12 } = {}) {
   })
 }
 
-export function useBestsellers() {
+export function useBestsellers({ limit = 12 } = {}) {
   return useQuery({
-    queryKey: productKeys.bestsellers(),
-    queryFn: getBestsellers,
+    queryKey: [...productKeys.bestsellers(), limit],
+    queryFn: ({ signal }) => getBestsellers({ limit, signal }),
   })
 }
 
@@ -96,5 +97,12 @@ export function useBeautyProducts() {
   return useQuery({
     queryKey: productKeys.beauty(),
     queryFn: getBeautyProducts,
+  })
+}
+
+export function useJewellerySpotted({ limit = 12 } = {}) {
+  return useQuery({
+    queryKey: [...productKeys.byTag('jewellery-spotted'), limit],
+    queryFn: ({ signal }) => getJewellerySpotted({ limit, signal }),
   })
 }

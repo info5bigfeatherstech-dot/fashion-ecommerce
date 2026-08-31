@@ -22,6 +22,8 @@ import { CategoryLanding } from '@/components/category/CategoryLanding'
 import { CategoryBanner } from '@/components/category/CategoryBanner'
 import { CategoryComingSoon } from '@/components/category/CategoryComingSoon'
 
+import { formatPrice, formatCategoryTitle } from '@/lib/utils'
+
 const SORT_OPTIONS = [
   { value: '', label: 'Featured' },
   { value: 'newest', label: 'Newest' },
@@ -94,12 +96,12 @@ export default function ProductListing() {
   const title = search
     ? `Results for "${search}"`
     : subcategory
-      ? categoryInfo?.children?.find((child) => child.slug === subcategory)?.label || subcategory
+      ? categoryInfo?.children?.find((child) => child.slug === subcategory)?.label || formatCategoryTitle(subcategory)
       : category === 'new-arrivals'
         ? 'New Arrivals'
         : category === 'sale'
           ? 'Sale'
-          : resolvedCategoryLabel || (category ? String(category).replace(/-/g, ' ') : 'All Products')
+          : formatCategoryTitle(resolvedCategoryLabel || category || 'All Products')
 
   const updateParam = (key, value) => {
     const params = new URLSearchParams(searchParams)

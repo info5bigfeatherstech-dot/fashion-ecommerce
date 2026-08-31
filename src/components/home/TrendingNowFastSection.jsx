@@ -1,8 +1,11 @@
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { TrendingUp } from 'lucide-react'
 import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
 import { JEWELRY_CATEGORIES } from '@/config/site'
 import { CATEGORY_BANNERS } from '@/config/categoryBanners'
+import { useCircleCategories } from '@/features/category/hooks'
+import { formatCategoryTitle } from '@/lib/utils'
 import earringsImg from '@/assets/Earrings.png'
 import ringsImg from '@/assets/(7) Silver Tone Floral Pattern Ring for Women with Elegant Design (2).png'
 import braceletsImg from '@/assets/(6) Bracelets & Bangles.png'
@@ -23,19 +26,56 @@ const TRENDING_CATEGORY_SLUGS = [
   'necklace-pendants',
 ]
 
-const TRENDING_CATEGORIES = TRENDING_CATEGORY_SLUGS.map((slug) => {
-  const nav = JEWELRY_CATEGORIES.find((item) => item.slug === slug)
-  const banner = CATEGORY_BANNERS[slug]
-  return {
-    id: slug,
-    label: nav?.label || banner?.title || slug,
-    href: `/shop/${slug}`,
-    image: CATEGORY_IMAGES[slug] || banner?.image,
-    alt: banner?.alt || nav?.label || 'Category',
+function isCategoryMatch(c, targetSlug) {
+  const target = String(targetSlug || '').toLowerCase().trim()
+  const cSlug = String(c?.slug || '').toLowerCase().trim()
+  const cName = String(c?.name || c?.label || '').toLowerCase().trim()
+  const cId = String(c?.id || c?._id || '').toLowerCase().trim()
+  const cHref = String(c?.href || '').toLowerCase().replace(/^\/shop\//, '').trim()
+
+  if (cSlug === target || cName === target || cId === target || cHref === target) return true
+
+  const cleanTarget = target.replace(/[^a-z0-9]/g, '')
+  const cleanSlug = cSlug.replace(/[^a-z0-9]/g, '')
+  const cleanName = cName.replace(/[^a-z0-9]/g, '')
+  const cleanHref = cHref.replace(/[^a-z0-9]/g, '')
+
+  if (cleanTarget && (cleanSlug === cleanTarget || cleanName === cleanTarget || cleanHref === cleanTarget)) {
+    return true
   }
-}).filter((item) => item.image)
+
+  return false
+}
 
 export function TrendingNowFastSection() {
+  const { data: categories = [] } = useCircleCategories()
+
+  const trendingCategories = useMemo(() => {
+    return TRENDING_CATEGORY_SLUGS.map((slug) => {
+      const nav = JEWELRY_CATEGORIES.find((item) => item.slug === slug)
+      const banner = CATEGORY_BANNERS[slug]
+
+      const matchedCat = categories.find((c) => isCategoryMatch(c, slug))
+
+      const rawCatImage = typeof matchedCat?.image === 'string'
+        ? matchedCat.image.trim()
+        : (matchedCat?.image?.url || matchedCat?.image?.secure_url || '')
+
+      const image = rawCatImage || CATEGORY_IMAGES[slug] || banner?.image
+
+      const rawLabel = matchedCat?.name || matchedCat?.label || nav?.label || banner?.title || slug
+      const label = formatCategoryTitle(rawLabel)
+
+      return {
+        id: slug,
+        label,
+        href: matchedCat?.href || `/shop/${slug}`,
+        image,
+        alt: banner?.alt || label || 'Category',
+      }
+    }).filter((item) => item.image)
+  }, [categories])
+
   return (
     <section id="trending-now" className="section container trending-now-section">
       <div className="section-header">
@@ -62,7 +102,7 @@ export function TrendingNowFastSection() {
 
       <Reveal delay={0.1}>
         <div className="trending-now-videos" role="list">
-          {TRENDING_CATEGORIES.map((item) => (
+          {trendingCategories.map((item) => (
             <div key={item.id} className="trending-now-videos__item" role="listitem">
               <Link
                 to={item.href}

@@ -1,3 +1,5 @@
+import { formatCategoryTitle } from '@/lib/utils'
+
 const DEFAULT_CATEGORY_IMAGE = ''
 
 export { DEFAULT_CATEGORY_IMAGE }
@@ -33,12 +35,16 @@ function isTopLevelCategory(category) {
 
 export function mapCircleCategory(category) {
   const slug = getCategorySlug(category)
+  const rawLabel = category?.name || category?.label || 'Category'
+  const label = formatCategoryTitle(rawLabel)
 
   return {
     id: category?._id || category?.id || slug,
-    label: category?.name || category?.label || 'Category',
+    label,
     href: slug ? `/shop/${slug}` : '/shop',
     image: getCategoryImageUrl(category),
+    slug: category?.slug || slug,
+    name: label,
   }
 }
 

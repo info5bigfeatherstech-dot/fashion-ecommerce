@@ -1,7 +1,7 @@
 import { http } from '@/api/http'
 import { API_ENDPOINTS } from '@/api/endpoints'
 import { ApiError } from '@/api/errors'
-import { JEWELRY_CATEGORIES } from '@/config/site'
+import { JEWELRY_CATEGORIES, HOME_CIRCLE_CATEGORIES } from '@/config/site'
 import { mapCircleCategories } from './mappers'
 
 export { DEFAULT_CATEGORY_IMAGE } from './mappers'
@@ -22,22 +22,23 @@ export async function getPublicCategories({ signal } = {}) {
 
   const mappedApi = mapCircleCategories(list)
 
-  // Merge default categories with API categories so all categories exist
-  const existingSlugs = new Set(
-    mappedApi.map((c) => {
-      const match = String(c.href || '').match(/\/shop\/([^/?#]+)/i)
-      return match?.[1] ? decodeURIComponent(match[1]) : c.id
-    })
-  )
+  // If categories exist from Admin Panel backend, return ONLY those categories
+  if (mappedApi.length > 0) {
+    return mappedApi
+  }
 
-  const defaultCats = JEWELRY_CATEGORIES.map((cat) => ({
-    id: cat.slug,
-    label: cat.label,
-    href: `/shop/${cat.slug}`,
-    image: '',
-  })).filter((cat) => !existingSlugs.has(cat.id))
-
-  return [...mappedApi, ...defaultCats]
+  // Fallback to static defaults only if backend returns zero categories
+  return JEWELRY_CATEGORIES.map((cat) => {
+    const homeFallback = HOME_CIRCLE_CATEGORIES.find(
+      (h) => h.href === `/shop/${cat.slug}` || h.label.toLowerCase() === cat.label.toLowerCase()
+    )
+    return {
+      id: cat.slug,
+      label: cat.label,
+      href: `/shop/${cat.slug}`,
+      image: homeFallback?.image || '',
+    }
+  })
 }
 
 export const MEGA_MENUS = {

@@ -1,3 +1,5 @@
+import { formatCategoryTitle } from '@/lib/utils'
+
 /**
  * Storefront nav helpers — map public API categories into header/footer links.
  * Categories are already filtered (active, top-level) by mapCircleCategories.
@@ -76,5 +78,5 @@ export function findCategoryLabel(categories = [], slug) {
     const itemSlug = slugFromShopHref(item?.href)
     return itemSlug.toLowerCase() === needle
   })
-  return match?.label || null
+  return match?.label ? formatCategoryTitle(match.label) : formatCategoryTitle(slug)
 }
