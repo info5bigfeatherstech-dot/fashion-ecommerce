@@ -11,7 +11,7 @@ import {
   RefreshCw,
   Save,
   Trash2,
-  TrendingUp,
+  Zap,
   X,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -202,7 +202,7 @@ function CategoryRow({
         disabled={movingFastDisabled}
         title={movingFastTitle}
       >
-        <TrendingUp size={15} aria-hidden />
+        <Zap size={15} aria-hidden />
       </button>
 
       <button
@@ -741,7 +741,7 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
 
           <div className="admin-cat__toolbar">
             <p className="admin-cat__toolbar-hint">
-              Drag to reorder · eye = visibility · trending = Moving Fast ({movingFastCount}/{MOVING_FAST_CATEGORY_MAX})
+              Drag to reorder · eye = visibility · zap = Moving Fast ({movingFastCount}/{MOVING_FAST_CATEGORY_MAX})
             </p>
             <div className="admin-cat__toolbar-actions">
               {isFetching && !isLoading ? (
@@ -807,7 +807,7 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
               </span>
               <span className="admin-cat__legend-sep">|</span>
               <span>
-                <TrendingUp size={12} aria-hidden className="admin-cat__legend-icon admin-cat__legend-icon--on" />
+                <Zap size={12} aria-hidden className="admin-cat__legend-icon admin-cat__legend-icon--on" />
                 Moving Fast
               </span>
               <span className="admin-cat__legend-sep">|</span>
