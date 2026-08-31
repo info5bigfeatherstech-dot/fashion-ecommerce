@@ -21443,6 +21443,15 @@ button.admin-stats-chip:hover {
   color: #2563eb;
 }
 
+.admin-cat__row-icon--moving-fast.is-on {
+  color: #b45309;
+  background: rgba(251, 191, 36, 0.18);
+}
+
+.admin-cat__row-icon--moving-fast:hover:not(:disabled) {
+  color: #b45309;
+}
+
 .admin-cat__row-icon--danger:hover:not(:disabled) {
   background: #fef2f2;
   color: #dc2626;

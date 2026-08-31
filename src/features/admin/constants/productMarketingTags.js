@@ -5,21 +5,21 @@ export const ADMIN_PRODUCT_MARKETING_TAGS = [
     label: "Today's Deal",
     shortLabel: 'Today Deal',
     bulkLabel: "Today's Deal",
-    description: 'Shows in the homepage Today’s Deal section when wired on storefront.',
+    description: 'Shows in the homepage Today’s Deal section.',
   },
   {
     id: 'jewellery-spotted',
     label: 'Jewellery Spotted',
     shortLabel: 'Spotted',
     bulkLabel: 'Jewellery Spotted',
-    description: 'Curated for the Jewellery Spotted homepage gallery.',
+    description: 'Shows in the Jewellery Spotted homepage gallery.',
   },
   {
     id: 'bestselling-jewelry',
     label: 'Bestselling Jewelry',
     shortLabel: 'Bestseller',
     bulkLabel: 'Bestselling Jewelry',
-    description: 'Curated for the Bestselling Jewelry homepage carousel.',
+    description: 'Shows in the Bestselling Jewelry homepage carousel.',
   },
 ]
 

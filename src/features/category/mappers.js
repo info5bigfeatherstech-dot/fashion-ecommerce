@@ -57,3 +57,17 @@ export function mapCircleCategories(categories) {
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
     .map(mapCircleCategory)
 }
+
+export function mapMovingFastCategories(categories) {
+  const list = Array.isArray(categories) ? categories : []
+  return list
+    .filter(isActiveCategory)
+    .filter((category) => Boolean(getCategoryImageUrl(category)))
+    .sort(
+      (a, b) =>
+        (a.movingFastOrder ?? 0) - (b.movingFastOrder ?? 0) ||
+        (a.order ?? 0) - (b.order ?? 0) ||
+        String(a.name || '').localeCompare(String(b.name || ''))
+    )
+    .map(mapCircleCategory)
+}

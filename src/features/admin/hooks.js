@@ -60,6 +60,8 @@ import {
   hardDeleteAdminCategory,
   reorderAdminCategories,
   toggleAdminCategoryVisibility,
+  toggleAdminCategoryMovingFast,
+  MOVING_FAST_CATEGORY_MAX,
   normalizeAdminCategoriesPayload,
   sortAdminCategories,
   exportAdminProducts,
@@ -103,11 +105,27 @@ import {
 } from './api'
 import { adminKeys } from './queryKeys'
 import { categoryKeys } from '@/features/category/queryKeys'
+import { getMovingFastCategories } from '@/features/category/api'
+import { productKeys } from '@/features/product/queryKeys'
 import { useAdminStore } from './store'
 
-function invalidateCategoryQueries(queryClient) {
-  queryClient.invalidateQueries({ queryKey: adminKeys.categories() })
-  queryClient.invalidateQueries({ queryKey: categoryKeys.list() })
+function invalidateCategoryQueries(queryClient, { cacheBust = false } = {}) {
+  queryClient.invalidateQueries({ queryKey: adminKeys.categories(), refetchType: 'all' })
+  queryClient.invalidateQueries({ queryKey: categoryKeys.list(), refetchType: 'all' })
+  queryClient.invalidateQueries({
+    queryKey: categoryKeys.movingFast(),
+    refetchType: 'all',
+  })
+  if (cacheBust) {
+    queryClient.refetchQueries({
+      queryKey: categoryKeys.movingFast(),
+      queryFn: ({ signal }) => getMovingFastCategories({ signal, cacheBust: true }),
+    })
+  }
+}
+
+function invalidateStorefrontTagQueries(queryClient) {
+  queryClient.invalidateQueries({ queryKey: productKeys.all })
 }
 
 function useAdminQueryEnabled(enabled = true) {
@@ -815,7 +833,7 @@ export function useCreateAdminCategory() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: createAdminCategory,
-    onSuccess: () => invalidateCategoryQueries(queryClient),
+    onSuccess: () => invalidateCategoryQueries(queryClient, { cacheBust: true }),
   })
 }
 
@@ -823,7 +841,7 @@ export function useUpdateAdminCategory() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ id, ...payload }) => updateAdminCategory(id, payload),
-    onSuccess: () => invalidateCategoryQueries(queryClient),
+    onSuccess: () => invalidateCategoryQueries(queryClient, { cacheBust: true }),
   })
 }
 
@@ -831,7 +849,7 @@ export function useDeleteAdminCategory() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: hardDeleteAdminCategory,
-    onSuccess: () => invalidateCategoryQueries(queryClient),
+    onSuccess: () => invalidateCategoryQueries(queryClient, { cacheBust: true }),
   })
 }
 
@@ -839,7 +857,7 @@ export function useReorderAdminCategories() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: reorderAdminCategories,
-    onSuccess: () => invalidateCategoryQueries(queryClient),
+    onSuccess: () => invalidateCategoryQueries(queryClient, { cacheBust: true }),
   })
 }
 
@@ -847,7 +865,15 @@ export function useToggleAdminCategoryVisibility() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ id, isHidden }) => toggleAdminCategoryVisibility(id, isHidden),
-    onSuccess: () => invalidateCategoryQueries(queryClient),
+    onSuccess: () => invalidateCategoryQueries(queryClient, { cacheBust: true }),
+  })
+}
+
+export function useToggleAdminCategoryMovingFast() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, showInMovingFast }) => toggleAdminCategoryMovingFast(id, showInMovingFast),
+    onSuccess: () => invalidateCategoryQueries(queryClient, { cacheBust: true }),
   })
 }
 
@@ -859,7 +885,10 @@ export function useCreateAdminProduct() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: createAdminProduct,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'products-all'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products-all'] })
+      invalidateStorefrontTagQueries(queryClient)
+    },
   })
 }
 
@@ -867,7 +896,10 @@ export function useUpdateAdminProduct() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ slug, formData }) => updateAdminProduct(slug, formData),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'products-all'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products-all'] })
+      invalidateStorefrontTagQueries(queryClient)
+    },
   })
 }
 
@@ -955,7 +987,10 @@ export function useBulkUpdateAdminProductFlags() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: bulkUpdateAdminProductFlags,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'products-all'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products-all'] })
+      invalidateStorefrontTagQueries(queryClient)
+    },
   })
 }
 
