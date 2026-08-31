@@ -101,6 +101,7 @@ export default function Checkout() {
   const [paymentError, setPaymentError] = useState(null)
   const [showPaymentError, setShowPaymentError] = useState(false)
   const [couponsEnabled, setCouponsEnabled] = useState(false)
+  const [reviewOpen, setReviewOpen] = useState(true)
   const checkoutAttemptKeyRef = useRef(null)
   const gatewayDismissRecoveryInFlight = useRef(false)
   const gatewayDismissHandlerRef = useRef(null)
@@ -745,25 +746,25 @@ export default function Checkout() {
 
   return (
     <div className="checkout-page">
-      <div className="container checkout-page__inner">
+      <div className="checkout-page__inner">
         <div className="checkout-page__header">
           <Link to="/account/cart" className="checkout-back">
             <ArrowLeft size={16} />
-            Back to bag
+            Back
           </Link>
           <div className="checkout-page__heading">
-            <p className="heading-sm text-accent">Secure checkout</p>
-            <h1 className="display-lg">Checkout</h1>
-            <p className="body-sm text-muted">
+            <h1>{SITE_NAME}</h1>
+            <p>
               {itemCount} {itemCount === 1 ? 'item' : 'items'} · {formatPrice(total)}
-              {quoteLoading ? ' · Updating quote…' : ''}
+              {quoteLoading ? ' · Updating…' : ''}
             </p>
           </div>
+          {/* spacer to keep title centred */}
+          <div style={{ width: 60 }} />
         </div>
 
         <nav className="checkout-steps" aria-label="Checkout progress">
           {STEPS.map((step, index) => {
-            const Icon = step.icon
             const isActive = checkoutStep === index
             const isComplete = checkoutStep > index
             return (
@@ -772,112 +773,132 @@ export default function Checkout() {
                 className={`checkout-steps__item${isActive ? ' checkout-steps__item--active' : ''}${isComplete ? ' checkout-steps__item--complete' : ''}`}
               >
                 <span className="checkout-steps__index">
-                  {isComplete ? <Check size={14} /> : <Icon size={14} />}
                   <span>{index + 1}</span>
                 </span>
                 <span className="checkout-steps__label">{step.label}</span>
-                {index < STEPS.length - 1 && <span className="checkout-steps__divider" aria-hidden="true" />}
               </div>
             )
           })}
         </nav>
 
         <div className="checkout">
-          <form className="checkout-main" onSubmit={handleSubmit(onSubmit)} noValidate>
+          <form id="checkout-form" className="checkout-main" onSubmit={handleSubmit(onSubmit)} noValidate>
             {isReviewStep && (
               <section className="checkout-panel">
-                <div className="checkout-panel__head">
-                  <div>
-                    <p className="heading-sm text-accent">Step 1</p>
-                    <h2 className="checkout-panel__title">Review your order</h2>
+                {/* Clickable header toggles the drawer */}
+                <div
+                  className="checkout-panel__head"
+                  onClick={() => setReviewOpen((o) => !o)}
+                  style={{ cursor: 'pointer', userSelect: 'none' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      width: 28, height: 28, borderRadius: '50%',
+                      background: '#e8a020', color: '#fff',
+                      fontSize: 14, fontWeight: 700, flexShrink: 0,
+                    }}>1</span>
+                    <h2 className="checkout-panel__title">Review order</h2>
                   </div>
+                  {/* Chevron arrow */}
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center',
+                    transition: 'transform 0.25s',
+                    transform: reviewOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                    color: '#888', fontSize: 18,
+                  }}>▾</span>
                 </div>
-                <p className="body-sm text-muted checkout-panel__hint">
-                  Check items and apply a coupon. Shipping is calculated after you choose a delivery address.
-                </p>
-                <div className="checkout-review-items">
-                  {cartItems.map((item) => (
-                    <div key={item.id} className="checkout-summary__item">
-                      <div className="checkout-summary__thumb">
-                        <img src={item.image} alt="" />
-                        <span>{item.quantity}</span>
-                      </div>
-                      <div className="checkout-summary__item-meta">
-                        <p className="checkout-summary__item-name">{item.name}</p>
-                        {item.productCode && (
-                          <p className="body-sm text-muted">{item.productCode}</p>
-                        )}
-                      </div>
-                      <p className="checkout-summary__item-price">
-                        {formatPrice(item.price * item.quantity)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-                <div className="checkout-coupon checkout-coupon--inline">
-                  <div className="checkout-coupon__head">
-                    <Tag size={14} />
-                    <span>Coupon</span>
-                  </div>
-                  <div className="checkout-coupon__row">
-                    <Input
-                      value={couponInput}
-                      onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                      onFocus={() => setCouponsEnabled(true)}
-                      placeholder="Enter code"
-                      aria-label="Coupon code"
-                      disabled={Boolean(appliedCouponCode)}
-                    />
-                    {appliedCouponCode ? (
-                      <Button type="button" variant="secondary" size="sm" onClick={handleClearCoupon}>
-                        Remove
-                      </Button>
-                    ) : (
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleApplyCoupon()}
-                        disabled={validateCoupon.isPending}
-                      >
-                        {validateCoupon.isPending ? '…' : 'Apply'}
-                      </Button>
-                    )}
-                  </div>
-                  {appliedCouponCode && (
-                    <p className="checkout-coupon__ok">{appliedCouponCode} will apply at delivery step</p>
-                  )}
-                  {availableCoupons.length > 0 && !appliedCouponCode && (
-                    <div className="checkout-coupon__list">
-                      {availableCoupons.slice(0, 4).map((coupon) => (
-                        <button
-                          key={coupon.id}
-                          type="button"
-                          className="checkout-coupon__chip"
-                          onClick={() => {
-                            setCouponInput(coupon.code)
-                            handleApplyCoupon(coupon.code)
-                          }}
-                        >
-                          {coupon.code}
-                        </button>
+
+                {reviewOpen && (
+                  <>
+                    <p className="body-sm text-muted checkout-panel__hint">
+                      Check items and apply a coupon. Shipping is calculated after you choose a delivery address.
+                    </p>
+                    <div className="checkout-review-items">
+                      {cartItems.map((item) => (
+                        <div key={item.id} className="checkout-summary__item">
+                          <div className="checkout-summary__thumb">
+                            <img src={item.image} alt="" />
+                            <span>{item.quantity}</span>
+                          </div>
+                          <div className="checkout-summary__item-meta">
+                            <p className="checkout-summary__item-name">{item.name}</p>
+                            {item.productCode && (
+                              <p className="body-sm text-muted">{item.productCode}</p>
+                            )}
+                          </div>
+                          <p className="checkout-summary__item-price">
+                            {formatPrice(item.price * item.quantity)}
+                          </p>
+                        </div>
                       ))}
                     </div>
-                  )}
-                </div>
-                <div className="checkout-step-actions">
-                  <Button type="button" variant="primary" size="lg" fullWidth onClick={goToDeliveryStep}>
-                    Continue to delivery
-                  </Button>
-                </div>
+                    <div className="checkout-coupon checkout-coupon--inline">
+                      <div className="checkout-coupon__head">
+                        <Tag size={14} />
+                        <span>Coupon</span>
+                      </div>
+                      <div className="checkout-coupon__row">
+                        <Input
+                          value={couponInput}
+                          onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                          onFocus={() => setCouponsEnabled(true)}
+                          placeholder="Enter code"
+                          aria-label="Coupon code"
+                          disabled={Boolean(appliedCouponCode)}
+                        />
+                        {appliedCouponCode ? (
+                          <Button type="button" variant="secondary" size="sm" onClick={handleClearCoupon}>
+                            Remove
+                          </Button>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleApplyCoupon()}
+                            disabled={validateCoupon.isPending}
+                          >
+                            {validateCoupon.isPending ? '…' : 'Apply'}
+                          </Button>
+                        )}
+                      </div>
+                      {appliedCouponCode && (
+                        <p className="checkout-coupon__ok">{appliedCouponCode} will apply at delivery step</p>
+                      )}
+                      {availableCoupons.length > 0 && !appliedCouponCode && (
+                        <div className="checkout-coupon__list">
+                          {availableCoupons.slice(0, 4).map((coupon) => (
+                            <button
+                              key={coupon.id}
+                              type="button"
+                              className="checkout-coupon__chip"
+                              onClick={() => {
+                                setCouponInput(coupon.code)
+                                handleApplyCoupon(coupon.code)
+                              }}
+                            >
+                              {coupon.code}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
               </section>
             )}
 
             {isDeliveryStep && (
               <section className="checkout-panel">
                 <div className="checkout-panel__head">
-                  <div>
-                    <p className="heading-sm text-accent">Step 2</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      width: 28, height: 28, borderRadius: '50%',
+                      background: '#e8a020', color: '#fff',
+                      fontSize: 14, fontWeight: 700, flexShrink: 0,
+                    }}>2</span>
                     <h2 className="checkout-panel__title">Delivery address</h2>
                   </div>
                   <Button type="button" variant="ghost" size="sm" onClick={() => setAddressModalOpen(true)}>
@@ -951,20 +972,6 @@ export default function Checkout() {
                   </p>
                 )}
 
-                <div className="checkout-step-actions checkout-step-actions--split">
-                  <Button type="button" variant="secondary" size="lg" onClick={goToReviewStep}>
-                    Back
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="lg"
-                    onClick={goToPaymentStep}
-                    disabled={!checkoutAddress?.id || quoteLoading || Boolean(activeQuote && !activeQuote.isDeliverable)}
-                  >
-                    {quoteLoading ? 'Calculating…' : 'Continue to payment'}
-                  </Button>
-                </div>
               </section>
             )}
 
@@ -972,8 +979,13 @@ export default function Checkout() {
               <>
                 <section className="checkout-panel">
                   <div className="checkout-panel__head">
-                    <div>
-                      <p className="heading-sm text-accent">Step 3</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        width: 28, height: 28, borderRadius: '50%',
+                        background: '#e8a020', color: '#fff',
+                        fontSize: 14, fontWeight: 700, flexShrink: 0,
+                      }}>3</span>
                       <h2 className="checkout-panel__title">Payment</h2>
                     </div>
                     <span className="checkout-secure">
@@ -1078,13 +1090,85 @@ export default function Checkout() {
                     </div>
                   )}
                 </section>
+              </>
+            )}
+          </form>
 
-                <div className="checkout-submit-bar">
+          {/* ── Price summary card — always visible below the form ── */}
+          <div className="checkout-summary">
+            <div className="checkout-summary__head">
+              <h2 className="checkout-panel__title" style={{ fontSize: 'var(--text-base)' }}>Price Details</h2>
+              <Link to="/account/cart" className="body-sm section-header__link">
+                Edit bag
+              </Link>
+            </div>
+
+            <div className="checkout-summary__rows">
+              {!isReviewStep && appliedCouponCode && (
+                <p className="checkout-coupon__ok" style={{ marginBottom: 8 }}>
+                  Coupon {appliedCouponCode}
+                  {promotionDiscount > 0 ? ` · −${formatPrice(promotionDiscount)}` : ''}
+                </p>
+              )}
+
+              <div className="checkout-summary__row">
+                <span>Total Cart Value</span>
+                <span>{formatPrice(itemsSubtotal)}</span>
+              </div>
+              {promotionDiscount > 0 && (
+                <div className="checkout-summary__row">
+                  <span>Discount</span>
+                  <span style={{ color: '#1a7a40' }}>−{formatPrice(promotionDiscount)}</span>
+                </div>
+              )}
+              <div className="checkout-summary__row">
+                <span>Shipping</span>
+                <span style={freeShippingApplied || deliveryCharges === 0 ? { color: '#1a7a40', fontWeight: 700 } : {}}>
+                  {freeShippingApplied ? (
+                    <span>
+                      <span>Free</span>
+                      {originalShippingForDisplay > 0 && (
+                        <span style={{ fontSize: 11, color: 'var(--color-muted)', marginLeft: 4 }}>
+                          <span style={{ textDecoration: 'line-through' }}>{formatPrice(originalShippingForDisplay)}</span>
+                        </span>
+                      )}
+                    </span>
+                  ) : shippingLabel}
+                </span>
+              </div>
+              {taxes > 0 && (
+                <div className="checkout-summary__row">
+                  <span>Other Taxes</span>
+                  <span>{formatPrice(taxes)}</span>
+                </div>
+              )}
+              {deliveryCharges === 0 && activeQuote?.includesShippingAndHandling && (
+                <p className="checkout-summary__perk">Complimentary shipping on this order</p>
+              )}
+            </div>
+            <div className="checkout-summary__total">
+              <span>You Pay</span>
+              <span>{formatPrice(total)}</span>
+            </div>
+            {activeQuote?.quoteId && (
+              <p className="body-sm text-muted" style={{ marginTop: 8, fontSize: 11, textAlign: 'right' }}>
+                Quote locked until{' '}
+                {activeQuote.quoteExpiresAt
+                  ? new Date(activeQuote.quoteExpiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                  : 'checkout completes'}
+              </p>
+            )}
+
+            {/* ── CTA buttons inside price card ── */}
+            <div className="checkout-submit-bar">
+              {isPaymentStep ? (
+                <>
                   <div className="checkout-step-actions checkout-step-actions--split">
                     <Button type="button" variant="secondary" size="lg" onClick={() => setCheckoutStep(CHECKOUT_STEP.DELIVERY)}>
                       Back
                     </Button>
                     <Button
+                      form="checkout-form"
                       type="submit"
                       variant="primary"
                       size="lg"
@@ -1109,108 +1193,29 @@ export default function Checkout() {
                       ? 'Pay when your order arrives — no online payment now.'
                       : 'Secured by Razorpay · your card details never touch our servers.'}
                   </p>
+                </>
+              ) : isDeliveryStep ? (
+                <div className="checkout-step-actions checkout-step-actions--split">
+                  <Button type="button" variant="secondary" size="lg" onClick={goToReviewStep}>
+                    Back
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="lg"
+                    onClick={goToPaymentStep}
+                    disabled={!checkoutAddress?.id || quoteLoading || Boolean(activeQuote && !activeQuote.isDeliverable)}
+                  >
+                    {quoteLoading ? 'Calculating…' : 'Continue to payment'}
+                  </Button>
                 </div>
-              </>
-            )}
-          </form>
-
-          <aside className="checkout-summary">
-            <div className="checkout-summary__head">
-              <h2 className="checkout-panel__title">Order summary</h2>
-              <Link to="/account/cart" className="body-sm section-header__link">
-                Edit bag
-              </Link>
-            </div>
-
-            <div className="checkout-summary__items">
-              {cartItems.map((item) => (
-                <div key={item.id} className="checkout-summary__item">
-                  <div className="checkout-summary__thumb">
-                    <img src={item.image} alt="" />
-                    <span>{item.quantity}</span>
-                  </div>
-                  <div className="checkout-summary__item-meta">
-                    <p className="checkout-summary__item-name">{item.name}</p>
-                    <p className="body-sm text-muted">
-                      {[item.size && `Size ${item.size}`, item.color].filter(Boolean).join(' · ')}
-                    </p>
-                  </div>
-                  <p className="checkout-summary__item-price">
-                    {formatPrice(item.price * item.quantity)}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            <div className="checkout-summary__rows">
-              {!isReviewStep && appliedCouponCode && (
-                <p className="checkout-coupon__ok" style={{ marginBottom: 8 }}>
-                  Coupon {appliedCouponCode}
-                  {promotionDiscount > 0 ? ` · −${formatPrice(promotionDiscount)}` : ''}
-                </p>
-              )}
-
-              <div className="checkout-summary__row">
-                <span>Subtotal</span>
-                <span>{formatPrice(itemsSubtotal)}</span>
-              </div>
-              {promotionDiscount > 0 && (
-                <div className="checkout-summary__row">
-                  <span>Discount</span>
-                  <span>−{formatPrice(promotionDiscount)}</span>
-                </div>
-              )}
-              <div className="checkout-summary__row">
-                <span>Shipping</span>
-                <span>
-                  {freeShippingApplied ? (
-                    <span>
-                      <span>{shippingLabel}</span>
-                      {originalShippingForDisplay > 0 && (
-                        <div style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 2 }}>
-                          <span style={{ textDecoration: 'line-through' }}>
-                            {formatPrice(originalShippingForDisplay)}
-                          </span>{' '}
-                          FREE
-                        </div>
-                      )}
-                      {originalCodFeeInr > 0 && (
-                        <div style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 2 }}>
-                          <span style={{ textDecoration: 'line-through' }}>
-                            {formatPrice(originalCodFeeInr)}
-                          </span>{' '}
-                          COD FREE
-                        </div>
-                      )}
-                    </span>
-                  ) : (
-                    shippingLabel
-                  )}
-                </span>
-              </div>
-              {taxes > 0 && (
-                <div className="checkout-summary__row">
-                  <span>Taxes</span>
-                  <span>{formatPrice(taxes)}</span>
-                </div>
-              )}
-              {deliveryCharges === 0 && activeQuote?.includesShippingAndHandling && (
-                <p className="checkout-summary__perk">Complimentary shipping on this order</p>
-              )}
-              <div className="checkout-summary__total">
-                <span>Total</span>
-                <span>{formatPrice(total)}</span>
-              </div>
-              {activeQuote?.quoteId && (
-                <p className="body-sm text-muted" style={{ marginTop: 8 }}>
-                  Quote locked until{' '}
-                  {activeQuote.quoteExpiresAt
-                    ? new Date(activeQuote.quoteExpiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                    : 'checkout completes'}
-                </p>
+              ) : (
+                <Button type="button" variant="primary" size="lg" fullWidth onClick={goToDeliveryStep}>
+                  Continue to delivery
+                </Button>
               )}
             </div>
-          </aside>
+          </div>
         </div>
       </div>
 
