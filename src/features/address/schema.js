@@ -44,7 +44,7 @@ export const addressFormSchema = z
     }
   })
 
-export const ADDRESS_CONTACT_FIELDS = ['fullName', 'phone']
+export const ADDRESS_CONTACT_FIELDS = ['fullName', 'phone', 'postalCode']
 
 export const ADDRESS_LOCATION_FIELDS = [
   'houseNumber',

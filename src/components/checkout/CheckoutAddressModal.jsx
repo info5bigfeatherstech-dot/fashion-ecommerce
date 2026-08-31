@@ -267,6 +267,7 @@ export function CheckoutAddressModal({ open, onOpenChange, onProceed }) {
             {formStep === 0 ? (
               <AddressContactFields
                 register={addressForm.register}
+                control={addressForm.control}
                 errors={addressForm.formState.errors}
                 idPrefix="checkout-addr"
                 layout="wizard"

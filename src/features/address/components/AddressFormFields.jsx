@@ -1,7 +1,10 @@
-import { Controller, useWatch } from 'react-hook-form'
+import { useEffect, useRef, useState } from 'react'
+import { Controller, useFormContext, useWatch } from 'react-hook-form'
+import { ChevronDown, Loader2, MapPin, PlusCircle } from 'lucide-react'
 import { Input, InputGroup } from '@/components/ui/Input'
 import { buildCourierLines } from '@/features/address/mappers'
 import { COURIER_MAX_LENGTH } from '@/features/address/schema'
+import { fetchPostalPincode } from '@/features/address/pincode'
 
 const ADDRESS_TYPES = [
   { value: 'home', label: 'Home' },
@@ -9,7 +12,102 @@ const ADDRESS_TYPES = [
   { value: 'other', label: 'Other' },
 ]
 
-export function AddressContactFields({ register, errors, idPrefix = 'addr', layout = 'default' }) {
+export function usePincodeLookup(postalCodeVal, setValue, cityVal, stateVal, areaVal) {
+  const [pincodeDetails, setPincodeDetails] = useState(null)
+  const [isFetchingPin, setIsFetchingPin] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    const cleanPin = String(postalCodeVal || '').trim()
+
+    if (/^\d{6}$/.test(cleanPin)) {
+      setIsFetchingPin(true)
+      fetchPostalPincode(cleanPin).then((res) => {
+        if (cancelled) return
+        setIsFetchingPin(false)
+        if (res) {
+          setPincodeDetails(res)
+
+          if (setValue) {
+            if (!cityVal || cityVal !== res.district) {
+              setValue('city', res.district, { shouldValidate: true })
+            }
+            if (!stateVal || stateVal !== res.state) {
+              setValue('state', res.state, { shouldValidate: true })
+            }
+            if (!areaVal && res.areas && res.areas.length > 0) {
+              setValue('area', res.areas[0], { shouldValidate: true })
+            }
+          }
+        } else {
+          setPincodeDetails(null)
+        }
+      })
+    } else {
+      setPincodeDetails(null)
+      setIsFetchingPin(false)
+    }
+
+    return () => {
+      cancelled = true
+    }
+  }, [postalCodeVal, setValue, cityVal, stateVal, areaVal])
+
+  return { pincodeDetails, isFetchingPin }
+}
+
+export function AddressContactFields({
+  register,
+  control: controlProp,
+  errors: errorsProp,
+  idPrefix = 'addr',
+  layout = 'default',
+}) {
+  const formContext = useFormContext()
+  const control = controlProp || formContext?.control
+  const errors = errorsProp || formContext?.formState?.errors || {}
+  const setValue = formContext?.setValue
+
+  const watched = useWatch({
+    control,
+    name: ['postalCode', 'city', 'state', 'area'],
+    disabled: !control,
+  })
+  const [postalCodeVal, cityVal, stateVal, areaVal] = watched || []
+
+  const { pincodeDetails, isFetchingPin } = usePincodeLookup(
+    postalCodeVal,
+    setValue,
+    cityVal,
+    stateVal,
+    areaVal
+  )
+
+  const locationPill = (
+    <>
+      {isFetchingPin && (
+        <div className="pincode-location-pill pincode-location-pill--loading">
+          <Loader2 size={16} className="animate-spin text-muted" />
+          <span>Searching pincode area details…</span>
+        </div>
+      )}
+
+      {pincodeDetails && !isFetchingPin && (
+        <div className="pincode-location-pill">
+          <MapPin size={16} className="pincode-location-pill__icon" />
+          <span>
+            <strong className="pincode-location-pill__title">
+              {pincodeDetails.district}, {pincodeDetails.state}
+            </strong>
+            <span className="pincode-location-pill__count">
+              {' '}· {pincodeDetails.count} area{pincodeDetails.count > 1 ? 's' : ''} available
+            </span>
+          </span>
+        </div>
+      )}
+    </>
+  )
+
   if (layout === 'wizard') {
     return (
       <div className="address-wizard__fields">
@@ -27,6 +125,17 @@ export function AddressContactFields({ register, errors, idPrefix = 'addr', layo
             {...register('phone')}
           />
         </InputGroup>
+
+        <InputGroup label="Pincode" htmlFor={`${idPrefix}-pin`} error={errors.postalCode?.message} required>
+          <Input
+            id={`${idPrefix}-pin`}
+            inputMode="numeric"
+            placeholder="110045"
+            error={errors.postalCode}
+            {...register('postalCode')}
+          />
+        </InputGroup>
+        {locationPill}
       </div>
     )
   }
@@ -60,96 +169,278 @@ export function AddressContactFields({ register, errors, idPrefix = 'addr', layo
   )
 }
 
+/**
+ * Custom dropdown for Area / Locality selection with option to add custom area
+ */
+function AreaLocalitySelect({
+  id,
+  value = '',
+  onChange,
+  areas = [],
+  error,
+  registerProps = {},
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [isCustomMode, setIsCustomMode] = useState(false)
+  const dropdownRef = useRef(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  if (isCustomMode || !areas || areas.length === 0) {
+    return (
+      <div className="area-locality-custom-wrapper">
+        <Input
+          id={id}
+          placeholder="Enter custom area / locality"
+          error={error}
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          {...registerProps}
+        />
+        {areas && areas.length > 0 && (
+          <button
+            type="button"
+            className="area-locality__toggle-btn"
+            onClick={() => setIsCustomMode(false)}
+          >
+            ← Pick from listed areas ({areas.length})
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="area-locality-select-wrapper" ref={dropdownRef}>
+      <button
+        type="button"
+        id={id}
+        className={`input area-locality-select__trigger${error ? ' input--error' : ''}${isOpen ? ' is-open' : ''}`}
+        onClick={() => setIsOpen((prev) => !prev)}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+      >
+        <span className={`area-locality-select__value${!value ? ' is-placeholder' : ''}`}>
+          {value ? (
+            <span className="area-locality-select__value-text">
+              <MapPin size={15} className="area-locality-select__value-icon" />
+              {value}
+            </span>
+          ) : (
+            'Select area / locality'
+          )}
+        </span>
+        <ChevronDown size={16} className={`area-locality-select__chevron${isOpen ? ' is-open' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div className="area-locality-select__menu" role="listbox">
+          <div className="area-locality-select__options">
+            {areas.map((areaName) => (
+              <button
+                key={areaName}
+                type="button"
+                role="option"
+                aria-selected={value === areaName}
+                className={`area-locality-select__option${value === areaName ? ' is-selected' : ''}`}
+                onClick={() => {
+                  onChange(areaName)
+                  setIsOpen(false)
+                }}
+              >
+                <MapPin size={14} className="area-locality-select__option-icon" />
+                <span>{areaName}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="area-locality-select__custom-divider" />
+
+          <button
+            type="button"
+            className="area-locality-select__custom-btn"
+            onClick={() => {
+              setIsCustomMode(true)
+              setIsOpen(false)
+            }}
+          >
+            <PlusCircle size={15} />
+            <span>+ Add custom area (if not listed)</span>
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function AddressLocationFields({
   register,
-  control,
-  errors,
+  control: controlProp,
+  errors: errorsProp,
   idPrefix = 'addr',
   layout = 'default',
 }) {
+  const formContext = useFormContext()
+  const control = controlProp || formContext?.control
+  const errors = errorsProp || formContext?.formState?.errors || {}
+  const setValue = formContext?.setValue
+
   const isWizard = layout === 'wizard'
 
   const watched = useWatch({
     control,
-    name: ['houseNumber', 'building', 'floor', 'addressLine1', 'addressLine2', 'area', 'landmark'],
+    name: [
+      'houseNumber',
+      'building',
+      'floor',
+      'addressLine1',
+      'addressLine2',
+      'area',
+      'landmark',
+      'postalCode',
+      'city',
+      'state',
+    ],
+    disabled: !control,
   })
 
+  const [
+    houseNumberVal,
+    buildingVal,
+    floorVal,
+    line1Val,
+    line2Val,
+    areaVal,
+    landmarkVal,
+    postalCodeVal,
+    cityVal,
+    stateVal,
+  ] = watched || []
+
+  const { pincodeDetails, isFetchingPin } = usePincodeLookup(
+    postalCodeVal,
+    setValue,
+    cityVal,
+    stateVal,
+    areaVal
+  )
+
   const courier = buildCourierLines({
-    houseNumber: watched?.[0],
-    building: watched?.[1],
-    floor: watched?.[2],
-    addressLine1: watched?.[3],
-    addressLine2: watched?.[4],
-    area: watched?.[5],
-    landmark: watched?.[6],
+    houseNumber: houseNumberVal,
+    building: buildingVal,
+    floor: floorVal,
+    addressLine1: line1Val,
+    addressLine2: line2Val,
+    area: areaVal,
+    landmark: landmarkVal,
   })
 
   const overLimit = courier.combinedLength > COURIER_MAX_LENGTH
+
+  const locationPill = (
+    <>
+      {isFetchingPin && (
+        <div className="pincode-location-pill pincode-location-pill--loading">
+          <Loader2 size={16} className="animate-spin text-muted" />
+          <span>Searching pincode area details…</span>
+        </div>
+      )}
+
+      {pincodeDetails && !isFetchingPin && (
+        <div className="pincode-location-pill">
+          <MapPin size={16} className="pincode-location-pill__icon" />
+          <span>
+            <strong className="pincode-location-pill__title">
+              {pincodeDetails.district}, {pincodeDetails.state}
+            </strong>
+            <span className="pincode-location-pill__count">
+              {' '}· {pincodeDetails.count} area{pincodeDetails.count > 1 ? 's' : ''} available
+            </span>
+          </span>
+        </div>
+      )}
+    </>
+  )
 
   if (isWizard) {
     return (
       <div className="address-wizard__fields address-wizard__fields--location">
         <input type="hidden" {...register('country')} />
 
-        <fieldset className="address-form__group">
-          <legend className="address-form__group-label">Doorstep</legend>
-          <div className="address-form__grid address-form__grid--doorstep">
-            <InputGroup label="House / flat no." htmlFor={`${idPrefix}-house`} error={errors.houseNumber?.message} required>
-              <Input id={`${idPrefix}-house`} placeholder="12-A" error={errors.houseNumber} {...register('houseNumber')} />
-            </InputGroup>
-            <InputGroup label="Building" htmlFor={`${idPrefix}-building`} error={errors.building?.message}>
-              <Input id={`${idPrefix}-building`} placeholder="Optional" error={errors.building} {...register('building')} />
-            </InputGroup>
-            <InputGroup label="Floor" htmlFor={`${idPrefix}-floor`} error={errors.floor?.message}>
-              <Input id={`${idPrefix}-floor`} placeholder="Optional" error={errors.floor} {...register('floor')} />
-            </InputGroup>
-          </div>
-          <InputGroup label="Area / locality" htmlFor={`${idPrefix}-area`} error={errors.area?.message} required>
-            <Input id={`${idPrefix}-area`} placeholder="Andheri West" error={errors.area} {...register('area')} />
+        <div className="address-wizard__row address-wizard__row--2col">
+          <InputGroup label="House / flat no." htmlFor={`${idPrefix}-house`} error={errors.houseNumber?.message} required>
+            <Input id={`${idPrefix}-house`} placeholder="e.g. 42B" error={errors.houseNumber} {...register('houseNumber')} />
           </InputGroup>
-        </fieldset>
+          <InputGroup label="Floor no." htmlFor={`${idPrefix}-floor`} error={errors.floor?.message}>
+            <Input id={`${idPrefix}-floor`} placeholder="e.g. 4th Floor" error={errors.floor} {...register('floor')} />
+          </InputGroup>
+        </div>
 
-        <fieldset className="address-form__group">
-          <legend className="address-form__group-label">Street</legend>
-          <InputGroup label="Street address" htmlFor={`${idPrefix}-line1`} error={errors.addressLine1?.message} required>
-            <Input
-              id={`${idPrefix}-line1`}
-              placeholder="Road, street, landmark"
-              error={errors.addressLine1}
-              {...register('addressLine1')}
+        <div className="address-wizard__row address-wizard__row--2col">
+          <InputGroup label="Building no." htmlFor={`${idPrefix}-building`} error={errors.building?.message}>
+            <Input id={`${idPrefix}-building`} placeholder="e.g. Sunrise Apartments" error={errors.building} {...register('building')} />
+          </InputGroup>
+          <InputGroup label="Area / locality" htmlFor={`${idPrefix}-area`} error={errors.area?.message} required>
+            <Controller
+              control={control}
+              name="area"
+              render={({ field }) => (
+                <AreaLocalitySelect
+                  id={`${idPrefix}-area`}
+                  value={field.value}
+                  onChange={field.onChange}
+                  areas={pincodeDetails?.areas || []}
+                  error={errors.area}
+                  registerProps={register('area')}
+                />
+              )}
             />
           </InputGroup>
-          <InputGroup label="Address line 2" htmlFor={`${idPrefix}-line2`} error={errors.addressLine2?.message}>
-            <Input id={`${idPrefix}-line2`} placeholder="Lane / wing (optional)" error={errors.addressLine2} {...register('addressLine2')} />
-          </InputGroup>
-          <InputGroup label="Landmark" htmlFor={`${idPrefix}-landmark`} error={errors.landmark?.message}>
-            <Input id={`${idPrefix}-landmark`} placeholder="Near metro (optional)" error={errors.landmark} {...register('landmark')} />
-          </InputGroup>
-        </fieldset>
+        </div>
 
-        <fieldset className="address-form__group">
-          <legend className="address-form__group-label">City & PIN</legend>
-          <div className="address-form__grid address-form__grid--city">
-            <InputGroup label="PIN code" htmlFor={`${idPrefix}-pin`} error={errors.postalCode?.message} required>
-              <Input
-                id={`${idPrefix}-pin`}
-                inputMode="numeric"
-                placeholder="400053"
-                error={errors.postalCode}
-                {...register('postalCode')}
-              />
-            </InputGroup>
-            <InputGroup label="City" htmlFor={`${idPrefix}-city`} error={errors.city?.message} required>
-              <Input id={`${idPrefix}-city`} placeholder="Mumbai" error={errors.city} {...register('city')} />
-            </InputGroup>
-            <InputGroup label="State" htmlFor={`${idPrefix}-state`} error={errors.state?.message} required>
-              <Input id={`${idPrefix}-state`} placeholder="Maharashtra" error={errors.state} {...register('state')} />
-            </InputGroup>
-          </div>
-        </fieldset>
+        <InputGroup label="Landmark" htmlFor={`${idPrefix}-landmark`} error={errors.landmark?.message}>
+          <Input id={`${idPrefix}-landmark`} placeholder="Near City Mall (optional)" error={errors.landmark} {...register('landmark')} />
+        </InputGroup>
 
-        <fieldset className="address-form__group address-form__group--last">
-          <legend className="address-form__group-label">Address type</legend>
+        <InputGroup label="Street address (line 1)" htmlFor={`${idPrefix}-line1`} error={errors.addressLine1?.message} required>
+          <Input
+            id={`${idPrefix}-line1`}
+            placeholder="Street and road details"
+            error={errors.addressLine1}
+            {...register('addressLine1')}
+          />
+        </InputGroup>
+
+        <InputGroup label="Address line 2 (optional)" htmlFor={`${idPrefix}-line2`} error={errors.addressLine2?.message}>
+          <Input id={`${idPrefix}-line2`} placeholder="Wing and apartment details" error={errors.addressLine2} {...register('addressLine2')} />
+        </InputGroup>
+
+        <div className="address-wizard__row address-wizard__row--2col">
+          <InputGroup label="City" htmlFor={`${idPrefix}-city`} error={errors.city?.message} required>
+            <Input id={`${idPrefix}-city`} placeholder="City" error={errors.city} {...register('city')} />
+          </InputGroup>
+          <InputGroup label="PIN code" htmlFor={`${idPrefix}-pin`} error={errors.postalCode?.message} required>
+            <Input
+              id={`${idPrefix}-pin`}
+              inputMode="numeric"
+              placeholder="110045"
+              error={errors.postalCode}
+              {...register('postalCode')}
+            />
+          </InputGroup>
+        </div>
+        {locationPill}
+
+        <div className="address-form__group address-form__group--last">
+          <label className="input-label" style={{ marginBottom: '8px', display: 'block' }}>Address type</label>
           <Controller
             control={control}
             name="addressType"
@@ -173,7 +464,7 @@ export function AddressLocationFields({
           {errors.addressType?.message && (
             <span className="input-error" role="alert">{errors.addressType.message}</span>
           )}
-        </fieldset>
+        </div>
 
         {overLimit && (
           <p className="address-form__hint address-form__hint--warn">
@@ -207,7 +498,20 @@ export function AddressLocationFields({
           <Input id={`${idPrefix}-floor`} placeholder="3" error={errors.floor} {...register('floor')} />
         </InputGroup>
         <InputGroup label="Area / locality" htmlFor={`${idPrefix}-area`} error={errors.area?.message} required>
-          <Input id={`${idPrefix}-area`} placeholder="Andheri West" error={errors.area} {...register('area')} />
+          <Controller
+            control={control}
+            name="area"
+            render={({ field }) => (
+              <AreaLocalitySelect
+                id={`${idPrefix}-area`}
+                value={field.value}
+                onChange={field.onChange}
+                areas={pincodeDetails?.areas || []}
+                error={errors.area}
+                registerProps={register('area')}
+              />
+            )}
+          />
         </InputGroup>
       </div>
 
@@ -239,6 +543,7 @@ export function AddressLocationFields({
           />
         </InputGroup>
       </div>
+      {locationPill}
 
       <div className="address-form__row">
         <InputGroup label="City" htmlFor={`${idPrefix}-city`} error={errors.city?.message} required>

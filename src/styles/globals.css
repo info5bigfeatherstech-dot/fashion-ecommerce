@@ -9870,7 +9870,10 @@ a.cart-item__name:hover {
 }
 
 .modal-content--address-wizard {
-  max-width: min(460px, calc(100vw - 32px));
+  max-width: min(620px, calc(100vw - 32px));
+  padding: clamp(24px, 4vw, 36px) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.18) !important;
 }
 
 .address-modal {
@@ -9904,24 +9907,25 @@ a.cart-item__name:hover {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  max-height: min(240px, 38vh);
+  max-height: min(280px, 42vh);
   overflow-y: auto;
-  padding-right: 2px;
+  padding-right: 4px;
 }
 
 .address-modal__card {
   width: 100%;
-  padding: 12px 14px;
-  border: 1px solid rgba(221, 215, 204, 0.9);
-  border-radius: 12px;
+  padding: 14px 16px;
+  border: 1.5px solid rgba(221, 215, 204, 0.9);
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.96);
   text-align: left;
   cursor: pointer;
-  transition: border-color 0.2s ease, background 0.2s ease;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
 .address-modal__card:hover {
-  border-color: rgba(224, 57, 106, 0.35);
+  border-color: rgba(224, 57, 106, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .address-modal__card--selected {
@@ -9959,11 +9963,11 @@ a.cart-item__name:hover {
   justify-content: center;
   gap: 8px;
   width: 100%;
-  min-height: 44px;
-  padding: 10px 14px;
-  border: 1px dashed rgba(221, 215, 204, 0.95);
-  border-radius: 12px;
-  background: rgba(250, 247, 242, 0.5);
+  min-height: 48px;
+  padding: 12px 16px;
+  border: 1.5px dashed rgba(221, 215, 204, 0.95);
+  border-radius: 14px;
+  background: rgba(250, 247, 242, 0.6);
   color: var(--color-accent);
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
@@ -9991,17 +9995,17 @@ a.cart-item__name:hover {
 .address-wizard__steps {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 12px;
 }
 
 .address-wizard__step {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: rgba(250, 247, 242, 0.8);
-  border: 1px solid transparent;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #faf7f2;
+  border: 1.5px solid transparent;
   transition: background 0.2s ease, border-color 0.2s ease;
 }
 
@@ -10009,25 +10013,25 @@ a.cart-item__name:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 999px;
-  background: rgba(34, 24, 18, 0.08);
+  background: rgba(34, 24, 18, 0.1);
   color: var(--color-muted);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: var(--weight-bold);
   flex-shrink: 0;
 }
 
 .address-wizard__step-label {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: var(--weight-medium);
   color: var(--color-muted);
 }
 
 .address-wizard__step.is-active {
-  background: rgba(224, 57, 106, 0.07);
-  border-color: rgba(224, 57, 106, 0.2);
+  background: rgba(224, 57, 106, 0.08);
+  border-color: rgba(224, 57, 106, 0.25);
 }
 
 .address-wizard__step.is-active .address-wizard__step-num {
@@ -10046,8 +10050,8 @@ a.cart-item__name:hover {
 }
 
 .address-wizard__hint {
-  margin: -8px 0 0;
-  font-size: 13px;
+  margin: -6px 0 0;
+  font-size: 14px;
   color: var(--color-muted);
   line-height: 1.45;
 }
@@ -10055,11 +10059,24 @@ a.cart-item__name:hover {
 .address-wizard__fields {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
 
 .address-wizard__fields--location {
-  gap: 22px;
+  gap: 18px;
+}
+
+.address-wizard__row--2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 560px) {
+  .address-wizard__row--2col {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
 }
 
 .address-wizard__fields .input-group {
@@ -10067,23 +10084,27 @@ a.cart-item__name:hover {
 }
 
 .address-wizard__fields .input-label {
-  font-size: 13px;
-  font-weight: var(--weight-medium);
-  color: rgba(34, 24, 18, 0.75);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-muted, #6b6560);
 }
 
 .address-wizard__fields .input {
-  min-height: 44px;
-  padding: 11px 14px;
+  min-height: 48px;
+  padding: 12px 16px;
   font-size: var(--text-sm);
-  border-radius: 10px;
-  border-color: rgba(221, 215, 204, 0.9);
-  background: #fff;
+  border-radius: 12px;
+  border: 1.5px solid var(--color-border, #ddd7cc);
+  background: var(--color-paper, #faf7f2);
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .address-wizard__fields .input:focus {
-  border-color: rgba(224, 57, 106, 0.45);
-  box-shadow: 0 0 0 3px rgba(224, 57, 106, 0.08);
+  border-color: var(--color-accent, #e0396a);
+  background: #ffffff;
+  box-shadow: 0 0 0 3.5px rgba(224, 57, 106, 0.1);
 }
 
 .address-form__group {
@@ -10408,6 +10429,198 @@ a.cart-item__name:hover {
 
 .address-form__hint--warn {
   color: var(--color-danger, #b42318);
+}
+
+/* ─── Pincode Location Badge & Area Locality Dropdown ─── */
+.pincode-location-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background-color: #f0fdf4;
+  border: 1px solid #a7f3d0;
+  color: #15803d;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.pincode-location-pill--loading {
+  background-color: #f8fafc;
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+
+.pincode-location-pill__icon {
+  flex-shrink: 0;
+  color: #10b981;
+}
+
+.pincode-location-pill__title {
+  font-weight: 700;
+  color: #14532d;
+}
+
+.pincode-location-pill__count {
+  color: #047857;
+  font-weight: 600;
+}
+
+.area-locality-select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.area-locality-select__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  background: var(--color-paper, #faf7f2);
+  border: 1.5px solid var(--color-border, #ddd7cc);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  min-height: 48px;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.area-locality-select__trigger:hover,
+.area-locality-select__trigger.is-open {
+  border-color: var(--color-accent, #e0396a);
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.area-locality-select__value-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-ink, #14120f);
+  font-weight: 600;
+}
+
+.area-locality-select__value-icon {
+  color: var(--color-gold, #d97706);
+  flex-shrink: 0;
+}
+
+.area-locality-select__value.is-placeholder {
+  color: var(--color-muted, #8c857b);
+  font-weight: 400;
+}
+
+.area-locality-select__chevron {
+  transition: transform 0.2s ease;
+  color: var(--color-muted, #6b6560);
+  flex-shrink: 0;
+}
+
+.area-locality-select__chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.area-locality-select__menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: #ffffff;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 14px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.14);
+  overflow: hidden;
+  max-height: 250px;
+  display: flex;
+  flex-direction: column;
+}
+
+.area-locality-select__options {
+  overflow-y: auto;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.area-locality-select__option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-ink, #14120f);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.area-locality-select__option:hover,
+.area-locality-select__option.is-selected {
+  background: rgba(224, 57, 106, 0.08);
+  color: var(--color-accent, #e0396a);
+}
+
+.area-locality-select__option-icon {
+  color: var(--color-gold, #d97706);
+  flex-shrink: 0;
+}
+
+.area-locality-select__custom-divider {
+  height: 1px;
+  background: var(--color-border, #e5e7eb);
+  margin: 0;
+}
+
+.area-locality-select__custom-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  background: #fffbeb;
+  color: #d97706;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.area-locality-select__custom-btn:hover {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.area-locality-custom-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.area-locality__toggle-btn {
+  display: inline-flex;
+  align-self: flex-start;
+  margin-top: 4px;
+  background: transparent;
+  border: 0;
+  color: var(--color-accent, #e0396a);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
 }
 
 .address-form__actions {
