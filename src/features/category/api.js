@@ -46,6 +46,23 @@ export async function getPublicCategories({ signal } = {}) {
   return [...mappedApi, ...defaultCats]
 }
 
+/**
+ * Returns ONLY the live API categories — no hardcoded defaults merged in.
+ * Used on pages like "All Products" where we want to display exactly what
+ * the backend provides, dynamically growing as more categories are added.
+ */
+export async function getApiCategories({ signal } = {}) {
+  try {
+    const payload = await http.get(API_ENDPOINTS.categories.list, { signal })
+    if (payload?.success === false) return []
+    const raw = payload?.categories ?? payload?.data?.categories ?? payload?.data ?? []
+    return mapCircleCategories(Array.isArray(raw) ? raw : [])
+  } catch (err) {
+    console.warn('API request for categories failed', err)
+    return []
+  }
+}
+
 export async function getMovingFastCategories({ signal, cacheBust = false } = {}) {
   try {
     const params = cacheBust ? { _cb: '1' } : undefined

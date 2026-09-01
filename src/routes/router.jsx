@@ -45,6 +45,14 @@ const AdminReviewsSubmissionsPage = lazy(() => import('./admin/AdminReviewsSubmi
 const AdminReviewsGeneratedPage = lazy(() => import('./admin/AdminReviewsGeneratedPage'))
 const AdminSettingsSectionPage = lazy(() => import('./admin/AdminSettingsSectionPage'))
 const AdminShell = lazy(() => import('@/features/admin/components/AdminShell').then((m) => ({ default: m.AdminShell })))
+import { useAdminStore } from '@/features/admin/store'
+import { getSettingsDefaultPath } from '@/features/admin/config/nav'
+
+function AdminSettingsRedirect() {
+  const user = useAdminStore((s) => s.user)
+  const defaultPath = getSettingsDefaultPath(user?.role)
+  return <Navigate to={defaultPath} replace />
+}
 
 export const router = createBrowserRouter([
   {
@@ -104,7 +112,7 @@ export const router = createBrowserRouter([
       { path: 'reviews/generated', element: <AdminReviewsGeneratedPage /> },
       { path: 'staff', element: <AdminStaffPage /> },
       { path: 'support', element: <AdminSupportPage /> },
-      { path: 'settings', element: <Navigate to="profile" replace /> },
+      { path: 'settings', element: <AdminSettingsRedirect /> },
       { path: 'settings/profile', element: <AdminSettingsSectionPage section="profile" /> },
       { path: 'settings/controls', element: <AdminSettingsSectionPage section="controls" /> },
       { path: 'settings/product-display', element: <AdminSettingsSectionPage section="product-display" /> },

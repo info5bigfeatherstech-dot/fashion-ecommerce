@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Navigate } from 'react-router-dom'
 import {
   Check,
   CheckCircle2,
@@ -24,6 +25,7 @@ import {
 } from '@/features/admin/api/marketing'
 import LabelSettingsSection from '@/features/admin/components/LabelSettingsSection'
 import { useAdminStore } from '@/features/admin/store'
+import { getVisibleSettingsNav, getSettingsDefaultPath } from '@/features/admin/config/nav'
 import AdminSectionPage from './AdminSectionPage'
 
 function SecuritySection({ email }) {
@@ -600,6 +602,17 @@ export default function AdminSettingsSectionPage({ section = 'profile' }) {
   const meta = META[section] || META.profile
 
   const user = useAdminStore((s) => s.user)
+  const isAdmin = String(user?.role || '').toLowerCase() === 'admin'
+
+  const allowedNav = useMemo(() => getVisibleSettingsNav(user?.role), [user?.role])
+  const targetId = `settings-${section}`
+  const isAllowed = isAdmin || allowedNav.some((item) => item.id === targetId || item.id === section)
+
+  if (!isAllowed) {
+    const defaultPath = getSettingsDefaultPath(user?.role)
+    return <Navigate to={defaultPath} replace />
+  }
+
   const [imgFailed, setImgFailed] = useState(false)
 
   const signedInAs = useMemo(() => {
@@ -619,8 +632,6 @@ export default function AdminSettingsSectionPage({ section = 'profile' }) {
     const left = base.split('@')[0] || base
     return left.slice(0, 2).toUpperCase()
   }, [signedInAs, user?.name])
-
-  const isAdmin = String(user?.role || '').toLowerCase() === 'admin'
 
   if (section === 'controls') {
     return (

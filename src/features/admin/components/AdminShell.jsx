@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   AlertTriangle,
   BarChart3,
+  ChevronDown,
   ClipboardList,
   FileText,
   Globe,
@@ -40,6 +41,7 @@ import {
   getVisibleSettingsNav,
   groupAdminNav,
   groupSettingsNav,
+  getSettingsDefaultPath,
   SETTINGS_DEFAULT_PATH,
 } from '@/features/admin/config/nav'
 
@@ -166,7 +168,7 @@ export function AdminShell() {
       : active
 
     if (item.children?.length) {
-      const open = expanded.has(item.id) || parentActive
+      const open = expanded.has(item.id)
       return (
         <div key={item.id} className="admin-sidebar__branch">
           <button
@@ -180,9 +182,11 @@ export function AdminShell() {
           >
             <Icon size={16} />
             <span>{item.label}</span>
-            <span className={`admin-sidebar__chevron${open ? ' is-open' : ''}`} aria-hidden>
-              ▾
-            </span>
+            <ChevronDown
+              size={16}
+              className={`admin-sidebar__chevron${open ? ' is-open' : ''}`}
+              aria-hidden
+            />
           </button>
           {open && (
             <div className="admin-sidebar__subnav">
@@ -246,12 +250,13 @@ export function AdminShell() {
                   if (item.id === 'settings') {
                     const Icon = NAV_ICONS.settings
                     const active = location.pathname.startsWith('/admin/settings')
+                    const settingsDefaultPath = getSettingsDefaultPath(user?.role)
                     return (
                       <button
                         key={item.id}
                         type="button"
                         className={`admin-sidebar__link${active ? ' is-active' : ''}`}
-                        onClick={() => navigate(SETTINGS_DEFAULT_PATH)}
+                        onClick={() => navigate(settingsDefaultPath)}
                       >
                         <Icon size={16} />
                         <span>{item.label}</span>

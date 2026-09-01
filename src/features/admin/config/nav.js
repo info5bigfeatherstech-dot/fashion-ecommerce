@@ -163,7 +163,7 @@ export function getVisibleAdminNav(role) {
 export function getVisibleSettingsNav(role) {
   const allowed = new Set(getAllowedAdminTabs(role))
   const key = String(role || '').toLowerCase()
-  if (key === 'admin' || allowed.has('settings')) {
+  if (key === 'admin') {
     return SETTINGS_NAV_ITEMS
   }
   return SETTINGS_NAV_ITEMS.filter((item) => allowed.has(item.id))
@@ -181,6 +181,11 @@ export function groupAdminNav(items) {
 
 export function groupSettingsNav(items = SETTINGS_NAV_ITEMS) {
   return groupAdminNav(items)
+}
+
+export function getSettingsDefaultPath(role) {
+  const visible = getVisibleSettingsNav(role)
+  return visible[0]?.path || '/admin/dashboard'
 }
 
 export const SETTINGS_DEFAULT_PATH = '/admin/settings/profile'

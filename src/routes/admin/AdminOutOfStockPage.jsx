@@ -130,6 +130,7 @@ export default function AdminOutOfStockPage() {
                 <tr>
                   <th>Product</th>
                   <th>Customer</th>
+                  <th>Phone Number</th>
                   <th className="admin-oos__col-date">Date</th>
                 </tr>
               </thead>
@@ -154,13 +155,14 @@ export default function AdminOutOfStockPage() {
                       </div>
                     </td>
                     <td>
-                      <div className="admin-oos__customer">
-                        {item.email || item.userEmail ? (
-                          <span>{item.email || item.userEmail}</span>
-                        ) : null}
-                        {item.phone ? <span>{item.phone}</span> : null}
-                        {!item.email && !item.userEmail && !item.phone ? <span>—</span> : null}
-                      </div>
+                      <span className="admin-oos__customer font-medium">
+                        {item.email || item.userEmail || '—'}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="admin-oos__phone font-medium">
+                        {item.phone || '—'}
+                      </span>
                     </td>
                     <td className="admin-oos__col-date">{fmtDate(item.createdAt)}</td>
                   </tr>
