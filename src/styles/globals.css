@@ -3477,7 +3477,8 @@ html.modal-open.lenis body {
   border-radius: 999px;
 }
 
-.header__nav-more-wrapper:hover .header__nav-more-dropdown {
+.header__nav-more-wrapper:hover .header__nav-more-dropdown,
+.header__nav-more-dropdown--open {
   opacity: 1;
   visibility: visible;
   transform: translateY(0) scale(1);

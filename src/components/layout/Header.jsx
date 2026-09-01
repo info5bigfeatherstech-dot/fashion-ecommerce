@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ShoppingBag, Heart, User, MessageCircle, Menu, Search, X, ChevronRight, ChevronDown, Warehouse, Home as HomeIcon, LayoutGrid } from 'lucide-react'
@@ -30,6 +30,8 @@ function isNavActive(item, pathname) {
 export function Header() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const moreTimeoutRef = useRef(null)
   const location = useLocation()
   const cartCount = useCartCount()
   const wishlistCount = useWishlistCount()
@@ -43,17 +45,33 @@ export function Header() {
 
   const { homeItem, categoryNavItems, moreCategories } = useMemo(() => {
     const home = navItems.find((item) => item.slug === 'home') || { label: 'Home', slug: 'home' }
-    const gifting = navItems.find((item) => item.slug === 'gifting') || { label: 'Gifting', slug: 'gifting', href: '/gifting' }
-    const allCategories = navItems.filter((item) => item.slug !== 'home' && item.slug !== 'gifting')
-    const visibleCategories = allCategories.slice(0, 4)
-    const remainingCategories = allCategories.slice(4)
+    const allCategories = navItems.filter((item) => item.slug !== 'home')
+    const visibleCategories = allCategories.slice(0, 5)
+    const remainingCategories = allCategories.slice(5)
 
     return {
       homeItem: home,
-      categoryNavItems: [...visibleCategories, gifting],
+      categoryNavItems: visibleCategories,
       moreCategories: remainingCategories,
     }
   }, [navItems])
+
+  const handleMouseEnterMore = () => {
+    if (moreTimeoutRef.current) clearTimeout(moreTimeoutRef.current)
+    setMoreOpen(true)
+  }
+
+  const handleMouseLeaveMore = () => {
+    if (moreTimeoutRef.current) clearTimeout(moreTimeoutRef.current)
+    moreTimeoutRef.current = setTimeout(() => {
+      setMoreOpen(false)
+    }, 250)
+  }
+
+  const handleDropdownItemClick = () => {
+    if (moreTimeoutRef.current) clearTimeout(moreTimeoutRef.current)
+    setMoreOpen(false)
+  }
 
   const handleMyAccountClick = (event) => {
     if (!isAuthenticated) {
@@ -64,9 +82,17 @@ export function Header() {
   }
 
   useEffect(() => {
+    if (moreTimeoutRef.current) clearTimeout(moreTimeoutRef.current)
     setMobileNavOpen(false)
     setSearchOpen(false)
+    setMoreOpen(false)
   }, [location.pathname])
+
+  useEffect(() => {
+    return () => {
+      if (moreTimeoutRef.current) clearTimeout(moreTimeoutRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     document.body.style.overflow = mobileNavOpen ? 'hidden' : ''
@@ -214,18 +240,32 @@ export function Header() {
                 </div>
               ))}
               {moreCategories.length > 0 && (
-                <div className="header__nav-more-wrapper">
+                <div
+                  className="header__nav-more-wrapper"
+                  onMouseEnter={handleMouseEnterMore}
+                  onMouseLeave={handleMouseLeaveMore}
+                >
                   <button
                     type="button"
                     className="header__nav-more-btn"
                     aria-haspopup="true"
-                    aria-expanded="false"
+                    aria-expanded={moreOpen}
                     aria-label="More categories"
+                    onClick={() => {
+                      if (moreOpen) {
+                        handleDropdownItemClick()
+                      } else {
+                        handleMouseEnterMore()
+                      }
+                    }}
                   >
                     <span>More Categories</span>
                     <ChevronDown size={13} className="header__nav-more-icon" />
                   </button>
-                  <div className="header__nav-more-dropdown" role="menu">
+                  <div
+                    className={`header__nav-more-dropdown ${moreOpen ? 'header__nav-more-dropdown--open' : ''}`}
+                    role="menu"
+                  >
                     <div className="header__nav-more-header">
                       <span>More Collections</span>
                     </div>
@@ -236,6 +276,7 @@ export function Header() {
                           to={navHref(item)}
                           className={`header__nav-more-item ${isNavActive(item, location.pathname) ? 'header__nav-more-item--active' : ''}`}
                           role="menuitem"
+                          onClick={handleDropdownItemClick}
                         >
                           <span>{item.label}</span>
                           <ChevronRight size={13} className="header__nav-more-arrow" />

@@ -292,11 +292,11 @@ export default function ProductAll() {
 
           {!isLoading && !selectedCategory && categories.length > 0
             ? categories.map((category) => (
-                <CategoryProductRow
-                  key={category.id}
-                  category={category}
-                />
-              ))
+              <CategoryProductRow
+                key={category.id}
+                category={category}
+              />
+            ))
             : null}
 
           {!isLoading && !isError && categories.length === 0 ? (

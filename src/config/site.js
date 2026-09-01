@@ -39,13 +39,15 @@ export const NAV_ITEMS = [
 
 /** @deprecated Prefer API categories via useHeaderNavItems / useFooterShopLinks */
 export const JEWELRY_CATEGORIES = [
-  { label: 'Earrings & Studs', slug: 'earrings-studs' },
+  { label: 'Build A Gift Box', slug: 'build-a-gift-box' },
+  { label: 'Chains & Pendants', slug: 'chains-and-pendants' },
+  { label: 'Hair & Forehead Jewelry', slug: 'hair-and-forehead-jewelry' },
+  { label: 'Nath & Nose Rings', slug: 'nath-and-nose-rings' },
+  { label: 'Rings & Hand Chains', slug: 'rings-and-hand-chains' },
+  { label: 'Earrings & Studs', slug: 'earings' },
+  { label: 'Bracelets & Bangles', slug: 'bangles' },
+  { label: 'Necklace & Pendants', slug: 'necklace' },
   { label: 'Rings', slug: 'rings' },
-  { label: 'Bracelets & Bangles', slug: 'bracelets-bangles' },
-  { label: 'Necklace & Pendants', slug: 'necklace-pendants' },
-  { label: 'Mangalsutras', slug: 'mangalsutras' },
-  { label: 'Sets', slug: 'sets' },
-  { label: 'Gifting', slug: 'gifting' },
 ]
 
 /** Circular category chips on the homepage (below hero). */
