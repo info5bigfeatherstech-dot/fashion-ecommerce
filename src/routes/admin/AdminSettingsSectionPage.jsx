@@ -627,7 +627,10 @@ export default function AdminSettingsSectionPage({ section = 'profile' }) {
       <div className="admin-page admin-settings-controls">
         <div className="admin-settings-controls__page-head">
           <h1 className="admin-settings-controls__page-title">{meta.title}</h1>
-          <span className="admin-settings-controls__live">Live Dashboard</span>
+          <span className="admin-settings-controls__live">
+            <span className="admin-settings-controls__live-dot" aria-hidden />
+            Live Dashboard
+          </span>
         </div>
         <ControlsSection />
       </div>

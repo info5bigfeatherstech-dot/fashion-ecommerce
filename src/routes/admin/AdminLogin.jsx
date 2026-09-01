@@ -1,70 +1,104 @@
 import { useState } from 'react'
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Eye, EyeOff, Loader2, Lock, User } from 'lucide-react'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/Button'
-import { Input, InputGroup } from '@/components/ui/Input'
-import { SITE_NAME } from '@/config/site'
 import { useAdminLogin } from '@/features/admin/hooks'
 import { useAdminStore } from '@/features/admin/store'
 
 export default function AdminLogin() {
   const navigate = useNavigate()
-  const location = useLocation()
   const authReady = useAdminStore((s) => s.authReady)
   const isAuthenticated = useAdminStore((s) => s.isAuthenticated)
   const login = useAdminLogin()
+
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
-
-  const redirectTo = location.state?.from || '/admin/dashboard'
+  const [showPassword, setShowPassword] = useState(false)
 
   if (authReady && isAuthenticated) {
-    return <Navigate to={redirectTo} replace />
+    return <Navigate to="/admin/dashboard" replace />
   }
 
   const onSubmit = async (event) => {
     event.preventDefault()
     try {
-      await login.mutateAsync({ identifier: identifier.trim(), password })
-      toast.success('Welcome back')
-      navigate(redirectTo, { replace: true })
+      const res = await login.mutateAsync({ identifier: identifier.trim(), password })
+      const userName = res?.user?.name || res?.user?.email || 'Admin'
+      toast.success('Logged in successfully', {
+        description: `Welcome back to admin panel, ${userName}!`,
+        duration: 4000,
+      })
+      navigate('/admin/dashboard', { replace: true })
     } catch (err) {
-      toast.error(err?.message || 'Login failed')
+      toast.error('Login failed', {
+        description: err?.message || 'Please check your credentials and try again.',
+      })
     }
   }
 
   return (
     <div className="admin-login">
       <div className="admin-login__card">
-        <p className="heading-sm text-accent">{SITE_NAME}</p>
-        <h1 className="display-md">Admin sign in</h1>
-    
+        <div className="admin-login__header">
+          <h1 className="admin-login__title">
+            ADMIN PANEL <span className="admin-login__title-accent">ACCESS</span>
+          </h1>
+          <p className="admin-login__subtitle">
+            RESTRICTED AREA — AUTHORISED PERSONNEL ONLY
+          </p>
+        </div>
 
-        <form className="admin-form-stack" onSubmit={onSubmit}>
-          <InputGroup label="Email or phone" htmlFor="adminIdentifier" required>
-            <Input
+        <form className="admin-login__form" onSubmit={onSubmit}>
+          <div className="admin-login__field">
+            <User size={18} className="admin-login__icon" aria-hidden />
+            <input
               id="adminIdentifier"
               type="text"
               inputMode="email"
               autoComplete="username"
-              placeholder="Email or 10-digit phone"
+              placeholder="Email or Phone Number"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
+              required
             />
-          </InputGroup>
-          <InputGroup label="Password" htmlFor="adminPassword" required>
-            <Input
+          </div>
+
+          <div className="admin-login__field">
+            <Lock size={18} className="admin-login__icon" aria-hidden />
+            <input
               id="adminPassword"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               autoComplete="current-password"
+              placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              required
             />
-          </InputGroup>
-          <Button type="submit" variant="primary" fullWidth disabled={login.isPending}>
-            {login.isPending ? 'Signing in…' : 'Sign in'}
-          </Button>
+            <button
+              type="button"
+              className="admin-login__eye-btn"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+
+          <button
+            type="submit"
+            className="admin-login__submit-btn"
+            disabled={login.isPending}
+          >
+            {login.isPending ? (
+              <Loader2 size={18} className="admin-staff__spin" />
+            ) : null}
+            {login.isPending ? 'SIGNING IN…' : 'SIGN IN TO DASHBOARD'}
+          </button>
         </form>
+
+        <p className="admin-login__footer">
+          ALL ACCESS ATTEMPTS ARE LOGGED
+        </p>
 
         <p className="body-sm text-muted admin-login__back">
           <Link to="/">← Back to store</Link>

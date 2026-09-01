@@ -134,14 +134,15 @@ export function AdminShell() {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/admin/login" replace state={{ from: location.pathname }} />
+    return <Navigate to="/admin/login" replace />
   }
 
   const handleLogout = async () => {
     try {
       await logout.mutateAsync()
     } finally {
-      navigate('/admin/login', { replace: true })
+      useAdminStore.getState().clearSession()
+      navigate('/admin/login', { replace: true, state: null })
     }
   }
 

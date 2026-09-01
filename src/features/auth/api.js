@@ -192,11 +192,20 @@ export async function googleLogin({ idToken }) {
 
 export async function logout() {
   try {
-    await http.post(API_ENDPOINTS.auth.logout, null, { skipAuthRefresh: true })
+    await http.post(
+      API_ENDPOINTS.auth.logout,
+      { portal: AUTH_PORTAL },
+      { skipAuthRefresh: true }
+    )
   } catch {
     // Clear local session even if the network call fails
   } finally {
     useAppStore.getState().clearUser()
+    try {
+      useAppStore.persist?.clearStorage()
+    } catch {
+      /* ignore */
+    }
   }
 }
 

@@ -82,14 +82,23 @@ export async function adminLogin({ identifier, email, password }) {
 
 export async function adminLogout() {
   try {
-    await http.post(API_ENDPOINTS.auth.logout, null, {
-      skipAuthRefresh: true,
-      useAdminAuth: true,
-    })
+    await http.post(
+      API_ENDPOINTS.auth.logout,
+      { portal: ADMIN_AUTH_PORTAL },
+      {
+        skipAuthRefresh: true,
+        useAdminAuth: true,
+      }
+    )
   } catch {
     /* clear local session regardless */
   } finally {
     useAdminStore.getState().clearSession()
+    try {
+      useAdminStore.persist?.clearStorage()
+    } catch {
+      /* ignore */
+    }
   }
 }
 

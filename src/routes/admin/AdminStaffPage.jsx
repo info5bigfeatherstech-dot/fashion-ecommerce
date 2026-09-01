@@ -158,6 +158,53 @@ function StaffModal({ title, subtitle, onClose, children }) {
   )
 }
 
+function DeleteConfirmModal({ member, onClose, onConfirm, isDeleting }) {
+  if (!member) return null
+
+  return (
+    <div className="admin-staff__modal-backdrop" role="presentation" onClick={onClose}>
+      <div
+        className="admin-staff__modal admin-staff__delete-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delete-staff-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="admin-staff__delete-content">
+          <div className="admin-staff__delete-icon-wrap" aria-hidden>
+            <Trash2 size={24} />
+          </div>
+          <h3 id="delete-staff-title" className="admin-staff__delete-title">
+            Delete staff member?
+          </h3>
+          <p className="admin-staff__delete-desc">
+            Are you sure you want to delete <strong>{member.name || member.email}</strong>? This action cannot be undone.
+          </p>
+          <div className="admin-staff__delete-actions">
+            <button
+              type="button"
+              className="admin-staff__btn admin-staff__btn--outline"
+              onClick={onClose}
+              disabled={isDeleting}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="admin-staff__btn admin-staff__btn--danger"
+              onClick={onConfirm}
+              disabled={isDeleting}
+            >
+              {isDeleting ? <Loader2 size={16} className="admin-staff__spin" /> : <Trash2 size={16} />}
+              {isDeleting ? 'Deleting…' : 'Delete'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function CreateStaffModal({ onClose, onSuccess }) {
   const createStaff = useCreateAdminStaff()
   const [showPassword, setShowPassword] = useState(false)
@@ -599,6 +646,7 @@ export default function AdminStaffPage() {
   const [roleFilter, setRoleFilter] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editStaff, setEditStaff] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
 
   useEffect(() => {
@@ -645,13 +693,15 @@ export default function AdminStaffPage() {
     URL.revokeObjectURL(url)
   }, [staff])
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this staff member? This cannot be undone.')) return
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return
+    const id = deleteTarget._id || deleteTarget.id
     setDeletingId(id)
     try {
       await deleteStaff.mutateAsync(id)
       toast.success('Staff member removed')
       refetch()
+      setDeleteTarget(null)
     } catch (err) {
       toast.error(err?.message || 'Delete failed')
     } finally {
@@ -729,8 +779,8 @@ export default function AdminStaffPage() {
               <table className="admin-staff__table">
                 <thead>
                   <tr>
-                    {['Member', 'Position', 'Contact & Security', 'Status', 'Manage'].map((col, index) => (
-                      <th key={col} className={index === 4 ? 'admin-staff__th--right' : undefined}>
+                    {['Member', 'Position', 'Email Address', 'Phone Number', 'Status', 'Manage'].map((col, index) => (
+                      <th key={col} className={index === 5 ? 'admin-staff__th--right' : undefined}>
                         {col}
                       </th>
                     ))}
@@ -740,7 +790,7 @@ export default function AdminStaffPage() {
                   {isLoading
                     ? Array.from({ length: 4 }).map((_, rowIndex) => (
                         <tr key={rowIndex} className="admin-staff__row-loading">
-                          {Array.from({ length: 5 }).map((__, cellIndex) => (
+                          {Array.from({ length: 6 }).map((__, cellIndex) => (
                             <td key={cellIndex}>
                               <div className="admin-staff__skeleton admin-staff__skeleton--cell" />
                             </td>
@@ -751,7 +801,7 @@ export default function AdminStaffPage() {
 
                   {!isLoading && staff.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="admin-staff__empty-cell">
+                      <td colSpan={6} className="admin-staff__empty-cell">
                         No staff members found.
                       </td>
                     </tr>
@@ -789,12 +839,14 @@ export default function AdminStaffPage() {
                                   <Mail size={13} aria-hidden />
                                   {member.email || '—'}
                                 </span>
-                                {member.phone ? (
-                                  <span>
-                                    <Phone size={13} aria-hidden />
-                                    {member.phone}
-                                  </span>
-                                ) : null}
+                              </div>
+                            </td>
+                            <td>
+                              <div className="admin-staff__contact">
+                                <span>
+                                  <Phone size={13} aria-hidden />
+                                  {member.phone || '—'}
+                                </span>
                               </div>
                             </td>
                             <td>
@@ -816,7 +868,7 @@ export default function AdminStaffPage() {
                                 <button
                                   type="button"
                                   className="admin-staff__icon-btn admin-staff__icon-btn--danger"
-                                  onClick={() => handleDelete(id)}
+                                  onClick={() => setDeleteTarget(member)}
                                   disabled={deletingId === id}
                                   aria-label={`Delete ${member.name}`}
                                 >
@@ -885,6 +937,14 @@ export default function AdminStaffPage() {
           staff={editStaff}
           onClose={() => setEditStaff(null)}
           onSuccess={() => refetch()}
+        />
+      ) : null}
+      {deleteTarget ? (
+        <DeleteConfirmModal
+          member={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={handleConfirmDelete}
+          isDeleting={Boolean(deletingId)}
         />
       ) : null}
     </div>
