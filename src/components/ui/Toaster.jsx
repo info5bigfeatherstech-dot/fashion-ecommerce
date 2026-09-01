@@ -1,14 +1,25 @@
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Toaster as Sonner } from 'sonner'
 
 export function Toaster() {
-  return (
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const content = (
     <Sonner
       position="bottom-right"
       closeButton={false}
       richColors={false}
       offset={20}
       gap={12}
-      visibleToasts={3}
+      visibleToasts={4}
+      style={{
+        zIndex: 999999,
+      }}
       toastOptions={{
         classNames: {
           toast: 'sonner-toast',
@@ -20,4 +31,9 @@ export function Toaster() {
       }}
     />
   )
+
+  if (!mounted || typeof document === 'undefined') return null
+
+  return createPortal(content, document.body)
 }
+
