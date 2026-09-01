@@ -345,11 +345,6 @@ export default function ProductDetail() {
           <div ref={gallerySentinelRef}>
             <ProductGallery images={displayImages} name={displayTitle} />
           </div>
-          <ProductReviewCompose
-            product={product}
-            filterStar={reviewFilterStar}
-            onFilterStarChange={setReviewFilterStar}
-          />
         </div>
 
         <div className="pdp-info">
@@ -506,6 +501,14 @@ export default function ProductDetail() {
           {accordionItems.length > 0 && (
             <Accordion items={accordionItems} defaultValue="description" />
           )}
+        </div>
+
+        <div className="pdp-reviews-column">
+          <ProductReviewCompose
+            product={product}
+            filterStar={reviewFilterStar}
+            onFilterStarChange={setReviewFilterStar}
+          />
         </div>
       </div>
 

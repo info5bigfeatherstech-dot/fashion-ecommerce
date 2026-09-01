@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ShoppingBag, Heart, User, MessageCircle, Menu, Search, X, ChevronRight, Warehouse, Home as HomeIcon, LayoutGrid } from 'lucide-react'
+import { ShoppingBag, Heart, User, MessageCircle, Menu, Search, X, ChevronRight, ChevronDown, Warehouse, Home as HomeIcon, LayoutGrid } from 'lucide-react'
 import { SearchBar } from '@/features/search/components/SearchBar'
 import { CartDrawer } from '@/features/cart/components/CartDrawer'
 import { useAppStore } from '@/store'
@@ -41,11 +41,18 @@ export function Header() {
   const accountFirstName = getUserFirstName(user)
   const accountLabel = isAuthenticated && accountFirstName ? accountFirstName : 'My Account'
 
-  const desktopNavItems = useMemo(() => {
+  const { homeItem, categoryNavItems, moreCategories } = useMemo(() => {
     const home = navItems.find((item) => item.slug === 'home') || { label: 'Home', slug: 'home' }
     const gifting = navItems.find((item) => item.slug === 'gifting') || { label: 'Gifting', slug: 'gifting', href: '/gifting' }
-    const categories = navItems.filter((item) => item.slug !== 'home' && item.slug !== 'gifting').slice(0, 4)
-    return [home, ...categories, gifting]
+    const allCategories = navItems.filter((item) => item.slug !== 'home' && item.slug !== 'gifting')
+    const visibleCategories = allCategories.slice(0, 4)
+    const remainingCategories = allCategories.slice(4)
+
+    return {
+      homeItem: home,
+      categoryNavItems: [...visibleCategories, gifting],
+      moreCategories: remainingCategories,
+    }
   }, [navItems])
 
   const handleMyAccountClick = (event) => {
@@ -176,26 +183,68 @@ export function Header() {
         <div className="header__nav-row">
           <div className="container header__nav-inner">
             <nav className="header__nav" aria-label="Main navigation">
-              {desktopNavItems.map((item) => (
-                <div key={item.slug}>
+              {homeItem && (
+                <div key={homeItem.slug}>
                   <Link
-                    to={navHref(item)}
-                    className={`header__nav-link${item.slug !== 'home' ? ' header__nav-link--category' : ''} ${isNavActive(item, location.pathname) ? 'header__nav-link--active' : ''}`}
+                    to={navHref(homeItem)}
+                    className={`header__nav-link ${isNavActive(homeItem, location.pathname) ? 'header__nav-link--active' : ''}`}
                   >
-                    {item.slug === 'home' ? <HomeIcon size={18} aria-hidden /> : item.label}
+                    <HomeIcon size={18} aria-hidden />
                   </Link>
                 </div>
-              ))}
+              )}
               <div>
-                <Link
+                {/* <Link
                   to="/product-all"
                   className={`product-all-nav-btn${location.pathname === '/product-all' ? ' product-all-nav-btn--active' : ''}`}
                   aria-label="Product All — browse every category"
                 >
                   <LayoutGrid size={13} aria-hidden="true" />
                   <span>Product All</span>
-                </Link>
+                </Link> */}
               </div>
+              {categoryNavItems.map((item) => (
+                <div key={item.slug}>
+                  <Link
+                    to={navHref(item)}
+                    className={`header__nav-link header__nav-link--category ${isNavActive(item, location.pathname) ? 'header__nav-link--active' : ''}`}
+                  >
+                    {item.label}
+                  </Link>
+                </div>
+              ))}
+              {moreCategories.length > 0 && (
+                <div className="header__nav-more-wrapper">
+                  <button
+                    type="button"
+                    className="header__nav-more-btn"
+                    aria-haspopup="true"
+                    aria-expanded="false"
+                    aria-label="More categories"
+                  >
+                    <span>More Categories</span>
+                    <ChevronDown size={13} className="header__nav-more-icon" />
+                  </button>
+                  <div className="header__nav-more-dropdown" role="menu">
+                    <div className="header__nav-more-header">
+                      <span>More Collections</span>
+                    </div>
+                    <div className="header__nav-more-list">
+                      {moreCategories.map((item) => (
+                        <Link
+                          key={item.slug}
+                          to={navHref(item)}
+                          className={`header__nav-more-item ${isNavActive(item, location.pathname) ? 'header__nav-more-item--active' : ''}`}
+                          role="menuitem"
+                        >
+                          <span>{item.label}</span>
+                          <ChevronRight size={13} className="header__nav-more-arrow" />
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
               <SaleLiveBadge />
             </nav>
           </div>
