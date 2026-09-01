@@ -14706,10 +14706,11 @@ a.cart-item__name:hover {
 .admin-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-columns: clamp(210px, 15vw, 260px) minmax(0, 1fr);
   align-items: start;
   background: var(--color-paper);
   font-family: var(--font-ui);
+  width: 100%;
 }
 
 .admin-shell--loading {
@@ -14725,13 +14726,14 @@ a.cart-item__name:hover {
   flex-direction: column;
   border-right: 1px solid var(--color-border);
   background: var(--color-white);
-  padding: var(--space-3);
+  padding: clamp(10px, 1vw, var(--space-3));
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .admin-sidebar__brand {
   flex-shrink: 0;
-  padding-bottom: var(--space-3);
+  padding-bottom: clamp(8px, 0.8vw, var(--space-3));
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -14743,7 +14745,7 @@ a.cart-item__name:hover {
 }
 
 .admin-sidebar__logo .brand-logo {
-  height: 36px;
+  height: clamp(28px, 2.2vw, 36px);
   mix-blend-mode: multiply;
   background: transparent;
   border: none;
@@ -14754,15 +14756,18 @@ a.cart-item__name:hover {
 
 .admin-sidebar__title {
   font-family: var(--font-display);
-  font-size: var(--text-2xl);
+  font-size: clamp(1.125rem, 1.2vw + 0.5rem, var(--text-2xl));
   margin: 4px 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .admin-sidebar__nav {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding-block: var(--space-3);
+  gap: clamp(3px, 0.4vw, 6px);
+  padding-block: clamp(8px, 0.8vw, var(--space-3));
   flex: 1 1 auto;
   min-height: 0;
   overflow-x: hidden;
@@ -14775,18 +14780,27 @@ a.cart-item__name:hover {
 .admin-sidebar__link {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: clamp(6px, 0.6vw, 10px);
   width: 100%;
   border: 0;
   background: transparent;
   color: var(--color-muted);
-  font-size: var(--text-sm);
+  font-size: clamp(0.78125rem, 0.6vw + 0.35rem, var(--text-sm));
   font-weight: var(--weight-medium);
-  padding: 10px 12px;
+  padding: clamp(6px, 0.5vw + 4px, 10px) clamp(8px, 0.6vw + 4px, 12px);
   border-radius: 10px;
   cursor: pointer;
   text-align: left;
   transition: background-color var(--transition-fast), color var(--transition-fast);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-sidebar__link svg {
+  flex-shrink: 0;
+  width: clamp(14px, 1vw + 4px, 16px);
+  height: clamp(14px, 1vw + 4px, 16px);
 }
 
 .admin-sidebar__link:hover {
@@ -14802,37 +14816,44 @@ a.cart-item__name:hover {
 .admin-sidebar__footer {
   flex-shrink: 0;
   border-top: 1px solid var(--color-border);
-  padding-top: var(--space-2);
+  padding-top: clamp(6px, 0.6vw, var(--space-2));
 }
 
 .admin-sidebar__user {
   margin: 0;
-  font-size: var(--text-sm);
+  font-size: clamp(0.75rem, 0.5vw + 0.35rem, var(--text-sm));
   font-weight: var(--weight-semibold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .admin-sidebar__role {
-  margin: 2px 0 var(--space-2);
-  font-size: var(--text-xs);
+  margin: 2px 0 clamp(4px, 0.4vw, var(--space-2));
+  font-size: clamp(0.6875rem, 0.4vw + 0.35rem, var(--text-xs));
   color: var(--color-muted);
 }
 
 .admin-main {
   min-width: 0;
-  padding: clamp(var(--space-3), 3vw, var(--space-5));
+  width: 100%;
+  max-width: 100%;
+  padding: clamp(14px, 2.2vw, 32px);
+  box-sizing: border-box;
 }
 
 .admin-page__head {
   display: flex;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: clamp(10px, 1.2vw, var(--space-3));
   align-items: flex-start;
-  margin-bottom: var(--space-4);
+  margin-bottom: clamp(14px, 1.6vw, var(--space-4));
   flex-wrap: wrap;
 }
 
 .admin-page__head h1 {
   margin: 4px 0;
+  font-size: clamp(1.25rem, 1.5vw + 0.5rem, 2rem);
 }
 
 .admin-login {
@@ -15174,25 +15195,33 @@ a.cart-item__name:hover {
 
 .admin-stat-row {
   display: flex;
-  gap: var(--space-2);
+  flex-wrap: wrap;
+  gap: clamp(8px, 0.8vw, 12px);
+  width: 100%;
 }
 
 .admin-stat {
-  min-width: 96px;
-  padding: 10px 12px;
+  flex: 1 1 120px;
+  min-width: 110px;
+  padding: clamp(8px, 0.6vw + 4px, 12px) clamp(10px, 0.8vw + 4px, 16px);
   border: 1px solid var(--color-border);
   border-radius: 12px;
   background: var(--color-white);
+  box-sizing: border-box;
 }
 
 .admin-stat span {
   display: block;
-  font-size: var(--text-xs);
+  font-size: clamp(0.6875rem, 0.5vw + 0.3rem, var(--text-xs));
   color: var(--color-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .admin-stat strong {
-  font-size: var(--text-lg);
+  font-size: clamp(1rem, 0.8vw + 0.5rem, var(--text-lg));
+  font-weight: var(--weight-bold);
 }
 
 .admin-payment-grid {
@@ -18952,21 +18981,10 @@ a.cart-item__name:hover {
 
 .admin-metric-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
-}
-
-@media (max-width: 1100px) {
-  .admin-metric-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 560px) {
-  .admin-metric-grid {
-    grid-template-columns: 1fr;
-  }
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: clamp(10px, 1vw, var(--space-3));
+  margin-bottom: clamp(14px, 1.5vw, var(--space-4));
+  width: 100%;
 }
 
 .admin-metric-card {
@@ -21051,6 +21069,12 @@ button.admin-stats-chip:hover {
   align-items: start;
 }
 
+@media (max-width: 1200px) {
+  .pf-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 .pf-layout__main {
   display: flex;
   flex-direction: column;
@@ -21061,6 +21085,140 @@ button.admin-stats-chip:hover {
 .pf-layout__aside {
   position: sticky;
   top: 0;
+}
+
+/* ── Admin Panel Monitor Responsiveness (11" to 22"+ Monitors) ─────────── */
+
+/* Responsive Table Container and Horizontal Scrollbar for Monitors */
+.admin-table-wrap,
+.leads-table-wrap,
+.rto-table-wrap,
+.admin-card--flush {
+  overflow-x: auto;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.admin-table-wrap::-webkit-scrollbar,
+.leads-table-wrap::-webkit-scrollbar,
+.rto-table-wrap::-webkit-scrollbar {
+  height: 6px;
+}
+
+.admin-table-wrap::-webkit-scrollbar-thumb,
+.leads-table-wrap::-webkit-scrollbar-thumb,
+.rto-table-wrap::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+/* Modals & Dialogs on Monitor Viewports */
+.modal-content:has(.product-form),
+.modal-content:has(.admin-product-modal),
+.modal-content:has(.product-view) {
+  max-width: min(92vw, 1050px) !important;
+  width: calc(100% - 32px) !important;
+  max-height: min(90vh, 920px) !important;
+  box-sizing: border-box;
+}
+
+/* Monitor Breakpoint: Small Laptop Monitors (11" to 13" / 1024px to 1366px) */
+@media (max-width: 1366px) {
+  .admin-shell {
+    grid-template-columns: clamp(200px, 16vw, 240px) minmax(0, 1fr);
+  }
+
+  .admin-sidebar {
+    padding: 10px 8px;
+  }
+
+  .admin-sidebar__link {
+    padding: 7px 8px;
+    font-size: 0.8125rem;
+    gap: 8px;
+  }
+
+  .admin-main {
+    padding: 16px 20px;
+  }
+
+  .admin-dashboard-grid {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px;
+  }
+
+  .admin-orders-layout:not(.admin-orders-layout--table) {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.9fr);
+  }
+
+  .rto-page {
+    grid-template-columns: clamp(180px, 18vw, 220px) 1fr;
+  }
+
+  .product-view__grid {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    gap: 12px;
+  }
+}
+
+/* Monitor Breakpoint: Compact 11" Monitors / 1200px Width or Split Screens */
+@media (max-width: 1200px) {
+  .admin-orders-layout:not(.admin-orders-layout--table) {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .product-view__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rto-page {
+    grid-template-columns: 1fr;
+  }
+
+  .rto-sidebar {
+    position: static;
+    max-height: none;
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .leads-toolbar {
+    gap: 10px;
+  }
+
+  .leads-toolbar-left {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .leads-search {
+    min-width: 180px;
+    max-width: 100%;
+  }
+}
+
+/* Monitor Breakpoint: Large Desktop Monitors & 4K (1920px to 2560px+) */
+@media (min-width: 1920px) {
+  .admin-shell {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+
+  .admin-main {
+    padding: 32px 48px;
+    max-width: 2200px;
+    margin: 0 auto;
+  }
+
+  .admin-stat {
+    padding: 14px 18px;
+  }
+
+  .admin-stat strong {
+    font-size: 1.35rem;
+  }
 }
 
 .pf-card,
