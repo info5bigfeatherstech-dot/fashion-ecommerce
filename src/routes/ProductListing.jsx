@@ -52,7 +52,7 @@ export default function ProductListing() {
   const discountOption = DISCOUNT_OPTIONS.find((option) => option.value === discount)
 
   const isSoonCollection =
-    (!subcategory && !search && (category === 'men' || category === 'kids' || category === 'gifting'))
+    (!subcategory && !search && (category === 'men' || category === 'kids'))
 
   const filters = {
     category: resolvedCategory || undefined,
@@ -136,18 +136,6 @@ export default function ProductListing() {
   }
 
   if (isSoonCollection) {
-    if (category === 'gifting') {
-      return (
-        <CategoryComingSoon
-          title="Gifting"
-          image={CATEGORY_BANNERS.gifting?.image}
-          subtitle="A gift edit worth waiting for — thoughtful jewelry for birthdays, festivals, and every celebration."
-          exploreHref="/shop/earrings-studs"
-          exploreLabel="Explore Earrings & Studs"
-        />
-      )
-    }
-
     const isMen = category === 'men'
     const soonLabel = categoryInfo?.label || category
     const soonImage = isMen

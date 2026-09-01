@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import CustomizedGiftBox from '@/assets/Customized Gift Box.png'
+import giftBanner from '@/assets/gift.jpeg'
 
 export default function Gifting() {
   return (
@@ -161,7 +161,7 @@ export default function Gifting() {
       <div className="gifting-hero-wrapper">
         <section className="gifting-hero container">
           <div className="gifting-hero__bg">
-            <img src={CustomizedGiftBox} alt="Gifting" />
+            <img src={giftBanner} alt="Gifting" />
           </div>
           <motion.div
             className="gifting-hero__content"

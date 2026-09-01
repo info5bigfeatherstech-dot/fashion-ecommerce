@@ -8110,6 +8110,7 @@ a.cart-item__name:hover {
 }
 
 .pdp-gallery {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -8126,11 +8127,7 @@ a.cart-item__name:hover {
   border-radius: var(--radius-sm);
   background-color: var(--color-neutral);
   touch-action: pan-y pinch-zoom;
-}
-
-.pdp-gallery__main:hover,
-.pdp-gallery__main--zoomed {
-  cursor: none !important;
+  cursor: crosshair;
 }
 
 .pdp-gallery__main img {
@@ -8143,32 +8140,47 @@ a.cart-item__name:hover {
   pointer-events: none;
 }
 
-/* Interactive Circular Magnifier Lens */
-.pdp-gallery__lens {
+/* Purple-tinted rectangular lens tracker box matching reference image */
+.pdp-gallery__lens-box {
   position: absolute;
-  width: 160px;
-  height: 160px;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
   pointer-events: none;
-  overflow: hidden;
-  border: 2px solid rgba(255, 255, 255, 0.95);
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.3),
-    inset 0 0 16px rgba(0, 0, 0, 0.25),
-    0 12px 32px rgba(0, 0, 0, 0.5);
-  z-index: 20;
+  background: rgba(147, 112, 219, 0.32);
+  border: 1.5px solid rgba(138, 75, 175, 0.7);
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.12), inset 0 0 10px rgba(138, 75, 175, 0.2);
+  z-index: 10;
 }
 
-.pdp-gallery__lens-img {
+/* Side-by-side zoom preview window */
+.pdp-gallery__zoom-window {
+  position: absolute;
+  left: calc(100% + var(--space-4));
+  top: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-white);
+  box-shadow: 0 20px 48px rgba(20, 18, 15, 0.2);
+  overflow: hidden;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.pdp-gallery__zoom-img {
   position: absolute;
   top: 0;
   left: 0;
   max-width: none !important;
   max-height: none !important;
-  object-fit: fill;
+  object-fit: cover !important;
   pointer-events: none;
   will-change: transform;
+}
+
+@media (max-width: 1023px) {
+
+  .pdp-gallery__zoom-window,
+  .pdp-gallery__lens-box {
+    display: none !important;
+  }
 }
 
 .pdp-gallery__thumbs {
@@ -9357,6 +9369,18 @@ a.cart-item__name:hover {
   max-width: none;
   object-fit: cover;
   display: block;
+}
+
+/* Standalone graphic banner without dark overlay / text */
+.plp-banner--graphic .plp-banner__frame {
+  background-color: #f7e8e5;
+}
+
+.plp-banner--graphic .plp-banner__bg img {
+  width: 90%;
+  height: 100%;
+  object-fit: fill;
+  object-position: center;
 }
 
 .plp-banner__overlay {

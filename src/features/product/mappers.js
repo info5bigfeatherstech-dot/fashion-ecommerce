@@ -410,10 +410,12 @@ export function resolveDisplayImages(product, selectedVariant, selectedAttrs = {
     if (sameColor?.images?.length) return sameColor.images
   }
 
-  // Selected variant exists but has no images — do not fall back to all-variant collage
-  if (selectedVariant) return []
+  // Fall back to product-level gallery or image if variant does not specify images
+  const productImages = asArray(product?.images).filter(Boolean)
+  if (productImages.length > 0) return productImages
+  if (product?.image) return [product.image]
 
-  return asArray(product?.images)
+  return []
 }
 
 export function resolveVariantId(product, options = {}) {

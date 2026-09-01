@@ -20,25 +20,33 @@ function mapPublicReview(review) {
 export async function getProductReviewSummary(productId, { signal } = {}) {
   if (!productId) return null
 
-  const payload = await http.get(API_ENDPOINTS.productReviews.summary(productId), { signal })
-  return payload?.summary ?? payload?.data?.summary ?? null
+  try {
+    const payload = await http.get(API_ENDPOINTS.productReviews.summary(productId), { signal })
+    return payload?.summary ?? payload?.data?.summary ?? null
+  } catch {
+    return null
+  }
 }
 
 export async function getProductReviews(productId, { signal, limit = 100, page = 1 } = {}) {
   if (!productId) return []
 
-  const payload = await http.get(API_ENDPOINTS.productReviews.list(productId), {
-    signal,
-    params: { limit, page },
-  })
+  try {
+    const payload = await http.get(API_ENDPOINTS.productReviews.list(productId), {
+      signal,
+      params: { limit, page },
+    })
 
-  const raw = payload?.reviews ?? payload?.data?.reviews ?? payload?.data ?? []
-  const list = Array.isArray(raw) ? raw : []
+    const raw = payload?.reviews ?? payload?.data?.reviews ?? payload?.data ?? []
+    const list = Array.isArray(raw) ? raw : []
 
-  return list
-    .filter((review) => review?.isActive !== false)
-    .map(mapPublicReview)
-    .filter(Boolean)
+    return list
+      .filter((review) => review?.isActive !== false)
+      .map(mapPublicReview)
+      .filter(Boolean)
+  } catch {
+    return []
+  }
 }
 
 export async function getProductReviewsBundle(productId, { signal } = {}) {

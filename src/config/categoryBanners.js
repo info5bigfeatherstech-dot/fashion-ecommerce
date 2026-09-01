@@ -1,6 +1,6 @@
 import { JEWELRY_CATEGORIES } from '@/config/site'
 import { formatCategoryTitle } from '@/lib/utils'
-import CustomizedGiftBox from '@/assets/Customized Gift Box.png'
+import giftBanner from '@/assets/gift.jpeg'
 
 /**
  * Compact PLP banners for navbar jewelry categories.
@@ -51,9 +51,11 @@ export const CATEGORY_BANNERS = {
   },
   gifting: {
     title: 'Gifting',
-    subtitle: 'Thoughtful pieces for birthdays, festivals, and every occasion.',
-    image: CustomizedGiftBox,
-    alt: 'Gifting jewelry collection',
+    subtitle: '',
+    image: giftBanner,
+    alt: 'Create a beautiful custom surprise for your loved ones in 3 simple steps',
+    isGraphic: true,
+    hideText: true,
   },
   sale: {
     title: 'Sale is Live',
@@ -78,6 +80,7 @@ export function getCategoryBanner(slug, { label, image } = {}) {
     Boolean(image)
   if (!known) return null
 
+  const isGraphic = Boolean(base?.isGraphic || base?.hideText)
   const rawTitle =
     label ||
     base?.title ||
@@ -87,9 +90,11 @@ export function getCategoryBanner(slug, { label, image } = {}) {
   const formattedTitle = formatCategoryTitle(rawTitle)
 
   return {
-    title: formattedTitle,
-    subtitle: base?.subtitle || `Shop the latest ${formattedTitle} from FABUNIQO.`,
+    title: isGraphic ? '' : formattedTitle,
+    subtitle: isGraphic ? '' : (base?.subtitle || `Shop the latest ${formattedTitle} from FABUNIQO.`),
     image: image || base?.image || CATEGORY_BANNERS['earrings-studs'].image,
     alt: base?.alt || `${formattedTitle} collection`,
+    isGraphic,
+    hideText: isGraphic,
   }
 }

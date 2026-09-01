@@ -8,6 +8,7 @@ import craftsmanshipImage from '@/assets/Heavy Set.png'
 import braceletsImage from '@/assets/(6) Bracelets & Bangles.png'
 import chokerNecklaceImage from '@/assets/(2) Green Beads Stone Choker Necklace with Earrings Set for Party Wedding Jewellery (1).png'
 import giftBoxImage from '@/assets/(10) Build A Gift Box.png'
+import ringImage from '@/assets/(7) Silver Tone Floral Pattern Ring for Women with Elegant Design (2).png'
 
 export const FEST_PRODUCTS = [
   {
@@ -68,10 +69,10 @@ export const FEST_PRODUCTS = [
     discountPct: 50,
     category: 'rings',
     categoryLabel: 'Rings & Bracelets',
-    image: braceletsImage,
+    image: ringImage,
     images: [
+      ringImage,
       braceletsImage,
-      'https://images.unsplash.com/photo-1602173574767-37ac01994b2a?auto=format&fit=crop&w=800&h=1000&q=80',
       'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=800&h=1000&q=80',
     ],
     description:

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 
 const FALLBACK_IMAGE =
-  'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1200&h=1600&q=80'
+  'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=1200&h=1200&q=80'
 
 const SWIPE_THRESHOLD = 48
 
@@ -27,7 +27,15 @@ function GalleryImage({ src, alt, style }) {
 
 export function ProductGallery({ images = [], name }) {
   const [activeIndex, setActiveIndex] = useState(0)
-  const [zoom, setZoom] = useState({ isZooming: false, x: 50, y: 50, mouseX: 0, mouseY: 0 })
+  const [isZooming, setIsZooming] = useState(false)
+  const [lensState, setLensState] = useState({
+    lensX: 0,
+    lensY: 0,
+    lensWidth: 0,
+    lensHeight: 0,
+    mainWidth: 0,
+    mainHeight: 0,
+  })
   const mainRef = useRef(null)
   const touchStartX = useRef(null)
 
@@ -36,28 +44,44 @@ export function ProductGallery({ images = [], name }) {
   const safeIndex = Math.min(activeIndex, photos.length - 1)
   const active = photos[safeIndex]
 
+  const ZOOM_SCALE = 2.5
+
   useEffect(() => {
     setActiveIndex(0)
-    setZoom({ isZooming: false, x: 50, y: 50, mouseX: 0, mouseY: 0 })
+    setIsZooming(false)
   }, [photoKey])
 
   const goTo = (index) => {
     setActiveIndex(Math.max(0, Math.min(photos.length - 1, index)))
   }
 
-  const handleMouseMove = useCallback((e) => {
-    if (!mainRef.current) return
-    const rect = mainRef.current.getBoundingClientRect()
-    const mouseX = e.clientX - rect.left
-    const mouseY = e.clientY - rect.top
-    setZoom({
-      isZooming: true,
-      mouseX,
-      mouseY,
-      width: rect.width,
-      height: rect.height,
-    })
-  }, [])
+  const handleMouseMove = useCallback(
+    (e) => {
+      if (!mainRef.current) return
+      const rect = mainRef.current.getBoundingClientRect()
+      const mouseX = e.clientX - rect.left
+      const mouseY = e.clientY - rect.top
+
+      // Lens box dimensions matching zoom scale
+      const lensWidth = rect.width / ZOOM_SCALE
+      const lensHeight = rect.height / ZOOM_SCALE
+
+      // Clamp lens position inside main image
+      const lensX = Math.max(0, Math.min(rect.width - lensWidth, mouseX - lensWidth / 2))
+      const lensY = Math.max(0, Math.min(rect.height - lensHeight, mouseY - lensHeight / 2))
+
+      setLensState({
+        lensX,
+        lensY,
+        lensWidth,
+        lensHeight,
+        mainWidth: rect.width,
+        mainHeight: rect.height,
+      })
+      setIsZooming(true)
+    },
+    [ZOOM_SCALE]
+  )
 
   const handleMouseEnter = useCallback(
     (e) => {
@@ -67,7 +91,7 @@ export function ProductGallery({ images = [], name }) {
   )
 
   const handleMouseLeave = useCallback(() => {
-    setZoom((prev) => ({ ...prev, isZooming: false }))
+    setIsZooming(false)
   }, [])
 
   const onTouchStart = (event) => {
@@ -81,9 +105,6 @@ export function ProductGallery({ images = [], name }) {
     if (Math.abs(delta) < SWIPE_THRESHOLD) return
     goTo(safeIndex + (delta > 0 ? 1 : -1))
   }
-
-  const ZOOM_SCALE = 2.5
-  const LENS_RADIUS = 80 // Half of 160px lens diameter
 
   return (
     <div className="pdp-gallery">
@@ -106,7 +127,7 @@ export function ProductGallery({ images = [], name }) {
 
       <div
         ref={mainRef}
-        className={`pdp-gallery__main ${zoom.isZooming ? 'pdp-gallery__main--zoomed' : ''}`}
+        className="pdp-gallery__main"
         onMouseMove={handleMouseMove}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -115,27 +136,48 @@ export function ProductGallery({ images = [], name }) {
       >
         <GalleryImage key={active} src={active} alt={name} />
 
-        {zoom.isZooming && zoom.width > 0 && (
+        {isZooming && lensState.mainWidth > 0 && (
           <div
-            className="pdp-gallery__lens"
+            className="pdp-gallery__lens-box"
             style={{
-              left: `${zoom.mouseX}px`,
-              top: `${zoom.mouseY}px`,
+              left: `${lensState.lensX}px`,
+              top: `${lensState.lensY}px`,
+              width: `${lensState.lensWidth}px`,
+              height: `${lensState.lensHeight}px`,
             }}
-          >
-            <GalleryImage
-              src={active}
-              alt=""
-              className="pdp-gallery__lens-img"
-              style={{
-                width: `${zoom.width * ZOOM_SCALE}px`,
-                height: `${zoom.height * ZOOM_SCALE}px`,
-                transform: `translate(${-zoom.mouseX * ZOOM_SCALE + LENS_RADIUS}px, ${-zoom.mouseY * ZOOM_SCALE + LENS_RADIUS}px)`,
-              }}
-            />
-          </div>
+          />
         )}
       </div>
+
+      {isZooming && lensState.mainWidth > 0 && (
+        <div
+          className="pdp-gallery__zoom-window"
+          aria-hidden="true"
+          style={{
+            width: `${lensState.mainWidth}px`,
+            height: `${lensState.mainHeight}px`,
+          }}
+        >
+          <img
+            src={active}
+            alt=""
+            className="pdp-gallery__zoom-img"
+            style={{
+              width: `${lensState.mainWidth * ZOOM_SCALE}px`,
+              height: `${lensState.mainHeight * ZOOM_SCALE}px`,
+              transform: `translate(${-lensState.lensX * ZOOM_SCALE}px, ${-lensState.lensY * ZOOM_SCALE}px)`,
+            }}
+            referrerPolicy="no-referrer"
+            onError={(e) => {
+              if (e.currentTarget.src !== FALLBACK_IMAGE) {
+                e.currentTarget.src = FALLBACK_IMAGE
+              }
+            }}
+          />
+        </div>
+      )}
     </div>
   )
 }
+
+
