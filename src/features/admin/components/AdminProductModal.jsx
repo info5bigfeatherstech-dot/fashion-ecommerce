@@ -296,12 +296,26 @@ export function AdminProductModal({
     setVariantSaveError(null)
   }
 
-  const applyProductVariants = (productPayload) => {
+  const applyProductVariants = (productPayload, { preserveMainAttributes = false } = {}) => {
     if (!productPayload?.variants) return
-    setFormData((prev) => ({
-      ...prev,
-      variants: normaliseVariantsForEdit(productPayload.variants),
-    }))
+    setFormData((prev) => {
+      const normalised = normaliseVariantsForEdit(productPayload.variants)
+      // When saving an extra variant (index > 0), the server response replaces
+      // variants[0] with its persisted attributes — which may not yet include
+      // locally-added product attributes that the user hasn't saved yet.
+      // Preserve the current local attributes on variants[0] in that case.
+      if (preserveMainAttributes && normalised.length > 0 && prev.variants?.[0]?.attributes?.length > 0) {
+        normalised[0] = { ...normalised[0], attributes: prev.variants[0].attributes }
+      }
+      return {
+        ...prev,
+        variants: normalised,
+        // Keep formData.attributes in sync with variants[0].attributes
+        attributes: preserveMainAttributes
+          ? (prev.variants?.[0]?.attributes || prev.attributes)
+          : (normalised[0]?.attributes || prev.attributes),
+      }
+    })
   }
 
   const handleVariantSave = async (variantToSave) => {
@@ -415,7 +429,9 @@ export function AdminProductModal({
         const result = await updateAdminProductVariant(variantUpdatePayload)
         if (result?.product) {
           setLoadedProduct(result.product)
-          applyProductVariants(result.product)
+          // For extra variants (index > 0), preserve locally-edited product
+          // attributes on variants[0] that haven't been submitted yet.
+          applyProductVariants(result.product, { preserveMainAttributes: editingVariantIndex > 0 })
         }
         toast.success('Variant updated')
       } else {
