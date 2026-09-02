@@ -3,208 +3,7 @@ import { API_ENDPOINTS, PRODUCT_CATALOG_MAX_PAGES, PRODUCT_CATALOG_PAGE_SIZE } f
 import { ApiError } from '@/api/errors'
 import { formatDiscount } from '@/lib/utils'
 import { extractProduct, extractProductList, mapPagination, mapProductList } from './mappers'
-import earringsImage from '@/assets/Earrings.png'
-import craftsmanshipImage from '@/assets/Heavy Set.png'
-import braceletsImage from '@/assets/(6) Bracelets & Bangles.png'
-import chokerNecklaceImage from '@/assets/(2) Green Beads Stone Choker Necklace with Earrings Set for Party Wedding Jewellery (1).png'
-import giftBoxImage from '@/assets/(10) Build A Gift Box.png'
-import ringImage from '@/assets/(7) Silver Tone Floral Pattern Ring for Women with Elegant Design (2).png'
 
-export const FEST_PRODUCTS = [
-  {
-    id: 'fest-everyday',
-    slug: 'everyday',
-    aliases: ['everyday', 'everyday-earrings-studs'],
-    name: 'Everyday Earrings & Studs',
-    title: 'Everyday Earrings & Studs',
-    displayTitle: 'Everyday Earrings & Studs — Elegant Styles for Every Day',
-    price: 29,
-    originalPrice: 59,
-    discountPct: 50,
-    category: 'earrings-studs',
-    categoryLabel: 'Earrings & Studs',
-    image: earringsImage,
-    images: [
-      earringsImage,
-      'https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&w=800&h=1000&q=80',
-      'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=800&h=1000&q=80',
-    ],
-    description:
-      'Discover beautifully crafted everyday earrings and studs designed to elevate your style effortlessly. Made from hypoallergenic, skin-friendly alloy with high-shine polish that lasts.',
-    rating: 4.9,
-    reviewCount: 142,
-    soldCount: 380,
-    inStock: true,
-    isFeatured: true,
-    tags: ['everyday', 'earrings', 'bestseller', 'on-sale'],
-    optionGroups: [
-      {
-        key: 'Color',
-        label: 'Color',
-        values: ['Gold', 'Silver', 'Rose Gold'],
-        isColor: true,
-      },
-    ],
-    variants: [
-      { id: 'fest-everyday-gold', title: 'Everyday Earrings & Studs - Gold', price: 29, originalPrice: 59, inStock: true, attributes: [{ key: 'Color', value: 'Gold' }] },
-      { id: 'fest-everyday-silver', title: 'Everyday Earrings & Studs - Silver', price: 29, originalPrice: 59, inStock: true, attributes: [{ key: 'Color', value: 'Silver' }] },
-      { id: 'fest-everyday-rosegold', title: 'Everyday Earrings & Studs - Rose Gold', price: 29, originalPrice: 59, inStock: true, attributes: [{ key: 'Color', value: 'Rose Gold' }] },
-    ],
-    highlights: [
-      'Hypoallergenic & nickel-free materials',
-      'Lightweight design for all-day comfort',
-      'High-shine protective anti-tarnish coating',
-      'Includes signature FabUniqo luxury pouch',
-    ],
-  },
-  {
-    id: 'fest-office',
-    slug: 'office',
-    aliases: ['office', 'rings-bracelets-minimal'],
-    name: 'Rings & Bracelets Minimal',
-    title: 'Rings & Bracelets Minimal',
-    displayTitle: 'Rings & Bracelets — Minimal Styles, Made to Shine',
-    price: 49,
-    originalPrice: 99,
-    discountPct: 50,
-    category: 'rings',
-    categoryLabel: 'Rings & Bracelets',
-    image: ringImage,
-    images: [
-      ringImage,
-      braceletsImage,
-      'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=800&h=1000&q=80',
-    ],
-    description:
-      'Sleek, minimal rings and delicate stackable bracelets designed for office polish and subtle shine. Smooth inner fit and tarnish-resistant finish.',
-    rating: 4.8,
-    reviewCount: 96,
-    soldCount: 240,
-    inStock: true,
-    isFeatured: true,
-    tags: ['office', 'rings', 'bracelets', 'minimal', 'on-sale'],
-    optionGroups: [
-      {
-        key: 'Finish',
-        label: 'Finish',
-        values: ['Classic Gold', 'Polished Silver'],
-        isColor: true,
-      },
-    ],
-    variants: [
-      { id: 'fest-office-gold', title: 'Rings & Bracelets Minimal - Classic Gold', price: 49, originalPrice: 99, inStock: true, attributes: [{ key: 'Finish', value: 'Classic Gold' }] },
-      { id: 'fest-office-silver', title: 'Rings & Bracelets Minimal - Polished Silver', price: 49, originalPrice: 99, inStock: true, attributes: [{ key: 'Finish', value: 'Polished Silver' }] },
-    ],
-    highlights: [
-      'Minimalist design built for everyday office wear',
-      'Resistant to tarnishing and daily moisture',
-      'Smooth inner comfort fit design',
-    ],
-  },
-  {
-    id: 'fest-festival',
-    slug: 'festival',
-    aliases: ['festival', 'necklaces-pendants-statement'],
-    name: 'Necklaces & Pendants Statement',
-    title: 'Necklaces & Pendants Statement',
-    displayTitle: 'Necklaces & Pendants — Statement Styles for Every Occasion',
-    price: 69,
-    originalPrice: 139,
-    discountPct: 50,
-    category: 'necklace-pendants',
-    categoryLabel: 'Necklaces & Pendants',
-    image: chokerNecklaceImage,
-    images: [
-      chokerNecklaceImage,
-      'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=800&h=1000&q=80',
-      'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=800&h=1000&q=80',
-    ],
-    description:
-      'Hand-finished statement green beads stone choker necklace and matching earrings set. Made to turn heads at festivals, dates, weddings, and family celebrations.',
-    rating: 4.9,
-    reviewCount: 115,
-    soldCount: 310,
-    inStock: true,
-    isFeatured: true,
-    tags: ['festival', 'necklaces', 'pendants', 'statement', 'on-sale'],
-    optionGroups: [
-      {
-        key: 'Chain Length',
-        label: 'Chain Length',
-        values: ['16 inch', '18 inch', '20 inch'],
-        isSize: true,
-      },
-    ],
-    variants: [
-      { id: 'fest-festival-16', title: 'Necklaces & Pendants Statement - 16 inch', price: 69, originalPrice: 139, inStock: true, attributes: [{ key: 'Chain Length', value: '16 inch' }] },
-      { id: 'fest-festival-18', title: 'Necklaces & Pendants Statement - 18 inch', price: 69, originalPrice: 139, inStock: true, attributes: [{ key: 'Chain Length', value: '18 inch' }] },
-      { id: 'fest-festival-20', title: 'Necklaces & Pendants Statement - 20 inch', price: 69, originalPrice: 139, inStock: true, attributes: [{ key: 'Chain Length', value: '20 inch' }] },
-    ],
-    highlights: [
-      'Intricate craftsmanship with sparkling stones and green beads',
-      'Adjustable chain extension for custom drop height',
-      'Ideal for festive occasions, weddings, and gifting',
-    ],
-  },
-  {
-    id: 'fest-party',
-    slug: 'party',
-    aliases: ['party', 'jewellery-sets-gifting'],
-    name: 'Jewellery Sets & Gifting',
-    title: 'Jewellery Sets & Gifting',
-    displayTitle: 'Jewellery Sets & Gifting — Perfect Picks for Every Celebration',
-    price: 199,
-    originalPrice: 399,
-    discountPct: 50,
-    category: 'sets',
-    categoryLabel: 'Jewellery Sets & Gifting',
-    image: giftBoxImage,
-    images: [
-      giftBoxImage,
-      craftsmanshipImage,
-      'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=800&h=1000&q=80',
-    ],
-    description:
-      'Complete luxury build-a-gift box jewellery set including statement piece, matching accessories, and premium packaging. Comes ready for weddings, festive galas, and special moments.',
-    rating: 5.0,
-    reviewCount: 210,
-    soldCount: 520,
-    inStock: true,
-    isFeatured: true,
-    tags: ['party', 'gifting', 'sets', 'wedding', 'on-sale'],
-    optionGroups: [
-      {
-        key: 'Color',
-        label: 'Color',
-        values: ['Royal Gold', 'Emerald Green Gold', 'Ruby Red Gold'],
-        isColor: true,
-      },
-    ],
-    variants: [
-      { id: 'fest-party-gold', title: 'Jewellery Sets & Gifting - Royal Gold', price: 199, originalPrice: 399, inStock: true, attributes: [{ key: 'Color', value: 'Royal Gold' }] },
-      { id: 'fest-party-emerald', title: 'Jewellery Sets & Gifting - Emerald Green Gold', price: 199, originalPrice: 399, inStock: true, attributes: [{ key: 'Color', value: 'Emerald Green Gold' }] },
-      { id: 'fest-party-ruby', title: 'Jewellery Sets & Gifting - Ruby Red Gold', price: 199, originalPrice: 399, inStock: true, attributes: [{ key: 'Color', value: 'Ruby Red Gold' }] },
-    ],
-    highlights: [
-      'Complete set with matching necklace, earrings, and bracelet',
-      'Packaged in an elegant velvet gift box ready for gifting',
-      'Premium craft quality with anti-tarnish protective coating',
-    ],
-  },
-]
-
-function getFestProductBySlug(slug) {
-  const norm = String(slug || '').trim().toLowerCase()
-  if (!norm) return null
-  return (
-    FEST_PRODUCTS.find(
-      (p) =>
-        p.slug.toLowerCase() === norm ||
-        p.id.toLowerCase() === norm ||
-        (p.aliases && p.aliases.some((a) => a.toLowerCase() === norm))
-    ) || null
-  )
-}
 
 export {
   PRICE_RANGES,
@@ -443,33 +242,19 @@ export async function getProductsByCategory(slug, { page = 1, limit = 50, signal
     })
 
     const products = extractProductList(payload)
-    if (products.length > 0) {
-      const pagination = mapPagination(payload?.pagination ?? payload?.data?.pagination, products.length)
-      return {
-        products,
-        total: pagination.total || products.length,
-        pagination,
-        raw: payload,
-      }
+    const pagination = mapPagination(payload?.pagination ?? payload?.data?.pagination, products.length)
+    return {
+      products,
+      total: pagination.total || products.length,
+      pagination,
+      raw: payload,
     }
   } catch (err) {
-    // API call failed or returned empty
-  }
-
-  const cleanSlug = String(slug).toLowerCase()
-  const localMatching = FEST_PRODUCTS.filter(
-    (p) =>
-      p.category === slug ||
-      (p.aliases && p.aliases.includes(slug)) ||
-      (p.tags && p.tags.includes(slug)) ||
-      String(p.categoryLabel || '').toLowerCase().includes(cleanSlug)
-  )
-
-  const products = localMatching.slice((page - 1) * limit, page * limit)
-  return {
-    products,
-    total: localMatching.length,
-    pagination: mapPagination(null, localMatching.length),
+    return {
+      products: [],
+      total: 0,
+      pagination: mapPagination(null, 0),
+    }
   }
 }
 
@@ -795,25 +580,14 @@ export async function getProductBySlug(slug, { signal } = {}) {
     })
   }
 
-  const festProduct = getFestProductBySlug(normalizedSlug)
-
   try {
     const payload = await http.get(API_ENDPOINTS.products.bySlug(normalizedSlug), { signal })
     const product = extractProduct(payload)
     if (product) {
-      if (festProduct) {
-        return {
-          ...festProduct,
-          ...product,
-          images: product.images?.length ? product.images : festProduct.images,
-          image: product.images?.[0] || product.image || festProduct.image,
-        }
-      }
       return product
     }
   } catch (error) {
     if (error?.status === 404 || error?.code === 'PRODUCT_NOT_FOUND') {
-      if (festProduct) return festProduct
       throw error instanceof ApiError
         ? error
         : new ApiError({
@@ -825,20 +599,22 @@ export async function getProductBySlug(slug, { signal } = {}) {
     // Fall through to catalog lookup for transient/network issues
   }
 
-  if (festProduct) return festProduct
+  try {
+    const catalog = await getProductCatalog()
+    const product = catalog.products.find((item) => item.slug === normalizedSlug)
 
-  const catalog = await getProductCatalog()
-  const product = catalog.products.find((item) => item.slug === normalizedSlug)
-
-  if (!product) {
-    throw new ApiError({
-      message: 'Product not found',
-      status: 404,
-      code: 'PRODUCT_NOT_FOUND',
-    })
+    if (product) {
+      return product
+    }
+  } catch {
+    // Ignore catalog fetch failure
   }
 
-  return product
+  throw new ApiError({
+    message: 'Product not found',
+    status: 404,
+    code: 'PRODUCT_NOT_FOUND',
+  })
 }
 
 /**

@@ -332,108 +332,53 @@ export const JEWELRY_ARCHIVE = [
 export const AS_SEEN_ON_YOU = {
   instagramHref: 'https://instagram.com/',
   /** Fallback collage only when `/products/featured` returns no images */
-  collage: [
-    {
-      id: 'spot-1',
-      image: 'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=700&h=900&q=80',
-      alt: 'Gold earrings worn at a festive evening',
-      href: '/shop/women',
-    },
-    {
-      id: 'spot-2',
-      image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=700&h=800&q=80',
-      alt: 'Layered necklace close-up',
-      href: '/shop/new-arrivals',
-    },
-    {
-      id: 'spot-3',
-      image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=700&h=850&q=80',
-      alt: 'Pearl and gold jewelry styling',
-      href: '/shop/women',
-    },
-    {
-      id: 'spot-4',
-      image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=700&h=900&q=80',
-      alt: 'Crystal set on display',
-      href: '/shop/sale',
-    },
-    {
-      id: 'spot-5',
-      image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=700&h=800&q=80',
-      alt: 'Twisted hoop earrings detail',
-      href: '/shop/women',
-    },
-    {
-      id: 'spot-6',
-      image: 'https://images.unsplash.com/photo-1602173574767-37ac01994b2a?auto=format&fit=crop&w=700&h=850&q=80',
-      alt: 'Ring stack everyday look',
-      href: '/shop/new-arrivals',
-    },
-    {
-      id: 'spot-7',
-      image: 'https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&w=700&h=900&q=80',
-      alt: 'Statement earrings portrait',
-      href: '/shop/women',
-    },
-    {
-      id: 'spot-8',
-      image: 'https://images.unsplash.com/photo-1611107683227-e9060eccd846?auto=format&fit=crop&w=700&h=800&q=80',
-      alt: 'Pendant necklace flatlay',
-      href: '/shop/women',
-    },
-    {
-      id: 'spot-9',
-      image: 'https://images.unsplash.com/photo-1617038260849-41f2d537454b?auto=format&fit=crop&w=700&h=850&q=80',
-      alt: 'Gold jewelry on soft fabric',
-      href: '/shop/new-arrivals',
-    },
-  ],
+ 
 }
 
-export const NEW_ARRIVALS_SLIDES = [
-  {
-    id: 'work-office',
-    title: 'Work & Office',
-    itemCount: '85+',
-    href: '/shop/women',
-    image: 'https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&w=700&h=900&q=80',
-  },
-  {
-    id: 'festivals',
-    title: 'Festivals',
-    itemCount: '60+',
-    href: '/shop/new-arrivals',
-    image: 'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=700&h=900&q=80',
-  },
-  {
-    id: 'party-night',
-    title: 'Party & Night Out',
-    itemCount: '95+',
-    href: '/shop/women',
-    image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=700&h=900&q=80',
-  },
-  {
-    id: 'weddings',
-    title: 'Weddings',
-    itemCount: '45+',
-    href: '/shop/women',
-    image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=700&h=900&q=80',
-  },
-  {
-    id: 'everyday',
-    title: 'Everyday Wear',
-    itemCount: '70+',
-    href: '/shop/new-arrivals',
-    image: 'https://images.unsplash.com/photo-1602173574767-37ac01994b2a?auto=format&fit=crop&w=700&h=900&q=80',
-  },
-  {
-    id: 'gifting',
-    title: 'Gifting',
-    itemCount: '55+',
-    href: '/shop/sale',
-    image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=700&h=900&q=80',
-  },
-]
+// export const NEW_ARRIVALS_SLIDES = [
+//   {
+//     id: 'work-office',
+//     title: 'Work & Office',
+//     itemCount: '85+',
+//     href: '/shop/women',
+//     image: 'https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&w=700&h=900&q=80',
+//   },
+//   {
+//     id: 'festivals',
+//     title: 'Festivals',
+//     itemCount: '60+',
+//     href: '/shop/new-arrivals',
+//     image: 'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=700&h=900&q=80',
+//   },
+//   {
+//     id: 'party-night',
+//     title: 'Party & Night Out',
+//     itemCount: '95+',
+//     href: '/shop/women',
+//     image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=700&h=900&q=80',
+//   },
+//   {
+//     id: 'weddings',
+//     title: 'Weddings',
+//     itemCount: '45+',
+//     href: '/shop/women',
+//     image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=700&h=900&q=80',
+//   },
+//   {
+//     id: 'everyday',
+//     title: 'Everyday Wear',
+//     itemCount: '70+',
+//     href: '/shop/new-arrivals',
+//     image: 'https://images.unsplash.com/photo-1602173574767-37ac01994b2a?auto=format&fit=crop&w=700&h=900&q=80',
+//   },
+//   {
+//     id: 'gifting',
+//     title: 'Gifting',
+//     itemCount: '55+',
+//     href: '/shop/sale',
+//     image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=700&h=900&q=80',
+//   },
+// ]
 
 export const JEWELLERY_FEST = {
   eyebrow: 'Limited Time',
@@ -492,43 +437,43 @@ export const JEWELLERY_FEST = {
   ],
 }
 
-export const DEEP_CATEGORIES = [
-  {
-    label: 'Statement Earrings',
-    slug: 'new-arrivals',
-    offer: 'Min 30% off',
-    image: 'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=520&h=720&q=80',
-    imageBack: 'https://images.unsplash.com/photo-1617038260849-41f2d537454b?auto=format&fit=crop&w=480&h=680&q=80',
-  },
-  {
-    label: 'Layered Necklaces',
-    slug: 'women',
-    offer: 'Up to 65% off',
-    image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=520&h=720&q=80',
-    imageBack: 'https://images.unsplash.com/photo-1611085583191-a3b181a88401?auto=format&fit=crop&w=480&h=680&q=80',
-  },
-  {
-    label: 'Bracelets & Bangles',
-    slug: 'men',
-    offer: 'Up to 70% off',
-    image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=520&h=720&q=80',
-    imageBack: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=480&h=680&q=80',
-  },
-  {
-    label: 'Pendants',
-    slug: 'innerwear',
-    offer: 'Up to 50% off',
-    image: 'https://images.unsplash.com/photo-1611107683227-e9060eccd846?auto=format&fit=crop&w=520&h=720&q=80',
-    imageBack: 'https://images.unsplash.com/photo-1611652022680-18b16bf7f2b4?auto=format&fit=crop&w=480&h=680&q=80',
-  },
-  {
-    label: 'Jewelry Sets',
-    slug: 'kids',
-    offer: 'Min 40% off',
-    image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=520&h=720&q=80',
-    imageBack: 'https://images.unsplash.com/photo-1617038220872-5f3648c8edc5?auto=format&fit=crop&w=480&h=680&q=80',
-  },
-]
+// export const DEEP_CATEGORIES = [
+//   {
+//     label: 'Statement Earrings',
+//     slug: 'new-arrivals',
+//     offer: 'Min 30% off',
+//     image: 'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=520&h=720&q=80',
+//     imageBack: 'https://images.unsplash.com/photo-1617038260849-41f2d537454b?auto=format&fit=crop&w=480&h=680&q=80',
+//   },
+//   {
+//     label: 'Layered Necklaces',
+//     slug: 'women',
+//     offer: 'Up to 65% off',
+//     image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=520&h=720&q=80',
+//     imageBack: 'https://images.unsplash.com/photo-1611085583191-a3b181a88401?auto=format&fit=crop&w=480&h=680&q=80',
+//   },
+//   {
+//     label: 'Bracelets & Bangles',
+//     slug: 'men',
+//     offer: 'Up to 70% off',
+//     image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=520&h=720&q=80',
+//     imageBack: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=480&h=680&q=80',
+//   },
+//   {
+//     label: 'Pendants',
+//     slug: 'innerwear',
+//     offer: 'Up to 50% off',
+//     image: 'https://images.unsplash.com/photo-1611107683227-e9060eccd846?auto=format&fit=crop&w=520&h=720&q=80',
+//     imageBack: 'https://images.unsplash.com/photo-1611652022680-18b16bf7f2b4?auto=format&fit=crop&w=480&h=680&q=80',
+//   },
+//   {
+//     label: 'Jewelry Sets',
+//     slug: 'kids',
+//     offer: 'Min 40% off',
+//     image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=520&h=720&q=80',
+//     imageBack: 'https://images.unsplash.com/photo-1617038220872-5f3648c8edc5?auto=format&fit=crop&w=480&h=680&q=80',
+//   },
+// ]
 
 export const EDITORIAL_GUIDES = [
   {

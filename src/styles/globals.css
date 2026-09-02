@@ -8119,10 +8119,11 @@ a.cart-item__name:hover {
 
 .pdp-gallery__main {
   position: relative;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 1 / 1 !important;
   width: 100%;
-  max-width: 620px;
-  max-height: min(620px, calc(100vh - 140px));
+  height: auto !important;
+  max-width: 520px;
+  max-height: 520px;
   overflow: hidden;
   border-radius: var(--radius-sm);
   background-color: var(--color-neutral);
@@ -8133,7 +8134,7 @@ a.cart-item__name:hover {
 .pdp-gallery__main img {
   width: 100%;
   height: 100%;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 1 / 1 !important;
   max-width: none;
   object-fit: cover;
   display: block;
@@ -8150,11 +8151,12 @@ a.cart-item__name:hover {
   z-index: 10;
 }
 
-/* Side-by-side zoom preview window */
+/* Side-by-side zoom preview window (strictly square) */
 .pdp-gallery__zoom-window {
   position: absolute;
   left: calc(100% + var(--space-4));
   top: 0;
+  aspect-ratio: 1 / 1 !important;
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
   background-color: var(--color-white);

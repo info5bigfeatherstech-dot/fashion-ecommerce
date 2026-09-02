@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 
-const FALLBACK_IMAGE =
-  'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=1200&h=1200&q=80'
+// const FALLBACK_IMAGE =
+//   'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=1200&h=1200&q=80'
 
 const SWIPE_THRESHOLD = 48
 
@@ -62,9 +62,12 @@ export function ProductGallery({ images = [], name }) {
       const mouseX = e.clientX - rect.left
       const mouseY = e.clientY - rect.top
 
-      // Lens box dimensions matching zoom scale
-      const lensWidth = rect.width / ZOOM_SCALE
-      const lensHeight = rect.height / ZOOM_SCALE
+      // The right zoom preview window (slightly larger than the original main photo: 570px)
+      const zoomSize = Math.max(rect.width + 70, 570)
+
+      // Square lens box matching square zoom scale
+      const lensWidth = zoomSize / ZOOM_SCALE
+      const lensHeight = zoomSize / ZOOM_SCALE
 
       // Clamp lens position inside main image
       const lensX = Math.max(0, Math.min(rect.width - lensWidth, mouseX - lensWidth / 2))
@@ -77,6 +80,7 @@ export function ProductGallery({ images = [], name }) {
         lensHeight,
         mainWidth: rect.width,
         mainHeight: rect.height,
+        zoomSize,
       })
       setIsZooming(true)
     },
@@ -154,8 +158,8 @@ export function ProductGallery({ images = [], name }) {
           className="pdp-gallery__zoom-window"
           aria-hidden="true"
           style={{
-            width: `${lensState.mainWidth}px`,
-            height: `${lensState.mainHeight}px`,
+            width: `${lensState.zoomSize || lensState.mainWidth}px`,
+            height: `${lensState.zoomSize || lensState.mainWidth}px`,
           }}
         >
           <img

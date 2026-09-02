@@ -178,9 +178,12 @@ export default function ProductDetail() {
 
   if (isError || !product) {
     return (
-      <div className="container empty-state">
-        <h1 className="empty-state__title">Product not found</h1>
-        <Link to="/"><Button variant="secondary">Back to Home</Button></Link>
+      <div className="container empty-state" style={{ minHeight: '50vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '4rem 1rem' }}>
+        <h1 className="empty-state__title" style={{ fontSize: '2rem', marginBottom: '0.75rem', fontWeight: 600 }}>Soon this product will add</h1>
+        <p className="body-lg text-muted" style={{ marginBottom: '1.5rem', maxWidth: '480px' }}>
+          This product is currently being added to our store inventory. Check back soon or explore our existing items!
+        </p>
+        <Link to="/shop"><Button variant="primary">Browse Shop</Button></Link>
       </div>
     )
   }

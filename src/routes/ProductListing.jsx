@@ -292,8 +292,8 @@ export default function ProductListing() {
             <ProductGridSkeleton count={8} />
           ) : data?.products?.length === 0 ? (
             <div className="empty-state">
-              <h2 className="empty-state__title">No products found</h2>
-              <p className="body-lg text-muted">Try adjusting your filters or search terms.</p>
+              <h2 className="empty-state__title">Soon this product will add</h2>
+              <p className="body-lg text-muted">We are currently updating our collection. Please check back soon!</p>
               <button type="button" className="section-header__link" onClick={clearFilters}>
                 Clear filters
               </button>
