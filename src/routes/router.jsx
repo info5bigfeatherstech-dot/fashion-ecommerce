@@ -17,6 +17,7 @@ const Account = lazy(() => import('./Account'))
 const Wholesale = lazy(() => import('./Wholesale'))
 const ContactUs = lazy(() => import('./ContactUs'))
 const Policy = lazy(() => import('./Policy'))
+const JewellerySpotted = lazy(() => import('./JewellerySpotted'))
 const AdminLogin = lazy(() => import('./admin/AdminLogin'))
 const AdminDashboardPage = lazy(() => import('./admin/AdminDashboardPage'))
 const AdminOrdersPage = lazy(() => import('./admin/AdminOrdersPage'))
@@ -77,6 +78,7 @@ export const router = createBrowserRouter([
       { path: 'wholesale', element: <Wholesale /> },
       { path: 'contact', element: <ContactUs /> },
       { path: 'gifting', element: <Gifting /> },
+      { path: 'jewellery-spotted', element: <Navigate to="/shop/jewellery-spotted" replace /> },
       { path: 'product-all', element: <ProductAll /> },
       { path: 'policies/:slug', element: <Policy /> },
       { path: '*', element: <NotFound /> },

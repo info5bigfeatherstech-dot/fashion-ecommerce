@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 
-// const FALLBACK_IMAGE =
-//   'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=1200&h=1200&q=80'
+const FALLBACK_IMAGE = ''
 
 const SWIPE_THRESHOLD = 48
 
@@ -19,7 +18,7 @@ function GalleryImage({ src, alt, style }) {
       style={style}
       referrerPolicy="no-referrer"
       onError={() => {
-        if (currentSrc !== FALLBACK_IMAGE) setCurrentSrc(FALLBACK_IMAGE)
+        if (FALLBACK_IMAGE && currentSrc !== FALLBACK_IMAGE) setCurrentSrc(FALLBACK_IMAGE)
       }}
     />
   )
@@ -173,7 +172,7 @@ export function ProductGallery({ images = [], name }) {
             }}
             referrerPolicy="no-referrer"
             onError={(e) => {
-              if (e.currentTarget.src !== FALLBACK_IMAGE) {
+              if (FALLBACK_IMAGE && e.currentTarget.src !== FALLBACK_IMAGE) {
                 e.currentTarget.src = FALLBACK_IMAGE
               }
             }}

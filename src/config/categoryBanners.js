@@ -64,6 +64,13 @@ export const CATEGORY_BANNERS = {
       'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=1800&h=700&q=80',
     alt: 'Jewelry sale collection',
   },
+  'jewellery-spotted': {
+    title: 'Jewellery Spotted',
+    subtitle: 'Real people, real style. Tag #FABUNIQO on Instagram to be featured.',
+    image:
+      'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=1800&h=700&q=80',
+    alt: 'Jewellery Spotted community collection',
+  },
 }
 
 const JEWELRY_SLUGS = new Set(JEWELRY_CATEGORIES.map((c) => c.slug))

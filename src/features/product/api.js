@@ -18,7 +18,7 @@ export {
 
 const BEAUTY_CATEGORIES = new Set(['skincare', 'makeup', 'beauty', 'beauty-and-personal-care'])
 const FOOTWEAR_SUBS = new Set(['sneakers', 'sandals', 'heels', 'boots', 'loafers', 'flats', 'shoes'])
-const SPECIAL_CATEGORIES = new Set(['sale', 'new-arrivals', 'beauty', 'footwear', 'bags'])
+const SPECIAL_CATEGORIES = new Set(['sale', 'new-arrivals', 'beauty', 'footwear', 'bags', 'jewellery-spotted'])
 const CATALOG_TTL_MS = 1000 * 60
 const FEATURED_TTL_MS = 1000 * 60
 
@@ -127,6 +127,10 @@ function applyProductFilters(products, filters = {}) {
     results = results.filter((product) => FOOTWEAR_SUBS.has(product.subcategory))
   } else if (filters.category === 'bags') {
     results = results.filter((product) => product.subcategory === 'bags' || product.category === 'bags')
+  } else if (filters.category === 'jewellery-spotted') {
+    results = results.filter((product) =>
+      Array.isArray(product.tags) && product.tags.some((t) => String(t).toLowerCase() === 'jewellery-spotted')
+    )
   } else if (filters.category && !SPECIAL_CATEGORIES.has(filters.category)) {
     const category = String(filters.category).toLowerCase()
     const matched = results.filter(
@@ -448,7 +452,13 @@ export async function getProducts(filters = {}) {
   const tag =
     filters.tags ||
     filters.discountTag ||
-    (category === 'sale' ? 'on-sale' : category === 'today-arrival' ? 'today-arrival' : null)
+    (category === 'sale'
+      ? 'on-sale'
+      : category === 'today-arrival'
+        ? 'today-arrival'
+        : category === 'jewellery-spotted'
+          ? 'jewellery-spotted'
+          : null)
 
   // Prefer dedicated search API when a query is present
   if (searchQuery.length >= 2) {

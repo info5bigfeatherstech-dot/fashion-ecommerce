@@ -437,43 +437,43 @@ export const JEWELLERY_FEST = {
   ],
 }
 
-// export const DEEP_CATEGORIES = [
-//   {
-//     label: 'Statement Earrings',
-//     slug: 'new-arrivals',
-//     offer: 'Min 30% off',
-//     image: 'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=520&h=720&q=80',
-//     imageBack: 'https://images.unsplash.com/photo-1617038260849-41f2d537454b?auto=format&fit=crop&w=480&h=680&q=80',
-//   },
-//   {
-//     label: 'Layered Necklaces',
-//     slug: 'women',
-//     offer: 'Up to 65% off',
-//     image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=520&h=720&q=80',
-//     imageBack: 'https://images.unsplash.com/photo-1611085583191-a3b181a88401?auto=format&fit=crop&w=480&h=680&q=80',
-//   },
-//   {
-//     label: 'Bracelets & Bangles',
-//     slug: 'men',
-//     offer: 'Up to 70% off',
-//     image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=520&h=720&q=80',
-//     imageBack: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=480&h=680&q=80',
-//   },
-//   {
-//     label: 'Pendants',
-//     slug: 'innerwear',
-//     offer: 'Up to 50% off',
-//     image: 'https://images.unsplash.com/photo-1611107683227-e9060eccd846?auto=format&fit=crop&w=520&h=720&q=80',
-//     imageBack: 'https://images.unsplash.com/photo-1611652022680-18b16bf7f2b4?auto=format&fit=crop&w=480&h=680&q=80',
-//   },
-//   {
-//     label: 'Jewelry Sets',
-//     slug: 'kids',
-//     offer: 'Min 40% off',
-//     image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=520&h=720&q=80',
-//     imageBack: 'https://images.unsplash.com/photo-1617038220872-5f3648c8edc5?auto=format&fit=crop&w=480&h=680&q=80',
-//   },
-// ]
+export const DEEP_CATEGORIES = [
+  {
+    label: 'Statement Earrings',
+    slug: 'earrings-studs',
+    offer: 'Min 30% off',
+    image: 'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=520&h=720&q=80',
+    imageBack: 'https://images.unsplash.com/photo-1617038260849-41f2d537454b?auto=format&fit=crop&w=480&h=680&q=80',
+  },
+  {
+    label: 'Layered Necklaces',
+    slug: 'necklace-pendants',
+    offer: 'Up to 65% off',
+    image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=520&h=720&q=80',
+    imageBack: 'https://images.unsplash.com/photo-1611085583191-a3b181a88401?auto=format&fit=crop&w=480&h=680&q=80',
+  },
+  {
+    label: 'Bracelets & Bangles',
+    slug: 'bracelets-bangles',
+    offer: 'Up to 70% off',
+    image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=520&h=720&q=80',
+    imageBack: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=480&h=680&q=80',
+  },
+  {
+    label: 'Pendants',
+    slug: 'necklace-pendants',
+    offer: 'Up to 50% off',
+    image: 'https://images.unsplash.com/photo-1611107683227-e9060eccd846?auto=format&fit=crop&w=520&h=720&q=80',
+    imageBack: 'https://images.unsplash.com/photo-1611652022680-18b16bf7f2b4?auto=format&fit=crop&w=480&h=680&q=80',
+  },
+  {
+    label: 'Jewelry Sets',
+    slug: 'sets',
+    offer: 'Min 40% off',
+    image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=520&h=720&q=80',
+    imageBack: 'https://images.unsplash.com/photo-1617038220872-5f3648c8edc5?auto=format&fit=crop&w=480&h=680&q=80',
+  },
+]
 
 export const EDITORIAL_GUIDES = [
   {

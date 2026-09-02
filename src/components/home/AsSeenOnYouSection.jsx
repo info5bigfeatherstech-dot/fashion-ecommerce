@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { ChevronRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
@@ -51,7 +52,6 @@ function buildCollageItems(products = []) {
       href: `/product/${product.slug}`,
       name: product.name || product.title || '',
     })
-    if (items.length >= COLLAGE_IMAGE_LIMIT) return items
   }
 
   return items
@@ -95,8 +95,10 @@ function CollageCard({ item, index }) {
 }
 
 export function AsSeenOnYouSection() {
-  const { data: products = [], isLoading } = useJewellerySpotted({ limit: COLLAGE_IMAGE_LIMIT })
-  const collageItems = buildCollageItems(products)
+  const { data: products = [], isLoading } = useJewellerySpotted({ limit: 50 })
+  const allCollageItems = buildCollageItems(products)
+  const collageItems = allCollageItems.slice(0, COLLAGE_IMAGE_LIMIT)
+  const hasMore = products.length > 8 || allCollageItems.length > 8
 
   return (
     <section className="section container as-seen-section">
@@ -111,7 +113,12 @@ export function AsSeenOnYouSection() {
             </p>
           </Reveal>
         </div>
-        <Reveal delay={0.12}>
+        <Reveal delay={0.12} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          {hasMore && (
+            <Link to="/shop/jewellery-spotted" className="btn btn--secondary as-seen-section__cta">
+              View All <ChevronRight size={14} />
+            </Link>
+          )}
           <a
             href={AS_SEEN_ON_YOU.instagramHref}
             target="_blank"
@@ -127,11 +134,20 @@ export function AsSeenOnYouSection() {
       {isLoading && collageItems.length === 0 ? (
         <ProductGridSkeleton count={8} />
       ) : collageItems.length > 0 ? (
-        <div className="as-seen-collage">
-          {collageItems.map((item, index) => (
-            <CollageCard key={item.id} item={item} index={index} />
-          ))}
-        </div>
+        <>
+          <div className="as-seen-collage">
+            {collageItems.map((item, index) => (
+              <CollageCard key={item.id} item={item} index={index} />
+            ))}
+          </div>
+          {hasMore && (
+            <div style={{ textAlign: 'center', marginTop: 'var(--space-6)' }}>
+              <Link to="/shop/jewellery-spotted" className="btn btn--secondary btn--lg">
+                View All Jewellery Spotted ({products.length})
+              </Link>
+            </div>
+          )}
+        </>
       ) : (
         <p className="body-sm text-muted">
           No Jewellery Spotted products yet. Mark products with the Jewellery Spotted tag in admin to show them here.
