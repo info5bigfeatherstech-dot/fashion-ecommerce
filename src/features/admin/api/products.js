@@ -54,6 +54,7 @@ export {
   toggleAdminCategoryMovingFast,
   MOVING_FAST_CATEGORY_MAX,
   getCategoryImageUrl,
+  getCategoryBannerImageUrl,
   normalizeAdminCategoriesPayload,
   sortAdminCategories,
 } from './categories'

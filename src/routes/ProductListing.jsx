@@ -17,7 +17,7 @@ import { PRICE_RANGES, DISCOUNT_OPTIONS } from '@/features/product/api'
 import { CATEGORY_TREE, DEFAULT_CATEGORY_IMAGE } from '@/features/category/api'
 import { useCircleCategories, useCategoryLabel } from '@/features/category/hooks'
 import { getCategoryLanding } from '@/config/categoryLandings'
-import { getCategoryBanner, CATEGORY_BANNERS } from '@/config/categoryBanners'
+import { getCategoryBanner } from '@/config/categoryBanners'
 import { CategoryLanding } from '@/components/category/CategoryLanding'
 import { CategoryBanner } from '@/components/category/CategoryBanner'
 import { CategoryComingSoon } from '@/components/category/CategoryComingSoon'
@@ -71,16 +71,16 @@ export default function ProductListing() {
   const { data: circleCategories = [] } = useCircleCategories()
   const apiCategoryLabel = useCategoryLabel(category)
 
-  const apiCategoryImage = useMemo(() => {
+  /** Wide PLP banner only — do not fall back to card/tile image (wrong aspect). */
+  const apiCategoryBannerImage = useMemo(() => {
     if (!category) return null
     const match = circleCategories.find((item) => {
       const href = String(item.href || '')
       return href === `/shop/${category}` || href.endsWith(`/${category}`)
     })
-    const image = match?.image || null
-    // Ignore generic placeholder so curated banner art can show.
-    if (!image || image === DEFAULT_CATEGORY_IMAGE) return null
-    return image
+    const banner = match?.bannerImage || null
+    if (!banner || banner === DEFAULT_CATEGORY_IMAGE) return null
+    return banner
   }, [circleCategories, category])
 
   const resolvedCategoryLabel = categoryInfo?.label || apiCategoryLabel || null
@@ -89,9 +89,10 @@ export default function ProductListing() {
     if (subcategory || search || landing) return null
     return getCategoryBanner(category, {
       label: resolvedCategoryLabel,
-      image: apiCategoryImage,
+      // Prefer dedicated banner art; never reuse square card image as banner BG.
+      image: apiCategoryBannerImage || undefined,
     })
-  }, [subcategory, search, landing, category, resolvedCategoryLabel, apiCategoryImage])
+  }, [subcategory, search, landing, category, resolvedCategoryLabel, apiCategoryBannerImage])
 
   const title = search
     ? `Results for "${search}"`

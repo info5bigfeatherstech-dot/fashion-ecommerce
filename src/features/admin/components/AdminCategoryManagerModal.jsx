@@ -17,6 +17,7 @@ import {
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/Button'
 import {
+  getCategoryBannerImageUrl,
   getCategoryImageUrl,
   MOVING_FAST_CATEGORY_MAX,
   sortAdminCategories,
@@ -45,7 +46,17 @@ function mergeCategoryIntoList(list, category) {
   return sortAdminCategories(next)
 }
 
-function CategoryImagePreview({ src, isNewFile, onClear, onReplace, onUploadClick }) {
+function CategoryImagePreview({
+  src,
+  isNewFile,
+  onClear,
+  onReplace,
+  onUploadClick,
+  uploadLabel = 'Click to upload image',
+  uploadHint = 'PNG · JPG · WEBP · max 5 MB',
+  alt = 'Category preview',
+  variant = 'tile',
+}) {
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState(false)
   const isDataUri = src?.startsWith('data:')
@@ -62,16 +73,20 @@ function CategoryImagePreview({ src, isNewFile, onClear, onReplace, onUploadClic
 
   if (!src) {
     return (
-      <button type="button" className="admin-cat__upload-zone" onClick={onUploadClick}>
+      <button
+        type="button"
+        className={`admin-cat__upload-zone${variant === 'banner' ? ' admin-cat__upload-zone--banner' : ''}`}
+        onClick={onUploadClick}
+      >
         <ImageIcon size={22} aria-hidden />
-        <span>Click to upload image</span>
-        <span className="admin-cat__upload-hint">PNG · JPG · WEBP · max 5 MB</span>
+        <span>{uploadLabel}</span>
+        <span className="admin-cat__upload-hint">{uploadHint}</span>
       </button>
     )
   }
 
   return (
-    <div className="admin-cat__preview">
+    <div className={`admin-cat__preview${variant === 'banner' ? ' admin-cat__preview--banner' : ''}`}>
       {!showVisible && !error ? <div className="admin-cat__preview-skeleton" aria-hidden /> : null}
       {error ? (
         <div className="admin-cat__preview-error">
@@ -81,7 +96,7 @@ function CategoryImagePreview({ src, isNewFile, onClear, onReplace, onUploadClic
       ) : null}
       <img
         src={src}
-        alt="Category preview"
+        alt={alt}
         onLoad={() => {
           setLoaded(true)
           setError(false)
@@ -90,7 +105,9 @@ function CategoryImagePreview({ src, isNewFile, onClear, onReplace, onUploadClic
           setError(true)
           setLoaded(false)
         }}
-        className={`admin-cat__preview-img ${showVisible ? 'is-visible' : ''}`}
+        className={`admin-cat__preview-img ${showVisible ? 'is-visible' : ''}${
+          variant === 'banner' ? ' admin-cat__preview-img--banner' : ''
+        }`}
       />
       {isNewFile ? <span className="admin-cat__preview-badge">New</span> : null}
       <button type="button" className="admin-cat__preview-clear" onClick={onClear} title="Remove image">
@@ -270,14 +287,20 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
   const dragSourceIndexRef = useRef(null)
   const orderedCatsRef = useRef([])
   const imageInputRef = useRef(null)
+  const bannerImageInputRef = useRef(null)
   const formTopRef = useRef(null)
   const existingImageUrlRef = useRef('')
+  const existingBannerImageUrlRef = useRef('')
 
   const [editingCat, setEditingCat] = useState(null)
   const [formName, setFormName] = useState('')
   const [formDesc, setFormDesc] = useState('')
   const [formImageFile, setFormImageFile] = useState(null)
   const [formImageSrc, setFormImageSrc] = useState('')
+  const [formClearImage, setFormClearImage] = useState(false)
+  const [formBannerImageFile, setFormBannerImageFile] = useState(null)
+  const [formBannerImageSrc, setFormBannerImageSrc] = useState('')
+  const [formClearBannerImage, setFormClearBannerImage] = useState(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
   const [actionError, setActionError] = useState('')
 
@@ -321,24 +344,52 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
         if (!cancelled) setFormImageSrc(String(e.target?.result || ''))
       }
       reader.onerror = () => {
-        if (!cancelled) setFormImageSrc(existingImageUrlRef.current)
+        if (!cancelled) setFormImageSrc(formClearImage ? '' : existingImageUrlRef.current)
       }
       reader.readAsDataURL(formImageFile)
     } else {
-      setFormImageSrc(existingImageUrlRef.current)
+      setFormImageSrc(formClearImage ? '' : existingImageUrlRef.current)
     }
     return () => {
       cancelled = true
     }
-  }, [formImageFile])
+  }, [formImageFile, formClearImage])
+
+  useEffect(() => {
+    let cancelled = false
+    if (formBannerImageFile) {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        if (!cancelled) setFormBannerImageSrc(String(e.target?.result || ''))
+      }
+      reader.onerror = () => {
+        if (!cancelled) {
+          setFormBannerImageSrc(formClearBannerImage ? '' : existingBannerImageUrlRef.current)
+        }
+      }
+      reader.readAsDataURL(formBannerImageFile)
+    } else {
+      setFormBannerImageSrc(formClearBannerImage ? '' : existingBannerImageUrlRef.current)
+    }
+    return () => {
+      cancelled = true
+    }
+  }, [formBannerImageFile, formClearBannerImage])
 
   const resetForm = useCallback(() => {
     setEditingCat(null)
     setFormName('')
     setFormDesc('')
     setFormImageFile(null)
+    setFormClearImage(false)
     existingImageUrlRef.current = ''
+    setFormImageSrc('')
+    setFormBannerImageFile(null)
+    setFormClearBannerImage(false)
+    existingBannerImageUrlRef.current = ''
+    setFormBannerImageSrc('')
     if (imageInputRef.current) imageInputRef.current.value = ''
+    if (bannerImageInputRef.current) bannerImageInputRef.current.value = ''
     setActionError('')
   }, [])
 
@@ -347,34 +398,100 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
     setFormName(cat.name || '')
     setFormDesc(cat.description || '')
     setFormImageFile(null)
+    setFormClearImage(false)
     const existingUrl = getCategoryImageUrl(cat) || ''
     existingImageUrlRef.current = existingUrl
     setFormImageSrc(existingUrl)
+    setFormBannerImageFile(null)
+    setFormClearBannerImage(false)
+    const existingBannerUrl = getCategoryBannerImageUrl(cat) || ''
+    existingBannerImageUrlRef.current = existingBannerUrl
+    setFormBannerImageSrc(existingBannerUrl)
     if (imageInputRef.current) imageInputRef.current.value = ''
+    if (bannerImageInputRef.current) bannerImageInputRef.current.value = ''
     setActionError('')
     setTimeout(() => {
       formTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 50)
   }, [])
 
-  const handleImageChange = useCallback((e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (!file.type.startsWith('image/')) {
+  const validateImagePick = useCallback((file, { maxBytes = 5 * 1024 * 1024, label = 'Image' } = {}) => {
+    if (!file) return false
+    const type = String(file.type || '')
+    if (type && !type.startsWith('image/')) {
       setActionError('Please select a valid image (PNG, JPG, WEBP, etc.).')
-      return
+      return false
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setActionError('Image must be under 5 MB.')
-      return
+    if (!type) {
+      const name = String(file.name || '').toLowerCase()
+      if (!/\.(jpe?g|png|webp|gif|avif|bmp|heic|heif|tiff?|svg)$/i.test(name)) {
+        setActionError('Please select a valid image (PNG, JPG, WEBP, etc.).')
+        return false
+      }
+    }
+    if (file.size > maxBytes) {
+      const mb = Math.round((maxBytes / (1024 * 1024)) * 10) / 10
+      setActionError(`${label} must be under ${mb} MB (selected ${(file.size / (1024 * 1024)).toFixed(1)} MB).`)
+      return false
     }
     setActionError('')
-    setFormImageFile(file)
+    return true
   }, [])
+
+  const handleImageChange = useCallback(
+    (e) => {
+      const file = e.target.files?.[0]
+      if (!file) return
+      if (!validateImagePick(file, { maxBytes: 5 * 1024 * 1024, label: 'Category image' })) return
+      setFormClearImage(false)
+      setFormImageFile(file)
+      console.info('[admin.category] tile image selected', {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      })
+    },
+    [validateImagePick]
+  )
+
+  const handleBannerImageChange = useCallback(
+    (e) => {
+      const file = e.target.files?.[0]
+      if (!file) return
+      if (!validateImagePick(file, { maxBytes: 10 * 1024 * 1024, label: 'Banner image' })) return
+      setFormClearBannerImage(false)
+      setFormBannerImageFile(file)
+      console.info('[admin.category] banner image selected', {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      })
+    },
+    [validateImagePick]
+  )
 
   const clearImage = useCallback(() => {
     setFormImageFile(null)
     if (imageInputRef.current) imageInputRef.current.value = ''
+    if (existingImageUrlRef.current) {
+      setFormClearImage(true)
+      setFormImageSrc('')
+    } else {
+      setFormClearImage(false)
+      setFormImageSrc('')
+    }
+  }, [])
+
+  const clearBannerImage = useCallback(() => {
+    setFormBannerImageFile(null)
+    if (bannerImageInputRef.current) bannerImageInputRef.current.value = ''
+    if (existingBannerImageUrlRef.current) {
+      setFormClearBannerImage(true)
+      setFormBannerImageSrc('')
+    } else {
+      setFormClearBannerImage(false)
+      setFormBannerImageSrc('')
+    }
   }, [])
 
   const handleCreate = async () => {
@@ -389,6 +506,7 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
         name,
         description: formDesc.trim(),
         imageFile: formImageFile || undefined,
+        bannerImageFile: formBannerImageFile || undefined,
       })
       const id = category?._id || category?.id
       toast.success('Category created')
@@ -417,13 +535,38 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
 
     setActionError('')
     try {
+      if (formBannerImageFile) {
+        console.info('[admin.category] saving with banner file', {
+          name: formBannerImageFile.name,
+          size: formBannerImageFile.size,
+          type: formBannerImageFile.type,
+        })
+      } else {
+        console.warn('[admin.category] save without banner file selected', {
+          clearBanner: formClearBannerImage,
+          existingBanner: Boolean(existingBannerImageUrlRef.current),
+        })
+      }
       const category = await updateCategory.mutateAsync({
         id,
         name,
         description: formDesc.trim(),
         imageFile: formImageFile || undefined,
+        bannerImageFile: formBannerImageFile || undefined,
+        clearImage: Boolean(formClearImage && !formImageFile),
+        clearBannerImage: Boolean(formClearBannerImage && !formBannerImageFile),
       })
-      toast.success('Category updated')
+      const savedBanner = getCategoryBannerImageUrl(category)
+      if (formBannerImageFile && !savedBanner) {
+        setActionError('Banner image did not save on the server. Check browser console / backend logs.')
+        toast.error('Banner image failed to save')
+        return
+      }
+      toast.success(
+        formBannerImageFile || formImageFile
+          ? 'Category updated (images saved)'
+          : 'Category updated'
+      )
       onCreated?.(category)
       setOrderedCategories((prev) => mergeCategoryIntoList(prev, category))
       const result = await refetch()
@@ -694,13 +837,19 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
             </label>
 
             <div className="admin-cat__field">
-              <span className="admin-cat__field-label">Category image</span>
+              <span className="admin-cat__field-label">Category image (cards / tiles)</span>
+              <p className="admin-cat__field-hint">
+                Used on homepage circles, Moving Fast, and category cards — square or portrait works best.
+              </p>
               <CategoryImagePreview
                 src={formImageSrc}
                 isNewFile={Boolean(formImageFile)}
                 onClear={clearImage}
                 onReplace={() => imageInputRef.current?.click()}
                 onUploadClick={() => imageInputRef.current?.click()}
+                uploadLabel="Click to upload card image"
+                alt="Category card image preview"
+                variant="tile"
               />
               <input
                 ref={imageInputRef}
@@ -708,6 +857,31 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
                 accept="image/*"
                 className="sr-only"
                 onChange={handleImageChange}
+              />
+            </div>
+
+            <div className="admin-cat__field">
+              <span className="admin-cat__field-label">Banner background (category page)</span>
+              <p className="admin-cat__field-hint">
+                Used only as the wide banner on the category shop page. Recommended ~1480×300 (5:1).
+              </p>
+              <CategoryImagePreview
+                src={formBannerImageSrc}
+                isNewFile={Boolean(formBannerImageFile)}
+                onClear={clearBannerImage}
+                onReplace={() => bannerImageInputRef.current?.click()}
+                onUploadClick={() => bannerImageInputRef.current?.click()}
+                uploadLabel="Click to upload banner background"
+                uploadHint="Wide landscape · PNG · JPG · WEBP · max 10 MB"
+                alt="Category banner background preview"
+                variant="banner"
+              />
+              <input
+                ref={bannerImageInputRef}
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={handleBannerImageChange}
               />
             </div>
 

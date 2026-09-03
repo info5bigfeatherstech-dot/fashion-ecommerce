@@ -2,16 +2,32 @@ import { API_ENDPOINTS } from '@/api/endpoints'
 import { ApiError } from '@/api/errors'
 import { adminDelete, adminGet, adminPatch, adminPost, unwrapAdmin } from './client'
 
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+/** Card / tile image limit */
+const MAX_TILE_IMAGE_BYTES = 5 * 1024 * 1024
+/** Banner background limit (wide designs are often larger) */
+const MAX_BANNER_IMAGE_BYTES = 10 * 1024 * 1024
 
 async function adminMultipartRequest(method, url, formData) {
   const axiosClient = (await import('@/api/axiosClient')).default
   try {
+    if (typeof FormData !== 'undefined' && formData instanceof FormData) {
+      const keys = []
+      for (const [key, value] of formData.entries()) {
+        if (value && typeof value === 'object' && 'size' in value) {
+          keys.push(`${key}:file(${value.name || 'blob'},${value.size}b,${value.type || ''})`)
+        } else {
+          keys.push(`${key}:text`)
+        }
+      }
+      console.info('[category.api] multipart payload', { method, url, keys })
+    }
+
     const response = await axiosClient.request({
       method,
       url,
       data: formData,
-      headers: { 'Content-Type': 'multipart/form-data' },
+      // Do NOT set Content-Type manually — browser/axios must add multipart boundary.
+      headers: {},
       useAdminAuth: true,
     })
     return unwrapAdmin(response.data)
@@ -20,6 +36,11 @@ async function adminMultipartRequest(method, url, formData) {
       error?.response?.data?.message ||
       error?.message ||
       'Category request failed'
+    console.error('[category.api] multipart failed', {
+      message,
+      status: error?.response?.status,
+      data: error?.response?.data,
+    })
     throw new ApiError({
       message,
       status: error?.response?.status || 500,
@@ -79,24 +100,60 @@ export function getCategoryImageUrl(category) {
   return category.image?.url || category.image?.secure_url || null
 }
 
-export function validateCategoryImageFile(file) {
-  if (!(file instanceof File)) {
-    throw new ApiError({ message: 'Invalid image file', status: 400, code: 'INVALID_IMAGE' })
+export function getCategoryBannerImageUrl(category) {
+  if (!category?.bannerImage) return null
+  if (typeof category.bannerImage === 'string' && category.bannerImage.trim()) {
+    return category.bannerImage.trim()
   }
-  if (!file.type.startsWith('image/')) {
+  return category.bannerImage?.url || category.bannerImage?.secure_url || null
+}
+
+export function validateCategoryImageFile(file, { maxBytes = MAX_TILE_IMAGE_BYTES, label = 'Image' } = {}) {
+  if (!isUploadableImage(file)) {
+    throw new ApiError({ message: `Invalid ${label.toLowerCase()} file`, status: 400, code: 'INVALID_IMAGE' })
+  }
+  if (file.type && !String(file.type).startsWith('image/')) {
     throw new ApiError({
       message: 'Please select a valid image (PNG, JPG, WEBP, etc.)',
       status: 400,
       code: 'INVALID_IMAGE_TYPE',
     })
   }
-  if (file.size > MAX_IMAGE_BYTES) {
+  const limit = Number(maxBytes) > 0 ? Number(maxBytes) : MAX_TILE_IMAGE_BYTES
+  if (file.size > limit) {
+    const mb = Math.round((limit / (1024 * 1024)) * 10) / 10
     throw new ApiError({
-      message: 'Image must be under 5 MB',
+      message: `${label} must be under ${mb} MB`,
       status: 400,
       code: 'IMAGE_TOO_LARGE',
     })
   }
+}
+
+/** File/Blob duck-type — more reliable than `instanceof File` across browsers. */
+function isUploadableImage(value) {
+  if (!value || typeof value !== 'object') return false
+  if (typeof value.size !== 'number' || value.size <= 0) return false
+  // Prefer image/* ; allow empty type (some OS pickers) if name looks like an image
+  const type = String(value.type || '')
+  if (type && !type.startsWith('image/')) return false
+  if (!type) {
+    const name = String(value.name || '').toLowerCase()
+    if (!/\.(jpe?g|png|webp|gif|avif|bmp|heic|heif|tiff?|svg)$/i.test(name)) return false
+  }
+  return true
+}
+
+function appendImageField(fd, fieldName, file) {
+  if (!isUploadableImage(file)) return false
+  const isBanner = fieldName === 'bannerImage'
+  validateCategoryImageFile(file, {
+    maxBytes: isBanner ? MAX_BANNER_IMAGE_BYTES : MAX_TILE_IMAGE_BYTES,
+    label: isBanner ? 'Banner image' : 'Category image',
+  })
+  const filename = String(file.name || `${fieldName}.jpg`).trim() || `${fieldName}.jpg`
+  fd.append(fieldName, file, filename)
+  return true
 }
 
 function buildCategoryFormData({
@@ -106,6 +163,9 @@ function buildCategoryFormData({
   order,
   status,
   imageFile,
+  bannerImageFile,
+  clearImage,
+  clearBannerImage,
 } = {}) {
   const fd = new FormData()
   if (name != null && String(name).trim()) fd.append('name', String(name).trim())
@@ -113,10 +173,13 @@ function buildCategoryFormData({
   if (parent) fd.append('parent', String(parent))
   if (order != null && order !== '') fd.append('order', String(order))
   if (status) fd.append('status', String(status))
-  if (imageFile instanceof File) {
-    validateCategoryImageFile(imageFile)
-    fd.append('image', imageFile)
-  }
+
+  const hasImage = appendImageField(fd, 'image', imageFile)
+  const hasBanner = appendImageField(fd, 'bannerImage', bannerImageFile)
+
+  // Only clear when not also uploading a replacement for that slot
+  if (clearImage && !hasImage) fd.append('clearImage', 'true')
+  if (clearBannerImage && !hasBanner) fd.append('clearBannerImage', 'true')
   return fd
 }
 
@@ -144,28 +207,80 @@ export async function createAdminCategory({
   status = 'active',
   order,
   imageFile,
+  bannerImageFile,
 } = {}) {
   const trimmed = String(name || '').trim()
   if (!trimmed) {
     throw new ApiError({ message: 'Category name is required', status: 400, code: 'NAME_REQUIRED' })
   }
 
-  const fd = buildCategoryFormData({ name: trimmed, description, parent, status, order, imageFile })
+  const fd = buildCategoryFormData({
+    name: trimmed,
+    description,
+    parent,
+    status,
+    order,
+    imageFile,
+    bannerImageFile,
+  })
   const data = await adminMultipartRequest('POST', API_ENDPOINTS.admin.categories, fd)
   return unwrapCategoryRecord(data)
 }
 
 export async function updateAdminCategory(
   id,
-  { name, description, parent, order, status, imageFile } = {}
+  {
+    name,
+    description,
+    parent,
+    order,
+    status,
+    imageFile,
+    bannerImageFile,
+    clearImage,
+    clearBannerImage,
+  } = {}
 ) {
   if (!id) {
     throw new ApiError({ message: 'Category id is required', status: 400, code: 'ID_REQUIRED' })
   }
 
-  const fd = buildCategoryFormData({ name, description, parent, order, status, imageFile })
+  const expectingBanner = isUploadableImage(bannerImageFile)
+  const expectingImage = isUploadableImage(imageFile)
+
+  const fd = buildCategoryFormData({
+    name,
+    description,
+    parent,
+    order,
+    status,
+    imageFile,
+    bannerImageFile,
+    clearImage,
+    clearBannerImage,
+  })
   const data = await adminMultipartRequest('PUT', API_ENDPOINTS.admin.categoryById(id), fd)
-  return unwrapCategoryRecord(data)
+  const category = unwrapCategoryRecord(data)
+
+  if (expectingBanner && !getCategoryBannerImageUrl(category)) {
+    throw new ApiError({
+      message:
+        'Banner image did not save. Please try again (file must be under 5 MB: PNG/JPG/WEBP).',
+      status: 502,
+      code: 'BANNER_UPLOAD_NOT_PERSISTED',
+      details: category,
+    })
+  }
+  if (expectingImage && !getCategoryImageUrl(category)) {
+    throw new ApiError({
+      message: 'Category image did not save. Please try again.',
+      status: 502,
+      code: 'IMAGE_UPLOAD_NOT_PERSISTED',
+      details: category,
+    })
+  }
+
+  return category
 }
 
 /** Permanently remove an inactive category from the database. Active categories must be hidden first. */

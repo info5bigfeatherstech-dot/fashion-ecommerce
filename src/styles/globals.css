@@ -22132,6 +22132,13 @@ button.admin-stats-chip:hover {
   color: #475569;
 }
 
+.admin-cat__field-hint {
+  margin: 0 0 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #94a3b8;
+}
+
 .admin-cat__field input,
 .admin-cat__field textarea {
   width: 100%;
@@ -22185,6 +22192,10 @@ button.admin-stats-chip:hover {
   color: #2563eb;
 }
 
+.admin-cat__upload-zone--banner {
+  min-height: 96px;
+}
+
 .admin-cat__upload-hint {
   font-size: 11px;
   color: #94a3b8;
@@ -22198,6 +22209,10 @@ button.admin-stats-chip:hover {
   overflow: hidden;
   border: 1px solid #e2e8f0;
   background: #f1f5f9;
+}
+
+.admin-cat__preview--banner {
+  min-height: 88px;
 }
 
 .admin-cat__preview-skeleton {
@@ -22225,6 +22240,12 @@ button.admin-stats-chip:hover {
   object-fit: cover;
   opacity: 0;
   transition: opacity 0.2s ease;
+}
+
+.admin-cat__preview-img--banner {
+  max-height: 120px;
+  object-fit: cover;
+  object-position: center;
 }
 
 .admin-cat__preview-img.is-visible {

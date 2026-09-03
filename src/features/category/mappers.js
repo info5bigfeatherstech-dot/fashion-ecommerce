@@ -12,6 +12,14 @@ function getCategoryImageUrl(category) {
   return category?.image?.url || category?.image?.secure_url || DEFAULT_CATEGORY_IMAGE
 }
 
+function getCategoryBannerImageUrl(category) {
+  if (typeof category?.bannerImage === 'string' && category.bannerImage.trim()) {
+    return category.bannerImage.trim()
+  }
+
+  return category?.bannerImage?.url || category?.bannerImage?.secure_url || ''
+}
+
 function getCategorySlug(category) {
   if (category?.slug) return String(category.slug).trim()
   if (category?.name) {
@@ -37,12 +45,16 @@ export function mapCircleCategory(category) {
   const slug = getCategorySlug(category)
   const rawLabel = category?.name || category?.label || 'Category'
   const label = formatCategoryTitle(rawLabel)
+  const bannerImage = getCategoryBannerImageUrl(category)
 
   return {
     id: category?._id || category?.id || slug,
     label,
     href: slug ? `/shop/${slug}` : '/shop',
+    /** Card / tile image — never use banner art here. */
     image: getCategoryImageUrl(category),
+    /** Optional wide PLP banner background (separate from card image). */
+    bannerImage: bannerImage || null,
     slug: category?.slug || slug,
     name: label,
   }
