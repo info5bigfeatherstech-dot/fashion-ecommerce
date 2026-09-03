@@ -217,7 +217,7 @@ export function AdminShell() {
           <Link to="/admin/dashboard" className="admin-sidebar__logo" aria-label={`${SITE_NAME} admin home`}>
             <BrandLogo />
           </Link>
-          <h1 className="admin-sidebar__title">{inSettings ? 'Settings' : 'Super Admin '}</h1>
+          <h1 className="admin-sidebar__title">{inSettings ? 'Settings' : 'Super Admin'}</h1>
         </div>
 
         <nav
