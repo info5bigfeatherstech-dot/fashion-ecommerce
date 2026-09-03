@@ -33,6 +33,7 @@ import {
 import { Button } from '@/components/ui/Button'
 import { PageLoader } from '@/components/ui/PageLoader'
 import { BrandLogo } from '@/components/layout/BrandLogo'
+import adminLogo from '@/assets/FabUniqo-logo-transparent.png'
 import { SITE_NAME } from '@/config/site'
 import { useAdminStore, ADMIN_ROLE_LABELS } from '@/features/admin/store'
 import { useAdminLogout } from '@/features/admin/hooks'
@@ -215,9 +216,13 @@ export function AdminShell() {
       <aside className="admin-sidebar">
         <div className="admin-sidebar__brand">
           <Link to="/admin/dashboard" className="admin-sidebar__logo" aria-label={`${SITE_NAME} admin home`}>
-            <BrandLogo />
+            <BrandLogo src={adminLogo} />
           </Link>
-          <h1 className="admin-sidebar__title">{inSettings ? 'Settings' : 'Super Admin'}</h1>
+          <h1 className="admin-sidebar__title">
+            {inSettings
+              ? 'Settings'
+              : ADMIN_ROLE_LABELS[user?.role] || user?.role || 'Staff'}
+          </h1>
         </div>
 
         <nav

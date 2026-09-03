@@ -67,7 +67,8 @@ export function emptyProductForm() {
     category: '',
     ProductCode: '',
     price: { base: '', sale: '' },
-    inventory: { quantity: 0, lowStockThreshold: 5, trackInventory: true },
+    // quantity '' = empty UI; API normalize → 0 if left blank
+    inventory: { quantity: '', lowStockThreshold: 5, trackInventory: true },
     images: [],
     variants: [],
     attributes: [],
@@ -85,6 +86,34 @@ export function emptyProductForm() {
     marketingTags: emptyMarketingTagsState(),
     status: 'draft',
   }
+}
+
+/**
+ * Controlled quantity input display value.
+ * Empty string while cleared / create default — avoids sticky leading "0" → "01".
+ */
+export function quantityFieldValue(qty) {
+  if (qty === '' || qty === null || qty === undefined) return ''
+  return qty
+}
+
+/**
+ * Parse quantity while typing. Allows empty; rejects negatives/NaN.
+ * @returns {number|''}
+ */
+export function parseQuantityInput(raw) {
+  if (raw === '' || raw == null) return ''
+  const n = Number.parseInt(String(raw), 10)
+  if (!Number.isFinite(n) || n < 0) return ''
+  return n
+}
+
+/** Submit/API: blank → 0, invalid → 0, else non-negative int. */
+export function normalizeQuantity(qty) {
+  if (qty === '' || qty == null) return 0
+  const n = Number.parseInt(String(qty), 10)
+  if (!Number.isFinite(n) || n < 0) return 0
+  return n
 }
 
 /** Normalize API variants into the edit-form shape used by ProductFormBody. */

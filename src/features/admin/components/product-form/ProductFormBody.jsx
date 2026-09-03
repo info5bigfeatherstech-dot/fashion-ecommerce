@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ADMIN_PRODUCT_MARKETING_TAGS } from '@/features/admin/constants/productMarketingTags'
+import { parseQuantityInput, quantityFieldValue } from './utils'
 
 const MARKETING_TOGGLE_CLASS = {
   'today-arrival': 'pf-toggle--today',
@@ -162,7 +163,7 @@ export default function ProductFormBody({
   const primaryBase = formData.price?.base ?? "";
   const primarySale = formData.price?.sale ?? "";
   const primaryTrack = formData.inventory?.trackInventory ?? true;
-  const primaryQty = formData.inventory?.quantity ?? 0;
+  const primaryQty = formData.inventory?.quantity;
   const primaryLow = formData.inventory?.lowStockThreshold ?? 5;
 
   const mainGalleryImage = galleryImages.find((img) => img.isMain) || galleryImages[0] || null;
@@ -460,7 +461,16 @@ export default function ProductFormBody({
                 </div>
                 {primaryVariant.inventory?.trackInventory !== false && (
                   <div className="pf-row">
-                    <input type="number" value={primaryVariant.inventory?.quantity ?? 0} onChange={(e) => updateMainVariantInventory('quantity', parseInt(e.target.value, 10) || 0)} className="pf-input" placeholder="Quantity" />
+                    <input
+                      type="number"
+                      min={0}
+                      inputMode="numeric"
+                      value={quantityFieldValue(primaryVariant.inventory?.quantity)}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => updateMainVariantInventory('quantity', parseQuantityInput(e.target.value))}
+                      className="pf-input"
+                      placeholder="Quantity"
+                    />
                     <input type="number" value={primaryVariant.inventory?.lowStockThreshold ?? 5} onChange={(e) => updateMainVariantInventory('lowStockThreshold', parseInt(e.target.value, 10) || 5)} className="pf-input" placeholder="Low stock alert" />
                   </div>
                 )}
@@ -563,7 +573,24 @@ export default function ProductFormBody({
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Quantity</label>
-                      <input type="number" value={primaryQty} onChange={(e) => setFormData((p) => ({ ...p, inventory: { ...p.inventory, quantity: parseInt(e.target.value) || 0 } }))} className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="0" />
+                      <input
+                        type="number"
+                        min={0}
+                        inputMode="numeric"
+                        value={quantityFieldValue(primaryQty)}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) =>
+                          setFormData((p) => ({
+                            ...p,
+                            inventory: {
+                              ...p.inventory,
+                              quantity: parseQuantityInput(e.target.value),
+                            },
+                          }))
+                        }
+                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="Enter stock qty"
+                      />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Low Stock Alert</label>
