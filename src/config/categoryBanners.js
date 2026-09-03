@@ -73,21 +73,19 @@ export const CATEGORY_BANNERS = {
   },
 }
 
-const JEWELRY_SLUGS = new Set(JEWELRY_CATEGORIES.map((c) => c.slug))
+/**
+ * Generic jewelry fallback banner — used when admin hasn't set a bannerImage.
+ * Will be removed once every category has a real banner in the admin.
+ */
+export const JEWELRY_FALLBACK_BANNER =
+  'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=1800&h=700&q=80'
 
 export function getCategoryBanner(slug, { label, image } = {}) {
   if (!slug) return null
-  const base = CATEGORY_BANNERS[slug]
-  // Allow banners for any shop slug (API categories), not only the old static jewelry list.
-  const known =
-    Boolean(base) ||
-    JEWELRY_SLUGS.has(slug) ||
-    slug === 'sale' ||
-    Boolean(label) ||
-    Boolean(image)
-  if (!known) return null
 
+  const base = CATEGORY_BANNERS[slug]
   const isGraphic = Boolean(base?.isGraphic || base?.hideText)
+
   const rawTitle =
     label ||
     base?.title ||
@@ -96,10 +94,11 @@ export function getCategoryBanner(slug, { label, image } = {}) {
 
   const formattedTitle = formatCategoryTitle(rawTitle)
 
+  // Always return a banner — use admin bannerImage → static preset → jewelry fallback
   return {
     title: isGraphic ? '' : formattedTitle,
     subtitle: isGraphic ? '' : (base?.subtitle || `Shop the latest ${formattedTitle} from FABUNIQO.`),
-    image: image || base?.image || CATEGORY_BANNERS['earrings-studs'].image,
+    image: image || base?.image || JEWELRY_FALLBACK_BANNER,
     alt: base?.alt || `${formattedTitle} collection`,
     isGraphic,
     hideText: isGraphic,

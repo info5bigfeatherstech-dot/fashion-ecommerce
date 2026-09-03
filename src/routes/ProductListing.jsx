@@ -75,6 +75,8 @@ export default function ProductListing() {
   const apiCategoryBannerImage = useMemo(() => {
     if (!category) return null
     const match = circleCategories.find((item) => {
+      // Match by slug field directly, or by href path
+      if (item.slug && item.slug === category) return true
       const href = String(item.href || '')
       return href === `/shop/${category}` || href.endsWith(`/${category}`)
     })
