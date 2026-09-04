@@ -2925,6 +2925,12 @@ html.modal-open.lenis body {
   color: var(--color-ink);
 }
 
+.top-banner__headline-highlight {
+  font-weight: 800;
+  font-size: 1.15em;
+  letter-spacing: 0.03em;
+}
+
 .top-banner__divider {
   flex-shrink: 0;
   width: 1px;

@@ -5,6 +5,11 @@ import { TOP_BANNER } from '@/config/site'
 import giftIcon from '@/assets/6664427.ico'
 
 function BannerPromoItem() {
+  const headlineMatch = TOP_BANNER.headline.match(/^(.*?\b)(every\s+purchase)(.*)$/i)
+  const headlinePrefix = headlineMatch ? headlineMatch[1] : TOP_BANNER.headline
+  const headlineHighlight = headlineMatch ? headlineMatch[2] : ''
+  const headlineSuffix = headlineMatch ? headlineMatch[3] : ''
+
   const match = TOP_BANNER.message.match(/^(.*?)(₹\s*\d[\d,]*.*)$/)
   const prefix = match ? match[1] : TOP_BANNER.message
   const price = match ? match[2] : ''
@@ -13,7 +18,13 @@ function BannerPromoItem() {
     <span className="top-banner__item">
       <span className="top-banner__copy">
         <img src={giftIcon} alt="" className="top-banner__icon" aria-hidden="true" />
-        <span className="top-banner__headline">{TOP_BANNER.headline}</span>
+        <span className="top-banner__headline">
+          {headlinePrefix}
+          {headlineHighlight && (
+            <span className="top-banner__headline-highlight">{headlineHighlight}</span>
+          )}
+          {headlineSuffix}
+        </span>
         <span className="top-banner__divider" aria-hidden="true" />
         <span className="top-banner__message">
           <Truck className="top-banner__message-icon" aria-hidden="true" strokeWidth={1.75} />
