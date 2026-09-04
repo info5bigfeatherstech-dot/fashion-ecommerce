@@ -124,7 +124,6 @@ export const HERO_SLIDES = [
     cta: 'Explore New Drops',
     href: '/shop/new-arrivals',
     video: 'https://res.cloudinary.com/kiqmlqnj/video/upload/v1787745696/web_1.mp4',
-    image: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1400&h=800&q=80',
     alt: 'FABUNIQO Jewelry Collection — Trendsetting Korean & Western designs',
     // features: [
     //   {

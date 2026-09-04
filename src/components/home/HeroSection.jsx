@@ -61,7 +61,6 @@ export function HeroSection() {
                 ref={videoRef}
                 className="hero__video"
                 src={slide.video}
-                poster={slide.image}
                 autoPlay
                 muted
                 loop
@@ -70,9 +69,9 @@ export function HeroSection() {
                 disablePictureInPicture
                 aria-label={slide.alt}
               />
-            ) : (
+            ) : slide.image ? (
               <img src={slide.image} alt={slide.alt} />
-            )}
+            ) : null}
           </div>
           <div className="hero__overlay" />
           <div className="hero__content">
