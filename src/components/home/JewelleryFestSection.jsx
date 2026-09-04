@@ -107,7 +107,7 @@ export function JewelleryFestSection() {
         <div className="jewellery-fest__right">
           <div className="jewellery-fest__panel-head">
             <h3 className="jewellery-fest__panel-title">{JEWELLERY_FEST.panelTitle}</h3>
-            <span className="jewellery-fest__live">Live</span>
+            {/* <span className="jewellery-fest__live">Live</span> */}
           </div>
 
           <div className="jewellery-fest__list">
