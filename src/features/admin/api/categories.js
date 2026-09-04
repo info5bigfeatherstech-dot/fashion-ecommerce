@@ -3,9 +3,10 @@ import { ApiError } from '@/api/errors'
 import { adminDelete, adminGet, adminPatch, adminPost, unwrapAdmin } from './client'
 
 /** Card / tile image limit */
-const MAX_TILE_IMAGE_BYTES = 5 * 1024 * 1024
+export const MAX_TILE_IMAGE_BYTES = 5 * 1024 * 1024
 /** Banner background limit (wide designs are often larger) */
-const MAX_BANNER_IMAGE_BYTES = 10 * 1024 * 1024
+export const MAX_BANNER_IMAGE_BYTES = 20 * 1024 * 1024
+const BANNER_IMAGE_MAX_MB = Math.round(MAX_BANNER_IMAGE_BYTES / (1024 * 1024))
 
 async function adminMultipartRequest(method, url, formData) {
   const axiosClient = (await import('@/api/axiosClient')).default
@@ -265,7 +266,7 @@ export async function updateAdminCategory(
   if (expectingBanner && !getCategoryBannerImageUrl(category)) {
     throw new ApiError({
       message:
-        'Banner image did not save. Please try again (file must be under 5 MB: PNG/JPG/WEBP).',
+        `Banner image did not save. Please try again (file must be under ${BANNER_IMAGE_MAX_MB} MB: PNG/JPG/WEBP).`,
       status: 502,
       code: 'BANNER_UPLOAD_NOT_PERSISTED',
       details: category,

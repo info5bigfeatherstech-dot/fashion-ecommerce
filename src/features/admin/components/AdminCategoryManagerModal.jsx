@@ -19,6 +19,8 @@ import { Button } from '@/components/ui/Button'
 import {
   getCategoryBannerImageUrl,
   getCategoryImageUrl,
+  MAX_BANNER_IMAGE_BYTES,
+  MAX_TILE_IMAGE_BYTES,
   MOVING_FAST_CATEGORY_MAX,
   sortAdminCategories,
 } from '@/features/admin/api/categories'
@@ -415,7 +417,7 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
     }, 50)
   }, [])
 
-  const validateImagePick = useCallback((file, { maxBytes = 5 * 1024 * 1024, label = 'Image' } = {}) => {
+  const validateImagePick = useCallback((file, { maxBytes = MAX_TILE_IMAGE_BYTES, label = 'Image' } = {}) => {
     if (!file) return false
     const type = String(file.type || '')
     if (type && !type.startsWith('image/')) {
@@ -442,7 +444,7 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
     (e) => {
       const file = e.target.files?.[0]
       if (!file) return
-      if (!validateImagePick(file, { maxBytes: 5 * 1024 * 1024, label: 'Category image' })) return
+      if (!validateImagePick(file, { maxBytes: MAX_TILE_IMAGE_BYTES, label: 'Category image' })) return
       setFormClearImage(false)
       setFormImageFile(file)
       console.info('[admin.category] tile image selected', {
@@ -458,7 +460,7 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
     (e) => {
       const file = e.target.files?.[0]
       if (!file) return
-      if (!validateImagePick(file, { maxBytes: 10 * 1024 * 1024, label: 'Banner image' })) return
+      if (!validateImagePick(file, { maxBytes: MAX_BANNER_IMAGE_BYTES, label: 'Banner image' })) return
       setFormClearBannerImage(false)
       setFormBannerImageFile(file)
       console.info('[admin.category] banner image selected', {
@@ -872,7 +874,7 @@ export function AdminCategoryManagerModal({ onSelect, onCreated, onClose, select
                 onReplace={() => bannerImageInputRef.current?.click()}
                 onUploadClick={() => bannerImageInputRef.current?.click()}
                 uploadLabel="Click to upload banner background"
-                uploadHint="Wide landscape · PNG · JPG · WEBP · max 10 MB"
+                uploadHint={`Wide landscape · PNG · JPG · WEBP · max ${Math.round(MAX_BANNER_IMAGE_BYTES / (1024 * 1024))} MB`}
                 alt="Category banner background preview"
                 variant="banner"
               />
