@@ -3824,15 +3824,18 @@ html.modal-open.lenis body {
 }
 
 .product-all-page__hero {
-  padding-block: clamp(var(--space-4), 5vw, var(--space-6)) clamp(var(--space-3), 3vw, var(--space-4));
+  margin-top: clamp(var(--space-3), 2.5vw, var(--space-5));
+  margin-bottom: clamp(var(--space-1), 1.5vw, var(--space-3));
+  padding: clamp(var(--space-4), 3.5vw, var(--space-6)) clamp(var(--space-4), 4vw, var(--space-6));
   background:
-    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(209, 167, 67, 0.14), transparent 55%),
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(209, 167, 67, 0.12), transparent 55%),
     linear-gradient(180deg, var(--color-neutral) 0%, var(--color-paper) 100%);
-  border-bottom: 1px solid var(--color-border);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 16px);
 }
 
 .product-all-page__hero-inner {
-  /* Aligns with container start, matching category section titles below */
+  max-width: 44rem;
 }
 
 .product-all-page__eyebrow {

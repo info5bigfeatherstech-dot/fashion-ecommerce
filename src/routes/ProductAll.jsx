@@ -197,79 +197,39 @@ export default function ProductAll() {
 
   return (
     <div className="product-all-page">
-      <section className="product-all-page__hero">
-        <div className="container product-all-page__hero-inner">
-          <Reveal>
-            <p className="product-all-page__eyebrow">
-              <span className="product-all-page__eyebrow-rule" aria-hidden="true" />
-              Collections
-            </p>
-          </Reveal>
-          <ScrollRevealText as="h1" className="display-md product-all-page__title">
-            {selectedCategory ? (
-              <>
-                Collection:{' '}
-                <span className="heading-accent heading-accent--gold">
-                  {selectedCategory.label}
-                </span>
-              </>
-            ) : (
-              <>
-                Shop <span className="heading-accent heading-accent--gold">All Products</span>
-              </>
-            )}
-          </ScrollRevealText>
-          <Reveal delay={0.08}>
-            <p className="product-all-page__lead">
-              {selectedCategory
-                ? `Explore our complete range of ${selectedCategory.label.toLowerCase()} handcrafted for everyday elegance and celebrations.`
-                : 'Browse every category — select a category name to explore all its products, or browse below.'}
-            </p>
-          </Reveal>
-
-          {/* Category Navigation Pills */}
-          {/* {!isLoading && categories.length > 0 ? (
-            <div className="product-all-pills-container">
-              <div className="product-all-pills-track" ref={pillsRef} role="tablist" aria-label="Categories">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={!selectedCategorySlug}
-                  className={`product-all-pill ${!selectedCategorySlug ? 'product-all-pill--active' : ''}`}
-                  onClick={() => handleSelectCategory(null)}
-                >
-                  <span className="product-all-pill__icon">
-                    <Layers size={14} aria-hidden="true" />
+      <div className="container">
+        <section className="product-all-page__hero">
+          <div className="product-all-page__hero-inner">
+            <Reveal>
+              <p className="product-all-page__eyebrow">
+                <span className="product-all-page__eyebrow-rule" aria-hidden="true" />
+                Collections
+              </p>
+            </Reveal>
+            <ScrollRevealText as="h1" className="display-md product-all-page__title">
+              {selectedCategory ? (
+                <>
+                  Collection:{' '}
+                  <span className="heading-accent heading-accent--gold">
+                    {selectedCategory.label}
                   </span>
-                  <span className="product-all-pill__label">All Categories</span>
-                </button>
-
-                {categories.map((cat) => {
-                  const slug = cat.slug || slugFromShopHref(cat.href) || cat.id
-                  const isActive = selectedCategorySlug === slug
-                  return (
-                    <button
-                      key={cat.id || slug}
-                      type="button"
-                      role="tab"
-                      aria-selected={isActive}
-                      className={`product-all-pill ${isActive ? 'product-all-pill--active' : ''}`}
-                      onClick={() => handleSelectCategory(slug)}
-                    >
-                      {cat.image ? (
-                        <span className="product-all-pill__thumb">
-                          <img src={cat.image} alt="" loading="lazy" />
-                        </span>
-                      ) : null}
-                      <span className="product-all-pill__label">{cat.label}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          ) : null} */}
-        </div>
-      </section>
+                </>
+              ) : (
+                <>
+                  Shop <span className="heading-accent heading-accent--gold">All Products</span>
+                </>
+              )}
+            </ScrollRevealText>
+            <Reveal delay={0.08}>
+              <p className="product-all-page__lead">
+                {selectedCategory
+                  ? `Explore our complete range of ${selectedCategory.label.toLowerCase()} handcrafted for everyday elegance and celebrations.`
+                  : 'Browse every category — select a category name to explore all its products, or browse below.'}
+              </p>
+            </Reveal>
+          </div>
+        </section>
+      </div>
 
       <section className="product-all-page__sections" aria-label="Products by category">
         <div className="container">
