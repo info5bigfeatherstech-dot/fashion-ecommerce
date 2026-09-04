@@ -374,9 +374,13 @@ function buildPriceObj(price, label = 'Base price') {
 }
 
 function buildInventoryObj(inv) {
+  const qtyRaw = inv?.quantity
+  const lowRaw = inv?.lowStockThreshold
+  const qty = qtyRaw === '' || qtyRaw == null ? 0 : Number.parseInt(String(qtyRaw), 10)
+  const low = lowRaw === '' || lowRaw == null ? 5 : Number.parseInt(String(lowRaw), 10)
   return {
-    quantity: parseInt(inv?.quantity, 10) || 0,
-    lowStockThreshold: parseInt(inv?.lowStockThreshold, 10) || 5,
+    quantity: Number.isFinite(qty) && qty >= 0 ? qty : 0,
+    lowStockThreshold: Number.isFinite(low) && low >= 0 ? low : 5,
     trackInventory: inv?.trackInventory !== false,
   }
 }

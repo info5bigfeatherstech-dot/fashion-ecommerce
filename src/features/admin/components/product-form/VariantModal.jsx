@@ -3,11 +3,12 @@
 import { useState } from 'react'
 import VariantCatalogFieldsSection from './VariantCatalogFieldsSection'
 import { emptyVariantShippingForm } from '@/lib/variantCatalogForm'
+import { parseQuantityInput, quantityFieldValue } from './utils'
 
 export const defaultVariant = {
   attributes: [{ key: '', value: '' }],
   price: { base: '', sale: '', wholesaleBase: '', wholesaleSale: '' },
-  inventory: { quantity: 0, lowStockThreshold: 5, trackInventory: true },
+  inventory: { quantity: '', lowStockThreshold: 5, trackInventory: true },
   images: [],
   isActive: true,
   ProductCode: '',
@@ -322,7 +323,24 @@ const VariantModal = ({
             </div>
             {variantForm.inventory.trackInventory ? (
               <div className="pf-variant-grid">
-                <input type="number" value={variantForm.inventory.quantity} onChange={(e) => setVariantForm((prev) => ({ ...prev, inventory: { ...prev.inventory, quantity: parseInt(e.target.value, 10) || 0 } }))} className="pf-variant-input" placeholder="Quantity" />
+                <input
+                  type="number"
+                  min={0}
+                  inputMode="numeric"
+                  value={quantityFieldValue(variantForm.inventory.quantity)}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) =>
+                    setVariantForm((prev) => ({
+                      ...prev,
+                      inventory: {
+                        ...prev.inventory,
+                        quantity: parseQuantityInput(e.target.value),
+                      },
+                    }))
+                  }
+                  className="pf-variant-input"
+                  placeholder="Quantity"
+                />
                 <input type="number" value={variantForm.inventory.lowStockThreshold} onChange={(e) => setVariantForm((prev) => ({ ...prev, inventory: { ...prev.inventory, lowStockThreshold: parseInt(e.target.value, 10) || 5 } }))} className="pf-variant-input" placeholder="Low stock alert" />
               </div>
             ) : null}

@@ -1,10 +1,10 @@
 import headerLogo from '@/assets/FabUniqo- Fashion Uniquely yours.png'
 import { SITE_NAME } from '@/config/site'
 
-export function BrandLogo({ className = '' }) {
+export function BrandLogo({ className = '', src }) {
   return (
     <img
-      src={headerLogo}
+      src={src || headerLogo}
       alt={SITE_NAME}
       className={`brand-logo brand-logo--header ${className}`.trim()}
     />
