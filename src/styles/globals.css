@@ -8764,7 +8764,7 @@ a.cart-item__name:hover {
 }
 
 .pdp-info__actions--oos {
-  justify-content: flex-end;
+  width: 100%;
 }
 
 .oos-inquiry {

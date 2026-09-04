@@ -417,12 +417,15 @@ export default function ProductDetail() {
 
           {!isAvailable ? (
             <div className="pdp-oos">
-              <OutOfStockInquiryForm
-                productId={product.id}
-                variantId={selectedVariant?.id}
-                disabled={!product.id || !selectedVariant?.id}
-              />
               <div className="pdp-info__actions pdp-info__actions--oos">
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  className="pdp-info__cta"
+                  disabled
+                >
+                  Out of Stock
+                </Button>
                 <Button
                   variant="secondary"
                   size="lg"
@@ -435,10 +438,16 @@ export default function ProductDetail() {
                     toggleWishlist(product)
                   }}
                   aria-label={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+                  title={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
                 >
                   <Heart size={20} fill={inWishlist ? 'currentColor' : 'none'} />
                 </Button>
               </div>
+              <OutOfStockInquiryForm
+                productId={product.id}
+                variantId={selectedVariant?.id}
+                disabled={!product.id || !selectedVariant?.id}
+              />
             </div>
           ) : (
             <>
