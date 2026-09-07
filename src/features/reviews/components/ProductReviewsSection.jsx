@@ -12,6 +12,11 @@ import {
   useSubmitProductReview,
 } from '@/features/reviews/hooks'
 import { StarRatingInput } from '@/features/reviews/components/StarRatingInput'
+import {
+  RatingStar,
+  RatingStarsRow,
+  getStarFillPct,
+} from '@/features/reviews/components/ProductRatingStars'
 import { useAppStore } from '@/store'
 
 function formatReviewDate(value) {
@@ -43,10 +48,10 @@ function ReviewCard({ review }) {
         </div>
         <div className="pdp-reviews__stars" aria-label={`${review.rating} out of 5 stars`}>
           {Array.from({ length: 5 }).map((_, i) => (
-            <Star
+            <RatingStar
               key={i}
               size={13}
-              fill={i < Math.round(review.rating) ? 'currentColor' : 'none'}
+              fillPct={getStarFillPct(review.rating, i)}
             />
           ))}
           {review.createdAt ? (
@@ -162,15 +167,11 @@ export function ProductReviewCompose({ product, filterStar = null, onFilterStarC
                 <span className="pdp-reviews-compose__score-value">
                   {Number(ratingDisplay.average).toFixed(1)}
                 </span>
-                <div className="pdp-reviews-compose__score-stars" aria-hidden="true">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star
-                      key={i}
-                      size={18}
-                      fill={i < Math.round(ratingDisplay.average) ? 'currentColor' : 'none'}
-                    />
-                  ))}
-                </div>
+                <RatingStarsRow
+                  rating={ratingDisplay.average}
+                  size={18}
+                  className="pdp-reviews-compose__score-stars"
+                />
                 <span className="pdp-reviews-compose__score-count">
                   {ratingDisplay.count}{' '}
                   {ratingDisplay.count === 1 ? 'rating' : 'ratings'}
