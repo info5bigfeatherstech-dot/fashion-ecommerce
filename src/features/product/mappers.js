@@ -145,10 +145,11 @@ function deriveBadge(dto) {
   return null
 }
 
-function mapVariant(variant) {
+function mapVariant(variant, fallbackImages = []) {
   if (!variant) return null
 
   const quantity = toNumber(variant.availability?.quantity ?? variant.inventory?.quantity)
+  const variantImages = asArray(variant.images).map((image) => image.url).filter(Boolean)
 
   return {
     id: variant.id || variant._id,
@@ -159,7 +160,7 @@ function mapVariant(variant) {
     originalPrice: toNumber(variant.price?.base),
     inStock: resolveVariantInStock(variant),
     quantity,
-    images: asArray(variant.images).map((image) => image.url).filter(Boolean),
+    images: variantImages.length > 0 ? variantImages : fallbackImages,
     attributes: asArray(variant.attributes).map((attribute) => ({
       key: attribute.key,
       value: attribute.value,
@@ -170,13 +171,22 @@ function mapVariant(variant) {
 export function mapProduct(dto) {
   if (!dto) return null
 
-  const variants = asArray(dto.variants)
+  const allVariants = asArray(dto.variants)
+  // Only use the first variant that comes in the API
+  const variants = allVariants.length > 0 ? [allVariants[0]] : []
   const attributes = asArray(dto.attributes)
-  const primaryVariant = pickPrimaryVariant(variants)
-  const mappedVariants = variants.map(mapVariant).filter(Boolean)
-  const price = toNumber(dto.minPrice ?? primaryVariant?.finalPrice ?? primaryVariant?.price?.current)
-  const originalPrice = toNumber(primaryVariant?.price?.base ?? dto.maxPrice)
-  const images = collectImages(dto, variants)
+  const primaryVariant = variants[0] || null
+  const images = collectImages(dto, allVariants)
+  const mappedVariants = variants.map((v) => mapVariant(v, images)).filter(Boolean)
+  const price = toNumber(
+    primaryVariant?.finalPrice ??
+    primaryVariant?.price?.current ??
+    dto.minPrice
+  )
+  const originalPrice = toNumber(
+    primaryVariant?.price?.base ??
+    dto.maxPrice
+  )
   const categorySlug = dto.category?.slug || 'uncategorized'
   const categoryName = dto.category?.name || ''
 
@@ -187,10 +197,10 @@ export function mapProduct(dto) {
     title: dto.title || dto.name || '',
     displayTitle: String(dto.title || dto.name || 'Untitled product').trim(),
     productCode:
-      dto.productCode ||
-      dto.product_code ||
       primaryVariant?.productCode ||
       primaryVariant?.sku ||
+      dto.productCode ||
+      dto.product_code ||
       null,
     description: dto.description || '',
     brand: dto.brand || '',
@@ -207,9 +217,9 @@ export function mapProduct(dto) {
       ) || Boolean(dto.isTodayDeal || dto.todayDeal),
     rating: toNumber(dto.rating?.value, 0),
     reviewCount: toNumber(dto.rating?.count, 0),
-    sizes: collectAttributeValues(variants, attributes, SIZE_KEYS),
-    colors: collectAttributeValues(variants, attributes, COLOR_KEYS),
-    platings: collectAttributeValues(variants, attributes, PLATING_KEYS),
+    sizes: collectAttributeValues(variants, [], SIZE_KEYS),
+    colors: collectAttributeValues(variants, [], COLOR_KEYS),
+    platings: collectAttributeValues(variants, [], PLATING_KEYS),
     optionGroups: collectAttributeGroups(variants),
     images,
     inStock: mappedVariants.length

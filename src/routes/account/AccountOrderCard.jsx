@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronRight, Clock, Eye, Package, Truck } from 'lucide-react'
+import { Clock, Eye, Package, Truck } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import {
   canResumeOnlinePayment,
@@ -122,15 +122,6 @@ export function AccountOrderCard({ order, onSelect, isHydrating = false }) {
           >
             <OrderStatusBadge status={order.orderStatus} />
             <p className="account-order-card__price">{formatPrice(order.totalAmount ?? 0)}</p>
-          </button>
-
-          <button
-            type="button"
-            className="account-order-card__chevron"
-            onClick={() => onSelect(order.orderId)}
-            aria-label="View order details"
-          >
-            <ChevronRight size={18} strokeWidth={2} />
           </button>
         </div>
 

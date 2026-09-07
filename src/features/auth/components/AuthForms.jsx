@@ -479,7 +479,14 @@ export function AuthForms({
 
   if (view === 'register') {
     return (
-      <div className="auth-modal__register-form">
+      <div className="auth-modal__form auth-modal__form--register">
+        <div className="auth-modal__welcome">
+          <h2 className="auth-modal__welcome-title">
+            Create <em>Account</em>
+          </h2>
+          <p className="auth-modal__welcome-sub">Join us for exclusive jewellery & offers</p>
+        </div>
+
         {alertBlock}
 
         <GoogleSignInButton
@@ -527,7 +534,7 @@ export function AuthForms({
                 <Input
                   id="reg-password"
                   type="password"
-                  placeholder="Create a password"
+                  placeholder="Create password"
                   error={registerForm.formState.errors.password}
                   {...registerForm.register('password')}
                 />
@@ -540,7 +547,7 @@ export function AuthForms({
                 <Input
                   id="reg-confirm-password"
                   type="password"
-                  placeholder="Re-enter your password"
+                  placeholder="Re-enter password"
                   error={registerForm.formState.errors.confirmPassword}
                   {...registerForm.register('confirmPassword')}
                 />
@@ -583,17 +590,17 @@ export function AuthForms({
             >
               <Input
                 id="reg-answer"
-                placeholder="Your answer"
+                placeholder="Your answer (for account recovery)"
                 error={registerForm.formState.errors.securityAnswer}
                 {...registerForm.register('securityAnswer')}
               />
             </InputGroup>
 
-            <Button type="submit" variant="accent" fullWidth disabled={submitting}>
+            <Button type="submit" variant="primary" fullWidth disabled={submitting} style={{ marginTop: 'var(--space-2)' }}>
               {submitting ? 'Creating account…' : 'Create Account'}
             </Button>
 
-            <p className="body-sm text-muted" style={{ textAlign: 'center' }}>
+            <p className="body-sm text-muted" style={{ textAlign: 'center', marginTop: 'var(--space-3)' }}>
               Already have an account?{' '}
               <button className="section-header__link" type="button" onClick={() => switchTo('login', 'login')}>
                 Sign in
@@ -636,10 +643,22 @@ export function AuthForms({
           </InputGroup>
 
           <div className="input-group">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-              <label htmlFor="login-password" className="input-label" style={{ marginBottom: 0 }}>
-                Password
-              </label>
+            <label htmlFor="login-password" className="input-label">
+              Password
+            </label>
+            <Input
+              id="login-password"
+              type="password"
+              placeholder="Your password"
+              error={loginForm.formState.errors.password}
+              {...loginForm.register('password')}
+            />
+            {loginForm.formState.errors.password?.message && (
+              <span className="input-error" role="alert">
+                {loginForm.formState.errors.password.message}
+              </span>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
               <button
                 type="button"
                 className="section-header__link body-sm"
@@ -653,26 +672,14 @@ export function AuthForms({
                 Forgot password?
               </button>
             </div>
-            <Input
-              id="login-password"
-              type="password"
-              placeholder="Your password"
-              error={loginForm.formState.errors.password}
-              {...loginForm.register('password')}
-            />
-            {loginForm.formState.errors.password?.message && (
-              <span className="input-error" role="alert">
-                {loginForm.formState.errors.password.message}
-              </span>
-            )}
           </div>
 
-          <Button type="submit" variant="primary" fullWidth disabled={submitting} style={{ marginTop: 'var(--space-1)' }}>
+          <Button type="submit" variant="primary" fullWidth disabled={submitting} style={{ marginTop: 'var(--space-2)' }}>
             {submitting ? 'Signing in…' : 'Sign In'}
           </Button>
         </div>
 
-        <p className="body-sm text-muted" style={{ textAlign: 'center', marginTop: 'var(--space-4)' }}>
+        <p className="body-sm text-muted" style={{ textAlign: 'center', marginTop: 'var(--space-5)' }}>
           <button className="section-header__link" type="button" onClick={() => switchTo('register', 'register')}>
             Create an account
           </button>
