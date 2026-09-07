@@ -1,6 +1,16 @@
 import { useMemo } from 'react'
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getOrderById, getUserOrders, initiatePendingOrderPayment } from './api'
+import {
+  createReturnRequest,
+  getOrderById,
+  getOrderInvoice,
+  getOrderTracking,
+  getReturnChat,
+  getUserOrders,
+  initiatePendingOrderPayment,
+  payOrderBalance,
+  sendReturnChatMessage,
+} from './api'
 import { orderKeys } from './queryKeys'
 import { getOrderItems, mergeOrderWithDetail } from './utils'
 import { useAppStore } from '@/store'
@@ -31,9 +41,78 @@ export function useOrderDetail(orderId, { enabled = true } = {}) {
   })
 }
 
+export function useOrderTracking(orderId, { enabled = true } = {}) {
+  const id = String(orderId || '').trim()
+  const isAuthenticated = useAppStore((s) => s.isAuthenticated)
+  const accessToken = useAppStore((s) => s.accessToken)
+
+  return useQuery({
+    queryKey: orderKeys.tracking(id),
+    queryFn: ({ signal }) => getOrderTracking(id, { signal }),
+    enabled: enabled && isAuthenticated && Boolean(accessToken) && Boolean(id),
+    staleTime: 1000 * 60, // 1 minute
+  })
+}
+
+export function useOrderInvoice(orderId, { enabled = false } = {}) {
+  const id = String(orderId || '').trim()
+  const isAuthenticated = useAppStore((s) => s.isAuthenticated)
+  const accessToken = useAppStore((s) => s.accessToken)
+
+  return useQuery({
+    queryKey: orderKeys.invoice(id),
+    queryFn: ({ signal }) => getOrderInvoice(id, { signal }),
+    enabled: enabled && isAuthenticated && Boolean(accessToken) && Boolean(id),
+    staleTime: 1000 * 60 * 10,
+  })
+}
+
+export function useReturnChat(orderId, { enabled = true } = {}) {
+  const id = String(orderId || '').trim()
+  const isAuthenticated = useAppStore((s) => s.isAuthenticated)
+  const accessToken = useAppStore((s) => s.accessToken)
+
+  return useQuery({
+    queryKey: orderKeys.returnChat(id),
+    queryFn: ({ signal }) => getReturnChat(id, { signal }),
+    enabled: enabled && isAuthenticated && Boolean(accessToken) && Boolean(id),
+    refetchInterval: 1000 * 15, // poll every 15s when open
+  })
+}
+
+export function useCreateReturnRequest() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ orderId, data }) => createReturnRequest(orderId, data),
+    onSuccess: (_, { orderId }) => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.detail(orderId) })
+      queryClient.invalidateQueries({ queryKey: orderKeys.list() })
+      queryClient.invalidateQueries({ queryKey: orderKeys.returnChat(orderId) })
+    },
+  })
+}
+
+export function useSendReturnChatMessage() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ orderId, message }) => sendReturnChatMessage(orderId, message),
+    onSuccess: (_, { orderId }) => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.returnChat(orderId) })
+    },
+  })
+}
+
 export function useInitiateOrderPayment() {
   return useMutation({
     mutationFn: initiatePendingOrderPayment,
+  })
+}
+
+export function usePayOrderBalance() {
+  return useMutation({
+    mutationFn: payOrderBalance,
   })
 }
 
@@ -44,6 +123,9 @@ export function useInvalidateOrders() {
     queryClient.invalidateQueries({ queryKey: orderKeys.list() })
     if (orderId) {
       queryClient.invalidateQueries({ queryKey: orderKeys.detail(orderId) })
+      queryClient.invalidateQueries({ queryKey: orderKeys.tracking(orderId) })
+      queryClient.invalidateQueries({ queryKey: orderKeys.invoice(orderId) })
+      queryClient.invalidateQueries({ queryKey: orderKeys.returnChat(orderId) })
     }
   }
 }
@@ -54,9 +136,10 @@ export function useOrdersWithDetails(orders = [], { enabled = true } = {}) {
   const accessToken = useAppStore((s) => s.accessToken)
 
   const idsNeedingDetail = useMemo(
-    () => orders
-      .filter((order) => getOrderItems(order).length === 0 && order.orderId)
-      .map((order) => order.orderId),
+    () =>
+      orders
+        .filter((order) => getOrderItems(order).length === 0 && order.orderId)
+        .map((order) => order.orderId),
     [orders]
   )
 

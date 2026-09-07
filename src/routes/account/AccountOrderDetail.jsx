@@ -1,11 +1,19 @@
 import { Link } from 'react-router-dom'
 import { useCallback, useState } from 'react'
 import {
+  AlertCircle,
   ArrowLeft,
+  Clock,
   CreditCard,
+  Download,
+  FileText,
   Loader2,
   MapPin,
+  MessageSquare,
   Package,
+  PackageX,
+  ShieldAlert,
+  Truck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Separator } from '@/components/ui/Separator'
@@ -18,11 +26,15 @@ import {
   useInitiateOrderPayment,
   useInvalidateOrders,
   useOrderDetail,
+  usePayOrderBalance,
 } from '@/features/orders/hooks'
 import {
+  canRequestReturn,
   canResumeOnlinePayment,
+  canShow24HourOption,
   formatOrderDate,
   formatOrderDateTime,
+  getHoursRemainingIn24h,
   getOrderItemImage,
   getOrderItemLineTotal,
   getOrderItemName,
@@ -32,10 +44,19 @@ import {
   getOrderStatusClass,
   getOrderStatusLabel,
   getPaymentStatusLabel,
+  hasActiveReturn,
+  isOrderTrackable,
   isPaymentWindowExpired,
 } from '@/features/orders/utils'
 import { formatPrice } from '@/lib/utils'
 import { useAppStore } from '@/store'
+import {
+  Order24HourChangeModal,
+  OrderInvoiceModal,
+  OrderReturnModal,
+  OrderTrackerSection,
+  OrderTrackingModal,
+} from '@/features/orders/components'
 
 function OrderStatusBadge({ status }) {
   return (
@@ -72,6 +93,9 @@ function OrderLineItem({ item }) {
         {variant ? (
           <p className="account-order-item__meta">{variant}</p>
         ) : null}
+        {item.sku ? (
+          <p className="account-order-item__meta text-muted">SKU: {item.sku}</p>
+        ) : null}
         <p className="account-order-item__qty">Qty {qty}</p>
       </div>
       <p className="account-order-item__price">{formatPrice(lineTotal)}</p>
@@ -84,8 +108,16 @@ export function AccountOrderDetail({ orderId, onBack }) {
   const { data: order, isLoading, isError, error, refetch } = useOrderDetail(orderId)
   const initiatePayment = useInitiateOrderPayment()
   const verifyPayment = useVerifyRazorpayPayment()
+  const payBalance = usePayOrderBalance()
   const invalidateOrders = useInvalidateOrders()
 
+  // Modals state
+  const [showTrackingModal, setShowTrackingModal] = useState(false)
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false)
+  const [show24hModal, setShow24hModal] = useState(false)
+  const [showReturnModal, setShowReturnModal] = useState(false)
+
+  // Razorpay payment flow state
   const [showRazorpay, setShowRazorpay] = useState(false)
   const [razorpayBundle, setRazorpayBundle] = useState(null)
   const [razorpayPaymentState, setRazorpayPaymentState] = useState(PAYMENT_STATE.IDLE)
@@ -111,27 +143,30 @@ export function AccountOrderDetail({ orderId, onBack }) {
     }
   }, [initiatePayment, orderId])
 
-  const handleRazorpaySuccess = useCallback(async (response) => {
-    try {
-      await verifyPayment.mutateAsync({
-        razorpay_order_id: response.razorpay_order_id,
-        razorpay_payment_id: response.razorpay_payment_id,
-        razorpay_signature: response.razorpay_signature,
-        orderId,
-      })
-      setRazorpayPaymentState(PAYMENT_STATE.VERIFIED)
-      setShowRazorpay(false)
-      setRazorpayBundle(null)
-      invalidateOrders(orderId)
-      await refetch()
-    } catch (err) {
-      setShowRazorpay(false)
-      setRazorpayBundle(null)
-      setRazorpayPaymentState(PAYMENT_STATE.FAILED)
-      setPaymentError(err?.message || 'Payment verification failed. Please contact support.')
-      setShowPaymentError(true)
-    }
-  }, [invalidateOrders, orderId, refetch, verifyPayment])
+  const handleRazorpaySuccess = useCallback(
+    async (response) => {
+      try {
+        await verifyPayment.mutateAsync({
+          razorpay_order_id: response.razorpay_order_id,
+          razorpay_payment_id: response.razorpay_payment_id,
+          razorpay_signature: response.razorpay_signature,
+          orderId,
+        })
+        setRazorpayPaymentState(PAYMENT_STATE.VERIFIED)
+        setShowRazorpay(false)
+        setRazorpayBundle(null)
+        invalidateOrders(orderId)
+        await refetch()
+      } catch (err) {
+        setShowRazorpay(false)
+        setRazorpayBundle(null)
+        setRazorpayPaymentState(PAYMENT_STATE.FAILED)
+        setPaymentError(err?.message || 'Payment verification failed. Please contact support.')
+        setShowPaymentError(true)
+      }
+    },
+    [invalidateOrders, orderId, refetch, verifyPayment]
+  )
 
   const handleRazorpayFailure = useCallback((message) => {
     setShowRazorpay(false)
@@ -151,7 +186,7 @@ export function AccountOrderDetail({ orderId, onBack }) {
     return (
       <div className="account-orders-state">
         <Loader2 size={22} className="account-orders-state__spin" aria-hidden="true" />
-        <p className="body-sm text-muted">Loading order…</p>
+        <p className="body-sm text-muted">Loading order details…</p>
       </div>
     )
   }
@@ -170,26 +205,132 @@ export function AccountOrderDetail({ orderId, onBack }) {
   }
 
   const items = getOrderItems(order)
-  const address = order.shippingAddress || order.address || order.deliveryAddress
+  const address = order.shippingAddress || order.addressSnapshot || order.address || order.deliveryAddress
+  const hasAddress = Boolean(
+    address &&
+    typeof address === 'object' &&
+    (address.fullName || address.name || address.addressLine1 || address.line1 || address.city || address.state || address.pincode || address.phone)
+  )
+  const shipment = order.shipmentInfo || null
   const resumePayment = canResumeOnlinePayment(order)
   const holdExpired = isPaymentWindowExpired(order)
   const paymentMethod = String(order.paymentInfo?.method || order.paymentMethod || '').toLowerCase()
+  const canTrack = isOrderTrackable(order)
+  const can24h = canShow24HourOption(order)
+  const hoursLeft = can24h ? getHoursRemainingIn24h(order?.createdAt) : 0
+  const isDelivered = String(order.orderStatus || '').toLowerCase() === 'delivered'
+  const returnActive = hasActiveReturn(order)
+  const returnEligible = canRequestReturn(order)
 
   return (
     <>
       <div className="account-order-detail">
-        <button type="button" className="account-order-detail__back" onClick={onBack}>
-          <ArrowLeft size={14} aria-hidden="true" />
-          All orders
-        </button>
+        <div className="account-order-detail__top-nav">
+          <button type="button" className="account-order-detail__back" onClick={onBack}>
+            <ArrowLeft size={14} aria-hidden="true" />
+            All orders
+          </button>
 
+          <div className="account-order-detail__quick-actions">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowTrackingModal(true)}
+            >
+              <Truck size={14} /> Track Order
+            </Button>
+
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowInvoiceModal(true)}
+            >
+              <FileText size={14} /> Tax Invoice
+            </Button>
+          </div>
+        </div>
+
+        {/* 24-Hour Confirmed Order Notification / Action Banner */}
+        {can24h && (
+          <div className="order-detail-24h-banner">
+            <div className="order-detail-24h-banner__content">
+              <div className="order-detail-24h-banner__badge">
+                <Clock size={16} />
+                <span>Confirmed Order · 24-Hour Window</span>
+              </div>
+              <p className="body-sm">
+                Your order is confirmed. You have <strong>{hoursLeft} hour{hoursLeft === 1 ? '' : 's'} remaining</strong> to
+                submit changes to your delivery address, instructions, or item requests.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={() => setShow24hModal(true)}
+            >
+              Request Order Change
+            </Button>
+          </div>
+        )}
+
+        {/* Return Active Banner */}
+        {returnActive && (
+          <div className="order-detail-return-banner">
+            <div className="order-detail-return-banner__content">
+              <PackageX size={18} />
+              <div>
+                <p className="body-sm font-semibold">Return Request Active</p>
+                <p className="body-xs text-muted">
+                  A return inquiry has been submitted. You can chat with our support team regarding your return.
+                </p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowReturnModal(true)}
+            >
+              <MessageSquare size={14} /> Return Support Chat
+            </Button>
+          </div>
+        )}
+
+        {/* Main Header Panel */}
         <div className="account-panel account-order-detail__header">
           <div className="account-order-detail__heading">
             <div>
-              <h3 className="display-md">{order.orderId}</h3>
+              <div className="account-order-detail__id-row">
+                <h3 className="display-md">{order.orderId}</h3>
+                <OrderStatusBadge status={order.orderStatus} />
+              </div>
               <p className="body-sm text-muted">{formatOrderDateTime(order.createdAt)}</p>
             </div>
-            <OrderStatusBadge status={order.orderStatus} />
+
+            <div className="account-order-detail__header-btns">
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={() => setShowTrackingModal(true)}
+              >
+                <Truck size={14} /> Track Order
+              </Button>
+
+              {returnEligible && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowReturnModal(true)}
+                >
+                  <PackageX size={14} /> Request Return
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="account-order-detail__totals">
@@ -207,6 +348,12 @@ export function AccountOrderDetail({ orderId, onBack }) {
               <p className="account-order-detail__label">Tax</p>
               <p className="body-sm">{formatPrice(order.tax ?? order.taxes ?? 0)}</p>
             </div>
+            {Number(order.discount) > 0 && (
+              <div>
+                <p className="account-order-detail__label">Discount</p>
+                <p className="body-sm text-accent">-{formatPrice(order.discount)}</p>
+              </div>
+            )}
             <div>
               <p className="account-order-detail__label">Total</p>
               <p className="heading-sm">{formatPrice(order.totalAmount ?? 0)}</p>
@@ -224,7 +371,16 @@ export function AccountOrderDetail({ orderId, onBack }) {
               </p>
             )}
             {order.appliedCoupon && (
-              <p className="body-sm text-muted">Coupon: {order.appliedCoupon}</p>
+              <p className="body-sm text-muted">
+                Coupon:{' '}
+                {typeof order.appliedCoupon === 'string'
+                  ? order.appliedCoupon
+                  : `${order.appliedCoupon.code || 'Applied'}${
+                      Number(order.appliedCoupon.discount) > 0
+                        ? ` (${formatPrice(order.appliedCoupon.discount)} off)`
+                        : ''
+                    }`}
+              </p>
             )}
           </div>
 
@@ -256,6 +412,10 @@ export function AccountOrderDetail({ orderId, onBack }) {
           )}
         </div>
 
+        {/* Live Order Tracker Section */}
+        <OrderTrackerSection orderId={orderId} order={order} />
+
+        {/* Items List */}
         {items.length > 0 && (
           <div className="account-panel">
             <div className="account-panel__header">
@@ -272,7 +432,8 @@ export function AccountOrderDetail({ orderId, onBack }) {
           </div>
         )}
 
-        {address && (
+        {/* Delivery Address */}
+        {hasAddress && (
           <div className="account-panel">
             <div className="account-panel__header">
               <div>
@@ -283,30 +444,98 @@ export function AccountOrderDetail({ orderId, onBack }) {
             <div className="account-order-address">
               <MapPin size={16} aria-hidden="true" />
               <div>
-                <p className="body-lg">{address.fullName || address.name || 'Recipient'}</p>
+                <p className="body-lg">{address?.fullName || address?.name || 'Recipient'}</p>
                 <p className="body-sm text-muted">
-                  {[address.addressLine1 || address.line1, address.addressLine2 || address.line2]
+                  {[address?.addressLine1 || address?.line1, address?.addressLine2 || address?.line2]
                     .filter(Boolean)
                     .join(', ')}
                 </p>
                 <p className="body-sm text-muted">
-                  {[address.city, address.state, address.pincode || address.postalCode]
+                  {[address?.city, address?.state, address?.pincode || address?.postalCode]
                     .filter(Boolean)
                     .join(', ')}
                 </p>
-                {address.phone && <p className="body-sm text-muted">{address.phone}</p>}
+                {address?.phone && <p className="body-sm text-muted">{address.phone}</p>}
               </div>
             </div>
             {order.deliveryEstimate && (
               <>
                 <Separator style={{ marginBlock: 'var(--space-3)' }} />
-                <p className="body-sm text-muted">{order.deliveryEstimate}</p>
+                <p className="body-sm text-muted">
+                  {typeof order.deliveryEstimate === 'string'
+                    ? order.deliveryEstimate
+                    : order.deliveryEstimate?.text ||
+                      order.deliveryEstimate?.date ||
+                      order.deliveryEstimate?.estimate ||
+                      ''}
+                </p>
               </>
             )}
           </div>
         )}
+
+        {/* Customer Facing Notes if any */}
+        {Array.isArray(order.customerFacingNotes) && order.customerFacingNotes.length > 0 && (
+          <div className="account-panel">
+            <div className="account-panel__header">
+              <h4 className="heading-sm">Order Updates & Notes</h4>
+            </div>
+            <div className="order-notes-list">
+              {order.customerFacingNotes.map((note, idx) => (
+                <div key={idx} className="order-note-item">
+                  <p className="body-sm">{typeof note === 'string' ? note : (note?.message || note?.text || note?.note || '')}</p>
+                  {note?.createdAt && (
+                    <span className="body-xs text-muted">{formatOrderDateTime(note.createdAt)}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
+      {/* Modals */}
+      {showTrackingModal && (
+        <OrderTrackingModal
+          open={showTrackingModal}
+          onClose={() => setShowTrackingModal(false)}
+          orderId={orderId}
+          initialTracking={shipment ? {
+            orderId,
+            currentStatus: order.orderStatus,
+            trackingNumber: shipment.trackingNumber || shipment.awbCode,
+            courier: shipment.courier,
+            estimatedDelivery: shipment.estimatedDelivery,
+            providerStatus: shipment.providerStatus,
+          } : null}
+        />
+      )}
+
+      {showInvoiceModal && (
+        <OrderInvoiceModal
+          open={showInvoiceModal}
+          onClose={() => setShowInvoiceModal(false)}
+          orderId={orderId}
+        />
+      )}
+
+      {show24hModal && (
+        <Order24HourChangeModal
+          open={show24hModal}
+          onClose={() => setShow24hModal(false)}
+          order={order}
+        />
+      )}
+
+      {showReturnModal && (
+        <OrderReturnModal
+          open={showReturnModal}
+          onClose={() => setShowReturnModal(false)}
+          order={order}
+        />
+      )}
+
+      {/* Razorpay Online Payment Modals */}
       {showRazorpay && razorpayBundle && (
         <RazorpayCheckout
           key={razorpayBundle.order.id}

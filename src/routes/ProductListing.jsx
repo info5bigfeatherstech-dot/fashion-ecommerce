@@ -214,102 +214,102 @@ export default function ProductListing() {
       {landing && <CategoryLanding landing={landing} />}
       {!landing && categoryBanner && <CategoryBanner banner={categoryBanner} />}
       <div className={landing || categoryBanner ? 'container' : undefined}>
-      <nav className="breadcrumb" aria-label="Breadcrumb">
-        <Link to="/">Home</Link>
-        <span className="breadcrumb__sep">/</span>
-        {subcategory && categoryInfo ? (
-          <>
-            <Link to={`/shop/${category}`}>{categoryInfo.label}</Link>
-            <span className="breadcrumb__sep">/</span>
+        <nav className="breadcrumb" aria-label="Breadcrumb">
+          <Link to="/">Home</Link>
+          <span className="breadcrumb__sep">/</span>
+          {subcategory && categoryInfo ? (
+            <>
+              <Link to={`/shop/${category}`}>{categoryInfo.label}</Link>
+              <span className="breadcrumb__sep">/</span>
+              <span>{title}</span>
+            </>
+          ) : (
             <span>{title}</span>
-          </>
-        ) : (
-          <span>{title}</span>
-        )}
-      </nav>
+          )}
+        </nav>
 
-      <div className="plp-header">
-        {landing || categoryBanner ? (
-          <h2 className="display-lg"> {title}</h2>
-        ) : (
-          <h1 className="display-lg">{title}</h1>
-        )}
-        <p className="body-lg text-muted" style={{ marginTop: 'var(--space-1)' }}>
-          {data?.total || 0} products
-        </p>
-      </div>
+        <div className="plp-header">
+          {landing || categoryBanner ? (
+            <h2 className="display-lg"> {title}</h2>
+          ) : (
+            <h1 className="display-lg">{title}</h1>
+          )}
+          <p className="body-lg text-muted" style={{ marginTop: 'var(--space-1)' }}>
+            {data?.total || 0} products
+          </p>
+        </div>
 
-      <div className="plp-toolbar">
-        <Button
-          variant="secondary"
-          size="sm"
-          className="plp-toolbar__toggle"
-          onClick={() => setFiltersOpen(true)}
-        >
-          <SlidersHorizontal size={16} />
-          Filters
-        </Button>
-        <Select
-          value={sort || 'featured'}
-          onValueChange={(value) => updateParam('sort', value === 'featured' ? '' : value)}
-        >
-          <SelectTrigger className="plp-sort" aria-label="Sort products">
-            <SelectValue placeholder="Sort" />
-          </SelectTrigger>
-          <SelectContent>
-            {SORT_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value || 'featured'} value={opt.value || 'featured'}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+        <div className="plp-toolbar">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="plp-toolbar__toggle"
+            onClick={() => setFiltersOpen(true)}
+          >
+            <SlidersHorizontal size={16} />
+            Filters
+          </Button>
+          <Select
+            value={sort || 'featured'}
+            onValueChange={(value) => updateParam('sort', value === 'featured' ? '' : value)}
+          >
+            <SelectTrigger className="plp-sort" aria-label="Sort products">
+              <SelectValue placeholder="Sort" />
+            </SelectTrigger>
+            <SelectContent>
+              {SORT_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value || 'featured'} value={opt.value || 'featured'}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-      <div className="plp-layout">
-        <div className={`plp-sidebar-shell ${filtersOpen ? 'plp-sidebar-shell--open' : ''}`}>
-          <div className="plp-sidebar-overlay" onClick={() => setFiltersOpen(false)} />
-          <div className="plp-sidebar-panel">
-            <div className="plp-sidebar__mobile-head">
-              <p className="plp-sidebar__title">Filters</p>
-              <button
-                type="button"
-                className="btn btn--ghost btn--icon"
-                onClick={() => setFiltersOpen(false)}
-                aria-label="Close filters"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <ProductFilters {...filterProps} />
-            <div className="plp-sidebar__mobile-foot">
-              <Button variant="primary" fullWidth onClick={() => setFiltersOpen(false)}>
-                Show {data?.total || 0} products
-              </Button>
+        <div className="plp-layout">
+          <div className={`plp-sidebar-shell ${filtersOpen ? 'plp-sidebar-shell--open' : ''}`}>
+            <div className="plp-sidebar-overlay" onClick={() => setFiltersOpen(false)} />
+            <div className="plp-sidebar-panel">
+              <div className="plp-sidebar__mobile-head">
+                <p className="plp-sidebar__title">Filters</p>
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--icon"
+                  onClick={() => setFiltersOpen(false)}
+                  aria-label="Close filters"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <ProductFilters {...filterProps} />
+              <div className="plp-sidebar__mobile-foot">
+                <Button variant="primary" fullWidth onClick={() => setFiltersOpen(false)}>
+                  Show {data?.total || 0} products
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="plp-main">
-          {isLoading ? (
-            <ProductGridSkeleton count={8} />
-          ) : data?.products?.length === 0 ? (
-            <div className="empty-state">
-              <h2 className="empty-state__title">Soon this product will add</h2>
-              <p className="body-lg text-muted">We are currently updating our collection. Please check back soon!</p>
-              <button type="button" className="section-header__link" onClick={clearFilters}>
-                Clear filters
-              </button>
-            </div>
-          ) : (
-            <div className="grid-4">
-              {data?.products?.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          )}
+          <div className="plp-main">
+            {isLoading ? (
+              <ProductGridSkeleton count={8} />
+            ) : data?.products?.length === 0 ? (
+              <div className="empty-state">
+                <h2 className="empty-state__title">Soon this product will add</h2>
+                <p className="body-lg text-muted">We are currently updating our collection. Please check back soon!</p>
+                <button type="button" className="section-header__link" onClick={clearFilters}>
+                  Clear filters
+                </button>
+              </div>
+            ) : (
+              <div className="grid-4">
+                {data?.products?.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
       </div>
     </div>
   )

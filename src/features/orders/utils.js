@@ -7,6 +7,8 @@ const ORDER_STATUS_LABELS = {
   delivered: 'Delivered',
   cancelled: 'Cancelled',
   returned: 'Returned',
+  return_requested: 'Return requested',
+  payment_failed: 'Payment failed',
 }
 
 const PAYMENT_STATUS_LABELS = {
@@ -15,27 +17,40 @@ const PAYMENT_STATUS_LABELS = {
   failed: 'Payment failed',
   refunded: 'Refunded',
   partially_refunded: 'Partially refunded',
+  partially_paid: 'Partially paid',
 }
 
 export function formatOrderDate(value) {
   if (!value) return '—'
-  return new Date(value).toLocaleDateString('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
+  try {
+    const d = new Date(value)
+    if (isNaN(d.getTime())) return String(value) === '...' ? '—' : String(value)
+    return d.toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    })
+  } catch {
+    return '—'
+  }
 }
 
 export function formatOrderDateTime(value) {
   if (!value) return '—'
-  return new Date(value).toLocaleString('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  })
+  try {
+    const d = new Date(value)
+    if (isNaN(d.getTime())) return String(value) === '...' ? '—' : String(value)
+    return d.toLocaleString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    })
+  } catch {
+    return '—'
+  }
 }
 
 export function getOrderStatusLabel(status) {
@@ -58,8 +73,68 @@ export function getOrderStatusClass(status) {
     out_for_delivery: 'account-order-status--shipped',
     delivered: 'account-order-status--delivered',
     cancelled: 'account-order-status--cancelled',
+    returned: 'account-order-status--cancelled',
+    return_requested: 'account-order-status--pending',
+    payment_failed: 'account-order-status--cancelled',
   }
   return map[key] || 'account-order-status--neutral'
+}
+
+export function isOrderConfirmed(order) {
+  const status = String(order?.orderStatus || '').toLowerCase()
+  return status === 'confirmed'
+}
+
+export function isWithin24Hours(createdAt) {
+  if (!createdAt) return false
+  const time = new Date(createdAt).getTime()
+  if (Number.isNaN(time)) return false
+  const diffMs = Date.now() - time
+  return diffMs >= 0 && diffMs <= 24 * 60 * 60 * 1000
+}
+
+export function getHoursRemainingIn24h(createdAt) {
+  if (!createdAt) return 0
+  const time = new Date(createdAt).getTime()
+  if (Number.isNaN(time)) return 0
+  const remainingMs = 24 * 60 * 60 * 1000 - (Date.now() - time)
+  if (remainingMs <= 0) return 0
+  const hours = Math.ceil(remainingMs / (60 * 60 * 1000))
+  return Math.max(1, hours)
+}
+
+export function canShow24HourOption(order) {
+  return isOrderConfirmed(order) && isWithin24Hours(order?.createdAt)
+}
+
+export function isOrderTrackable(order) {
+  if (!order) return false
+  const status = String(order.orderStatus || '').toLowerCase()
+  if (['confirmed', 'processing', 'shipped', 'out_for_delivery', 'delivered'].includes(status)) {
+    return true
+  }
+  if (order.shipmentInfo?.trackingNumber || order.trackingNumber) {
+    return true
+  }
+  return false
+}
+
+export function canRequestReturn(order) {
+  if (!order) return false
+  const status = String(order.orderStatus || '').toLowerCase()
+  if (status !== 'delivered') return false
+  if (order.returnInfo?.status || order.returnRequest?.status) return false
+  return true
+}
+
+export function hasActiveReturn(order) {
+  if (!order) return false
+  const status = String(order.orderStatus || '').toLowerCase()
+  return Boolean(
+    status === 'return_requested' ||
+    order.returnInfo?.status ||
+    order.returnRequest?.status
+  )
 }
 
 export function isPaymentWindowExpired(order) {
@@ -194,7 +269,10 @@ export function getOrderItemVariantLabel(item = {}) {
     item.size,
     item.color,
     variant?.color,
-  ].filter(Boolean)
+  ]
+    .filter(Boolean)
+    .map((v) => (typeof v === 'string' ? v.trim() : v?.name || v?.label || v?.value || ''))
+    .filter(Boolean)
 
   return parts.length > 0 ? parts.join(' · ') : null
 }

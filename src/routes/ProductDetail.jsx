@@ -265,13 +265,13 @@ export default function ProductDetail() {
   const optionGroups = product.optionGroups?.length
     ? product.optionGroups
     : [
-        ...(product.colors?.length
-          ? [{ key: 'Color', label: 'Color', values: product.colors, isColor: true }]
-          : []),
-        ...(product.sizes?.length
-          ? [{ key: 'Size', label: 'Size', values: product.sizes, isSize: true }]
-          : []),
-      ]
+      ...(product.colors?.length
+        ? [{ key: 'Color', label: 'Color', values: product.colors, isColor: true }]
+        : []),
+      ...(product.sizes?.length
+        ? [{ key: 'Size', label: 'Size', values: product.sizes, isSize: true }]
+        : []),
+    ]
 
   // Only show pickers when there is more than one choice; single values go into Details.
   const choosableGroups = optionGroups.filter((group) => (group.values?.length || 0) > 1)
@@ -285,45 +285,45 @@ export default function ProductDetail() {
     })),
     ...(product.composition
       ? String(product.composition)
-          .split(' · ')
-          .map((part) => part.trim())
-          .filter(Boolean)
-          .map((part) => {
-            const idx = part.indexOf(':')
-            if (idx === -1) return { key: part, label: part, value: '' }
-            return {
-              key: part.slice(0, idx).trim(),
-              label: part.slice(0, idx).trim(),
-              value: part.slice(idx + 1).trim(),
-            }
-          })
-          .filter((row) => !detailOnlyGroups.some((g) => String(g.key).toLowerCase() === String(row.key).toLowerCase()))
+        .split(' · ')
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .map((part) => {
+          const idx = part.indexOf(':')
+          if (idx === -1) return { key: part, label: part, value: '' }
+          return {
+            key: part.slice(0, idx).trim(),
+            label: part.slice(0, idx).trim(),
+            value: part.slice(idx + 1).trim(),
+          }
+        })
+        .filter((row) => !detailOnlyGroups.some((g) => String(g.key).toLowerCase() === String(row.key).toLowerCase()))
       : []),
   ]
 
   const accordionItems = [
     ...(product.description
       ? [{
-          value: 'description',
-          title: 'Description',
-          content: product.description,
-        }]
+        value: 'description',
+        title: 'Description',
+        content: product.description,
+      }]
       : []),
     ...(detailLines.length
       ? [{
-          value: 'details',
-          title: 'Details',
-          content: (
-            <dl className="pdp-details-list">
-              {detailLines.map((row) => (
-                <div key={row.key} className="pdp-details-list__row">
-                  <dt>{row.label}</dt>
-                  <dd>{row.value || '—'}</dd>
-                </div>
-              ))}
-            </dl>
-          ),
-        }]
+        value: 'details',
+        title: 'Details',
+        content: (
+          <dl className="pdp-details-list">
+            {detailLines.map((row) => (
+              <div key={row.key} className="pdp-details-list__row">
+                <dt>{row.label}</dt>
+                <dd>{row.value || '—'}</dd>
+              </div>
+            ))}
+          </dl>
+        ),
+      }]
       : []),
   ]
 

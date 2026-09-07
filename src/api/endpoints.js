@@ -61,6 +61,13 @@ export const API_ENDPOINTS = {
     items: '/orders/items',
     byId: (orderId) => `/orders/items/${encodeURIComponent(String(orderId))}`,
     track: (orderId) => `/orders/items/${encodeURIComponent(String(orderId))}/track`,
+    invoice: (orderId) => `/orders/items/${encodeURIComponent(String(orderId))}/invoice`,
+    returnRequest: (orderId) =>
+      `/orders/items/${encodeURIComponent(String(orderId))}/return-request`,
+    returnChat: (orderId) =>
+      `/orders/items/${encodeURIComponent(String(orderId))}/return-chat`,
+    payBalance: (orderId) =>
+      `/orders/items/${encodeURIComponent(String(orderId))}/pay-balance`,
     verifyPayment: '/orders/items/verify-payment',
     initiatePayment: (orderId) =>
       `/orders/items/${encodeURIComponent(String(orderId))}/initiate-payment`,

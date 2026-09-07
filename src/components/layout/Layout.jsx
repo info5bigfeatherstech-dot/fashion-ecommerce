@@ -15,11 +15,11 @@ function recordCurrentScroll(key, pathnameWithSearch) {
   const y = lenis ? lenis.scroll : (window.scrollY || document.documentElement.scrollTop || 0)
   if (key) {
     scrollPositions.set(key, y)
-    try { sessionStorage.setItem(`sp_${key}`, String(y)) } catch (_) {}
+    try { sessionStorage.setItem(`sp_${key}`, String(y)) } catch (_) { }
   }
   if (pathnameWithSearch) {
     scrollPositions.set(pathnameWithSearch, y)
-    try { sessionStorage.setItem(`sp_${pathnameWithSearch}`, String(y)) } catch (_) {}
+    try { sessionStorage.setItem(`sp_${pathnameWithSearch}`, String(y)) } catch (_) { }
   }
 }
 
@@ -75,7 +75,7 @@ function ScrollToTop() {
             sessionStorage.getItem(`sp_${location.key}`) ||
             sessionStorage.getItem(`sp_${location.pathname}${location.search}`)
           if (stored !== null) savedY = Number(stored)
-        } catch (_) {}
+        } catch (_) { }
       }
 
       if (typeof savedY === 'number' && !Number.isNaN(savedY) && savedY > 0) {

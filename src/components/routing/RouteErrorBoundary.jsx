@@ -26,6 +26,26 @@ export function RouteErrorBoundary() {
       <p className="body-sm" style={{ color: 'var(--color-neutral)', marginBottom: '1.5rem', maxWidth: 420, marginInline: 'auto' }}>
         {detail}
       </p>
+      {error && !is404 && (
+        <pre
+          style={{
+            maxWidth: 680,
+            margin: '0 auto 1.5rem',
+            padding: '12px 16px',
+            background: 'rgba(239, 68, 68, 0.08)',
+            border: '1px solid rgba(239, 68, 68, 0.25)',
+            borderRadius: 8,
+            color: '#b91c1c',
+            textAlign: 'left',
+            fontSize: '12px',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+          }}
+        >
+          {error?.message || String(error)}
+          {error?.stack ? `\n\n${error.stack}` : ''}
+        </pre>
+      )}
       <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
         <Button asChild variant="primary">
           <Link to="/">Go home</Link>

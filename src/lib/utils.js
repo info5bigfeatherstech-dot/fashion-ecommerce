@@ -6,12 +6,18 @@ export function cn(...inputs) {
 }
 
 export function formatPrice(amount, currency = 'INR') {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(amount)
+  const num = Number(amount)
+  if (isNaN(num)) return '₹0'
+  try {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(num)
+  } catch {
+    return `₹${num}`
+  }
 }
 
 export function formatDiscount(original, current) {
