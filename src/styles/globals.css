@@ -4363,12 +4363,16 @@ html.modal-open.lenis body {
 }
 
 .header__mobile-body {
-  padding-bottom: calc(var(--space-4) + var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom, 24px));
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
 }
 
 .header__mobile-extras {
-  display: grid;
-  gap: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   margin-top: var(--space-4);
   padding-top: var(--space-3);
   border-top: 1px solid var(--color-border);
@@ -4390,17 +4394,22 @@ html.modal-open.lenis body {
 }
 
 .header__mobile-extras a {
-  display: grid;
-  grid-template-columns: 18px 1fr 16px;
+  display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   min-height: var(--touch-min);
   font-size: var(--text-sm);
   color: var(--color-ink);
+  padding: 4px 2px;
+  transition: color var(--transition-fast);
 }
 
 .header__mobile-extras a:hover {
   color: var(--color-accent);
+}
+
+.header__mobile-extras .header__badge-count {
+  margin-left: auto;
 }
 
 .header__mobile-menu-head {
@@ -4418,8 +4427,8 @@ html.modal-open.lenis body {
   justify-content: space-between;
   gap: var(--space-2);
   width: 100%;
-  min-height: 40px;
-  padding-block: var(--space-2);
+  min-height: 44px;
+  padding: var(--space-2) 0;
   font-family: var(--font-ui);
   font-size: 0.8125rem;
   font-weight: 600;
@@ -4427,6 +4436,43 @@ html.modal-open.lenis body {
   text-transform: uppercase;
   border-bottom: 1px solid var(--color-border);
   text-align: left;
+  background: transparent;
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
+  cursor: pointer;
+  color: var(--color-ink);
+  transition: color var(--transition-fast);
+}
+
+.header__mobile-link-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header__mobile-count-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-ink);
+  background-color: rgba(209, 167, 67, 0.16);
+  border: 1px solid rgba(209, 167, 67, 0.35);
+  margin-left: 2px;
+}
+
+.header__mobile-toggle-chevron {
+  color: var(--color-muted);
+  transition: transform 0.25s ease, color var(--transition-fast);
+}
+
+.header__mobile-toggle-chevron--open {
+  transform: rotate(180deg);
+  color: var(--color-accent);
 }
 
 .header__mobile-link--active,
@@ -4434,25 +4480,52 @@ html.modal-open.lenis body {
   color: var(--color-accent);
 }
 
-.header__mobile-sub {
-  display: grid;
+.header__mobile-categories-group {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.header__mobile-categories-group .header__mobile-link {
+  border-bottom: 0;
+}
+
+.header__mobile-categories-panel {
+  display: flex;
+  flex-direction: column;
   gap: 2px;
   overflow: hidden;
-  padding: var(--space-2) 0 var(--space-3);
+  padding: var(--space-1) 0 var(--space-2) var(--space-2);
+  margin-left: 8px;
+  border-left: 2px solid rgba(224, 57, 106, 0.3);
 }
 
 .header__mobile-sublink {
   display: flex;
   align-items: center;
-  min-height: var(--touch-min);
-  padding-inline: var(--space-1);
-  font-size: var(--text-sm);
-  color: var(--color-muted);
+  gap: 8px;
+  min-height: 38px;
+  padding: 6px 10px;
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-ink);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .header__mobile-sublink:hover,
-.header__mobile-sublink:focus-visible {
-  color: var(--color-ink);
+.header__mobile-sublink--active {
+  color: var(--color-accent);
+  background-color: rgba(224, 57, 106, 0.08);
+}
+
+.header__mobile-sublink--all {
+  font-weight: 700;
+  color: var(--color-gold);
+  border-bottom: 1px solid rgba(209, 167, 67, 0.25);
+  margin-bottom: 4px;
+  padding-bottom: 8px;
 }
 
 @media (min-width: 1280px) {
@@ -7890,6 +7963,8 @@ html.modal-open.lenis body {
   right: 0;
   bottom: 0;
   width: 100%;
+  height: 100%;
+  height: 100dvh;
   max-width: min(420px, 100%);
   background-color: var(--color-paper);
   z-index: var(--z-drawer);
@@ -7897,6 +7972,7 @@ html.modal-open.lenis body {
   flex-direction: column;
   box-shadow: var(--shadow-lg);
   border-left: 1px solid rgba(221, 215, 204, 0.85);
+  overscroll-behavior-y: contain;
 }
 
 @media (max-width: 767px) {
@@ -7945,8 +8021,11 @@ html.modal-open.lenis body {
 }
 
 .drawer__body {
-  flex: 1;
+  flex: 1 1 auto;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
   padding: var(--space-3);
   background:
     radial-gradient(circle at top right, rgba(224, 57, 106, 0.05), transparent 24%),

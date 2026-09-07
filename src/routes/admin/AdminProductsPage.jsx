@@ -1167,8 +1167,8 @@ export default function AdminProductsPage() {
                 type="search"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Search products..."
-                aria-label="Search products"
+                placeholder="Search Products..."
+                aria-label="Search Products"
               />
             </div>
 

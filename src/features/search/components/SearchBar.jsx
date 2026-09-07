@@ -48,14 +48,14 @@ export function SearchBar({ className, iconRight = false, autoFocus = false }) {
           ref={inputRef}
           type="search"
           className="search-bar__input"
-          placeholder="Search products..."
+          placeholder="Search Products..."
           value={query}
           onChange={(e) => {
             setQuery(e.target.value)
             setIsOpen(true)
           }}
           onFocus={() => setIsOpen(true)}
-          aria-label="Search products"
+          aria-label="Search Products"
         />
       </form>
       {isOpen && query.trim().length >= 2 && results.length > 0 && (

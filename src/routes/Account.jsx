@@ -151,7 +151,7 @@ export default function Account() {
               <div>
                 <p className="heading-sm">FABUNIQO Customer</p>
                 <h3 className="display-md account-hero__title">{user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim()}</h3>
-                <p className="body-lg text-muted">Manage your details, delivery addresses, and upcoming orders from one place.</p>
+                <p className="body-lg text-muted">Manage your Details, Delivery Addresses, and upcoming Orders from one Place.</p>
               </div>
             </div>
 

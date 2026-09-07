@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ShoppingBag, Heart, User, MessageCircle, Menu, Search, X, ChevronRight, ChevronDown, Warehouse, Home as HomeIcon, LayoutGrid } from 'lucide-react'
+import { ShoppingBag, Heart, User, MessageCircle, Menu, Search, X, ChevronRight, ChevronDown, Warehouse, Home as HomeIcon, LayoutGrid, Sparkles } from 'lucide-react'
 import { SearchBar } from '@/features/search/components/SearchBar'
 import { CartDrawer } from '@/features/cart/components/CartDrawer'
 import { useAppStore } from '@/store'
@@ -12,6 +13,7 @@ import { BrandLogo } from './BrandLogo'
 import { SaleLiveBadge } from './SaleLiveBadge'
 import { getUserFirstName } from '@/lib/utils'
 import { MEDIA_QUERIES } from '@/config/breakpoints'
+import { startLenis, stopLenis } from '@/lib/lenis'
 
 function navHref(item) {
   if (item.href) return item.href
@@ -31,6 +33,7 @@ export function Header() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
+  const [categoriesExpanded, setCategoriesExpanded] = useState(false)
   const moreTimeoutRef = useRef(null)
   const location = useLocation()
   const cartCount = useCartCount()
@@ -43,16 +46,17 @@ export function Header() {
   const accountFirstName = getUserFirstName(user)
   const accountLabel = isAuthenticated && accountFirstName ? accountFirstName : 'My Account'
 
-  const { homeItem, categoryNavItems, moreCategories } = useMemo(() => {
+  const { homeItem, categoryNavItems, moreCategories, allCategories } = useMemo(() => {
     const home = navItems.find((item) => item.slug === 'home') || { label: 'Home', slug: 'home' }
-    const allCategories = navItems.filter((item) => item.slug !== 'home')
-    const visibleCategories = allCategories.slice(0, 5)
-    const remainingCategories = allCategories.slice(5)
+    const all = navItems.filter((item) => item.slug !== 'home')
+    const visibleCategories = all.slice(0, 5)
+    const remainingCategories = all.slice(5)
 
     return {
       homeItem: home,
       categoryNavItems: visibleCategories,
       moreCategories: remainingCategories,
+      allCategories: all,
     }
   }, [navItems])
 
@@ -86,6 +90,7 @@ export function Header() {
     setMobileNavOpen(false)
     setSearchOpen(false)
     setMoreOpen(false)
+    setCategoriesExpanded(false)
   }, [location.pathname])
 
   useEffect(() => {
@@ -95,8 +100,18 @@ export function Header() {
   }, [])
 
   useEffect(() => {
-    document.body.style.overflow = mobileNavOpen ? 'hidden' : ''
+    if (mobileNavOpen) {
+      stopLenis()
+      document.documentElement.classList.add('modal-open')
+      document.body.style.overflow = 'hidden'
+    } else {
+      startLenis()
+      document.documentElement.classList.remove('modal-open')
+      document.body.style.overflow = ''
+    }
     return () => {
+      startLenis()
+      document.documentElement.classList.remove('modal-open')
       document.body.style.overflow = ''
     }
   }, [mobileNavOpen])
@@ -292,89 +307,133 @@ export function Header() {
         </div>
       </header>
 
-      <AnimatePresence>
-        {mobileNavOpen && (
-          <>
-            <motion.button
-              type="button"
-              className="drawer-overlay"
-              aria-label="Close menu"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.22 }}
-              onClick={() => setMobileNavOpen(false)}
-            />
-            <motion.nav
-              className="drawer drawer--left"
-              aria-label="Mobile navigation"
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'tween', duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <div className="drawer__header">
-                <div>
-                  <p className="drawer__eyebrow">Menu</p>
-                  <h2 className="drawer__title">{SITE_NAME}</h2>
-                  <p className="drawer__meta">Shop jewelry by category</p>
-                </div>
-                <button
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <AnimatePresence>
+            {mobileNavOpen && (
+              <>
+                <motion.button
                   type="button"
-                  className="btn btn--ghost btn--icon"
-                  onClick={() => setMobileNavOpen(false)}
+                  className="drawer-overlay"
                   aria-label="Close menu"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="drawer__body header__mobile-body">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.slug}
-                    to={navHref(item)}
-                    className={`header__mobile-link ${isNavActive(item, location.pathname) ? 'header__mobile-link--active' : ''}`}
-                    onClick={() => setMobileNavOpen(false)}
-                  >
-                    {item.slug === 'home' ? <HomeIcon size={18} aria-hidden /> : item.label}
-                    <ChevronRight size={16} />
-                  </Link>
-                ))}
-
-                <Link
-                  to="/product-all"
-                  className={`header__mobile-link header__mobile-link--product-all ${location.pathname === '/product-all' ? 'header__mobile-link--active' : ''}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.22 }}
                   onClick={() => setMobileNavOpen(false)}
+                />
+                <motion.nav
+                  className="drawer drawer--left"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Mobile navigation"
+                  data-lenis-prevent
+                  initial={{ x: '-100%' }}
+                  animate={{ x: 0 }}
+                  exit={{ x: '-100%' }}
+                  transition={{ type: 'tween', duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
                 >
-                  <LayoutGrid size={18} aria-hidden />
-                  Product All
-                  <ChevronRight size={16} />
-                </Link>
+                  <div className="drawer__header">
+                    <div>
+                      <p className="drawer__eyebrow">Menu</p>
+                      <h2 className="drawer__title">{SITE_NAME}</h2>
+                      <p className="drawer__meta">Shop jewelry by category</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn--ghost btn--icon"
+                      onClick={() => setMobileNavOpen(false)}
+                      aria-label="Close menu"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
 
-                <div className="header__mobile-sale">
-                  <SaleLiveBadge />
-                </div>
+                  <div className="drawer__body header__mobile-body" data-lenis-prevent>
+                    {/* Single clickable option to expand/collapse all navbar categories */}
+                    <div className="header__mobile-categories-group">
+                      <button
+                        type="button"
+                        className={`header__mobile-link header__mobile-link--toggle ${categoriesExpanded ? 'header__mobile-link--expanded' : ''}`}
+                        onClick={() => setCategoriesExpanded((open) => !open)}
+                        aria-expanded={categoriesExpanded}
+                        aria-controls="mobile-categories-panel"
+                      >
+                        <span className="header__mobile-link-inner">
+                          <LayoutGrid size={18} aria-hidden="true" />
+                          <span>Categories</span>
+                          {allCategories.length > 0 && (
+                            <span className="header__mobile-count-pill">{allCategories.length}</span>
+                          )}
+                        </span>
+                        <ChevronDown
+                          size={18}
+                          className={`header__mobile-toggle-chevron ${categoriesExpanded ? 'header__mobile-toggle-chevron--open' : ''}`}
+                          aria-hidden="true"
+                        />
+                      </button>
 
-                <div className="header__mobile-extras">
-                  <Link to="/account/profile" onClick={handleMyAccountClick} aria-label="My Account">
-                    <User size={16} /> {accountLabel} <ChevronRight size={16} />
-                  </Link>
-                  <Link to="/wholesale" onClick={() => setMobileNavOpen(false)}>
-                    <Warehouse size={16} /> Wholesale <ChevronRight size={16} />
-                  </Link>
-                  <Link to="/wishlist" onClick={() => setMobileNavOpen(false)}>
-                    <Heart size={16} /> Wishlist <ChevronRight size={16} />
-                  </Link>
-                  <Link to="/contact" onClick={() => setMobileNavOpen(false)}>
-                    <MessageCircle size={16} /> Contact Us <ChevronRight size={16} />
-                  </Link>
-                </div>
-              </div>
-            </motion.nav>
-          </>
+                      <AnimatePresence initial={false}>
+                        {categoriesExpanded && (
+                          <motion.div
+                            id="mobile-categories-panel"
+                            className="header__mobile-categories-panel"
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                          >
+                            <Link
+                              to="/product-all"
+                              className={`header__mobile-sublink header__mobile-sublink--all ${location.pathname === '/product-all' ? 'header__mobile-sublink--active' : ''}`}
+                              onClick={() => setMobileNavOpen(false)}
+                            >
+                              <Sparkles size={14} aria-hidden="true" />
+                              <span>All Categories &amp; Products</span>
+                            </Link>
+                            {allCategories.map((item) => (
+                              <Link
+                                key={item.slug}
+                                to={navHref(item)}
+                                className={`header__mobile-sublink ${isNavActive(item, location.pathname) ? 'header__mobile-sublink--active' : ''}`}
+                                onClick={() => setMobileNavOpen(false)}
+                              >
+                                <span>{item.label}</span>
+                              </Link>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+
+                    <div className="header__mobile-sale">
+                      <SaleLiveBadge />
+                    </div>
+
+                    <div className="header__mobile-extras">
+                      <Link to="/account/profile" onClick={handleMyAccountClick} aria-label="My Account">
+                        <User size={16} /> <span>{accountLabel}</span>
+                      </Link>
+                      <Link to="/wholesale" onClick={() => setMobileNavOpen(false)}>
+                        <Warehouse size={16} /> <span>Wholesale</span>
+                      </Link>
+                      <Link to="/wishlist" onClick={() => setMobileNavOpen(false)}>
+                        <Heart size={16} /> <span>Wishlist</span>
+                        {wishlistCount > 0 && (
+                          <span className="header__badge-count">{wishlistCount}</span>
+                        )}
+                      </Link>
+                      <Link to="/contact" onClick={() => setMobileNavOpen(false)}>
+                        <MessageCircle size={16} /> <span>Contact Us</span>
+                      </Link>
+                    </div>
+                  </div>
+                </motion.nav>
+              </>
+            )}
+          </AnimatePresence>,
+          document.body
         )}
-      </AnimatePresence>
       <CartDrawer />
     </>
   )

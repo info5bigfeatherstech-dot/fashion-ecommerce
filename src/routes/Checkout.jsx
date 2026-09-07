@@ -502,7 +502,7 @@ export default function Checkout() {
       return
     }
     if (!checkoutAddress?.id) {
-      toast.error('Select a delivery address')
+      toast.error('Select a Delivery Address')
       setAddressModalOpen(true)
       return
     }
@@ -804,7 +804,7 @@ export default function Checkout() {
                       background: '#e8a020', color: '#fff',
                       fontSize: 14, fontWeight: 700, flexShrink: 0,
                     }}>1</span>
-                    <h2 className="checkout-panel__title">Review order</h2>
+                    <h2 className="checkout-panel__title">Review Order</h2>
                   </div>
                   {/* Chevron arrow */}
                   <span style={{
@@ -905,7 +905,7 @@ export default function Checkout() {
                       background: '#e8a020', color: '#fff',
                       fontSize: 14, fontWeight: 700, flexShrink: 0,
                     }}>2</span>
-                    <h2 className="checkout-panel__title">Delivery address</h2>
+                    <h2 className="checkout-panel__title">Delivery Address</h2>
                   </div>
                   <Button type="button" variant="ghost" size="sm" onClick={() => setAddressModalOpen(true)}>
                     {checkoutAddress ? 'Change' : 'Choose address'}

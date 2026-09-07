@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowRight, Lock, ShoppingBag, Sparkles, X } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -10,6 +11,7 @@ import { useCart } from '@/features/cart/hooks'
 import { prefetchCheckoutRoute } from '@/features/checkout/prefetchRoute'
 import { CartItem } from './CartItem'
 import { CheckoutAddressModal } from '@/components/checkout/CheckoutAddressModal'
+import { startLenis, stopLenis } from '@/lib/lenis'
 
 export function CartDrawer() {
   const isCartOpen = useAppStore((s) => s.isCartOpen)
@@ -23,27 +25,47 @@ export function CartDrawer() {
 
   useCart({ enabled: isCartOpen && isAuthenticated })
 
+  useEffect(() => {
+    if (isCartOpen) {
+      stopLenis()
+      document.documentElement.classList.add('modal-open')
+      document.body.style.overflow = 'hidden'
+    } else {
+      startLenis()
+      document.documentElement.classList.remove('modal-open')
+      document.body.style.overflow = ''
+    }
+    return () => {
+      startLenis()
+      document.documentElement.classList.remove('modal-open')
+      document.body.style.overflow = ''
+    }
+  }, [isCartOpen])
+
   return (
     <>
-      <AnimatePresence>
-      {isCartOpen && (
-        <>
-          <motion.div
-            className="drawer-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={closeCart}
-          />
-          <motion.div
-            className="drawer"
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'tween', duration: 0.25 }}
-            role="dialog"
-            aria-label="Shopping cart"
-          >
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <AnimatePresence>
+            {isCartOpen && (
+              <>
+                <motion.div
+                  className="drawer-overlay"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={closeCart}
+                />
+                <motion.div
+                  className="drawer"
+                  data-lenis-prevent
+                  initial={{ x: '100%' }}
+                  animate={{ x: 0 }}
+                  exit={{ x: '100%' }}
+                  transition={{ type: 'tween', duration: 0.25 }}
+                  role="dialog"
+                  aria-label="Shopping cart"
+                >
             <div className="drawer__header">
               <div>
                 <p className="drawer__eyebrow">Your cart</p>
@@ -122,7 +144,9 @@ export function CartDrawer() {
           </motion.div>
         </>
       )}
-      </AnimatePresence>
+    </AnimatePresence>,
+    document.body
+  )}
 
       {checkoutAddressOpen && (
         <CheckoutAddressModal

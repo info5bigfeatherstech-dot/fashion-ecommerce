@@ -193,7 +193,7 @@ export function AccountAddressesTab() {
             <div className="account-empty__icon"><MapPin size={22} /></div>
             <p className="body-lg">No saved addresses yet</p>
             <p className="body-sm text-muted">
-              Add your first delivery address to speed up future checkout.
+              Add your first Delivery Address to speed up future checkout.
             </p>
             <Button
               variant="primary"

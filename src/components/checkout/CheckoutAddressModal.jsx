@@ -173,7 +173,7 @@ export function CheckoutAddressModal({ open, onOpenChange, onProceed }) {
     return addressForm.handleSubmit((data) => handleCreate(data, { continueAfter }))
   }
 
-  const modalTitle = view === 'new' ? 'New address' : 'Delivery address'
+  const modalTitle = view === 'new' ? 'New Dddress' : 'Delivery Address'
   const wizardHint = formStep === 0
     ? 'Name and phone for delivery updates.'
     : 'Where the courier should arrive.'
@@ -189,7 +189,7 @@ export function CheckoutAddressModal({ open, onOpenChange, onProceed }) {
         {!isAuthenticated ? (
           <div className="address-modal__guest">
             <p className="body-sm text-muted">
-              Sign in to choose a saved delivery address or add a new one.
+              Sign in to choose a saved Delivery Address or add a new one.
             </p>
             <Button asChild variant="primary">
               <Link to="/login" state={{ redirectTo: '/account/cart' }}>
@@ -210,7 +210,7 @@ export function CheckoutAddressModal({ open, onOpenChange, onProceed }) {
                 </p>
               ) : addresses.length === 0 ? (
                 <p className="body-sm text-muted">
-                  No saved addresses yet. Add your first delivery address to continue.
+                  No saved addresses yet. Add your first Delivery Address to continue.
                 </p>
               ) : (
                 <div className="address-modal__list">
