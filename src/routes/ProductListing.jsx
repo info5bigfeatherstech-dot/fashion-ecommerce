@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useLayoutEffect } from 'react'
 import { useParams, useSearchParams, Link } from 'react-router-dom'
+import { scrollToTop } from '@/lib/lenis'
 import { SlidersHorizontal, X } from 'lucide-react'
 import { ProductCard } from '@/features/product/components/ProductCard'
 import { ProductFilters } from '@/features/product/components/ProductFilters'
@@ -44,6 +45,16 @@ export default function ProductListing() {
   const plating = searchParams.get('plating') || ''
   const discount = searchParams.get('discount') || ''
 
+  useLayoutEffect(() => {
+    scrollToTop()
+    const id1 = requestAnimationFrame(scrollToTop)
+    const id2 = setTimeout(scrollToTop, 50)
+    return () => {
+      cancelAnimationFrame(id1)
+      clearTimeout(id2)
+    }
+  }, [category, subcategory, search])
+
   const specials = ['new-arrivals', 'sale']
   const resolvedCategory = specials.includes(category) ? category : category
   const categoryInfo = CATEGORY_TREE[category] || null
@@ -68,6 +79,13 @@ export default function ProductListing() {
   }
 
   const { data, isLoading } = useProductListing(filters)
+
+  useLayoutEffect(() => {
+    if (!isLoading) {
+      scrollToTop()
+    }
+  }, [isLoading, category, subcategory])
+
   const { data: circleCategories = [] } = useCircleCategories()
   const apiCategoryLabel = useCategoryLabel(category)
 

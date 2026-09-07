@@ -79,7 +79,26 @@ function ProductDetailPage() {
     setQuantity(1)
     setShowStickyBar(false)
     setReviewFilterStar(null)
+
+    const id1 = requestAnimationFrame(scrollToTop)
+    const id2 = setTimeout(scrollToTop, 60)
+    return () => {
+      cancelAnimationFrame(id1)
+      clearTimeout(id2)
+    }
   }, [slug])
+
+  useLayoutEffect(() => {
+    if (!product) return
+    // When product finishes loading and replaces the skeleton, lock scroll to top
+    scrollToTop()
+    const id1 = requestAnimationFrame(scrollToTop)
+    const id2 = setTimeout(scrollToTop, 60)
+    return () => {
+      cancelAnimationFrame(id1)
+      clearTimeout(id2)
+    }
+  }, [product?.id])
 
   useEffect(() => {
     if (!product) return

@@ -29,41 +29,37 @@ export function scrollToTop() {
 
 /**
  * Jump to a specific scroll Y position synchronously.
- * Keeps Lenis internal state and the native scroller in lockstep so
- * route changes cannot paint (or settle) at a stale offset.
+ * Guarantees that the native scroller is immediately at the target Y.
  */
 export function scrollToPosition(y = 0) {
   const targetY = Math.max(0, Number(y) || 0)
-  const lenis = lenisInstance
 
-  suppressScrollRecording = true
-
-  if (lenis) {
-    // Cancel any in-flight lerp / wheel inertia, then snap.
-    // Do not stop()/start() — that runs reset() and can re-sync from a
-    // stale actualScroll during route transitions.
-    lenis.animate?.stop?.()
-    lenis.isScrolling = false
-    lenis.velocity = 0
-    lenis.lastVelocity = 0
-    lenis.animatedScroll = targetY
-    lenis.targetScroll = targetY
-    lenis.scrollTo(targetY, { immediate: true, force: true })
-    // Guaranteed native write even if scrollTo early-returns
-    // (target === targetScroll) while the window is still offset.
-    lenis.setScroll?.(targetY)
+  try {
+    window.scrollTo({ top: targetY, left: 0, behavior: 'instant' })
+  } catch (_) {
+    window.scrollTo(0, targetY)
   }
 
-  window.scrollTo({ top: targetY, left: 0, behavior: 'instant' })
-  document.documentElement.scrollTop = targetY
-  document.body.scrollTop = targetY
+  if (document.documentElement) {
+    document.documentElement.scrollTop = targetY
+  }
+  if (document.body) {
+    document.body.scrollTop = targetY
+  }
 
-  // Scroll events can flush after this call; keep suppression through the next frame.
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      suppressScrollRecording = false
-    })
-  })
+  const lenis = lenisInstance
+  if (lenis) {
+    try {
+      lenis.animate?.stop?.()
+      lenis.isScrolling = false
+      lenis.velocity = 0
+      lenis.lastVelocity = 0
+      lenis.animatedScroll = targetY
+      lenis.targetScroll = targetY
+    } catch (_) {
+      /* ignore */
+    }
+  }
 }
 
 /**
