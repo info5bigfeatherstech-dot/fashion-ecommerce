@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { Link, Navigate, useParams, useNavigationType } from 'react-router-dom'
+import { Link, Navigate, useParams } from 'react-router-dom'
 import { policiesData, getPolicyBySlug } from '@/config/policies'
 import { SITE_CONTACT } from '@/config/site'
 import { Button } from '@/components/ui/Button'
@@ -179,16 +179,13 @@ function PolicySection({ section, index, onVisible }) {
 
 export default function Policy() {
   const { slug } = useParams()
-  const navigationType = useNavigationType()
   const policy = getPolicyBySlug(slug)
   const [activeSection, setActiveSection] = useState(0)
   const onVisible = useCallback((index) => setActiveSection(index), [])
 
   useEffect(() => {
     setActiveSection(0)
-    if (navigationType === 'POP') return
-    window.scrollTo({ top: 0, behavior: 'instant' })
-  }, [slug, navigationType])
+  }, [slug])
 
   const handleSidebarClick = (index) => {
     const el = document.getElementById(`section-${index}`)

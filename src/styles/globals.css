@@ -1034,7 +1034,25 @@ textarea {
   }
 }
 
+/*
+ * Storefront shell: site-top + main + footer.
+ * main.page must fill at least one viewport so a short loading Outlet
+ * (skeleton / empty query state) cannot pull Footer into the first paint
+ * when the previous route's scrollY is still high or has just been reset.
+ */
+.site-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
 .page {
+  flex: 1 0 auto;
+  /* Ignore Footer height on purpose — Footer must stay below the fold
+     while route content is still short. */
+  min-height: 100vh;
+  min-height: 100dvh;
   padding-bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
   min-width: 0;
   overflow-anchor: none;
@@ -25509,7 +25527,9 @@ button.admin-stats-chip:hover {
   align-items: center;
   justify-content: center;
   gap: var(--space-3);
-  min-height: 40vh;
+  /* Fill the viewport-tall main landmark during Suspense fallbacks */
+  min-height: 100%;
+  min-height: 60vh;
   padding: var(--space-8) var(--space-4);
 }
 

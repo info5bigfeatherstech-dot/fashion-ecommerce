@@ -21,7 +21,7 @@ import { useProductDetail, useRelatedProducts } from '@/features/product/hooks'
 import { resolveDisplayImages, resolveVariant, isAttrValueInStock } from '@/features/product/mappers'
 import { useAppStore } from '@/store'
 import { showAddedToCartToast } from '@/lib/cart-toast'
-import { scrollToTopSoon } from '@/lib/lenis'
+import { scrollToTop } from '@/lib/lenis'
 import { formatPrice } from '@/lib/utils'
 
 function formatLabel(value) {
@@ -47,7 +47,7 @@ function initialAttrsFromProduct(product) {
   return next
 }
 
-export default function ProductDetail() {
+function ProductDetailPage() {
   const { slug } = useParams()
   const { data: product, isLoading, isError } = useProductDetail(slug)
   const { data: reviewData } = useProductReviews(product?.id)
@@ -73,11 +73,12 @@ export default function ProductDetail() {
   const navigate = useNavigate()
 
   useLayoutEffect(() => {
+    // Instant top on every product open, including Product A → B (slug change).
+    scrollToTop()
     setSelectedAttrs({})
     setQuantity(1)
     setShowStickyBar(false)
     setReviewFilterStar(null)
-    return scrollToTopSoon()
   }, [slug])
 
   useEffect(() => {
@@ -111,12 +112,6 @@ export default function ProductDetail() {
       media.removeEventListener('change', onResize)
     }
   }, [slug, product?.id])
-
-  // Async product / related / reviews expand the page — re-pin to top as they settle.
-  useLayoutEffect(() => {
-    if (isLoading || !product) return undefined
-    return scrollToTopSoon([0, 80, 200, 450, 900])
-  }, [slug, isLoading, product?.id, relatedProducts.length])
 
   const selectedVariant = useMemo(() => {
     if (!product) return null
@@ -561,4 +556,10 @@ export default function ProductDetail() {
       </div>
     </div>
   )
+}
+
+/** Remount on slug change so product→product nav does not reuse the previous PDP instance. */
+export default function ProductDetail() {
+  const { slug } = useParams()
+  return <ProductDetailPage key={slug} />
 }

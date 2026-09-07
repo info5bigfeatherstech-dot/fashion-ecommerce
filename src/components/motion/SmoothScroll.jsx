@@ -22,6 +22,9 @@ export function SmoothScroll() {
         wheelMultiplier: 0.85,
         touchMultiplier: 1,
         autoRaf: false,
+        // Cancel wheel inertia when clicking in-app links to another path
+        // so product→product navigations do not keep the previous Y.
+        stopInertiaOnNavigate: true,
         // Let dialogs / nested scroll panels own the wheel scroll
         prevent: (node) =>
           Boolean(
