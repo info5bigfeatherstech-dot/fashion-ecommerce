@@ -25,7 +25,7 @@ export default function AdminLogin() {
       const res = await login.mutateAsync({ identifier: identifier.trim(), password })
       const userName = res?.user?.name || res?.user?.email || 'Admin'
       toast.success('Logged in successfully', {
-        description: `Welcome back to admin panel, ${userName}!`,
+        description: `Welcome Back to admin panel, ${userName}!`,
         duration: 4000,
       })
       navigate('/admin/dashboard', { replace: true })

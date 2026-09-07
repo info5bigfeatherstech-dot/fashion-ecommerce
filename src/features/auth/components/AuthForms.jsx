@@ -609,7 +609,7 @@ export function AuthForms({
     <div className="auth-modal__form">
       <div className="auth-modal__welcome">
         <h2 className="auth-modal__welcome-title">
-          Welcome <em>back</em>
+          Welcome <em>Back</em>
         </h2>
         <p className="auth-modal__welcome-sub">Access your premium dashboard</p>
       </div>
@@ -625,7 +625,7 @@ export function AuthForms({
       <AuthDivider label="Or" />
 
       <form onSubmit={loginForm.handleSubmit(handleLogin)} noValidate>
-        <div className="form-grid" style={{ gap: 'var(--space-3)' }}>
+        <div className="form-grid" style={{ gap: 'var(--space-4)' }}>
           <InputGroup label="Email or phone" htmlFor="login-identifier" error={loginForm.formState.errors.identifier?.message}>
             <Input
               id="login-identifier"
@@ -634,7 +634,25 @@ export function AuthForms({
               {...loginForm.register('identifier')}
             />
           </InputGroup>
-          <InputGroup label="Password" htmlFor="login-password" error={loginForm.formState.errors.password?.message}>
+
+          <div className="input-group">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+              <label htmlFor="login-password" className="input-label" style={{ marginBottom: 0 }}>
+                Password
+              </label>
+              <button
+                type="button"
+                className="section-header__link body-sm"
+                style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--color-ink-light, #555)' }}
+                onClick={() => {
+                  setError('')
+                  setInfoMessage('')
+                  setView('forgot-find')
+                }}
+              >
+                Forgot password?
+              </button>
+            </div>
             <Input
               id="login-password"
               type="password"
@@ -642,28 +660,19 @@ export function AuthForms({
               error={loginForm.formState.errors.password}
               {...loginForm.register('password')}
             />
-          </InputGroup>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button
-              type="button"
-              className="section-header__link body-sm"
-              onClick={() => {
-                setError('')
-                setInfoMessage('')
-                setView('forgot-find')
-              }}
-            >
-              Forgot password?
-            </button>
+            {loginForm.formState.errors.password?.message && (
+              <span className="input-error" role="alert">
+                {loginForm.formState.errors.password.message}
+              </span>
+            )}
           </div>
 
-          <Button type="submit" variant="primary" fullWidth disabled={submitting}>
+          <Button type="submit" variant="primary" fullWidth disabled={submitting} style={{ marginTop: 'var(--space-1)' }}>
             {submitting ? 'Signing in…' : 'Sign In'}
           </Button>
         </div>
 
-        <p className="body-sm text-muted" style={{ textAlign: 'center', marginTop: 'var(--space-3)' }}>
+        <p className="body-sm text-muted" style={{ textAlign: 'center', marginTop: 'var(--space-4)' }}>
           <button className="section-header__link" type="button" onClick={() => switchTo('register', 'register')}>
             Create an account
           </button>

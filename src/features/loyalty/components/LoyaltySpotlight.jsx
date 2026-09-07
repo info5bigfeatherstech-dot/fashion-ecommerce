@@ -30,7 +30,7 @@ export function LoyaltySpotlight({ compact = false }) {
       <div>
         <h2 className="display-md" style={{ marginBottom: 'var(--space-2)' }}>
           {data?.isMember ? (
-            <>Welcome back, <span className="heading-accent">{data.tier}</span></>
+            <>Welcome Back, <span className="heading-accent">{data.tier}</span></>
           ) : (
             <>Rewards That <span className="heading-accent">Move With You</span></>
           )}
