@@ -16,6 +16,7 @@ export function WishlistProductGrid({
   enabled = true,
   className = '',
   defaultView = 'list',
+  showViewToggle = false,
 }) {
   const navigate = useNavigate()
   const addItem = useAppStore((s) => s.addItem)
@@ -53,26 +54,28 @@ export function WishlistProductGrid({
         <p className="wishlist-toolbar__meta">
           Showing {showing} of {wishlistItems.length}
         </p>
-        <div className="wishlist-toolbar__views" role="group" aria-label="Wishlist layout">
-          <button
-            type="button"
-            className={`wishlist-toolbar__view${view === 'list' ? ' is-active' : ''}`}
-            onClick={() => setView('list')}
-            aria-pressed={view === 'list'}
-          >
-            <List size={16} />
-            List
-          </button>
-          <button
-            type="button"
-            className={`wishlist-toolbar__view${view === 'grid' ? ' is-active' : ''}`}
-            onClick={() => setView('grid')}
-            aria-pressed={view === 'grid'}
-          >
-            <LayoutGrid size={16} />
-            Grid
-          </button>
-        </div>
+        {showViewToggle && (
+          <div className="wishlist-toolbar__views" role="group" aria-label="Wishlist layout">
+            <button
+              type="button"
+              className={`wishlist-toolbar__view${view === 'list' ? ' is-active' : ''}`}
+              onClick={() => setView('list')}
+              aria-pressed={view === 'list'}
+            >
+              <List size={16} />
+              List
+            </button>
+            <button
+              type="button"
+              className={`wishlist-toolbar__view${view === 'grid' ? ' is-active' : ''}`}
+              onClick={() => setView('grid')}
+              aria-pressed={view === 'grid'}
+            >
+              <LayoutGrid size={16} />
+              Grid
+            </button>
+          </div>
+        )}
       </div>
 
       {view === 'list' ? (

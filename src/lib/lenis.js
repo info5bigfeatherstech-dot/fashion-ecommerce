@@ -74,3 +74,89 @@ export function resolveScrollTarget(yOrSelector = 0) {
   }
   return Math.max(0, Number(yOrSelector) || 0)
 }
+
+/**
+ * Restore scroll position now and as layout/images settle.
+ * target can be:
+ * - a numeric Y offset (e.g. 1200)
+ * - a CSS selector string (e.g. "#circular-categories")
+ * - an object { sectionId?: string, y?: number }
+ */
+export function restoreScrollPositionSoon(
+  target = 0,
+  delays = [0, 25, 60, 120, 220, 380, 550, 800, 1200]
+) {
+  let cancelled = false
+
+  const cancel = () => {
+    cancelled = true
+    cleanupListeners()
+  }
+
+  const cleanupListeners = () => {
+    window.removeEventListener('wheel', cancel)
+    window.removeEventListener('touchmove', cancel)
+    window.removeEventListener('pointerdown', cancel)
+    window.removeEventListener('keydown', cancel)
+  }
+
+  window.addEventListener('wheel', cancel, { passive: true })
+  window.addEventListener('touchmove', cancel, { passive: true })
+  window.addEventListener('pointerdown', cancel, { passive: true })
+  window.addEventListener('keydown', cancel, { passive: true })
+
+  const resolveTargetY = () => {
+    let selector = null
+    let fallbackY = 0
+
+    if (typeof target === 'string') {
+      selector = target.startsWith('#') ? target : `#${target}`
+    } else if (target && typeof target === 'object') {
+      if (target.sectionId) {
+        selector = target.sectionId.startsWith('#') ? target.sectionId : `#${target.sectionId}`
+      }
+      fallbackY = Math.max(0, Number(target.y) || 0)
+    } else {
+      fallbackY = Math.max(0, Number(target) || 0)
+    }
+
+    if (selector) {
+      try {
+        const el = document.querySelector(selector)
+        if (el) {
+          const rect = el.getBoundingClientRect()
+          return Math.max(0, rect.top + window.scrollY - 80)
+        }
+      } catch (_) {}
+    }
+
+    return fallbackY
+  }
+
+  const applyScroll = () => {
+    if (cancelled) return
+    const targetY = resolveTargetY()
+    suppressScrollRecording = true
+    scrollToPosition(targetY)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        suppressScrollRecording = false
+      })
+    })
+  }
+
+  applyScroll()
+
+  const timers = delays
+    .filter((ms) => ms > 0)
+    .map((ms) => window.setTimeout(applyScroll, ms))
+  const raf = requestAnimationFrame(applyScroll)
+
+  return () => {
+    cancelled = true
+    cleanupListeners()
+    cancelAnimationFrame(raf)
+    timers.forEach((id) => window.clearTimeout(id))
+  }
+}
+

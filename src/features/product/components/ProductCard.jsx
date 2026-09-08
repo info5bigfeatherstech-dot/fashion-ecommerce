@@ -10,7 +10,6 @@ import { getProductRatingDisplay } from '@/lib/productRatingDisplay'
 import { FEATURE_FLAGS } from '@/config/site'
 import { showAddedToCartToast } from '@/lib/cart-toast'
 import { resolveVariantId } from '@/features/product/mappers'
-import { scrollToTop } from '@/lib/lenis'
 
 const MAX_QUICK_QTY = 8
 
@@ -130,7 +129,6 @@ export function ProductCard({ product, compact = false }) {
   return (
     <Link
       to={`/product/${product.slug}`}
-      onClick={() => scrollToTop()}
       className={cn(
         'product-card',
         compact && 'product-card--compact',

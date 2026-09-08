@@ -41,49 +41,53 @@ export function CartItem({ item, showLink = true, layout = 'drawer' }) {
             {item.color && <span className="cart-item__tag">{item.color}</span>}
           </div>
 
-          <p className="cart-item__unit">{formatPrice(item.price)} each</p>
+          {item.quantity > 1 && (
+            <p className="cart-item__unit">{formatPrice(item.price)} each</p>
+          )}
         </div>
 
-        <div className="cart-item__controls">
-          <div className="qty-stepper cart-item__qty" role="group" aria-label="Quantity">
+        <div className="cart-item__action-row">
+          <div className="cart-item__controls">
+            <div className="qty-stepper cart-item__qty" role="group" aria-label="Quantity">
+              <button
+                type="button"
+                className="qty-stepper__btn"
+                onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                aria-label="Decrease quantity"
+              >
+                <Minus size={13} />
+              </button>
+              <span className="qty-stepper__value" aria-live="polite">
+                {item.quantity}
+              </span>
+              <button
+                type="button"
+                className="qty-stepper__btn"
+                onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                aria-label="Increase quantity"
+              >
+                <Plus size={13} />
+              </button>
+            </div>
+
             <button
               type="button"
-              className="qty-stepper__btn"
-              onClick={() => updateQuantity(item.id, item.quantity - 1)}
-              aria-label="Decrease quantity"
+              className="cart-item__remove"
+              onClick={() => removeItem(item.id)}
+              aria-label={`Remove ${item.name}`}
+              title="Remove item"
             >
-              <Minus size={14} />
-            </button>
-            <span className="qty-stepper__value" aria-live="polite">
-              {item.quantity}
-            </span>
-            <button
-              type="button"
-              className="qty-stepper__btn"
-              onClick={() => updateQuantity(item.id, item.quantity + 1)}
-              aria-label="Increase quantity"
-            >
-              <Plus size={14} />
+              <Trash2 size={15} />
             </button>
           </div>
 
-          <button
-            type="button"
-            className="cart-item__remove"
-            onClick={() => removeItem(item.id)}
-            aria-label={`Remove ${item.name}`}
-          >
-            <Trash2 size={15} />
-            <span>Remove</span>
-          </button>
+          <div className="cart-item__aside">
+            <p className="cart-item__price">{formatPrice(lineTotal)}</p>
+            {item.quantity > 1 && (
+              <p className="cart-item__qty-note">{item.quantity} × {formatPrice(item.price)}</p>
+            )}
+          </div>
         </div>
-      </div>
-
-      <div className="cart-item__aside">
-        <p className="cart-item__price">{formatPrice(lineTotal)}</p>
-        {item.quantity > 1 && (
-          <p className="cart-item__qty-note">{item.quantity} × {formatPrice(item.price)}</p>
-        )}
       </div>
     </article>
   )

@@ -82,7 +82,7 @@ export function NewArrivalsSection() {
   if (!isLoading && slides.length === 0) return null
 
   return (
-    <section className="section container new-arrivals-section">
+    <section id="today-deals" className="section container new-arrivals-section">
       <div className="section-header new-arrivals-header">
         <div className="new-arrivals-header__copy">
           <ScrollRevealText as="h2" className="new-arrivals-pill">
@@ -132,6 +132,7 @@ export function NewArrivalsSection() {
                 key={slide.id}
                 as={Link}
                 to={slide.href}
+                state={{ fromSection: 'today-deals' }}
                 className="new-arrivals-slide"
                 maxTilt={6}
                 glareOpacity={0.4}

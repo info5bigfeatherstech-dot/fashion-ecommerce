@@ -15,7 +15,7 @@ export function BestsellersSection() {
   const products = data?.products ?? []
 
   return (
-    <section className="section container">
+    <section id="bestsellers" className="section container">
       <div className="section-header">
         <div>
           <ScrollRevealText as="h2" className="display-md">

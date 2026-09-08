@@ -29,7 +29,7 @@ export function NewsletterSection() {
   }
 
   return (
-    <section className="section container">
+    <section id="newsletter" className="section container">
       <div className="newsletter">
         <div className="newsletter__content">
           <ScrollRevealText

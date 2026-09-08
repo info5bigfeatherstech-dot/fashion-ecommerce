@@ -17,7 +17,7 @@ export function SignatureJewelrySection() {
   } = SIGNATURE_JEWELRY
 
   return (
-    <section className="signature-jewelry" aria-label="Signature jewelry">
+    <section id="signature-jewelry" className="signature-jewelry" aria-label="Signature jewelry">
       <div className="container">
         <div className="signature-jewelry__inner">
           <p className="signature-jewelry__watermark" aria-hidden="true">
@@ -37,7 +37,7 @@ export function SignatureJewelrySection() {
               </ScrollRevealText>
 
               <div className="signature-jewelry__actions">
-                <Link to={ctaHref} className="signature-jewelry__cta">
+                <Link to={ctaHref} state={{ fromSection: 'signature-jewelry' }} className="signature-jewelry__cta">
                   <span className="signature-jewelry__cta-label">{ctaLabel}</span>
                   <span className="signature-jewelry__cta-icon" aria-hidden="true">
                     →

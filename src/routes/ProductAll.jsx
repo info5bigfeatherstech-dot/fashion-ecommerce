@@ -6,7 +6,6 @@ import { useApiCategories } from '@/features/category/hooks'
 import { slugFromShopHref } from '@/features/category/nav'
 import { useProductsByCategory } from '@/features/product/hooks'
 import { ProductCard } from '@/features/product/components/ProductCard'
-import { formatPrice } from '@/lib/utils'
 
 const PRODUCTS_PER_CATEGORY_ROW = 4
 
@@ -43,43 +42,21 @@ function CategoryProductRow({ category }) {
       </div>
 
       {isLoading ? (
-        <div className="product-all-row__track product-all-row__track--loading" aria-hidden="true">
-          {Array.from({ length: 4 }, (_, i) => (
-            <div key={i} className="product-all-row__skeleton" />
+        <div className="grid-4 product-all-grid product-all-grid--loading" aria-hidden="true">
+          {Array.from({ length: PRODUCTS_PER_CATEGORY_ROW }, (_, i) => (
+            <div
+              key={i}
+              className="product-all-row__skeleton"
+              style={{ aspectRatio: '3/4', borderRadius: 'var(--radius-md, 8px)' }}
+            />
           ))}
         </div>
       ) : (
-        <ul className="product-all-row__track">
+        <div className="grid-4 product-all-grid">
           {products.map((product) => (
-            <li key={product.id} className="product-all-row__item">
-              <Link
-                to={`/product/${product.slug}`}
-                className="product-all-row__card"
-                aria-label={product.name || product.title}
-              >
-                <span className="product-all-row__image">
-                  {product.image || product.images?.[0] ? (
-                    <img
-                      src={product.image || product.images?.[0]}
-                      alt={product.name || product.title || ''}
-                      loading="lazy"
-                    />
-                  ) : (
-                    <span className="product-all-row__image-fallback" />
-                  )}
-                </span>
-                <span className="product-all-row__meta">
-                  <span className="product-all-row__name">
-                    {product.name || product.title}
-                  </span>
-                  {product.price != null ? (
-                    <span className="product-all-row__price">{formatPrice(product.price)}</span>
-                  ) : null}
-                </span>
-              </Link>
-            </li>
+            <ProductCard key={product.id} product={product} />
           ))}
-        </ul>
+        </div>
       )}
     </section>
   )

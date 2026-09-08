@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import { NavLink, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { ChevronRight, Heart, MapPin, Package, ShoppingBag, UserRound } from 'lucide-react'
+import { ChevronRight, Heart, LogOut, MapPin, Package, ShoppingBag, UserRound } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Input, InputGroup } from '@/components/ui/Input'
 import { Separator } from '@/components/ui/Separator'
@@ -77,6 +77,15 @@ export default function Account() {
             <p className="account-sidebar__name">{user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim()}</p>
             <p className="account-sidebar__email">{user.email}</p>
           </div>
+          <button
+            type="button"
+            className="account-sidebar__signout"
+            onClick={handleLogout}
+            aria-label="Sign out"
+          >
+            <LogOut size={12} aria-hidden="true" />
+            <span>Sign out</span>
+          </button>
         </div>
 
         <div className="account-quick">
@@ -119,7 +128,7 @@ export default function Account() {
           })}
         </nav>
 
-        <button type="button" className="account-signout" onClick={handleLogout}>
+        <button type="button" className="account-signout account-signout--bottom" onClick={handleLogout}>
           Sign out
         </button>
       </aside>

@@ -73,7 +73,7 @@ export function CraftsmanshipSection() {
   const data = CRAFTSMANSHIP_INSPECTION
 
   return (
-    <section className="section container craft-inspect" aria-label="DESIGNED TO SHINE">
+    <section id="craftsmanship" className="section container craft-inspect" aria-label="DESIGNED TO SHINE">
       <div className="craft-inspect__layout">
         <div className="craft-inspect__media">
           <ImageReveal>
@@ -116,7 +116,7 @@ export function CraftsmanshipSection() {
           </Reveal>
 
           <Reveal delay={0.24}>
-            <Link to={data.ctaHref} className="craft-inspect__cta">
+            <Link to={data.ctaHref} state={{ fromSection: 'craftsmanship' }} className="craft-inspect__cta">
               {data.ctaLabel}
               <ChevronRight size={16} aria-hidden="true" />
             </Link>

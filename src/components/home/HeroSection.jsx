@@ -52,7 +52,7 @@ export function HeroSection() {
   }
 
   return (
-    <section className="hero" aria-label="Campaign highlight">
+    <section id="hero" className="hero" aria-label="Campaign highlight">
       <div className="hero__frame">
         <div className="hero__slide">
           <div className="hero__bg">

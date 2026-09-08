@@ -101,7 +101,7 @@ export function AsSeenOnYouSection() {
   const hasMore = products.length > 8 || allCollageItems.length > 8
 
   return (
-    <section className="section container as-seen-section">
+    <section id="as-seen-on-you" className="section container as-seen-section">
       <div className="section-header as-seen-section__header">
         <div>
           <ScrollRevealText as="h2" className="display-md">
@@ -115,7 +115,7 @@ export function AsSeenOnYouSection() {
         </div>
         <Reveal delay={0.12} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
           {hasMore && (
-            <Link to="/shop/jewellery-spotted" className="btn btn--secondary as-seen-section__cta">
+            <Link to="/shop/jewellery-spotted" state={{ fromSection: 'as-seen-on-you' }} className="btn btn--secondary as-seen-section__cta">
               View All <ChevronRight size={14} />
             </Link>
           )}

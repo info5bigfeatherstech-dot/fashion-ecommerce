@@ -67,7 +67,7 @@ export function ShopByOccasionSection() {
   if (isMobile) return null
 
   return (
-    <section className="shop-occasion" aria-labelledby="shop-occasion-heading">
+    <section id="shop-by-occasion" className="shop-occasion" aria-labelledby="shop-occasion-heading">
       <div className="container shop-occasion__inner">
         <div className="section-header shop-occasion__header">
           <div>
@@ -105,6 +105,7 @@ export function ShopByOccasionSection() {
               >
                 <Link
                   to={panel.href || '/shop/sets'}
+                  state={{ fromSection: 'shop-by-occasion' }}
                   className={`occasion-accordion__panel${isActive ? ' is-active' : ''}`}
                   aria-label={`Shop ${panel.title}`}
                 >

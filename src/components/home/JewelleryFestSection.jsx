@@ -62,7 +62,7 @@ export function JewelleryFestSection() {
   }, [])
 
   return (
-    <section className="section container">
+    <section id="jewellery-fest" className="section container">
       <div className="jewellery-fest">
         <div className="jewellery-fest__left">
           <div className="jewellery-fest__icon" aria-hidden="true">
@@ -97,7 +97,7 @@ export function JewelleryFestSection() {
               </div>
             </div>
 
-            <Link to={JEWELLERY_FEST.ctaHref} className="jewellery-fest__cta">
+            <Link to={JEWELLERY_FEST.ctaHref} state={{ fromSection: 'jewellery-fest' }} className="jewellery-fest__cta">
               <Tag size={16} aria-hidden="true" />
               {JEWELLERY_FEST.ctaLabel}
             </Link>
@@ -112,7 +112,7 @@ export function JewelleryFestSection() {
 
           <div className="jewellery-fest__list">
             {categoryCards.map((item) => (
-              <Link key={item.id} to={item.categoryHref} className="jewellery-fest__card">
+              <Link key={item.id} to={item.categoryHref} state={{ fromSection: 'jewellery-fest' }} className="jewellery-fest__card">
                 {item.image && (
                   <img
                     src={item.image}

@@ -17,7 +17,7 @@ export function TheArchiveSection() {
   const hasTimeline = JEWELRY_ARCHIVE.length > 1 && JEWELRY_ARCHIVE.some((item) => item.year)
 
   return (
-    <section className="section container jewelry-archive" aria-label="Jewelry archive">
+    <section id="the-archive" className="section container jewelry-archive" aria-label="Jewelry archive">
       <ScrollRevealText as="h2" className="jewelry-archive__heading">
         Jewelry <span className="heading-accent">Edit</span>
       </ScrollRevealText>
@@ -41,7 +41,7 @@ export function TheArchiveSection() {
             >
               <h3 className="jewelry-archive__title">{entry.title}</h3>
               <p className="jewelry-archive__description">{entry.description}</p>
-              <Link to={entry.href} className="jewelry-archive__cta">
+              <Link to={entry.href} state={{ fromSection: 'the-archive' }} className="jewelry-archive__cta">
                 Explore Collection
                 <ArrowRight size={16} aria-hidden="true" />
               </Link>
