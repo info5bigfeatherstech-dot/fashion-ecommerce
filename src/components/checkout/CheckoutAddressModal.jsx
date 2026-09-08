@@ -268,6 +268,7 @@ export function CheckoutAddressModal({ open, onOpenChange, onProceed }) {
               <AddressContactFields
                 register={addressForm.register}
                 control={addressForm.control}
+                setValue={addressForm.setValue}
                 errors={addressForm.formState.errors}
                 idPrefix="checkout-addr"
                 layout="wizard"
@@ -276,6 +277,7 @@ export function CheckoutAddressModal({ open, onOpenChange, onProceed }) {
               <AddressLocationFields
                 register={addressForm.register}
                 control={addressForm.control}
+                setValue={addressForm.setValue}
                 errors={addressForm.formState.errors}
                 idPrefix="checkout-addr"
                 layout="wizard"

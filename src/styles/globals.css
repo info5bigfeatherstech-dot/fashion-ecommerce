@@ -3135,7 +3135,10 @@ html.modal-open.lenis body {
 }
 
 .header__util.header__menu-btn,
-.header__util.header__search-toggle,
+.header__util.header__search-toggle {
+  display: none;
+}
+
 .header__cart-mobile {
   display: none;
 }
@@ -3190,11 +3193,19 @@ html.modal-open.lenis body {
   /* Mobile cart icon — top-right corner */
   .header__cart-mobile {
     display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
     width: var(--touch-min);
     height: var(--touch-min);
     min-width: var(--touch-min);
     margin-left: auto; /* pushes it to the far right */
     order: 4;
+    background: transparent;
+    border: 0;
+    color: var(--color-ink);
+    cursor: pointer;
+    padding: 0;
   }
 
   .header__menu-btn {

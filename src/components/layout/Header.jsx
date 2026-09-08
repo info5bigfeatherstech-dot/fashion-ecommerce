@@ -181,7 +181,7 @@ export function Header() {
               <button
                 type="button"
                 id="header-mobile-cart-btn"
-                className="header__util header__util--icon header__cart-mobile"
+                className="header__cart-mobile"
                 onClick={openCart}
                 aria-label={`Open shopping bag${cartCount > 0 ? `, ${cartCount} item${cartCount !== 1 ? 's' : ''}` : ''}`}
               >

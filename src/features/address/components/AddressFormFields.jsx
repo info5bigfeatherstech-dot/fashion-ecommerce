@@ -56,22 +56,46 @@ export function usePincodeLookup(postalCodeVal, setValue, cityVal, stateVal, are
   return { pincodeDetails, isFetchingPin }
 }
 
-export function AddressContactFields({
-  register,
-  control: controlProp,
-  errors: errorsProp,
-  idPrefix = 'addr',
-  layout = 'default',
-}) {
-  const formContext = useFormContext()
-  const control = controlProp || formContext?.control
-  const errors = errorsProp || formContext?.formState?.errors || {}
-  const setValue = formContext?.setValue
+function AddressContactDefaultFields({ register, errors, idPrefix = 'addr' }) {
+  return (
+    <section className="address-form__section" aria-labelledby={`${idPrefix}-contact-heading`}>
+      <div className="address-form__section-head">
+        <h4 id={`${idPrefix}-contact-heading`} className="address-form__section-title">
+          Contact
+        </h4>
+        <p className="address-form__section-copy">Who should we deliver to?</p>
+      </div>
 
+      <div className="address-form__row">
+        <InputGroup label="Full name" htmlFor={`${idPrefix}-fullName`} error={errors?.fullName?.message} required>
+          <Input id={`${idPrefix}-fullName`} placeholder="Rahul Sharma" error={errors?.fullName} {...register('fullName')} />
+        </InputGroup>
+
+        <InputGroup label="Phone" htmlFor={`${idPrefix}-phone`} error={errors?.phone?.message} required>
+          <Input
+            id={`${idPrefix}-phone`}
+            type="tel"
+            inputMode="numeric"
+            placeholder="10-digit mobile"
+            error={errors?.phone}
+            {...register('phone')}
+          />
+        </InputGroup>
+      </div>
+    </section>
+  )
+}
+
+function AddressContactWizardFields({
+  register,
+  control,
+  setValue,
+  errors,
+  idPrefix = 'addr',
+}) {
   const watched = useWatch({
     control,
     name: ['postalCode', 'city', 'state', 'area'],
-    disabled: !control,
   })
   const [postalCodeVal, cityVal, stateVal, areaVal] = watched || []
 
@@ -108,64 +132,99 @@ export function AddressContactFields({
     </>
   )
 
+  return (
+    <div className="address-wizard__fields">
+      <InputGroup label="Full name" htmlFor={`${idPrefix}-fullName`} error={errors?.fullName?.message} required>
+        <Input id={`${idPrefix}-fullName`} placeholder="Rahul Sharma" error={errors?.fullName} {...register('fullName')} />
+      </InputGroup>
+
+      <InputGroup label="Phone" htmlFor={`${idPrefix}-phone`} error={errors?.phone?.message} required>
+        <Input
+          id={`${idPrefix}-phone`}
+          type="tel"
+          inputMode="numeric"
+          placeholder="10-digit mobile"
+          error={errors?.phone}
+          {...register('phone')}
+        />
+      </InputGroup>
+
+      <InputGroup label="Pincode" htmlFor={`${idPrefix}-pin`} error={errors?.postalCode?.message} required>
+        <Input
+          id={`${idPrefix}-pin`}
+          inputMode="numeric"
+          placeholder="110045"
+          error={errors?.postalCode}
+          {...register('postalCode')}
+        />
+      </InputGroup>
+      {locationPill}
+    </div>
+  )
+}
+
+export function AddressContactFields({
+  register,
+  control: controlProp,
+  setValue: setValueProp,
+  errors: errorsProp,
+  idPrefix = 'addr',
+  layout = 'default',
+}) {
+  const formContext = useFormContext()
+  const control = controlProp || formContext?.control
+  const errors = errorsProp || formContext?.formState?.errors || {}
+  const setValue = setValueProp || formContext?.setValue
+
   if (layout === 'wizard') {
+    if (!control) {
+      return (
+        <div className="address-wizard__fields">
+          <InputGroup label="Full name" htmlFor={`${idPrefix}-fullName`} error={errors?.fullName?.message} required>
+            <Input id={`${idPrefix}-fullName`} placeholder="Rahul Sharma" error={errors?.fullName} {...register('fullName')} />
+          </InputGroup>
+
+          <InputGroup label="Phone" htmlFor={`${idPrefix}-phone`} error={errors?.phone?.message} required>
+            <Input
+              id={`${idPrefix}-phone`}
+              type="tel"
+              inputMode="numeric"
+              placeholder="10-digit mobile"
+              error={errors?.phone}
+              {...register('phone')}
+            />
+          </InputGroup>
+
+          <InputGroup label="Pincode" htmlFor={`${idPrefix}-pin`} error={errors?.postalCode?.message} required>
+            <Input
+              id={`${idPrefix}-pin`}
+              inputMode="numeric"
+              placeholder="110045"
+              error={errors?.postalCode}
+              {...register('postalCode')}
+            />
+          </InputGroup>
+        </div>
+      )
+    }
+
     return (
-      <div className="address-wizard__fields">
-        <InputGroup label="Full name" htmlFor={`${idPrefix}-fullName`} error={errors.fullName?.message} required>
-          <Input id={`${idPrefix}-fullName`} placeholder="Rahul Sharma" error={errors.fullName} {...register('fullName')} />
-        </InputGroup>
-
-        <InputGroup label="Phone" htmlFor={`${idPrefix}-phone`} error={errors.phone?.message} required>
-          <Input
-            id={`${idPrefix}-phone`}
-            type="tel"
-            inputMode="numeric"
-            placeholder="10-digit mobile"
-            error={errors.phone}
-            {...register('phone')}
-          />
-        </InputGroup>
-
-        <InputGroup label="Pincode" htmlFor={`${idPrefix}-pin`} error={errors.postalCode?.message} required>
-          <Input
-            id={`${idPrefix}-pin`}
-            inputMode="numeric"
-            placeholder="110045"
-            error={errors.postalCode}
-            {...register('postalCode')}
-          />
-        </InputGroup>
-        {locationPill}
-      </div>
+      <AddressContactWizardFields
+        register={register}
+        control={control}
+        setValue={setValue}
+        errors={errors}
+        idPrefix={idPrefix}
+      />
     )
   }
 
   return (
-    <section className="address-form__section" aria-labelledby={`${idPrefix}-contact-heading`}>
-      <div className="address-form__section-head">
-        <h4 id={`${idPrefix}-contact-heading`} className="address-form__section-title">
-          Contact
-        </h4>
-        <p className="address-form__section-copy">Who should we deliver to?</p>
-      </div>
-
-      <div className="address-form__row">
-        <InputGroup label="Full name" htmlFor={`${idPrefix}-fullName`} error={errors.fullName?.message} required>
-          <Input id={`${idPrefix}-fullName`} placeholder="Rahul Sharma" error={errors.fullName} {...register('fullName')} />
-        </InputGroup>
-
-        <InputGroup label="Phone" htmlFor={`${idPrefix}-phone`} error={errors.phone?.message} required>
-          <Input
-            id={`${idPrefix}-phone`}
-            type="tel"
-            inputMode="numeric"
-            placeholder="10-digit mobile"
-            error={errors.phone}
-            {...register('phone')}
-          />
-        </InputGroup>
-      </div>
-    </section>
+    <AddressContactDefaultFields
+      register={register}
+      errors={errors}
+      idPrefix={idPrefix}
+    />
   )
 }
 
@@ -281,18 +340,14 @@ function AreaLocalitySelect({
   )
 }
 
-export function AddressLocationFields({
+function AddressLocationFieldsWithWatch({
   register,
-  control: controlProp,
-  errors: errorsProp,
+  control,
+  setValue,
+  errors,
   idPrefix = 'addr',
   layout = 'default',
 }) {
-  const formContext = useFormContext()
-  const control = controlProp || formContext?.control
-  const errors = errorsProp || formContext?.formState?.errors || {}
-  const setValue = formContext?.setValue
-
   const isWizard = layout === 'wizard'
 
   const watched = useWatch({
@@ -309,7 +364,6 @@ export function AddressLocationFields({
       'city',
       'state',
     ],
-    disabled: !control,
   })
 
   const [
@@ -580,11 +634,59 @@ export function AddressLocationFields({
   )
 }
 
-export function AddressFormFields({ register, control, errors, idPrefix = 'addr' }) {
+export function AddressLocationFields({
+  register,
+  control: controlProp,
+  setValue: setValueProp,
+  errors: errorsProp,
+  idPrefix = 'addr',
+  layout = 'default',
+}) {
+  const formContext = useFormContext()
+  const control = controlProp || formContext?.control
+  const errors = errorsProp || formContext?.formState?.errors || {}
+  const setValue = setValueProp || formContext?.setValue
+
+  if (!control) {
+    return null
+  }
+
+  return (
+    <AddressLocationFieldsWithWatch
+      register={register}
+      control={control}
+      setValue={setValue}
+      errors={errors}
+      idPrefix={idPrefix}
+      layout={layout}
+    />
+  )
+}
+
+export function AddressFormFields({
+  register,
+  control,
+  setValue,
+  errors,
+  idPrefix = 'addr',
+}) {
   return (
     <div className="address-form">
-      <AddressContactFields register={register} errors={errors} idPrefix={idPrefix} />
-      <AddressLocationFields register={register} control={control} errors={errors} idPrefix={idPrefix} />
+      <AddressContactFields
+        register={register}
+        control={control}
+        setValue={setValue}
+        errors={errors}
+        idPrefix={idPrefix}
+      />
+      <AddressLocationFields
+        register={register}
+        control={control}
+        setValue={setValue}
+        errors={errors}
+        idPrefix={idPrefix}
+      />
     </div>
   )
 }
+

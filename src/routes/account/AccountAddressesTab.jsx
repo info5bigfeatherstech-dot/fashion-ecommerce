@@ -156,6 +156,7 @@ export function AccountAddressesTab() {
             <AddressFormFields
               register={addressForm.register}
               control={addressForm.control}
+              setValue={addressForm.setValue}
               errors={addressForm.formState.errors}
               idPrefix="account-addr"
             />
