@@ -353,7 +353,7 @@ export function Header() {
                     <div>
                       <p className="drawer__eyebrow">Menu</p>
                       <h2 className="drawer__title">{SITE_NAME}</h2>
-                      <p className="drawer__meta">Shop jewelry by category</p>
+                      <p className="drawer__meta">Shop Jewelry by Category</p>
                     </div>
                     <button
                       type="button"
