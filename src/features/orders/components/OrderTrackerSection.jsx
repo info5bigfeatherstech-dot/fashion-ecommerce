@@ -8,7 +8,6 @@ import {
   Loader2,
   MapPin,
   Package,
-  RefreshCw,
   Truck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -107,17 +106,7 @@ export function OrderTrackerSection({ orderId, order, className = '' }) {
           </div>
         </div>
 
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={() => refetch()}
-          disabled={isFetching}
-          className="order-tracker-refresh-btn"
-        >
-          <RefreshCw size={13} className={isFetching ? 'account-orders-state__spin' : ''} />
-          {isFetching ? 'Updating…' : 'Refresh'}
-        </Button>
+
       </div>
 
       {isLoading && !tracking ? (

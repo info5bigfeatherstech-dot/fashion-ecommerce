@@ -53,9 +53,7 @@ class DetailErrorBoundary extends React.Component {
 export function AccountOrdersTab() {
   const location = useLocation()
   const [selectedOrderId, setSelectedOrderId] = useState(location.state?.openOrderId ?? null)
-  const { data, isLoading, isError, error, refetch, isFetching } = useUserOrders({
-    refetchOnMount: 'always',
-  })
+  const { data, isLoading, isError, error, refetch, isFetching } = useUserOrders()
   const orders = data?.orders ?? []
   const { orders: enrichedOrders, isHydrating } = useOrdersWithDetails(orders, {
     enabled: !selectedOrderId,

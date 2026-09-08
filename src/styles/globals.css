@@ -3135,7 +3135,8 @@ html.modal-open.lenis body {
 }
 
 .header__util.header__menu-btn,
-.header__util.header__search-toggle {
+.header__util.header__search-toggle,
+.header__cart-mobile {
   display: none;
 }
 
@@ -3184,6 +3185,16 @@ html.modal-open.lenis body {
     width: var(--touch-min);
     height: var(--touch-min);
     min-width: var(--touch-min);
+  }
+
+  /* Mobile cart icon — top-right corner */
+  .header__cart-mobile {
+    display: flex;
+    width: var(--touch-min);
+    height: var(--touch-min);
+    min-width: var(--touch-min);
+    margin-left: auto; /* pushes it to the far right */
+    order: 4;
   }
 
   .header__menu-btn {
@@ -10660,10 +10671,12 @@ a.cart-item__name:hover {
 
 /* ── Success screen ── */
 .checkout-success {
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
   min-height: calc(100vh - 80px);
   padding-block: var(--space-6);
+  padding-top: clamp(var(--space-4), 8vh, var(--space-8));
   padding-inline: 16px;
 }
 

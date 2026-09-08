@@ -88,6 +88,7 @@ export default function Checkout() {
   const checkoutAddress = useAppStore((s) => s.checkoutAddress)
   const clearCheckoutAddress = useAppStore((s) => s.clearCheckoutAddress)
   const [orderPlaced, setOrderPlaced] = useState(false)
+  const [successOrderId, setSuccessOrderId] = useState(null)
   const [checkoutStep, setCheckoutStep] = useState(CHECKOUT_STEP.REVIEW)
   const [addressModalOpen, setAddressModalOpen] = useState(false)
   const [couponInput, setCouponInput] = useState('')
@@ -376,8 +377,15 @@ export default function Checkout() {
     }
   }, [abandonCheckout, placedOrder, queryClient, replaceCartFromApi])
 
-  const finishOrderSuccess = useCallback((isOnline = false) => {
+  const finishOrderSuccess = useCallback((isOnline = false, resolvedOrderId = null) => {
     checkoutAttemptKeyRef.current = null
+    // Capture the orderId before clearing placedOrder so Track Order can deep-link
+    const orderId =
+      resolvedOrderId
+      || placedOrder?.order?.orderId
+      || placedOrder?.order?.id
+      || null
+    setSuccessOrderId(orderId)
     clearCart()
     clearCheckoutAddress()
     setPlacedOrder(null)
@@ -386,7 +394,7 @@ export default function Checkout() {
     setRazorpayPaymentState(PAYMENT_STATE.IDLE)
     setOrderPlaced(true)
     toast.success(isOnline ? 'Payment verified — order confirmed' : 'Order placed successfully')
-  }, [clearCart, clearCheckoutAddress])
+  }, [clearCart, clearCheckoutAddress, placedOrder])
 
   const handleRazorpaySuccess = useCallback(async (response) => {
     try {
@@ -482,8 +490,14 @@ export default function Checkout() {
             <Link to="/">
               <Button variant="primary">Back to Home</Button>
             </Link>
-            <Link to="/shop/women">
-              <Button variant="secondary">Keep Shopping</Button>
+            <Link
+              to="/account/orders"
+              state={successOrderId ? { openOrderId: successOrderId } : undefined}
+            >
+              <Button variant="secondary">
+                <Package size={15} />
+                Track Order
+              </Button>
             </Link>
           </div>
         </div>

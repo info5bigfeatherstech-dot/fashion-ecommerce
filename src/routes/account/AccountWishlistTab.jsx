@@ -9,7 +9,7 @@ export function AccountWishlistTab() {
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
   const wishlistItems = useAppStore((s) => s.wishlistItems)
 
-  useWishlist({ enabled: isAuthenticated, refetchOnMount: 'always' })
+  useWishlist({ enabled: isAuthenticated })
 
   return (
     <div className="account-section">

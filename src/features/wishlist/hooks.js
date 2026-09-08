@@ -24,7 +24,7 @@ export function useWishlist({ enabled = true, refetchOnMount } = {}) {
     queryKey: wishlistKeys.detail(),
     queryFn: ({ signal }) => getWishlist({ signal }),
     enabled: enabled && isAuthenticated && Boolean(accessToken),
-    staleTime: 1000 * 30,
+    staleTime: 1000 * 60, // 1 minute — uses cache on tab switch, background-refetches when stale
     ...(refetchOnMount !== undefined ? { refetchOnMount } : {}),
   })
 
@@ -91,13 +91,16 @@ export function useWishlistProducts(wishlistItems = [], { enabled = true } = {})
             : getProductDetailedById(id, { signal })
         ),
         enabled: enabled && Boolean(slug || id),
-        staleTime: 1000 * 60 * 5,
+        staleTime: 1000 * 60 * 10, // 10 minutes — product data changes rarely
       }
     }),
   })
 
   // Stabilize product list so consumers' effects don't re-fire every render.
-  const dataSignature = queries.map((q) => `${q.status}:${q.dataUpdatedAt}:${q.fetchStatus}`).join('|')
+  const dataSignature = useMemo(
+    () => queries.map((q) => `${q.status}:${q.dataUpdatedAt}:${q.fetchStatus}`).join('|'),
+    [queries]
+  )
 
   const products = useMemo(() => (
     wishlistItems.map((item, index) => {

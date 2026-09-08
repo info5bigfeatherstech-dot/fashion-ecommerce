@@ -176,6 +176,22 @@ export function Header() {
               >
                 {searchOpen ? <X size={18} /> : <Search size={18} />}
               </button>
+
+              {/* Mobile-only cart button — hidden on desktop */}
+              <button
+                type="button"
+                id="header-mobile-cart-btn"
+                className="header__util header__util--icon header__cart-mobile"
+                onClick={openCart}
+                aria-label={`Open shopping bag${cartCount > 0 ? `, ${cartCount} item${cartCount !== 1 ? 's' : ''}` : ''}`}
+              >
+                <span className="header__util-icon">
+                  <ShoppingBag size={22} />
+                  {cartCount > 0 && (
+                    <span className="header__badge-count">{cartCount}</span>
+                  )}
+                </span>
+              </button>
               <Link to="/wholesale" className="header__util header__util--desktop">
                 <span className="header__util-icon">
                   <Warehouse size={22} />

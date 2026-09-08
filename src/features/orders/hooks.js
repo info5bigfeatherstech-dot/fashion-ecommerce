@@ -23,7 +23,7 @@ export function useUserOrders({ enabled = true, refetchOnMount } = {}) {
     queryKey: orderKeys.list(),
     queryFn: ({ signal }) => getUserOrders({ signal }),
     enabled: enabled && isAuthenticated && Boolean(accessToken),
-    staleTime: 1000 * 30,
+    staleTime: 1000 * 60, // 1 minute — uses cache on tab switch, background-refetches when stale
     ...(refetchOnMount !== undefined ? { refetchOnMount } : {}),
   })
 }
@@ -148,7 +148,7 @@ export function useOrdersWithDetails(orders = [], { enabled = true } = {}) {
       queryKey: orderKeys.detail(orderId),
       queryFn: ({ signal }) => getOrderById(orderId, { signal }),
       enabled: enabled && isAuthenticated && Boolean(accessToken) && Boolean(orderId),
-      staleTime: 1000 * 30,
+      staleTime: 1000 * 60, // 1 minute — consistent with list query
     })),
   })
 
