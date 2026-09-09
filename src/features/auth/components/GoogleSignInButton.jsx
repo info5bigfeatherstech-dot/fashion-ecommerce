@@ -6,7 +6,6 @@ const GSI_SCRIPT_SRC = 'https://accounts.google.com/gsi/client'
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim() || ''
 
 let gsiScriptLoadPromise = null
-/** GSI initialize() must only run once per page load for a given client. */
 let gsiInitializedForClientId = null
 
 function loadGsiScript() {
@@ -48,10 +47,41 @@ function originBlockedMessage() {
   const origin = typeof window !== 'undefined' ? window.location.origin : '(unknown)'
   return (
     `Google blocked this page origin: ${origin}. ` +
-    `In Google Cloud Console → Credentials → Web client → Authorized JavaScript origins, ` +
-    `add exactly: ${origin} (and http://127.0.0.1:5173 if you use that). ` +
-    `Client ID must be ${GOOGLE_CLIENT_ID || '(missing VITE_GOOGLE_CLIENT_ID)'}.`
+    `Add it under Google Cloud → Credentials → Web client → Authorized JavaScript origins ` +
+    `(not only Redirect URIs). Client: ${GOOGLE_CLIENT_ID || '(missing)'}.`
   )
+}
+
+/**
+ * Stretching a cross-origin GSI iframe with CSS width/height does NOT enlarge its
+ * internal hit-target — desktop clicks miss. Scale the iframe so the hit area covers
+ * our custom button (works on mobile + desktop).
+ */
+function fitGsiIframeToMount(mountEl) {
+  if (!mountEl) return
+  const iframe = mountEl.querySelector('iframe')
+  if (!iframe) return
+
+  const mountW = mountEl.clientWidth || 1
+  const mountH = mountEl.clientHeight || 1
+
+  // Reset before measuring natural size
+  iframe.style.position = 'absolute'
+  iframe.style.left = '0'
+  iframe.style.top = '0'
+  iframe.style.transform = 'none'
+  iframe.style.transformOrigin = '0 0'
+  iframe.style.maxWidth = 'none'
+  iframe.style.margin = '0'
+  iframe.style.border = '0'
+  iframe.style.opacity = '1'
+
+  const natW = iframe.offsetWidth || Number.parseInt(iframe.getAttribute('width') || '0', 10) || mountW
+  const natH = iframe.offsetHeight || Number.parseInt(iframe.getAttribute('height') || '0', 10) || 44
+
+  const scale = Math.max(mountW / natW, mountH / natH)
+  iframe.style.transform = `scale(${scale})`
+  iframe.style.transformOrigin = '0 0'
 }
 
 export function isGoogleSignInConfigured() {
@@ -59,8 +89,7 @@ export function isGoogleSignInConfigured() {
 }
 
 /**
- * Custom-styled Google button with a real GSI control as a full-size invisible overlay.
- * Real user gesture hits Google's iframe (required in modern Chrome / production).
+ * Custom-styled Google button + real GSI control scaled over it.
  * Flow: GSI idToken → POST /auth/google.
  */
 export function GoogleSignInButton({
@@ -74,6 +103,7 @@ export function GoogleSignInButton({
   const callbackRef = useRef(onSuccess)
   const errorRef = useRef(onError)
   const readyRef = useRef(false)
+  const resizeTimerRef = useRef(null)
   const [gsiReady, setGsiReady] = useState(false)
   const [busy, setBusy] = useState(false)
   const [unavailable, setUnavailable] = useState(!GOOGLE_CLIENT_ID)
@@ -92,6 +122,7 @@ export function GoogleSignInButton({
     }
 
     let cancelled = false
+    let ro = null
 
     const markBlocked = (message) => {
       if (cancelled) return
@@ -100,17 +131,15 @@ export function GoogleSignInButton({
       setUnavailable(true)
       setBlockReason(message)
       errorRef.current?.(message)
-      if (import.meta.env.DEV) {
-        console.warn('[GoogleSignIn]', message)
-      }
+      if (import.meta.env.DEV) console.warn('[GoogleSignIn]', message)
     }
 
     const renderGsiButton = () => {
       if (cancelled || !mountRef.current || !window.google?.accounts?.id) return false
 
       const width = Math.max(
-        240,
-        Math.floor(rootRef.current?.clientWidth || mountRef.current.clientWidth || 320)
+        200,
+        Math.min(400, Math.floor(rootRef.current?.clientWidth || 320))
       )
 
       mountRef.current.innerHTML = ''
@@ -123,38 +152,54 @@ export function GoogleSignInButton({
         logo_alignment: 'left',
         width,
       })
+
+      // Fit after Google injects the iframe (often async)
+      requestAnimationFrame(() => {
+        if (cancelled) return
+        fitGsiIframeToMount(mountRef.current)
+        requestAnimationFrame(() => fitGsiIframeToMount(mountRef.current))
+      })
       return true
     }
 
-    const waitForGsiIframe = async (attempts = 20) => {
+    const waitForGsiIframe = async (attempts = 25) => {
       for (let i = 0; i < attempts; i += 1) {
         if (cancelled) return false
-        const iframe = mountRef.current?.querySelector('iframe')
-        if (iframe) return true
-        await new Promise((r) => setTimeout(r, 100))
+        if (mountRef.current?.querySelector('iframe')) return true
+        await new Promise((r) => setTimeout(r, 80))
       }
       return Boolean(mountRef.current?.querySelector('iframe, div[role="button"]'))
     }
 
+    const scheduleRefit = () => {
+      if (cancelled || !readyRef.current) return
+      window.clearTimeout(resizeTimerRef.current)
+      resizeTimerRef.current = window.setTimeout(() => {
+        if (cancelled || !readyRef.current) return
+        renderGsiButton()
+        waitForGsiIframe(15).then((ok) => {
+          if (ok && !cancelled) fitGsiIframeToMount(mountRef.current)
+        })
+      }, 150)
+    }
+
     const init = async () => {
-      await new Promise((resolve) => requestAnimationFrame(() => resolve()))
+      // Modal layout can take a couple frames
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
       if (cancelled || !mountRef.current) return
 
       const loaded = await loadGsiScript()
       if (cancelled) return
 
-      if (!loaded || !mountRef.current || !window.google?.accounts?.id) {
+      if (!loaded || !window.google?.accounts?.id) {
         markBlocked('Google sign-in script failed to load. Check network / ad blockers.')
         return
       }
 
       try {
-        // initialize once per client id (Strict Mode remounts are safe)
         if (gsiInitializedForClientId !== GOOGLE_CLIENT_ID) {
           window.google.accounts.id.initialize({
             client_id: GOOGLE_CLIENT_ID,
-            // Button overlay uses a real click; FedCM prompt is not required and can
-            // surface confusing origin errors in some Chrome builds.
             use_fedcm_for_prompt: false,
             auto_select: false,
             cancel_on_tap_outside: true,
@@ -163,7 +208,6 @@ export function GoogleSignInButton({
                 errorRef.current?.('Google did not return a sign-in token')
                 return
               }
-
               setBusy(true)
               try {
                 const result = await googleLogin({ idToken: response.credential })
@@ -187,11 +231,11 @@ export function GoogleSignInButton({
         if (cancelled) return
 
         if (!iframeOk) {
-          // Typical when Authorized JavaScript origins omit this exact origin
           markBlocked(originBlockedMessage())
           return
         }
 
+        fitGsiIframeToMount(mountRef.current)
         readyRef.current = true
         setGsiReady(true)
         setUnavailable(false)
@@ -203,16 +247,18 @@ export function GoogleSignInButton({
 
     init()
 
-    const onResize = () => {
-      if (cancelled || !readyRef.current) return
-      renderGsiButton()
+    if (typeof ResizeObserver !== 'undefined' && rootRef.current) {
+      ro = new ResizeObserver(scheduleRefit)
+      ro.observe(rootRef.current)
     }
-    window.addEventListener('resize', onResize)
+    window.addEventListener('resize', scheduleRefit)
 
     return () => {
       cancelled = true
       readyRef.current = false
-      window.removeEventListener('resize', onResize)
+      window.clearTimeout(resizeTimerRef.current)
+      window.removeEventListener('resize', scheduleRefit)
+      ro?.disconnect()
     }
   }, [])
 
@@ -222,9 +268,7 @@ export function GoogleSignInButton({
     if (isDisabled) return
     errorRef.current?.(
       blockReason ||
-        (GOOGLE_CLIENT_ID
-          ? originBlockedMessage()
-          : 'Google sign-in is not configured.')
+        (GOOGLE_CLIENT_ID ? originBlockedMessage() : 'Google sign-in is not configured.')
     )
   }
 
@@ -262,7 +306,6 @@ export function GoogleSignInButton({
   )
 }
 
-/** Visual "OR" divider — matches fabFE placement below Google button. */
 export function AuthDivider({ label = 'OR' } = {}) {
   return (
     <div className="auth-divider" role="separator">

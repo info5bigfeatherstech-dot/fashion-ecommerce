@@ -1878,17 +1878,20 @@ html.modal-open.lenis body {
 }
 
 /*
- * Real Google Identity button sits on top as an invisible overlay so the
- * click is a trusted user gesture (required for production / FedCM).
+ * Real GSI control overlays the custom face.
+ * Do NOT stretch the cross-origin iframe with width/height:100% — that breaks
+ * hit-testing on desktop (mobile often still "works" because the tap lands
+ * nearer the iframe's native clickable region). We scale via JS instead.
  */
 .auth-google__mount {
   position: absolute;
   inset: 0;
   z-index: 2;
   overflow: hidden;
-  opacity: 0;
   border-radius: 12px;
   cursor: pointer;
+  /* Slightly above 0 — some desktop Chromium builds skip hit-testing opacity:0 */
+  opacity: 0.02;
   pointer-events: none;
 }
 
@@ -1902,24 +1905,17 @@ html.modal-open.lenis body {
 }
 
 .auth-google__mount > div {
-  position: absolute !important;
-  inset: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  max-width: none !important;
+  /* Wrapper Google injects — keep natural flow; JS scales the iframe */
+  display: block !important;
+  width: auto !important;
+  height: auto !important;
   margin: 0 !important;
+  max-width: none !important;
 }
 
 .auth-google__mount iframe {
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  max-width: none !important;
-  margin: 0 !important;
   border: 0 !important;
-  opacity: 0.001;
+  max-width: none !important;
 }
 
 .auth-google-btn {
@@ -1948,7 +1944,6 @@ html.modal-open.lenis body {
     background-color var(--transition-fast);
 }
 
-/* Visual-only face under the GSI overlay */
 div.auth-google-btn {
   cursor: default;
   user-select: none;
