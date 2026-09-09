@@ -744,7 +744,7 @@ export default function AdminStaffPage() {
               type="search"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search by name, email or phone..."
+              placeholder="Search by Name, Email or Phone..."
               aria-label="Search staff"
             />
           </div>

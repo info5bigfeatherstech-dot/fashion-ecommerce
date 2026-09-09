@@ -111,19 +111,31 @@ export function GoogleSignInButton({
   }, [])
 
   const triggerGoogleClick = useCallback(() => {
-    if (!mountRef.current || disabled || busy) return
+    if (disabled || busy) return
 
-    const googleButton = mountRef.current.querySelector('div[role="button"]')
-    if (googleButton) {
-      googleButton.click()
-      return
+    // Try clicking the hidden GSI-rendered button first
+    if (mountRef.current) {
+      const googleButton = mountRef.current.querySelector('div[role="button"]')
+      if (googleButton) {
+        googleButton.click()
+        return
+      }
+      const iframe = mountRef.current.querySelector('iframe')
+      if (iframe) {
+        iframe.click()
+        return
+      }
     }
 
-    const iframe = mountRef.current.querySelector('iframe')
-    if (iframe) iframe.click()
+    // Fallback: trigger GSI prompt directly (works even if renderButton failed)
+    if (window.google?.accounts?.id) {
+      window.google.accounts.id.prompt()
+    }
   }, [busy, disabled])
 
-  const isDisabled = disabled || busy || !gsiReady
+  // Do NOT gate on gsiReady — if the GSI script fails to load the button would
+  // be permanently disabled and unclickable in production.
+  const isDisabled = disabled || busy
 
   return (
     <div className="auth-google">

@@ -26,7 +26,7 @@ import {
 import { AuthDivider, GoogleSignInButton } from '@/features/auth/components/GoogleSignInButton'
 
 const loginSchema = z.object({
-  identifier: z.string().min(3, 'Email or phone is required'),
+  identifier: z.string().min(3, 'Email or Phone is required'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 })
 
@@ -49,7 +49,7 @@ const registerSchema = z
   })
 
 const forgotFindSchema = z.object({
-  identifier: z.string().min(3, 'Email or phone is required'),
+  identifier: z.string().min(3, 'Email or Phone is required'),
 })
 
 const forgotAnswerSchema = z.object({
@@ -368,7 +368,7 @@ export function AuthForms({
         </p>
         {alertBlock}
         <form onSubmit={forgotFindForm.handleSubmit(handleForgotFind)} className="form-grid" style={{ gap: 'var(--space-3)' }}>
-          <InputGroup label="Email or phone" htmlFor="forgot-id" error={forgotFindForm.formState.errors.identifier?.message}>
+          <InputGroup label="Email or Phone" htmlFor="forgot-id" error={forgotFindForm.formState.errors.identifier?.message}>
             <Input
               id="forgot-id"
               placeholder="you@example.com or 9876543210"
@@ -633,7 +633,7 @@ export function AuthForms({
 
       <form onSubmit={loginForm.handleSubmit(handleLogin)} noValidate>
         <div className="form-grid" style={{ gap: 'var(--space-4)' }}>
-          <InputGroup label="Email or phone" htmlFor="login-identifier" error={loginForm.formState.errors.identifier?.message}>
+          <InputGroup label="Email or Phone" htmlFor="login-identifier" error={loginForm.formState.errors.identifier?.message}>
             <Input
               id="login-identifier"
               placeholder="you@example.com or 9876543210"
