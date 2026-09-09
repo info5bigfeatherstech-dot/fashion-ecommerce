@@ -9,7 +9,7 @@ function resolveBaseUrl() {
   const fromEnv = trimSlash(import.meta.env.VITE_API_BASE_URL)
   if (fromEnv) return fromEnv
   if (import.meta.env.DEV) return '/api'
-  return 'https://owbtu.onrender.com/api'
+  return 'https://fabuniqo.com/api'
 }
 
 export const apiConfig = {
