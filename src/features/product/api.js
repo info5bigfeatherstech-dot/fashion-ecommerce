@@ -26,10 +26,7 @@ let catalogCache = null
 let catalogCachedAt = 0
 let catalogInFlight = null
 
-let featuredCache = null
-let featuredCacheAt = 0
-let featuredCacheLimit = null
-let featuredInFlight = null
+const featuredInFlightMap = new Map()
 
 function matchesSearch(product, query) {
   const haystack = [
@@ -122,7 +119,7 @@ function applyProductFilters(products, filters = {}) {
       return tags.includes('on-sale') || product.badge === 'sale' || Boolean(product.originalPrice)
     })
   } else if (filters.category === 'new-arrivals') {
-    results = results.filter((product) => product.badge === 'new' || product.badge === 'sale')
+    results = results.filter((product) => Boolean(product.isFeatured))
   } else if (filters.category === 'footwear') {
     results = results.filter((product) => FOOTWEAR_SUBS.has(product.subcategory))
   } else if (filters.category === 'bags') {
@@ -481,6 +478,28 @@ export async function getProducts(filters = {}) {
     }
   }
 
+  // New Arrivals category — fetch all featured products
+  if (category === 'new-arrivals') {
+    try {
+      const featured = await getFeaturedProducts({ limit: filters.limit || 50 })
+      const filtered = applyProductFilters(featured, { ...filters, category: undefined })
+      return {
+        products: filtered,
+        total: filtered.length,
+        pagination: {
+          total: filtered.length,
+          page: filters.page || 1,
+          limit: filters.limit || 50,
+          totalPages: Math.ceil(filtered.length / (filters.limit || 50)) || 1,
+          hasNextPage: false,
+          hasPrevPage: false,
+        },
+      }
+    } catch {
+      // Fall back to catalog path
+    }
+  }
+
   // When shop filters are active, hit /products/all with query params first
   if (hasServerFilterParams(queryParams) && !SPECIAL_CATEGORIES.has(category)) {
     try {
@@ -679,13 +698,25 @@ export async function getBestsellers({ limit = 12, signal } = {}) {
 }
 
 export async function getNewArrivals() {
+  try {
+    const featured = await getFeaturedProducts({ limit: 50 })
+    if (featured && featured.length > 0) return featured
+  } catch {
+    // fallback
+  }
   const { products } = await getProductCatalog()
+  const featuredOnly = products.filter((p) => p.isFeatured)
+  if (featuredOnly.length > 0) return featuredOnly
   return [...products].sort((a, b) => {
     const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0
     const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0
     return bTime - aTime
   })
 }
+
+let featuredCache = null
+let featuredCacheAt = 0
+let featuredCacheLimit = null
 
 export async function getBeautyProducts() {
   const { products } = await getProductCatalog()
@@ -694,15 +725,15 @@ export async function getBeautyProducts() {
   return products.filter((product) => product.isFeatured).slice(0, 8)
 }
 
-export async function getFeaturedProducts({ limit = 12, force = false } = {}) {
+export async function getFeaturedProducts({ limit = 50, force = false } = {}) {
   const now = Date.now()
   const canUseCache =
     !force && featuredCache && featuredCacheLimit === limit && now - featuredCacheAt < FEATURED_TTL_MS
 
   if (canUseCache) return featuredCache
 
-  if (!featuredInFlight) {
-    featuredInFlight = http
+  if (!featuredInFlightMap.has(limit)) {
+    const promise = http
       .get(API_ENDPOINTS.products.featured, { params: { page: 1, limit } })
       .then((payload) => {
         const products = mapProductList(payload.products)
@@ -712,11 +743,13 @@ export async function getFeaturedProducts({ limit = 12, force = false } = {}) {
         return products
       })
       .finally(() => {
-        featuredInFlight = null
+        featuredInFlightMap.delete(limit)
       })
+
+    featuredInFlightMap.set(limit, promise)
   }
 
-  return featuredInFlight
+  return featuredInFlightMap.get(limit)
 }
 
 export async function getJewellerySpotted({ limit = 12, signal } = {}) {

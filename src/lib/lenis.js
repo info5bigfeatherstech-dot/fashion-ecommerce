@@ -127,7 +127,7 @@ export function restoreScrollPositionSoon(
           const rect = el.getBoundingClientRect()
           return Math.max(0, rect.top + window.scrollY - 80)
         }
-      } catch (_) {}
+      } catch (_) { }
     }
 
     return fallbackY

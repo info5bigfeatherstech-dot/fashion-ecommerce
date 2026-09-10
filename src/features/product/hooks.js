@@ -81,10 +81,11 @@ export function useBestsellers({ limit = 12 } = {}) {
   })
 }
 
-export function useFeaturedProducts({ limit = 12 } = {}) {
+export function useFeaturedProducts({ limit = 50 } = {}) {
   return useQuery({
     queryKey: [...productKeys.featured(), limit],
     queryFn: () => getFeaturedProducts({ limit }),
+    staleTime: 1000 * 60,
   })
 }
 
