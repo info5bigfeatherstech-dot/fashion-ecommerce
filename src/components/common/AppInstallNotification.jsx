@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Download, Sparkles, Smartphone, Share, PlusSquare, Zap, ShieldCheck, Tag } from 'lucide-react'
 import { useAppStore } from '@/store'
 import { stopLenis, startLenis } from '@/lib/lenis'
+import fabUniqoLogo from '@/assets/FabUniqo- Fashion Uniquely yours.png'
 import '@/styles/app-install-notification.css'
 
 const SESSION_DISMISS_KEY = 'fabuniqo_app_install_dismissed'
@@ -168,8 +169,13 @@ export function AppInstallNotification() {
                 <X size={16} />
               </button>
 
+              {/* Brand Logo */}
+              <div className="fab-app-logo-showcase">
+                <img src={fabUniqoLogo} alt="FabUniqo - Fashion Uniquely Yours" />
+              </div>
+
               {/* VIP Badge */}
-              <div className="flex justify-center mt-2">
+              <div className="flex justify-center">
                 <span className="fab-app-center-badge">
                   <Sparkles size={12} />
                   Official App

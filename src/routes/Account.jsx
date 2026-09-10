@@ -168,7 +168,7 @@ export default function Account() {
               <div className="account-panel__header">
                 <div>
                   <p className="heading-sm text-accent">Details</p>
-                  <h3 className="display-md">Account information</h3>
+                  <h3 className="display-md">Account Information</h3>
                 </div>
               </div>
 
