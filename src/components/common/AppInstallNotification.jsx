@@ -118,13 +118,50 @@ export function AppInstallNotification() {
     }
   }, [isAuthenticated, authReady])
 
-  // Close handler: triggered when user clicks the [X] cross icon -> re-triggers after 5 seconds
+  // Re-trigger when user switches to a different tab and comes back
+  const hasLeftTabRef = useRef(false)
+
+  useEffect(() => {
+    const handleTabHide = () => {
+      hasLeftTabRef.current = true
+    }
+
+    const handleTabReturn = () => {
+      if (!hasLeftTabRef.current) return
+      hasLeftTabRef.current = false
+
+      if (isInstallOnCooldown()) return
+      const currentState = useAppStore.getState()
+      if (currentState.isAuthenticated) return
+
+      // Show popup when user returns from a different tab
+      schedulePopup(600)
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        handleTabHide()
+      } else if (document.visibilityState === 'visible') {
+        handleTabReturn()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('blur', handleTabHide)
+    window.addEventListener('focus', handleTabReturn)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('blur', handleTabHide)
+      window.removeEventListener('focus', handleTabReturn)
+    }
+  }, [])
+
+  // Close handler: triggered when user clicks the [X] cross icon -> closes popup,
+  // and will show again when the person goes to a different tab and comes back
   const handleClose = () => {
     setIsOpen(false)
-    const currentState = useAppStore.getState()
-    if (!currentState.isAuthenticated && !isInstallOnCooldown()) {
-      schedulePopup(5000)
-    }
+    if (timerRef.current) clearTimeout(timerRef.current)
   }
 
   // Maybe Later handler: snoozes the install app popup for 7 days

@@ -103,21 +103,55 @@ export function AllowNotificationModal() {
     }
   }, [isAuthenticated, authReady])
 
-  // Close handler: triggered when user clicks the [X] cross icon -> re-triggers after 5 seconds
+  // Re-trigger when user switches to a different tab and comes back
+  const hasLeftTabRef = useRef(false)
+
+  useEffect(() => {
+    const handleTabHide = () => {
+      hasLeftTabRef.current = true
+    }
+
+    const handleTabReturn = () => {
+      if (!hasLeftTabRef.current) return
+      hasLeftTabRef.current = false
+
+      if (isNotifyOnCooldown()) return
+      const currentState = useAppStore.getState()
+      if (
+        currentState.isAuthenticated &&
+        typeof window !== 'undefined' &&
+        'Notification' in window &&
+        Notification.permission !== 'granted'
+      ) {
+        // Show popup when user returns from a different tab
+        scheduleNotifyPopup(600)
+      }
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        handleTabHide()
+      } else if (document.visibilityState === 'visible') {
+        handleTabReturn()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('blur', handleTabHide)
+    window.addEventListener('focus', handleTabReturn)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('blur', handleTabHide)
+      window.removeEventListener('focus', handleTabReturn)
+    }
+  }, [])
+
+  // Close handler: triggered when user clicks the [X] cross icon -> closes popup,
+  // and will show again when the person goes to a different tab and comes back
   const handleClose = () => {
     setIsOpen(false)
-
-    // Re-schedule after 5 seconds if still authenticated, not granted, and not on cooldown
-    const currentState = useAppStore.getState()
-    if (
-      currentState.isAuthenticated &&
-      !isNotifyOnCooldown() &&
-      typeof window !== 'undefined' &&
-      'Notification' in window &&
-      Notification.permission !== 'granted'
-    ) {
-      scheduleNotifyPopup(5000)
-    }
+    if (timerRef.current) clearTimeout(timerRef.current)
   }
 
   // Maybe Later handler: snoozes the notification popup for 2 days
