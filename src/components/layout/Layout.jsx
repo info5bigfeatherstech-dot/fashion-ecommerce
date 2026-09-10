@@ -69,13 +69,13 @@ function recordCurrentScroll(key, pathnameWithSearch, extra = {}) {
     scrollPositions.set(key, data)
     try {
       sessionStorage.setItem(`sp_${key}`, JSON.stringify(data))
-    } catch (_) {}
+    } catch (_) { }
   }
   if (pathnameWithSearch) {
     scrollPositions.set(pathnameWithSearch, data)
     try {
       sessionStorage.setItem(`sp_${pathnameWithSearch}`, JSON.stringify(data))
-    } catch (_) {}
+    } catch (_) { }
   }
 }
 
@@ -92,7 +92,7 @@ function readSavedScroll(location) {
       if (stored) {
         data = JSON.parse(stored)
       }
-    } catch (_) {}
+    } catch (_) { }
   }
   if (typeof data === 'number') {
     return { y: data }
@@ -157,7 +157,7 @@ function ScrollToTop() {
         try {
           sessionStorage.setItem(`return_to_section_${nextPath}`, sectionId)
           sessionStorage.setItem(`return_to_y_${nextPath}`, String(y))
-        } catch (_) {}
+        } catch (_) { }
       }
     }
 
@@ -188,7 +188,7 @@ function ScrollToTop() {
           returnSection = sessionStorage.getItem(`return_to_section_${prevPath}`)
           const storedY = sessionStorage.getItem(`return_to_y_${prevPath}`)
           if (storedY !== null) returnY = Number(storedY)
-        } catch (_) {}
+        } catch (_) { }
       }
 
       const stateSection = location.state?.fromSection
