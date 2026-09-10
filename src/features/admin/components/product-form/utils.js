@@ -84,7 +84,7 @@ export function emptyProductForm() {
     fomo: { enabled: false, type: 'viewing_now', viewingNow: 0, productLeft: 0, customMessage: '' },
     isFeatured: false,
     marketingTags: emptyMarketingTagsState(),
-    status: 'draft',
+    status: 'active',
   }
 }
 

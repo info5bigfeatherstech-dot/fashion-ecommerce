@@ -298,7 +298,7 @@ export function buildProductFormData(values, { isEdit = false } = {}) {
   if (values.description) fd.append('description', values.description)
   if (values.category) fd.append('category', values.category)
   fd.append('brand', values.brand || 'Generic')
-  fd.append('status', values.status || 'draft')
+  fd.append('status', values.status || 'active')
   fd.append('isFeatured', String(Boolean(values.isFeatured)))
   if (values.hsnCode) fd.append('hsnCode', values.hsnCode)
   if (values.taxRate !== '' && values.taxRate != null) fd.append('gstRate', String(values.taxRate))
@@ -321,6 +321,12 @@ export function buildProductFormData(values, { isEdit = false } = {}) {
   fd.append('soldInfo', JSON.stringify({ enabled: false, count: 0 }))
   fd.append('fomo', JSON.stringify({ enabled: false }))
 
+  const productLifecycle = ['draft', 'active', 'archived'].includes(
+    String(values.status || '').toLowerCase()
+  )
+    ? String(values.status).toLowerCase()
+    : 'active'
+
   const primaryVariant = {
     productCode,
     attributes: [],
@@ -330,11 +336,21 @@ export function buildProductFormData(values, { isEdit = false } = {}) {
       lowStockThreshold: Number(values.lowStockThreshold) || 5,
       trackInventory: true,
     },
-    isActive: true,
+    isActive: productLifecycle === 'active',
     wholesale: false,
     minimumOrderQuantity: 1,
-    channelVisibility: { ecomm: 'active', wholesale: 'draft' },
+    channelVisibility: {
+      ecomm: productLifecycle === 'active' ? 'active' : productLifecycle,
+      wholesale: 'draft',
+    },
   }
+  fd.append(
+    'channelStatus',
+    JSON.stringify({
+      ecomm: productLifecycle,
+      wholesale: 'draft',
+    })
+  )
   fd.append('variants', JSON.stringify([primaryVariant]))
 
   if (!isEdit && values.imageFile instanceof File) {
@@ -407,7 +423,7 @@ export function buildCreateProductFormData(productData) {
   if (productData.description) fd.append('description', productData.description)
   if (productData.category) fd.append('category', productData.category)
   if (productData.brand) fd.append('brand', productData.brand)
-  fd.append('status', productData.status || 'draft')
+  fd.append('status', productData.status || 'active')
   fd.append('isFeatured', String(Boolean(productData.isFeatured)))
   if (productData.hsnCode) fd.append('hsnCode', productData.hsnCode)
   if (productData.taxRate !== undefined && productData.taxRate !== '') {
@@ -472,21 +488,39 @@ export function buildCreateProductFormData(productData) {
   }
 
   const primaryWholesaleEligible = productData.wholesale && (toNum(productData.wholesaleBase) > 0)
+  const anyWholesaleEligible =
+    primaryWholesaleEligible ||
+    extraVariants.some((v) => v.wholesale && toNum(v.price?.wholesaleBase) > 0)
   const normalizedMainProductCode = normalizeProductCode(productData.ProductCode, 'Main ProductCode')
+  const productLifecycle = ['draft', 'active', 'archived'].includes(
+    String(productData.status || '').toLowerCase()
+  )
+    ? String(productData.status).toLowerCase()
+    : 'active'
 
   const primaryVariant = {
     productCode: normalizedMainProductCode,
     attributes: [],
     price: primaryPrice,
     inventory: buildInventoryObj(productData.inventory),
-    isActive: true,
+    isActive: productLifecycle === 'active',
     wholesale: productData.wholesale || false,
     minimumOrderQuantity: productData.wholesale ? (parseInt(productData.minimumOrderQuantity, 10) || 1) : 1,
     channelVisibility: {
-      ecomm: 'active',
+      ecomm: productLifecycle === 'active' ? 'active' : productLifecycle,
       wholesale: primaryWholesaleEligible ? 'active' : 'draft',
     },
   }
+
+  // Explicit channels: ecomm follows product status; wholesale only when eligible.
+  // Avoids legacy status→both-channels mirroring enabling wholesale by accident.
+  fd.append(
+    'channelStatus',
+    JSON.stringify({
+      ecomm: productLifecycle,
+      wholesale: anyWholesaleEligible ? 'active' : 'draft',
+    })
+  )
 
   fd.append('variants', JSON.stringify([primaryVariant, ...extraVariants]))
   productImageFiles.forEach((img) => fd.append('variantImages_0', img.file))
