@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Bell, Package, Sparkles, Tag, CheckCircle2 } from 'lucide-react'
 import { useAppStore } from '@/store'
@@ -6,7 +6,21 @@ import { stopLenis, startLenis } from '@/lib/lenis'
 import '@/styles/app-install-notification.css'
 
 const NOTIFY_STORAGE_KEY = 'fabuniqo_push_permission_prompted'
-const PROMPT_DELAY_MS = 2000 // 2 seconds after user logs in
+const NOTIFY_COOLDOWN_KEY = 'fabuniqo_notify_cooldown_until'
+const NOTIFY_COOLDOWN_MS = 2 * 24 * 60 * 60 * 1000 // 2 days in milliseconds
+
+// Helper to check if the notification prompt is currently on 2-day cooldown
+const isNotifyOnCooldown = () => {
+  try {
+    const cooldownUntil = localStorage.getItem(NOTIFY_COOLDOWN_KEY)
+    if (cooldownUntil && Date.now() < Number(cooldownUntil)) {
+      return true
+    }
+  } catch {
+    // ignore
+  }
+  return false
+}
 
 export function AllowNotificationModal() {
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
@@ -37,10 +51,36 @@ export function AllowNotificationModal() {
     }
   }, [isOpen])
 
+  const timerRef = useRef(null)
+
+  const scheduleNotifyPopup = (delay = 5000) => {
+    if (isNotifyOnCooldown()) return
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => {
+      if (isNotifyOnCooldown()) return
+      const currentState = useAppStore.getState()
+      if (
+        currentState.isAuthenticated &&
+        typeof window !== 'undefined' &&
+        'Notification' in window &&
+        Notification.permission !== 'granted'
+      ) {
+        setIsOpen(true)
+      }
+    }, delay)
+  }
+
   // Trigger after user logs in
   useEffect(() => {
     // Only prompt authenticated users
     if (!isAuthenticated || !authReady) {
+      setIsOpen(false)
+      if (timerRef.current) clearTimeout(timerRef.current)
+      return undefined
+    }
+
+    // If currently on 2-day cooldown after "Maybe Later", do not show
+    if (isNotifyOnCooldown()) {
       setIsOpen(false)
       return undefined
     }
@@ -50,42 +90,42 @@ export function AllowNotificationModal() {
       return undefined
     }
 
-    // If permission already granted or explicitly denied at browser level, skip
-    if (Notification.permission === 'granted' || Notification.permission === 'denied') {
+    // If permission already granted, skip
+    if (Notification.permission === 'granted') {
       return undefined
     }
 
-    // Check if user already dismissed or interacted with this prompt before
-    try {
-      if (localStorage.getItem(NOTIFY_STORAGE_KEY) === 'true') {
-        return undefined
-      }
-      if (sessionStorage.getItem(NOTIFY_STORAGE_KEY) === 'true') {
-        return undefined
-      }
-    } catch {
-      // ignore
-    }
-
-    // Wait 2 seconds after login before presenting the prompt
-    const timer = setTimeout(() => {
-      const currentState = useAppStore.getState()
-      if (currentState.isAuthenticated) {
-        setIsOpen(true)
-      }
-    }, PROMPT_DELAY_MS)
+    // Wait 5 seconds after login before presenting the prompt
+    scheduleNotifyPopup(5000)
 
     return () => {
-      clearTimeout(timer)
+      if (timerRef.current) clearTimeout(timerRef.current)
     }
   }, [isAuthenticated, authReady])
 
-  // Dismiss ("Maybe Later") handler
-  const handleDismiss = () => {
+  // Close handler: triggered when user clicks the [X] cross icon -> re-triggers after 5 seconds
+  const handleClose = () => {
     setIsOpen(false)
+
+    // Re-schedule after 5 seconds if still authenticated, not granted, and not on cooldown
+    const currentState = useAppStore.getState()
+    if (
+      currentState.isAuthenticated &&
+      !isNotifyOnCooldown() &&
+      typeof window !== 'undefined' &&
+      'Notification' in window &&
+      Notification.permission !== 'granted'
+    ) {
+      scheduleNotifyPopup(5000)
+    }
+  }
+
+  // Maybe Later handler: snoozes the notification popup for 2 days
+  const handleMaybeLater = () => {
+    setIsOpen(false)
+    if (timerRef.current) clearTimeout(timerRef.current)
     try {
-      localStorage.setItem(NOTIFY_STORAGE_KEY, 'true')
-      sessionStorage.setItem(NOTIFY_STORAGE_KEY, 'true')
+      localStorage.setItem(NOTIFY_COOLDOWN_KEY, String(Date.now() + NOTIFY_COOLDOWN_MS))
     } catch {
       // ignore
     }
@@ -97,9 +137,14 @@ export function AllowNotificationModal() {
       if ('Notification' in window) {
         const permission = await Notification.requestPermission()
         if (permission === 'granted') {
+          try {
+            localStorage.setItem(NOTIFY_STORAGE_KEY, 'true')
+          } catch {
+            // ignore
+          }
           setGrantedFeedback(true)
           setTimeout(() => {
-            handleDismiss()
+            setIsOpen(false)
             setGrantedFeedback(false)
           }, 1500)
           return
@@ -109,7 +154,7 @@ export function AllowNotificationModal() {
       console.error('Notification request error:', err)
     }
 
-    handleDismiss()
+    handleMaybeLater()
   }
 
   return (
@@ -146,7 +191,7 @@ export function AllowNotificationModal() {
             <button
               type="button"
               className="fab-app-center-close"
-              onClick={handleDismiss}
+              onClick={handleClose}
               aria-label="Close"
             >
               <X size={16} />
@@ -222,7 +267,7 @@ export function AllowNotificationModal() {
                   type="button"
                   className="fab-btn-center-install"
                   style={{ gap: '8px' }}
-                  onClick={handleDismiss}
+                  onClick={handleClose}
                 >
                   <CheckCircle2 size={18} />
                   All Set!
@@ -241,7 +286,7 @@ export function AllowNotificationModal() {
                   <button
                     type="button"
                     className="fab-btn-center-maybe-later"
-                    onClick={handleDismiss}
+                    onClick={handleMaybeLater}
                   >
                     Maybe Later
                   </button>

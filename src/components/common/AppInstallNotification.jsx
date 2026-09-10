@@ -6,8 +6,22 @@ import { stopLenis, startLenis } from '@/lib/lenis'
 import fabUniqoLogo from '@/assets/FabUniqo- Fashion Uniquely yours.png'
 import '@/styles/app-install-notification.css'
 
-const SESSION_DISMISS_KEY = 'fabuniqo_app_install_dismissed'
+const INSTALL_COOLDOWN_KEY = 'fabuniqo_app_install_cooldown_until'
+const INSTALL_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
 const SHOW_DELAY_MS = 5000 // 5 seconds
+
+// Helper to check if the app install prompt is currently on 7-day cooldown
+const isInstallOnCooldown = () => {
+  try {
+    const cooldownUntil = localStorage.getItem(INSTALL_COOLDOWN_KEY)
+    if (cooldownUntil && Date.now() < Number(cooldownUntil)) {
+      return true
+    }
+  } catch {
+    // ignore
+  }
+  return false
+}
 
 export function AppInstallNotification() {
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
@@ -62,10 +76,31 @@ export function AppInstallNotification() {
     }
   }, [])
 
+  const timerRef = useRef(null)
+
+  const schedulePopup = (delay = SHOW_DELAY_MS) => {
+    if (isInstallOnCooldown()) return
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => {
+      if (isInstallOnCooldown()) return
+      const currentState = useAppStore.getState()
+      if (!currentState.isAuthenticated) {
+        setIsOpen(true)
+      }
+    }, delay)
+  }
+
   // 5-second countdown timer for unauthenticated users
   useEffect(() => {
     // If user is already authenticated, do nothing
     if (isAuthenticated) {
+      setIsOpen(false)
+      if (timerRef.current) clearTimeout(timerRef.current)
+      return undefined
+    }
+
+    // If currently on 7-day cooldown after "Maybe Later", do not show
+    if (isInstallOnCooldown()) {
       setIsOpen(false)
       return undefined
     }
@@ -76,33 +111,28 @@ export function AppInstallNotification() {
       window.navigator?.standalone === true
     if (isStandalone) return undefined
 
-    // Check if dismissed during current browser session
-    try {
-      if (sessionStorage.getItem(SESSION_DISMISS_KEY) === 'true') {
-        return undefined
-      }
-    } catch {
-      // ignore
-    }
-
-    // Start 5-second timer
-    const timer = setTimeout(() => {
-      const currentState = useAppStore.getState()
-      if (!currentState.isAuthenticated) {
-        setIsOpen(true)
-      }
-    }, SHOW_DELAY_MS)
+    schedulePopup()
 
     return () => {
-      clearTimeout(timer)
+      if (timerRef.current) clearTimeout(timerRef.current)
     }
   }, [isAuthenticated, authReady])
 
-  // Dismiss / Cancel handler ("Maybe later")
-  const handleDismiss = () => {
+  // Close handler: triggered when user clicks the [X] cross icon -> re-triggers after 5 seconds
+  const handleClose = () => {
     setIsOpen(false)
+    const currentState = useAppStore.getState()
+    if (!currentState.isAuthenticated && !isInstallOnCooldown()) {
+      schedulePopup(5000)
+    }
+  }
+
+  // Maybe Later handler: snoozes the install app popup for 7 days
+  const handleMaybeLater = () => {
+    setIsOpen(false)
+    if (timerRef.current) clearTimeout(timerRef.current)
     try {
-      sessionStorage.setItem(SESSION_DISMISS_KEY, 'true')
+      localStorage.setItem(INSTALL_COOLDOWN_KEY, String(Date.now() + INSTALL_COOLDOWN_MS))
     } catch {
       // ignore
     }
@@ -115,7 +145,7 @@ export function AppInstallNotification() {
         await deferredPromptRef.current.prompt()
         const choice = await deferredPromptRef.current.userChoice
         if (choice.outcome === 'accepted') {
-          handleDismiss()
+          handleMaybeLater()
         }
       } catch (err) {
         console.error('Install prompt error:', err)
@@ -163,7 +193,7 @@ export function AppInstallNotification() {
               <button
                 type="button"
                 className="fab-app-center-close"
-                onClick={handleDismiss}
+                onClick={handleClose}
                 aria-label="Close"
               >
                 <X size={16} />
@@ -214,7 +244,7 @@ export function AppInstallNotification() {
                 <button
                   type="button"
                   className="fab-btn-center-maybe-later"
-                  onClick={handleDismiss}
+                  onClick={handleMaybeLater}
                 >
                   Maybe Later
                 </button>
@@ -250,7 +280,10 @@ export function AppInstallNotification() {
               <button
                 type="button"
                 className="fab-app-center-close"
-                onClick={() => setShowGuideModal(false)}
+                onClick={() => {
+                  setShowGuideModal(false)
+                  handleClose()
+                }}
                 aria-label="Close guide modal"
               >
                 <X size={16} />
@@ -317,7 +350,7 @@ export function AppInstallNotification() {
                 className="fab-install-guide-done"
                 onClick={() => {
                   setShowGuideModal(false)
-                  handleDismiss()
+                  handleMaybeLater()
                 }}
               >
                 Got it, thanks!
