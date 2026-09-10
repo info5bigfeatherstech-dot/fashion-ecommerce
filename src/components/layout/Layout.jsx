@@ -8,6 +8,8 @@ import { MobileBottomNav } from './MobileBottomNav'
 import { AuthModal } from '@/features/auth/components/AuthModal'
 import { AppInstallNotification } from '@/components/common/AppInstallNotification'
 import { AllowNotificationModal } from '@/components/common/AllowNotificationModal'
+import { usePushNotifications } from '@/features/notifications/usePushNotifications'
+import { useAppStore } from '@/store'
 import {
   isScrollRecordingSuppressed,
   restoreScrollPositionSoon,
@@ -224,6 +226,9 @@ function ScrollToTop() {
 }
 
 export function Layout() {
+  const isAuthenticated = useAppStore((s) => s.isAuthenticated)
+  usePushNotifications(Boolean(isAuthenticated))
+
   return (
     <>
       <ScrollToTop />

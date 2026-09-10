@@ -233,6 +233,18 @@ export const API_ENDPOINTS = {
       `/product-reviews/eligibility/${encodeURIComponent(String(productId))}`,
     create: '/product-reviews',
   },
+  push: {
+    vapidPublicKey: '/push/vapid-public-key',
+    status: '/push/status',
+    subscribe: '/push/subscribe',
+    unsubscribe: '/push/unsubscribe',
+  },
+  notifications: {
+    unreadCount: '/notifications/unread-count',
+    list: '/notifications',
+    markRead: (id) => `/notifications/${encodeURIComponent(String(id))}/read`,
+    markAllRead: '/notifications/read-all',
+  },
 }
 
 export const PRODUCT_CATALOG_PAGE_SIZE = 50

@@ -432,3 +432,14 @@
   margin: 0;
   line-height: 1.35;
 }
+@keyframes fab-notify-bell-shake {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(-12deg); }
+  40% { transform: rotate(10deg); }
+  60% { transform: rotate(-8deg); }
+  80% { transform: rotate(6deg); }
+}
+.fab-notify-bell-shake {
+  animation: fab-notify-bell-shake 0.7s ease-in-out infinite;
+  transform-origin: top center;
+}

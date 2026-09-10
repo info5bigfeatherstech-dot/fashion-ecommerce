@@ -208,30 +208,30 @@ export function AllowNotificationModal() {
     }
   }
 
-  // "Allow Notifications" click handler
+  // "Allow Notifications" — request permission + save Web Push subscription
   const handleAllowClick = async () => {
     try {
-      if ('Notification' in window) {
-        const permission = await Notification.requestPermission()
-        if (permission === 'granted') {
-          try {
-            localStorage.setItem(NOTIFY_STORAGE_KEY, 'true')
-          } catch {
-            // ignore
-          }
-          setGrantedFeedback(true)
-          setTimeout(() => {
-            setIsOpen(false)
-            setGrantedFeedback(false)
-          }, 1500)
-          return
-        }
+      if (!('Notification' in window)) {
+        handleMaybeLater()
+        return
       }
+      const { subscribeToWebPush } = await import('@/utils/pushNotifications')
+      await subscribeToWebPush()
+      try {
+        localStorage.setItem(NOTIFY_STORAGE_KEY, 'true')
+      } catch {
+        /* ignore */
+      }
+      setGrantedFeedback(true)
+      setTimeout(() => {
+        setIsOpen(false)
+        setGrantedFeedback(false)
+      }, 1500)
     } catch (err) {
-      console.error('Notification request error:', err)
+      console.error('Notification subscribe error:', err)
+      // Permission denied or SW/VAPID issue — snooze soft prompt
+      handleMaybeLater()
     }
-
-    handleMaybeLater()
   }
 
   return (

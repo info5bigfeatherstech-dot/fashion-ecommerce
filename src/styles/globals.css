@@ -18843,6 +18843,14 @@ a.cart-item__name:hover {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 
+.admin-leads-autopush-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .admin-leads-autopush {
   display: inline-flex;
   align-items: center;

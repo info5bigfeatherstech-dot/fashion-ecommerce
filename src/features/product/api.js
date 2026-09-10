@@ -122,7 +122,8 @@ function applyProductFilters(products, filters = {}) {
       return tags.includes('on-sale') || product.badge === 'sale' || Boolean(product.originalPrice)
     })
   } else if (filters.category === 'new-arrivals') {
-    results = results.filter((product) => product.badge === 'new' || product.badge === 'sale')
+    // New Arrivals = featured catalogue (isFeatured), matching push landing copy.
+    results = results.filter((product) => Boolean(product.isFeatured))
   } else if (filters.category === 'footwear') {
     results = results.filter((product) => FOOTWEAR_SUBS.has(product.subcategory))
   } else if (filters.category === 'bags') {

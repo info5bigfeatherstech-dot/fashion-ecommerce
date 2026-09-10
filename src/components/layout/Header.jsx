@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -14,6 +14,9 @@ import { SaleLiveBadge } from './SaleLiveBadge'
 import { getUserFirstName } from '@/lib/utils'
 import { MEDIA_QUERIES } from '@/config/breakpoints'
 import { startLenis, stopLenis } from '@/lib/lenis'
+import { NotificationBellIcon } from '@/components/common/NotificationBellIcon'
+import { NotificationsModal } from '@/components/common/NotificationsModal'
+import { fetchUnreadNotificationCount } from '@/features/notifications/api'
 
 function navHref(item) {
   if (item.href) return item.href
@@ -34,6 +37,8 @@ export function Header() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
   const [categoriesExpanded, setCategoriesExpanded] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [unreadNotifications, setUnreadNotifications] = useState(0)
   const moreTimeoutRef = useRef(null)
   const location = useLocation()
   const cartCount = useCartCount()
@@ -45,6 +50,32 @@ export function Header() {
   const { navItems } = useHeaderNavItems()
   const accountFirstName = getUserFirstName(user)
   const accountLabel = isAuthenticated && accountFirstName ? accountFirstName : 'My Account'
+
+  // In-app badge: fetch once on session open / login. No polling, no per-route refetch.
+  // Bell click opens modal which refreshes list + unread (see NotificationsModal).
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setUnreadNotifications(0)
+      return undefined
+    }
+    let cancelled = false
+    fetchUnreadNotificationCount()
+      .then((count) => {
+        if (!cancelled) setUnreadNotifications(Number(count) || 0)
+      })
+      .catch(() => {
+        // Don't wipe a good badge on a transient network blip after login.
+        if (!cancelled) setUnreadNotifications((prev) => (prev > 0 ? prev : 0))
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isAuthenticated])
+
+  const handleOpenNotifications = useCallback(() => {
+    if (!isAuthenticated) return
+    setNotificationsOpen(true)
+  }, [isAuthenticated])
 
   const { homeItem, categoryNavItems, moreCategories, allCategories } = useMemo(() => {
     const home = navItems.find((item) => item.slug === 'home') || { label: 'Home', slug: 'home' }
@@ -213,6 +244,13 @@ export function Header() {
                 </span>
                 <span className="header__util-label">Wishlist</span>
               </Link>
+              {isAuthenticated && (
+                <NotificationBellIcon
+                  count={unreadNotifications}
+                  className="header__util--mobile-hide"
+                  onClick={handleOpenNotifications}
+                />
+              )}
               <button type="button" className="header__util header__util--icon header__util--mobile-hide" onClick={openCart} aria-label="Shopping bag">
                 <span className="header__util-icon">
                   <ShoppingBag size={24} />
@@ -451,6 +489,12 @@ export function Header() {
           document.body
         )}
       <CartDrawer />
+      <NotificationsModal
+        open={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
+        isLoggedIn={isAuthenticated}
+        onUnreadChange={setUnreadNotifications}
+      />
     </>
   )
 }
