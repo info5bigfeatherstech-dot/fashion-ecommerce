@@ -7,6 +7,7 @@ import fabUniqoLogo from '@/assets/FabUniqo- Fashion Uniquely yours.png'
 import '@/styles/app-install-notification.css'
 
 const INSTALL_COOLDOWN_KEY = 'fabuniqo_app_install_cooldown_until'
+const INSTALL_AUTHED_COOLDOWN_KEY = 'fabuniqo_app_install_authed_cooldown_until'
 const INSTALL_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
 const SHOW_DELAY_MS = 5000 // 5 seconds
 
@@ -15,6 +16,10 @@ const isInstallOnCooldown = () => {
   try {
     const cooldownUntil = localStorage.getItem(INSTALL_COOLDOWN_KEY)
     if (cooldownUntil && Date.now() < Number(cooldownUntil)) {
+      return true
+    }
+    const authedCooldown = localStorage.getItem(INSTALL_AUTHED_COOLDOWN_KEY)
+    if (authedCooldown && Date.now() < Number(authedCooldown)) {
       return true
     }
   } catch {
@@ -77,46 +82,69 @@ export function AppInstallNotification() {
   }, [])
 
   const timerRef = useRef(null)
+  const dismissedThisSessionRef = useRef(false)
 
   const schedulePopup = (delay = SHOW_DELAY_MS) => {
+    const isStandalone =
+      window.matchMedia?.('(display-mode: standalone)')?.matches ||
+      window.navigator?.standalone === true
+    if (isStandalone) return
+
     if (isInstallOnCooldown()) return
+    if (dismissedThisSessionRef.current) return
+
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => {
       if (isInstallOnCooldown()) return
-      const currentState = useAppStore.getState()
-      if (!currentState.isAuthenticated) {
-        setIsOpen(true)
-      }
+      if (dismissedThisSessionRef.current) return
+      setIsOpen(true)
     }, delay)
   }
 
-  // 5-second countdown timer for unauthenticated users
+  // Show install popup:
+  // - authenticated users (or page reload while logged in): 1.5s delay
+  // - unauthenticated users: 5s delay
   useEffect(() => {
-    // If user is already authenticated, do nothing
-    if (isAuthenticated) {
-      setIsOpen(false)
-      if (timerRef.current) clearTimeout(timerRef.current)
-      return undefined
-    }
-
-    // If currently on 7-day cooldown after "Maybe Later", do not show
-    if (isInstallOnCooldown()) {
-      setIsOpen(false)
-      return undefined
-    }
-
-    // If app is already running as installed PWA standalone, don't show
     const isStandalone =
       window.matchMedia?.('(display-mode: standalone)')?.matches ||
       window.navigator?.standalone === true
     if (isStandalone) return undefined
 
-    schedulePopup()
+    if (!authReady) return undefined
+    if (isInstallOnCooldown()) {
+      setIsOpen(false)
+      return undefined
+    }
+    if (dismissedThisSessionRef.current) return undefined
+
+    const delay = isAuthenticated ? 1500 : SHOW_DELAY_MS
+    schedulePopup(delay)
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
     }
   }, [isAuthenticated, authReady])
+
+  // Real-time login event listener (dispatched by AuthModal on successful sign-in)
+  useEffect(() => {
+    const handleUserLogin = () => {
+      // Clear old cooldowns so user sees the install prompt after login
+      try {
+        localStorage.removeItem(INSTALL_COOLDOWN_KEY)
+        localStorage.removeItem(INSTALL_AUTHED_COOLDOWN_KEY)
+        sessionStorage.removeItem('fabuniqo_show_install_popup')
+      } catch { /* ignore */ }
+
+      dismissedThisSessionRef.current = false
+      setIsOpen(false)
+      schedulePopup(1500)
+    }
+
+    window.addEventListener('fabuniqo:user-login', handleUserLogin)
+    return () => {
+      window.removeEventListener('fabuniqo:user-login', handleUserLogin)
+    }
+  }, [])
 
   // Re-trigger when user switches to a different tab and comes back
   const hasLeftTabRef = useRef(false)
@@ -130,9 +158,10 @@ export function AppInstallNotification() {
       if (!hasLeftTabRef.current) return
       hasLeftTabRef.current = false
 
+      // Reset the session-dismiss flag so popup can show again on tab return
+      dismissedThisSessionRef.current = false
+
       if (isInstallOnCooldown()) return
-      const currentState = useAppStore.getState()
-      if (currentState.isAuthenticated) return
 
       // Show popup when user returns from a different tab
       schedulePopup(600)
@@ -157,9 +186,10 @@ export function AppInstallNotification() {
     }
   }, [])
 
-  // Close handler: triggered when user clicks the [X] cross icon -> closes popup,
-  // and will show again when the person goes to a different tab and comes back
+  // Close handler: triggered when user clicks the [X] cross icon ->
+  // closes popup, and will show again when the person reloads or goes to a different tab and comes back
   const handleClose = () => {
+    dismissedThisSessionRef.current = true
     setIsOpen(false)
     if (timerRef.current) clearTimeout(timerRef.current)
   }
@@ -170,6 +200,7 @@ export function AppInstallNotification() {
     if (timerRef.current) clearTimeout(timerRef.current)
     try {
       localStorage.setItem(INSTALL_COOLDOWN_KEY, String(Date.now() + INSTALL_COOLDOWN_MS))
+      localStorage.removeItem(INSTALL_AUTHED_COOLDOWN_KEY)
     } catch {
       // ignore
     }
@@ -198,7 +229,7 @@ export function AppInstallNotification() {
   return (
     <>
       <AnimatePresence>
-        {isOpen && !isAuthenticated && (
+        {isOpen && (
           <div
             className="fab-app-center-overlay fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
             role="dialog"

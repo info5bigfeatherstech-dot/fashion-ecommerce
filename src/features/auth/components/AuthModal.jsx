@@ -31,7 +31,14 @@ export function AuthModal() {
     }
     setAuthError('')
     closeAuthModal()
-    navigate(authRedirectTo || '/account/profile', { replace: true })
+    // Mark that a real login just happened (not a page refresh).
+    // The install and notification popups consume these flags and events.
+    try {
+      sessionStorage.setItem('fabuniqo_show_install_popup', '1')
+      sessionStorage.setItem('fabuniqo_show_notify_popup', '1')
+      window.dispatchEvent(new CustomEvent('fabuniqo:user-login'))
+    } catch { /* ignore */ }
+    navigate(authRedirectTo || '/', { replace: true })
   }
 
   const handleOpenChange = (open) => {

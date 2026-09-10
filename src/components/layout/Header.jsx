@@ -80,7 +80,7 @@ export function Header() {
   const handleMyAccountClick = (event) => {
     if (!isAuthenticated) {
       event.preventDefault()
-      openAuthModal({ redirectTo: '/account/profile', mode: 'login' })
+      openAuthModal({ redirectTo: '/', mode: 'login' })
     }
     setMobileNavOpen(false)
   }

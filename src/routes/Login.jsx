@@ -9,7 +9,7 @@ export default function Login() {
 
   useEffect(() => {
     openAuthModal({
-      redirectTo: location.state?.redirectTo || '/account/profile',
+      redirectTo: location.state?.redirectTo || '/',
       mode: 'login',
     })
     navigate(location.state?.from || '/', { replace: true })

@@ -52,12 +52,25 @@ export function AllowNotificationModal() {
   }, [isOpen])
 
   const timerRef = useRef(null)
+  // Tracks if the user dismissed the popup via X in this session.
+  // Resets on page reload (in-memory) or when they return from another tab.
+  const dismissedThisSessionRef = useRef(false)
 
-  const scheduleNotifyPopup = (delay = 5000) => {
+  const scheduleNotifyPopup = (delay = 8000) => {
     if (isNotifyOnCooldown()) return
+    if (dismissedThisSessionRef.current) return
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => {
       if (isNotifyOnCooldown()) return
+      if (dismissedThisSessionRef.current) return
+
+      // If the install app popup is currently active on screen, wait a bit longer
+      const isInstallModalOpen = document.querySelector('[aria-label="Install FabUniqo App"]')
+      if (isInstallModalOpen) {
+        scheduleNotifyPopup(4000)
+        return
+      }
+
       const currentState = useAppStore.getState()
       if (
         currentState.isAuthenticated &&
@@ -70,7 +83,7 @@ export function AllowNotificationModal() {
     }, delay)
   }
 
-  // Trigger after user logs in
+  // Trigger on load / refresh when user is authenticated
   useEffect(() => {
     // Only prompt authenticated users
     if (!isAuthenticated || !authReady) {
@@ -95,13 +108,38 @@ export function AllowNotificationModal() {
       return undefined
     }
 
-    // Wait 5 seconds after login before presenting the prompt
-    scheduleNotifyPopup(5000)
+    if (dismissedThisSessionRef.current) return undefined
+
+    // Wait 8 seconds (appears after Install App popup at 1.5s)
+    scheduleNotifyPopup(8000)
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
     }
   }, [isAuthenticated, authReady])
+
+  // Real-time login event listener (dispatched by AuthModal on sign-in)
+  useEffect(() => {
+    const handleUserLogin = () => {
+      if (typeof window === 'undefined' || !('Notification' in window)) return
+      if (Notification.permission === 'granted') return
+
+      try {
+        localStorage.removeItem(NOTIFY_COOLDOWN_KEY)
+        sessionStorage.removeItem('fabuniqo_show_notify_popup')
+      } catch { /* ignore */ }
+
+      dismissedThisSessionRef.current = false
+      setIsOpen(false)
+      // Show 8 seconds after login (so Install App popup shows first at 1.5s)
+      scheduleNotifyPopup(8000)
+    }
+
+    window.addEventListener('fabuniqo:user-login', handleUserLogin)
+    return () => {
+      window.removeEventListener('fabuniqo:user-login', handleUserLogin)
+    }
+  }, [])
 
   // Re-trigger when user switches to a different tab and comes back
   const hasLeftTabRef = useRef(false)
@@ -114,6 +152,9 @@ export function AllowNotificationModal() {
     const handleTabReturn = () => {
       if (!hasLeftTabRef.current) return
       hasLeftTabRef.current = false
+
+      // Reset the session-dismiss flag so the popup can show again on tab return
+      dismissedThisSessionRef.current = false
 
       if (isNotifyOnCooldown()) return
       const currentState = useAppStore.getState()
@@ -147,9 +188,11 @@ export function AllowNotificationModal() {
     }
   }, [])
 
-  // Close handler: triggered when user clicks the [X] cross icon -> closes popup,
-  // and will show again when the person goes to a different tab and comes back
+  // Close handler: triggered when user clicks the [X] cross icon.
+  // Sets a session flag so it won't auto-show again this session.
+  // Resets on page reload or when user returns from another tab.
   const handleClose = () => {
+    dismissedThisSessionRef.current = true
     setIsOpen(false)
     if (timerRef.current) clearTimeout(timerRef.current)
   }

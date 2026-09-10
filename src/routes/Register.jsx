@@ -9,7 +9,7 @@ export default function Register() {
 
   useEffect(() => {
     openAuthModal({
-      redirectTo: location.state?.redirectTo || '/account/profile',
+      redirectTo: location.state?.redirectTo || '/',
       mode: 'register',
     })
     navigate(location.state?.from || '/', { replace: true })
