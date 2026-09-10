@@ -610,11 +610,11 @@ export function useAutoSyncOrderStatuses() {
   })
 }
 
-export function useAdminProductsAll({ page = 1, search = '', limit = 50, enabled = true } = {}) {
+export function useAdminProductsAll({ page = 1, search = '', limit = 50, status = '', category = '', enabled = true } = {}) {
   const queryEnabled = useAdminQueryEnabled(enabled)
   return useQuery({
-    queryKey: adminKeys.productsAll(page, search, limit),
-    queryFn: ({ signal }) => getAdminProductsAll({ signal, page, search, limit }),
+    queryKey: adminKeys.productsAll(page, search, limit, status, category),
+    queryFn: ({ signal }) => getAdminProductsAll({ signal, page, search, limit, status, category }),
     enabled: queryEnabled,
     staleTime: 1000 * 30,
     refetchOnMount: 'always',
@@ -938,10 +938,14 @@ export function useArchiveAdminProduct() {
             changed = true
           }
         }
-        if (changed && next.pagination && typeof next.pagination.total === 'number') {
-          next.pagination = {
-            ...next.pagination,
-            total: Math.max(0, next.pagination.total - 1),
+        if (changed) {
+          if (typeof next.total === 'number') next.total = Math.max(0, next.total - 1)
+          if (typeof next.totalProducts === 'number') next.totalProducts = Math.max(0, next.totalProducts - 1)
+          if (next.pagination && typeof next.pagination.total === 'number') {
+            next.pagination = {
+              ...next.pagination,
+              total: Math.max(0, next.pagination.total - 1),
+            }
           }
         }
         return changed ? next : container

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Check, Eye, Package, RotateCcw, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -99,6 +99,18 @@ export default function AdminArchivedPage() {
     () => products.filter((product) => matchesSearch(product, query)),
     [products, query]
   )
+
+  const totalPages = pagination?.totalPages ?? pagination?.pages ?? (pagination?.total != null ? Math.ceil(pagination.total / 20) : undefined)
+
+  useEffect(() => {
+    if (isLoading) return
+    const validTotalPages = totalPages != null && totalPages > 0 ? totalPages : 1
+    if (page > validTotalPages) {
+      setPage(validTotalPages)
+    } else if (page > 1 && products.length === 0 && !isError && !isLoading) {
+      setPage((prev) => Math.max(1, prev - 1))
+    }
+  }, [isLoading, isError, page, totalPages, products.length])
 
   const archivedCount = pagination?.total ?? data?.total ?? products.length
   const visibleSlugs = filteredProducts.map((p) => p.slug).filter(Boolean)
@@ -359,7 +371,7 @@ export default function AdminArchivedPage() {
         )}
         <AdminPagination
           page={page}
-          totalPages={pagination?.totalPages}
+          totalPages={totalPages}
           onPageChange={(next) => {
             setPage(next)
             setSelectedSlugs(new Set())

@@ -778,6 +778,8 @@ export default function AdminProductsPage() {
     page,
     search,
     limit: 20,
+    status: statusFilter !== 'all' ? statusFilter : '',
+    category: categoryFilter !== 'all' ? categoryFilter : '',
     enabled: !showLowStockOnly,
   })
   const lowStockListQuery = useAdminProductsLowStock({
@@ -856,6 +858,17 @@ export default function AdminProductsPage() {
     }
     return list
   }, [rawProducts, statusFilter, categoryFilter, dateFilter, startDate, endDate])
+
+  // Auto-adjust page if current page becomes empty or page is out of bounds
+  useEffect(() => {
+    if (listLoading) return
+    const validTotalPages = totalPages != null && totalPages > 0 ? totalPages : 1
+    if (page > validTotalPages) {
+      setPage(validTotalPages)
+    } else if (page > 1 && products.length === 0 && !listError && !listLoading) {
+      setPage((prev) => Math.max(1, prev - 1))
+    }
+  }, [listLoading, listError, page, totalPages, products.length])
 
   const totalProducts = listTotal ?? products.length
   const activeCount = extractCount(activeData) ?? products.filter((p) => getEcomStatus(p).label === 'Active').length
@@ -996,6 +1009,7 @@ export default function AdminProductsPage() {
       })
       setArchiveTarget(null)
       toast.success('Product archived')
+      listRefetch()
     } catch (err) {
       toast.error(err?.message || 'Archive failed')
       listRefetch()
