@@ -123,17 +123,18 @@ export function canRequestReturn(order) {
   if (!order) return false
   const status = String(order.orderStatus || '').toLowerCase()
   if (status !== 'delivered') return false
-  if (order.returnInfo?.status || order.returnRequest?.status) return false
+  const returnStatus = String(order.returnInfo?.status || order.returnRequest?.status || '').toLowerCase()
+  if (returnStatus && !['rejected', 'closed'].includes(returnStatus)) return false
   return true
 }
 
 export function hasActiveReturn(order) {
   if (!order) return false
   const status = String(order.orderStatus || '').toLowerCase()
+  const returnStatus = String(order.returnInfo?.status || order.returnRequest?.status || '').toLowerCase()
   return Boolean(
     status === 'return_requested' ||
-    order.returnInfo?.status ||
-    order.returnRequest?.status
+    (returnStatus && !['rejected', 'closed'].includes(returnStatus))
   )
 }
 

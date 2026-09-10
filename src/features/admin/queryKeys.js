@@ -45,6 +45,7 @@ export const adminKeys = {
   staffProfile: () => [...adminKeys.all, 'staff-profile'],
   returns: (page, status) => [...adminKeys.all, 'returns', page, status || ''],
   returnDetail: (orderId) => [...adminKeys.all, 'return', String(orderId || '')],
+  returnChat: (orderId) => [...adminKeys.all, 'return-chat', String(orderId || '')],
   rtoOrders: (page) => [...adminKeys.all, 'rto-orders', page],
   rtoAnalytics: () => [...adminKeys.all, 'rto-analytics'],
   oosInquiries: (page, days, search) => [...adminKeys.all, 'oos', page, days, search || ''],

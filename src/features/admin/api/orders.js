@@ -203,10 +203,15 @@ export async function downloadBulkManifestsZip(orderIds) {
   return downloadBulkOrderZip(API_ENDPOINTS.admin.bulkManifestsZip, ids, 'shiprocket-manifests-bulk')
 }
 
-export async function decideAdminReturnRequest(orderId, { decision, decisionReason = '' } = {}) {
+export async function decideAdminReturnRequest(
+  orderId,
+  { decision, decisionReason = '', returnReasonId, customerRequest = 'REFUND' } = {}
+) {
   const payload = await adminPost(API_ENDPOINTS.admin.returnDecision(orderId), {
     decision,
     decisionReason,
+    ...(returnReasonId ? { returnReasonId } : {}),
+    ...(customerRequest ? { customerRequest } : {}),
   })
   return unwrapAdmin(payload)
 }
@@ -218,6 +223,23 @@ export async function initiateAdminReturnRefund(orderId) {
 
 export async function retryAdminReturnReversePickup(orderId) {
   const payload = await adminPost(API_ENDPOINTS.admin.returnReversePickupRetry(orderId))
+  return unwrapAdmin(payload)
+}
+
+export async function getAdminReturnChat(orderId, { signal } = {}) {
+  const payload = await adminGet(API_ENDPOINTS.admin.returnChat(orderId), { signal })
+  const unwrapped = unwrapAdmin(payload)
+  return {
+    chat: Array.isArray(unwrapped?.chat) ? unwrapped.chat : Array.isArray(payload?.chat) ? payload.chat : [],
+    userLastRead: unwrapped?.userLastRead || payload?.userLastRead || null,
+    adminLastRead: unwrapped?.adminLastRead || payload?.adminLastRead || null,
+    chatWindowDeadline: unwrapped?.chatWindowDeadline || payload?.chatWindowDeadline || null,
+    isChatActive: unwrapped?.isChatActive ?? payload?.isChatActive ?? true,
+  }
+}
+
+export async function sendAdminReturnChatMessage(orderId, message) {
+  const payload = await adminPost(API_ENDPOINTS.admin.returnChat(orderId), { message })
   return unwrapAdmin(payload)
 }
 

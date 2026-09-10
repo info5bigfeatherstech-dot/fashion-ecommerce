@@ -26,9 +26,31 @@ function mapAuthUser(user) {
   }
 }
 
+const STOREFRONT_REFRESH_TOKEN_KEY = 'fabuniqo_storefront_rt'
+
+function getStoredRefreshToken() {
+  try {
+    return localStorage.getItem(STOREFRONT_REFRESH_TOKEN_KEY) || null
+  } catch {
+    return null
+  }
+}
+
+function setStoredRefreshToken(token) {
+  try {
+    if (token) localStorage.setItem(STOREFRONT_REFRESH_TOKEN_KEY, token)
+    else localStorage.removeItem(STOREFRONT_REFRESH_TOKEN_KEY)
+  } catch {
+    // ignore
+  }
+}
+
 function applyLoginPayload(payload) {
   const user = mapAuthUser(payload?.user) || useAppStore.getState().user
   const accessToken = payload?.accessToken || null
+  if (payload?.refreshToken) {
+    setStoredRefreshToken(payload.refreshToken)
+  }
 
   useAppStore.getState().setSession({ user, accessToken })
   clearAuthSession() // wipe any legacy localStorage token/user keys
@@ -51,35 +73,50 @@ export function isFatalAuthRefreshError(error) {
 }
 
 /** GET /api/auth/me — used to hydrate user after cookie refresh when payload has no user. */
-export async function fetchCurrentUser() {
-  const payload = await http.get(API_ENDPOINTS.auth.me, { skipAuthRefresh: true })
+export async function fetchCurrentUser(tokenOverride = null) {
+  const token = tokenOverride || useAppStore.getState().accessToken
+  const payload = await http.get(API_ENDPOINTS.auth.me, {
+    skipAuthRefresh: true,
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  })
   return mapAuthUser(payload?.user)
 }
 
 /**
- * Exchange the HttpOnly refresh cookie for a new in-memory access token.
+ * Exchange the HttpOnly refresh cookie (or fallback token) for a new in-memory access token.
  * POST /api/auth/refresh
  * Session cookie is valid for at least 7 days (backend TTL).
  */
 export async function refreshSession() {
   if (!refreshPromise) {
+    const fallbackToken = getStoredRefreshToken()
     refreshPromise = http
       .post(
         API_ENDPOINTS.auth.refresh,
-        { portal: AUTH_PORTAL },
-        { skipAuthRefresh: true }
+        {
+          portal: AUTH_PORTAL,
+          refreshToken: fallbackToken || undefined,
+        },
+        {
+          skipAuthRefresh: true,
+          headers: fallbackToken ? { 'x-refresh-token': fallbackToken } : undefined,
+        }
       )
       .then(async (payload) => {
         let result = applyLoginPayload(payload)
         if (!result.accessToken) {
           throw new Error('Refresh did not return an access token')
         }
+        if (payload?.refreshToken) {
+          setStoredRefreshToken(payload.refreshToken)
+        }
         if (!result.user) {
-          const user = await fetchCurrentUser()
+          const user = await fetchCurrentUser(result.accessToken)
           if (user) {
             result = applyLoginPayload({
               user,
               accessToken: result.accessToken,
+              refreshToken: payload?.refreshToken,
             })
           }
         }
@@ -200,6 +237,7 @@ export async function logout() {
   } catch {
     // Clear local session even if the network call fails
   } finally {
+    setStoredRefreshToken(null)
     useAppStore.getState().clearUser()
     try {
       useAppStore.persist?.clearStorage()

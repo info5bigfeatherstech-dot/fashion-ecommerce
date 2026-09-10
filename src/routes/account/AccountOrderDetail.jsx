@@ -252,17 +252,17 @@ export function AccountOrderDetail({ orderId, onBack }) {
           </div>
         </div>
 
-        {/* 24-Hour Confirmed Order Notification / Action Banner */}
+        {/* 24-Hour Confirmed Order Return & Refund Notification / Action Banner */}
         {can24h && (
           <div className="order-detail-24h-banner">
             <div className="order-detail-24h-banner__content">
               <div className="order-detail-24h-banner__badge">
                 <Clock size={16} />
-                <span>Confirmed Order · 24-Hour Window</span>
+                <span>Confirmed Order · 24-Hour Return & Refund Window</span>
               </div>
               <p className="body-sm">
                 Your order is confirmed. You have <strong>{hoursLeft} hour{hoursLeft === 1 ? '' : 's'} remaining</strong> to
-                submit changes to your delivery address, instructions, or item requests.
+                submit a return/refund request with your product video, photos, and query before dispatch.
               </p>
             </div>
             <Button
@@ -271,7 +271,7 @@ export function AccountOrderDetail({ orderId, onBack }) {
               size="sm"
               onClick={() => setShow24hModal(true)}
             >
-              Request Order Change
+              Request Return / Refund
             </Button>
           </div>
         )}
@@ -319,6 +319,17 @@ export function AccountOrderDetail({ orderId, onBack }) {
               >
                 <Truck size={14} /> Track Order
               </Button>
+
+              {can24h && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShow24hModal(true)}
+                >
+                  <Clock size={14} /> Return / Refund (24h)
+                </Button>
+              )}
 
               {returnEligible && (
                 <Button

@@ -7,34 +7,41 @@ export const useAdminStore = create(
     (set, get) => ({
       user: null,
       accessToken: null,
+      refreshToken: null,
       isAuthenticated: false,
       authReady: false,
 
       setAuthReady: (authReady) => set({ authReady: Boolean(authReady) }),
 
-      setSession: ({ user = null, accessToken = null } = {}) => {
-        set({
-          user,
+      setSession: ({ user = null, accessToken = null, refreshToken = null } = {}) => {
+        set((state) => ({
+          user: user ?? state.user,
           accessToken: accessToken || null,
-          isAuthenticated: Boolean(user && accessToken),
-        })
+          refreshToken: refreshToken || state.refreshToken || null,
+          isAuthenticated: Boolean((user || state.user) && accessToken),
+        }))
       },
 
       setAccessToken: (accessToken) => {
         set({ accessToken: accessToken || null })
       },
 
+      setRefreshToken: (refreshToken) => {
+        set({ refreshToken: refreshToken || null })
+      },
+
       clearSession: () => {
         set({
           user: null,
           accessToken: null,
+          refreshToken: null,
           isAuthenticated: false,
         })
       },
     }),
     {
       name: 'fabuniqo-admin-store',
-      partialize: (state) => ({ user: state.user }),
+      partialize: (state) => ({ user: state.user, refreshToken: state.refreshToken }),
       merge: (persistedState, currentState) => {
         const persisted = persistedState && typeof persistedState === 'object' ? persistedState : {}
         return {

@@ -1,13 +1,16 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   AlertCircle,
   Clock,
+  ExternalLink,
   FileVideo,
   Image as ImageIcon,
   Loader2,
   MessageSquare,
+  PackageCheck,
   PackageX,
   Send,
+  Truck,
   Upload,
   X,
 } from 'lucide-react'
@@ -21,12 +24,41 @@ import {
 } from '../hooks'
 import { formatOrderDateTime } from '../utils'
 
+const MAX_PROOF_IMAGES = 3
+const MAX_VIDEO_SIZE_MB = 60
+
+function getErrorMessage(err) {
+  const code = err?.response?.data?.code || err?.code
+  const msg = err?.response?.data?.message || err?.message
+
+  switch (code) {
+    case 'RETURN_NOT_ELIGIBLE':
+      return msg || 'This order is not eligible for return. Order must be delivered and within the return window.'
+    case 'RETURN_REQUEST_EXISTS':
+      return 'A return request already exists for this order.'
+    case 'RETURN_WINDOW_EXPIRED':
+      return 'The return request window for this delivered order has expired.'
+    case 'RETURN_PROOF_REQUIRED':
+      return 'Please upload both an unboxing/defect video and at least 1 proof photo.'
+    case 'RETURN_MESSAGE_REQUIRED':
+      return 'Please describe the issue with your item (up to 500 characters).'
+    case 'RETURN_PROOF_INVALID':
+      return 'One or more of the uploaded proof files is invalid or exceeds the size limit (max 60MB).'
+    default:
+      return msg || 'Failed to submit return request. Please try again.'
+  }
+}
+
 export function OrderReturnModal({ open, onClose, order }) {
   const orderId = order?.orderId
+  const returnInfo = order?.returnInfo || order?.returnRequest || {}
+  const orderStatus = String(order?.orderStatus || '').toLowerCase()
+  const isDelivered = orderStatus === 'delivered' || orderStatus === 'return_requested'
+
   const hasExistingReturn = Boolean(
     order?.returnInfo?.status ||
     order?.returnRequest?.status ||
-    order?.orderStatus === 'return_requested'
+    orderStatus === 'return_requested'
   )
 
   const [activeTab, setActiveTab] = useState(hasExistingReturn ? 'chat' : 'request')
@@ -35,23 +67,32 @@ export function OrderReturnModal({ open, onClose, order }) {
   const [proofVideo, setProofVideo] = useState(null)
   const [proofImages, setProofImages] = useState([])
   const [chatInput, setChatInput] = useState('')
+  const chatBottomRef = useRef(null)
 
   const createReturn = useCreateReturnRequest()
   const { data: chatData, isLoading: isChatLoading, refetch: refetchChat } = useReturnChat(
     orderId,
-    { enabled: Boolean(open && orderId && (hasExistingReturn || activeTab === 'chat')) }
+    { enabled: Boolean(open && orderId && isDelivered && hasExistingReturn && activeTab === 'chat') }
   )
   const sendChatMessage = useSendReturnChatMessage()
+
+  const chatMessages = chatData?.chat || returnInfo?.chat || []
+
+  useEffect(() => {
+    if (activeTab === 'chat' && chatBottomRef.current) {
+      chatBottomRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [activeTab, chatMessages.length])
 
   if (!order) return null
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files || [])
-    if (proofImages.length + files.length > 3) {
-      toast.error('You can upload at most 3 proof images.')
+    if (proofImages.length + files.length > MAX_PROOF_IMAGES) {
+      toast.error(`You can upload at most ${MAX_PROOF_IMAGES} proof images.`)
       return
     }
-    setProofImages((prev) => [...prev, ...files].slice(0, 3))
+    setProofImages((prev) => [...prev, ...files].slice(0, MAX_PROOF_IMAGES))
   }
 
   const removeImage = (idx) => {
@@ -61,8 +102,8 @@ export function OrderReturnModal({ open, onClose, order }) {
   const handleVideoChange = (e) => {
     const file = e.target.files?.[0]
     if (file) {
-      if (file.size > 60 * 1024 * 1024) {
-        toast.error('Video file size exceeds 60MB limit.')
+      if (file.size > MAX_VIDEO_SIZE_MB * 1024 * 1024) {
+        toast.error(`Video file size exceeds ${MAX_VIDEO_SIZE_MB}MB limit.`)
         return
       }
       setProofVideo(file)
@@ -75,12 +116,16 @@ export function OrderReturnModal({ open, onClose, order }) {
       toast.error('Please describe the issue with your item.')
       return
     }
+    if (reasonMessage.length > 500) {
+      toast.error('Reason message must not exceed 500 characters.')
+      return
+    }
     if (!proofVideo) {
       toast.error('Please upload an unboxing or proof video.')
       return
     }
     if (proofImages.length === 0) {
-      toast.error('Please upload at least 1 proof image.')
+      toast.error('Please upload at least 1 proof image (max 3).')
       return
     }
 
@@ -98,7 +143,7 @@ export function OrderReturnModal({ open, onClose, order }) {
       setActiveTab('chat')
       refetchChat()
     } catch (err) {
-      toast.error(err?.message || 'Failed to submit return request.')
+      toast.error(getErrorMessage(err))
     }
   }
 
@@ -110,21 +155,26 @@ export function OrderReturnModal({ open, onClose, order }) {
     setChatInput('')
     try {
       await sendChatMessage.mutateAsync({ orderId, message: msg })
+      refetchChat()
+      setTimeout(() => {
+        chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+      }, 50)
     } catch (err) {
       toast.error(err?.message || 'Could not send message')
       setChatInput(msg)
     }
   }
 
-  const chatMessages = chatData?.chat || []
   const isChatActive = chatData?.isChatActive ?? true
-  const deadline = chatData?.chatWindowDeadline
+  const deadline = chatData?.chatWindowDeadline || returnInfo?.chatWindowDeadline
+  const returnStatus = returnInfo?.status || order?.orderStatus || 'requested'
+  const reverseAwb = returnInfo?.reverseAwb || returnInfo?.trackingNumber
 
   return (
     <Modal
       open={open}
       onOpenChange={(isOpen) => !isOpen && onClose()}
-      title="Returns & Return Support"
+      title="Product Return & Refund"
       subtitle={`Order #${orderId}`}
       className="order-return-modal"
     >
@@ -143,7 +193,7 @@ export function OrderReturnModal({ open, onClose, order }) {
               className={`order-return-tab ${activeTab === 'request' ? 'order-return-tab--active' : ''}`}
               onClick={() => setActiveTab('request')}
             >
-              <PackageX size={15} /> Request Details
+              <PackageX size={15} /> Return Status & Proofs
             </button>
           </div>
         )}
@@ -153,19 +203,51 @@ export function OrderReturnModal({ open, onClose, order }) {
             <div className="order-return-banner">
               <PackageX size={18} />
               <div>
-                <p className="body-sm font-semibold">Initiate Return Request</p>
+                <p className="body-sm font-semibold">
+                  {hasExistingReturn ? 'Return Request Active' : 'Initiate Customer Return'}
+                </p>
                 <p className="body-xs text-muted">
-                  Return requests are accepted for damaged products or wrong items delivered. Please provide clear proof images and an unboxing video.
+                  {hasExistingReturn
+                    ? 'Your return request has been recorded. Our team will review your proofs and initiate reverse pickup.'
+                    : 'Return requests are accepted for damaged products or wrong items delivered. Please upload 1 unboxing/defect video and 1–3 clear photos.'}
                 </p>
               </div>
             </div>
+
+            {hasExistingReturn && (
+              <div
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '10px',
+                  background: 'rgba(250, 247, 242, 0.8)',
+                  border: '1px solid rgba(221, 215, 204, 0.8)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span className="body-xs text-muted">Return Status:</span>
+                  <span className="admin-badge admin-badge--warning" style={{ textTransform: 'capitalize' }}>
+                    {returnStatus.replace(/_/g, ' ')}
+                  </span>
+                </div>
+
+                {reverseAwb && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span className="body-xs text-muted">Reverse Pickup AWB:</span>
+                    <span className="body-xs font-mono font-semibold">{reverseAwb}</span>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="order-change-form__field">
               <label className="body-sm font-semibold" style={{ display: 'block', marginBottom: '6px' }}>
                 Reason for Return *
               </label>
               <select
-                value={reasonType}
+                value={returnInfo.reasonType || reasonType}
                 onChange={(e) => setReasonType(e.target.value)}
                 className="order-change-select"
                 disabled={hasExistingReturn}
@@ -176,58 +258,65 @@ export function OrderReturnModal({ open, onClose, order }) {
             </div>
 
             <div className="order-change-form__field">
-              <label className="body-sm font-semibold" style={{ display: 'block', marginBottom: '6px' }}>
-                Describe the Issue *
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label className="body-sm font-semibold">Describe the Issue *</label>
+                {!hasExistingReturn && (
+                  <span className="body-xs text-muted">{reasonMessage.length}/500</span>
+                )}
+              </div>
               <textarea
                 rows={3}
-                value={reasonMessage}
+                maxLength={500}
+                value={returnInfo.reasonMessage || reasonMessage}
                 onChange={(e) => setReasonMessage(e.target.value)}
-                placeholder="Explain the damage or mismatch in detail..."
+                placeholder="Explain the damage or mismatch in detail (maximum 500 characters)..."
                 className="order-change-textarea"
                 required
                 disabled={hasExistingReturn}
               />
             </div>
 
-            {!hasExistingReturn && (
+            {!hasExistingReturn ? (
               <>
                 <div className="order-change-form__field">
                   <label className="body-sm font-semibold" style={{ display: 'block', marginBottom: '6px' }}>
-                    Proof Video * (1 video: mp4/mov/webm, max 60MB)
+                    Proof Video * (1 video: mp4/mov/mkv/webm, max 60MB)
                   </label>
                   <div className="order-upload-box">
                     <input
                       type="file"
-                      accept="video/mp4,video/quicktime,video/webm,video/x-matroska"
+                      accept="video/mp4,video/quicktime,video/webm,video/x-matroska,video/*"
                       onChange={handleVideoChange}
                       id="proofVideoInput"
                       className="order-upload-input"
                     />
                     <label htmlFor="proofVideoInput" className="order-upload-label">
                       <FileVideo size={18} />
-                      <span>{proofVideo ? proofVideo.name : 'Choose unboxing / proof video'}</span>
+                      <span>{proofVideo ? proofVideo.name : 'Choose unboxing / defect video *'}</span>
                     </label>
                   </div>
                 </div>
 
                 <div className="order-change-form__field">
-                  <label className="body-sm font-semibold" style={{ display: 'block', marginBottom: '6px' }}>
-                    Proof Images * (1 to 3 images: JPG/PNG/WebP)
-                  </label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <label className="body-sm font-semibold">
+                      Proof Photos * (1 to {MAX_PROOF_IMAGES} images: JPG/PNG/WebP)
+                    </label>
+                    <span className="body-xs text-muted">{proofImages.length}/{MAX_PROOF_IMAGES}</span>
+                  </div>
                   <div className="order-upload-box">
                     <input
                       type="file"
-                      accept="image/jpeg,image/png,image/webp"
+                      accept="image/jpeg,image/png,image/webp,image/*"
                       multiple
                       onChange={handleImageChange}
                       id="proofImagesInput"
                       className="order-upload-input"
-                      disabled={proofImages.length >= 3}
+                      disabled={proofImages.length >= MAX_PROOF_IMAGES}
                     />
                     <label htmlFor="proofImagesInput" className="order-upload-label">
                       <ImageIcon size={18} />
-                      <span>Upload photos of the product (Max 3)</span>
+                      <span>Upload photos of the product & packaging (Max {MAX_PROOF_IMAGES})</span>
                     </label>
                   </div>
 
@@ -240,6 +329,7 @@ export function OrderReturnModal({ open, onClose, order }) {
                             type="button"
                             className="order-proof-remove"
                             onClick={() => removeImage(idx)}
+                            aria-label={`Remove photo ${idx + 1}`}
                           >
                             <X size={12} />
                           </button>
@@ -257,7 +347,7 @@ export function OrderReturnModal({ open, onClose, order }) {
                     type="submit"
                     variant="primary"
                     size="sm"
-                    disabled={createReturn.isPending}
+                    disabled={createReturn.isPending || !reasonMessage.trim() || !proofVideo || proofImages.length === 0}
                   >
                     {createReturn.isPending ? (
                       <>
@@ -270,6 +360,12 @@ export function OrderReturnModal({ open, onClose, order }) {
                   </Button>
                 </div>
               </>
+            ) : (
+              <div className="order-change-form__actions">
+                <Button type="button" variant="primary" size="sm" onClick={() => setActiveTab('chat')}>
+                  <MessageSquare size={14} /> Open Support Chat
+                </Button>
+              </div>
             )}
           </form>
         )}
@@ -295,33 +391,36 @@ export function OrderReturnModal({ open, onClose, order }) {
                   <p className="body-sm text-muted">No messages yet. Send a message below to our support team.</p>
                 </div>
               ) : (
-                chatMessages.map((item, idx) => {
-                  const isUser = item.sender === 'user'
-                  return (
-                    <div
-                      key={idx}
-                      className={`order-chat-bubble-wrap ${
-                        isUser ? 'order-chat-bubble-wrap--user' : 'order-chat-bubble-wrap--admin'
-                      }`}
-                    >
-                      <span className="order-chat-sender">
-                        {isUser ? 'You' : 'Fabuniqo Support'}
-                      </span>
+                <>
+                  {chatMessages.map((item, idx) => {
+                    const isMe = item.sender === 'user'
+                    return (
                       <div
-                        className={`order-chat-bubble ${
-                          isUser ? 'order-chat-bubble--user' : 'order-chat-bubble--admin'
+                        key={idx}
+                        className={`order-chat-bubble-wrap ${
+                          isMe ? 'order-chat-bubble-wrap--me' : 'order-chat-bubble-wrap--other'
                         }`}
                       >
-                        <p className="body-sm">{item.message}</p>
-                      </div>
-                      {item.createdAt && (
-                        <span className="order-chat-time">
-                          {formatOrderDateTime(item.createdAt)}
+                        <span className="order-chat-sender">
+                          {isMe ? 'You' : 'Customer Support'}
                         </span>
-                      )}
-                    </div>
-                  )
-                })
+                        <div
+                          className={`order-chat-bubble ${
+                            isMe ? 'order-chat-bubble--me' : 'order-chat-bubble--other'
+                          }`}
+                        >
+                          <p className="body-sm">{item.message}</p>
+                        </div>
+                        {item.createdAt && (
+                          <span className="order-chat-time">
+                            {formatOrderDateTime(item.createdAt)}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })}
+                  <div ref={chatBottomRef} />
+                </>
               )}
             </div>
 
@@ -329,7 +428,7 @@ export function OrderReturnModal({ open, onClose, order }) {
               <form onSubmit={handleSendMessage} className="order-chat-form">
                 <input
                   type="text"
-                  placeholder="Type your reply here..."
+                  placeholder="Type your message to support..."
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   className="order-chat-input"

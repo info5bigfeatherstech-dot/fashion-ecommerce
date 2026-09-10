@@ -1,11 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Clock, Eye, Package, Truck } from 'lucide-react'
+import { Clock, Eye, MessageSquare, Package, Truck } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import {
   canResumeOnlinePayment,
   canShow24HourOption,
   formatOrderDate,
+  formatOrderDateTime,
   getHoursRemainingIn24h,
   getOrderItemCount,
   getOrderItemImage,
@@ -16,13 +17,16 @@ import {
   getOrderItemsSummary,
   getOrderStatusClass,
   getOrderStatusLabel,
+  hasActiveReturn,
   isOrderTrackable,
 } from '@/features/orders/utils'
 import { formatPrice } from '@/lib/utils'
 import {
   Order24HourChangeModal,
+  OrderReturnModal,
   OrderTrackingModal,
 } from '@/features/orders/components'
+import { useReturnChat } from '@/features/orders/hooks'
 
 const PREVIEW_LIMIT = 2
 
@@ -69,6 +73,7 @@ function OrderProductMedia({ item, label, extraCount = 0 }) {
 export function AccountOrderCard({ order, onSelect, isHydrating = false }) {
   const [showTracking, setShowTracking] = useState(false)
   const [showChangeModal, setShowChangeModal] = useState(false)
+  const [showReturnModal, setShowReturnModal] = useState(false)
 
   const items = getOrderItems(order)
   const itemCount = getOrderItemCount(order)
@@ -84,6 +89,64 @@ export function AccountOrderCard({ order, onSelect, isHydrating = false }) {
   const canTrack = String(order.orderStatus || '').toLowerCase() !== 'cancelled'
   const can24h = canShow24HourOption(order)
   const hoursLeft = can24h ? getHoursRemainingIn24h(order.createdAt) : 0
+
+  const orderStatus = String(order.orderStatus || '').toLowerCase()
+  const isDelivered = orderStatus === 'delivered' || orderStatus === 'return_requested'
+  const isReturnActive = hasActiveReturn(order)
+  const hasReturnRequestStatus = Boolean(
+    orderStatus === 'return_requested' ||
+    Boolean(order.returnInfo?.status) ||
+    Boolean(order.returnRequest?.status)
+  )
+
+  const hasReturnPayload = Boolean(isDelivered && (isReturnActive || hasReturnRequestStatus))
+  const shouldFetchChat = Boolean(order.orderId && hasReturnPayload)
+
+  const { data: chatData } = useReturnChat(order.orderId, {
+    enabled: shouldFetchChat,
+  })
+
+  const chatMessages = chatData?.chat || order.returnInfo?.chat || order.returnRequest?.chat || []
+  const adminMessages = chatMessages.filter(
+    (m) => m.sender === 'admin' || m.sender === 'support' || m.sender === 'staff'
+  )
+  const latestAdminMessage = adminMessages.length > 0 ? adminMessages[adminMessages.length - 1] : null
+  const decisionReason = order.returnInfo?.decisionReason || order.returnRequest?.decisionReason
+
+  const hasReceivedMessage = Boolean(latestAdminMessage || decisionReason)
+
+  // Message read/seen state key
+  const messageKey = latestAdminMessage
+    ? `seen_msg_${order.orderId}_${latestAdminMessage._id || latestAdminMessage.createdAt || latestAdminMessage.message}`
+    : decisionReason
+      ? `seen_reason_${order.orderId}_${decisionReason}`
+      : null
+
+  const [isMessageSeen, setIsMessageSeen] = useState(() => {
+    if (!messageKey) return true
+    try {
+      return localStorage.getItem(messageKey) === '1'
+    } catch {
+      return false
+    }
+  })
+
+  useEffect(() => {
+    if (!messageKey) return
+    try {
+      setIsMessageSeen(localStorage.getItem(messageKey) === '1')
+    } catch {}
+  }, [messageKey])
+
+  const handleOpenChat = () => {
+    if (messageKey) {
+      try {
+        localStorage.setItem(messageKey, '1')
+      } catch {}
+      setIsMessageSeen(true)
+    }
+    setShowReturnModal(true)
+  }
 
   return (
     <>
@@ -187,6 +250,27 @@ export function AccountOrderCard({ order, onSelect, isHydrating = false }) {
             </Button>
           )}
 
+          {(hasReceivedMessage || isReturnActive || hasReturnPayload) && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={handleOpenChat}
+              className={`account-order-card__btn account-order-card__btn--chat ${
+                hasReceivedMessage && !isMessageSeen ? 'account-order-card__btn--chat-unread' : ''
+              }`}
+              title={hasReceivedMessage && !isMessageSeen ? 'New message received from support' : 'Message'}
+            >
+              <span className="account-order-card__btn-icon-rel">
+                <MessageSquare size={14} />
+                {hasReceivedMessage && !isMessageSeen && (
+                  <span className="account-order-card__unread-dot-badge" />
+                )}
+              </span>
+              Message
+            </Button>
+          )}
+
           {can24h && (
             <Button
               type="button"
@@ -194,10 +278,10 @@ export function AccountOrderCard({ order, onSelect, isHydrating = false }) {
               size="sm"
               onClick={() => setShowChangeModal(true)}
               className="account-order-card__btn account-order-card__btn--24h"
-              title="Order Confirmed - Submit change request within 24 hours"
+              title="Order Confirmed - Return & Refund Request (24h Window)"
             >
               <Clock size={14} />
-              24h Request ({hoursLeft}h left)
+              Return / Refund ({hoursLeft}h left)
             </Button>
           )}
         </div>
@@ -226,6 +310,15 @@ export function AccountOrderCard({ order, onSelect, isHydrating = false }) {
           order={order}
         />
       )}
+
+      {showReturnModal && (
+        <OrderReturnModal
+          open={showReturnModal}
+          onClose={() => setShowReturnModal(false)}
+          order={order}
+        />
+      )}
     </>
   )
 }
+

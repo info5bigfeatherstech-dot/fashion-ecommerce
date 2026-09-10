@@ -73,6 +73,8 @@ import {
   bulkUpdateAdminProductFlags,
   getAdminReturnDetail,
   getAdminReturnRequests,
+  getAdminReturnChat,
+  sendAdminReturnChatMessage,
   getAdminRtoAnalytics,
   getAdminRtoOrders,
   getAdminShippingSettings,
@@ -352,10 +354,11 @@ export function useDownloadBulkManifestsZip() {
 export function useDecideAdminReturnRequest() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ orderId, decision, decisionReason }) =>
-      decideAdminReturnRequest(orderId, { decision, decisionReason }),
-    onSuccess: () => {
+    mutationFn: ({ orderId, decision, decisionReason, returnReasonId, customerRequest }) =>
+      decideAdminReturnRequest(orderId, { decision, decisionReason, returnReasonId, customerRequest }),
+    onSuccess: (_, { orderId }) => {
       queryClient.invalidateQueries({ queryKey: adminKeys.returns() })
+      if (orderId) queryClient.invalidateQueries({ queryKey: adminKeys.returnDetail(orderId) })
     },
   })
 }
@@ -364,8 +367,9 @@ export function useInitiateAdminReturnRefund() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: initiateAdminReturnRefund,
-    onSuccess: () => {
+    onSuccess: (_, orderId) => {
       queryClient.invalidateQueries({ queryKey: adminKeys.returns() })
+      if (orderId) queryClient.invalidateQueries({ queryKey: adminKeys.returnDetail(orderId) })
     },
   })
 }
@@ -374,8 +378,19 @@ export function useRetryAdminReturnReversePickup() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: retryAdminReturnReversePickup,
-    onSuccess: () => {
+    onSuccess: (_, orderId) => {
       queryClient.invalidateQueries({ queryKey: adminKeys.returns() })
+      if (orderId) queryClient.invalidateQueries({ queryKey: adminKeys.returnDetail(orderId) })
+    },
+  })
+}
+
+export function useSendAdminReturnChatMessage() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ orderId, message }) => sendAdminReturnChatMessage(orderId, message),
+    onSuccess: (_, { orderId }) => {
+      if (orderId) queryClient.invalidateQueries({ queryKey: adminKeys.returnChat(orderId) })
     },
   })
 }
@@ -1254,6 +1269,17 @@ export function useAdminReturnDetail(orderId, { enabled = true } = {}) {
     queryKey: adminKeys.returnDetail(id),
     queryFn: ({ signal }) => getAdminReturnDetail(id, { signal }),
     enabled: queryEnabled && Boolean(id),
+  })
+}
+
+export function useAdminReturnChat(orderId, { enabled = true, refetchInterval } = {}) {
+  const queryEnabled = useAdminQueryEnabled(enabled)
+  const id = String(orderId || '').trim()
+  return useQuery({
+    queryKey: adminKeys.returnChat(id),
+    queryFn: ({ signal }) => getAdminReturnChat(id, { signal }),
+    enabled: queryEnabled && Boolean(id),
+    refetchInterval,
   })
 }
 

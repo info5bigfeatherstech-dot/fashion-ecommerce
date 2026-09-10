@@ -190,6 +190,8 @@ export const API_ENDPOINTS = {
       `/orders/admin/returns/requests/${encodeURIComponent(String(orderId))}/refund`,
     returnReversePickupRetry: (orderId) =>
       `/orders/admin/returns/requests/${encodeURIComponent(String(orderId))}/reverse-pickup/retry`,
+    returnChat: (orderId) =>
+      `/orders/admin/returns/requests/${encodeURIComponent(String(orderId))}/chat`,
     rtoOrders: '/admin/rto/orders',
     rtoAnalytics: '/admin/rto/analytics',
     oosInquiries: '/admin/oos-inquiries',

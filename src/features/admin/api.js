@@ -20,33 +20,45 @@ function applyAdminSession(payload) {
   }
   const accessToken = payload?.accessToken || null
   if (!accessToken) throw new Error('Login did not return an access token')
-  useAdminStore.getState().setSession({ user, accessToken })
-  return { user, accessToken }
+  const refreshToken = payload?.refreshToken || null
+  useAdminStore.getState().setSession({ user, accessToken, refreshToken })
+  return { user, accessToken, refreshToken }
 }
 
 let adminRefreshPromise = null
 
 export async function refreshAdminSession() {
   if (!adminRefreshPromise) {
+    const currentRefreshToken = useAdminStore.getState().refreshToken
     adminRefreshPromise = http
       .post(
         API_ENDPOINTS.auth.refresh,
-        { portal: ADMIN_AUTH_PORTAL },
-        { skipAuthRefresh: true, useAdminAuth: true }
+        {
+          portal: ADMIN_AUTH_PORTAL,
+          refreshToken: currentRefreshToken || undefined,
+        },
+        {
+          skipAuthRefresh: true,
+          useAdminAuth: true,
+          headers: currentRefreshToken ? { 'x-refresh-token': currentRefreshToken } : undefined,
+        }
       )
       .then(async (payload) => {
         const accessToken = payload?.accessToken
         if (!accessToken) throw new Error('Admin refresh did not return an access token')
 
+        const newRefreshToken = payload?.refreshToken || currentRefreshToken || null
+
+        // Immediately update accessToken in store so any chained requests have it
         useAdminStore.getState().setAccessToken(accessToken)
 
-        let user = mapAdminUser(payload?.user)
+        let user = mapAdminUser(payload?.user) || useAdminStore.getState().user
         if (!user) {
-          user = await fetchAdminMe()
+          user = await fetchAdminMe(accessToken)
         }
 
-        useAdminStore.getState().setSession({ user, accessToken })
-        return { user, accessToken }
+        useAdminStore.getState().setSession({ user, accessToken, refreshToken: newRefreshToken })
+        return { user, accessToken, refreshToken: newRefreshToken }
       })
       .finally(() => {
         adminRefreshPromise = null
@@ -55,10 +67,12 @@ export async function refreshAdminSession() {
   return adminRefreshPromise
 }
 
-export async function fetchAdminMe() {
+export async function fetchAdminMe(tokenOverride = null) {
+  const token = tokenOverride || useAdminStore.getState().accessToken
   const payload = await http.get(API_ENDPOINTS.auth.me, {
     skipAuthRefresh: true,
     useAdminAuth: true,
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   })
   const user = mapAdminUser(payload?.user)
   if (!user || !isAdminRole(user.role)) {
@@ -122,6 +136,8 @@ export {
   decideAdminReturnRequest,
   initiateAdminReturnRefund,
   retryAdminReturnReversePickup,
+  getAdminReturnChat,
+  sendAdminReturnChatMessage,
   getAdminRtoOrders,
   getAdminRtoAnalytics,
   isPostConfirmOrderStatus,
