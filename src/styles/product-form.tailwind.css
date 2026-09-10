@@ -1,3 +1,5 @@
 @import "tailwindcss" source(none);
 @source "../features/admin/components/product-form";
 @source "../features/admin/components/AdminProductModal.jsx";
+@source "../components/common/AppInstallNotification.jsx";
+@source "../components/common/AllowNotificationModal.jsx";

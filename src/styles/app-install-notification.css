@@ -1,0 +1,433 @@
+/* App Install Notification Centered Modal - Luxury FabUniqo White Styling */
+
+.fab-app-center-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(14, 12, 10, 0.65);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  touch-action: none;
+  overscroll-behavior: contain;
+}
+
+.fab-app-center-card {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  background: #FFFFFF;
+  border: 1px solid rgba(209, 167, 67, 0.35);
+  border-radius: 24px;
+  padding: 32px 26px 28px;
+  box-shadow:
+    0 24px 64px -12px rgba(0, 0, 0, 0.28),
+    0 0 32px -4px rgba(209, 167, 67, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+  color: #14120F;
+  text-align: center;
+  overflow: hidden;
+  font-family: var(--font-ui) !important;
+}
+
+/* Ambient luminous gold light at the top of the card */
+.fab-app-center-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, rgba(209, 167, 67, 0.85) 50%, transparent 100%);
+  pointer-events: none;
+}
+
+/* Center ambient warm glow halo behind the logo */
+.fab-app-center-glow {
+  position: absolute;
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 240px;
+  height: 240px;
+  background: radial-gradient(circle, rgba(209, 167, 67, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Close 'X' Button */
+.fab-app-center-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #F4EFE6;
+  border: 1px solid #E4DBD0;
+  color: #5C554E;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  padding: 0;
+  z-index: 5;
+}
+
+.fab-app-center-close:hover {
+  background: #E8E0D2;
+  color: #14120F;
+  transform: rotate(90deg);
+}
+
+/* Logo Showcase */
+.fab-app-logo-showcase {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 14px;
+  max-width: 230px;
+}
+
+.fab-app-logo-showcase img {
+  max-height: 82px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.08));
+}
+
+/* Badge */
+.fab-app-center-badge {
+  font-family: var(--font-ui) !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #8C661D;
+  background: rgba(209, 167, 67, 0.12);
+  padding: 3px 12px;
+  border-radius: 9999px;
+  border: 1px solid rgba(209, 167, 67, 0.32);
+  margin-bottom: 12px;
+}
+
+/* Titles */
+.fab-app-center-title {
+  font-family: var(--font-display) !important;
+  font-size: clamp(1.45rem, 3.5vw, 1.75rem);
+  font-weight: 600;
+  color: #14120F;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  margin: 0 0 10px;
+}
+
+.fab-app-center-desc {
+  font-family: 'Montserrat', 'PP Neue Montreal', 'Neue Montreal', sans-serif !important;
+  font-size: 0.925rem;
+  line-height: 1.55;
+  color: #524B44;
+  margin: 0 0 22px;
+  padding: 0 8px;
+}
+
+/* Event & Wishlist Highlight */
+.fab-app-event-highlight {
+  font-family: var(--font-ui) !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 8px 0 16px;
+  padding: 7px 16px;
+  border-radius: 9999px;
+  background: #FBF8F2;
+  border: 1px solid #E8DCC4;
+  color: #7A5612;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+}
+
+/* Actions */
+.fab-app-center-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fab-btn-center-install {
+  font-family: var(--font-ui) !important;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 13px 20px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #d1a743 0%, #edd892 50%, #b88d30 100%);
+  color: #14120F;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  border: none;
+  cursor: pointer;
+  box-shadow:
+    0 4px 16px rgba(209, 167, 67, 0.35),
+    inset 0 1px 1px rgba(255, 255, 255, 0.7);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+}
+
+.fab-btn-center-install:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 6px 20px rgba(209, 167, 67, 0.45),
+    inset 0 1px 1px rgba(255, 255, 255, 0.9);
+  background: linear-gradient(135deg, #deb756 0%, #f4e4a7 50%, #c99e3d 100%);
+}
+
+.fab-btn-center-install:active {
+  transform: translateY(0);
+}
+
+.fab-btn-center-maybe-later {
+  font-family: var(--font-ui) !important;
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: 9999px;
+  background: #F8F5EE;
+  border: 1px solid #DCD4C7;
+  color: #524B44;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fab-btn-center-maybe-later:hover {
+  background: #EFE9DE;
+  color: #14120F;
+  border-color: rgba(209, 167, 67, 0.5);
+}
+
+/* Fallback Guide Modal - White Theme */
+.fab-install-guide-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 12, 10, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  touch-action: none;
+}
+
+.fab-install-guide-modal {
+  font-family: var(--font-ui) !important;
+  position: relative;
+  background: #FFFFFF;
+  border: 1px solid rgba(209, 167, 67, 0.35);
+  border-radius: 24px;
+  max-width: 440px;
+  width: 100%;
+  padding: 28px;
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.28),
+    0 0 32px rgba(209, 167, 67, 0.16);
+  color: #14120F;
+}
+
+.fab-install-guide-title {
+  font-family: var(--font-display) !important;
+  font-size: 1.35rem;
+  margin: 0 0 4px;
+  color: #14120F;
+}
+
+.fab-install-guide-subtitle {
+  font-family: var(--font-ui) !important;
+  font-size: 0.86rem;
+  color: #524B44;
+  margin: 0 0 18px;
+  line-height: 1.45;
+}
+
+.fab-install-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.fab-install-step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #F8F5EE;
+  border: 1px solid #E8E0D2;
+  padding: 12px 14px;
+  border-radius: 12px;
+}
+
+.fab-install-step-num {
+  font-family: var(--font-ui) !important;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border-radius: 50%;
+  background: #F2E8D2;
+  border: 1px solid #DCBE7C;
+  color: #7A5612;
+  font-size: 0.76rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fab-install-step-text {
+  font-family: var(--font-ui) !important;
+  font-size: 0.85rem;
+  color: #383430;
+  line-height: 1.45;
+}
+
+.fab-install-step-text strong {
+  color: #14120F;
+}
+
+.fab-install-guide-done {
+  font-family: var(--font-ui) !important;
+  width: 100%;
+  padding: 12px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #d1a743 0%, #edd892 50%, #b88d30 100%);
+  color: #14120F;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.fab-install-guide-done:hover {
+  opacity: 0.95;
+}
+
+/* ─── Allow Notification Modal (After-Login Prompt) ─── */
+.fab-notify-bell-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 14px;
+}
+
+.fab-notify-bell-badge {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FBF8F2 0%, #F4ECE0 100%);
+  border: 1.5px solid rgba(209, 167, 67, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 8px 24px -4px rgba(209, 167, 67, 0.22),
+    inset 0 1px 1px rgba(255, 255, 255, 0.9);
+  color: #B38622;
+}
+
+.fab-notify-bell-pulse {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(209, 167, 67, 0.35);
+  animation: fabBellPulse 2.4s infinite ease-in-out;
+  pointer-events: none;
+}
+
+@keyframes fabBellPulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.2;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+}
+
+.fab-notify-benefits-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 16px 0 24px;
+  text-align: left;
+}
+
+.fab-notify-benefit-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #FBF8F2;
+  border: 1px solid #EBE4D8;
+  border-radius: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.fab-notify-benefit-row:hover {
+  border-color: rgba(209, 167, 67, 0.5);
+}
+
+.fab-notify-benefit-icon-box {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 10px;
+  background: #F3EBDD;
+  border: 1px solid #DFCEB2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #946E1C;
+}
+
+.fab-notify-benefit-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.fab-notify-benefit-heading {
+  font-family: var(--font-ui) !important;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #14120F;
+  margin: 0 0 2px;
+  line-height: 1.25;
+}
+
+.fab-notify-benefit-subtext {
+  font-family: 'Montserrat', 'PP Neue Montreal', 'Neue Montreal', sans-serif !important;
+  font-size: 0.77rem;
+  color: #635C54;
+  margin: 0;
+  line-height: 1.35;
+}
+

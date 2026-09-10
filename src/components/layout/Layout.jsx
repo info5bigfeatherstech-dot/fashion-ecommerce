@@ -6,6 +6,8 @@ import { Header } from './Header'
 import { Footer } from './Footer'
 import { MobileBottomNav } from './MobileBottomNav'
 import { AuthModal } from '@/features/auth/components/AuthModal'
+import { AppInstallNotification } from '@/components/common/AppInstallNotification'
+import { AllowNotificationModal } from '@/components/common/AllowNotificationModal'
 import {
   isScrollRecordingSuppressed,
   restoreScrollPositionSoon,
@@ -239,6 +241,8 @@ export function Layout() {
       </div>
       <MobileBottomNav />
       <AuthModal />
+      <AppInstallNotification />
+      <AllowNotificationModal />
     </>
   )
 }
