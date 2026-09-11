@@ -59,12 +59,14 @@ function ProductDetailPage() {
   })
 
   const [selectedAttrs, setSelectedAttrs] = useState({})
-  const [quantity, setQuantity] = useState(1)
   const [showStickyBar, setShowStickyBar] = useState(false)
   const [reviewFilterStar, setReviewFilterStar] = useState(null)
   const gallerySentinelRef = useRef(null)
 
+  const cartItems = useAppStore((s) => s.cartItems)
   const addItem = useAppStore((s) => s.addItem)
+  const updateQuantity = useAppStore((s) => s.updateQuantity)
+  const removeItem = useAppStore((s) => s.removeItem)
   const toggleWishlist = useAppStore((s) => s.toggleWishlist)
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
   const inWishlist = useAppStore((s) => (
@@ -76,7 +78,6 @@ function ProductDetailPage() {
     // Instant top on every product open, including Product A → B (slug change).
     scrollToTop()
     setSelectedAttrs({})
-    setQuantity(1)
     setShowStickyBar(false)
     setReviewFilterStar(null)
 
@@ -170,9 +171,32 @@ function ProductDetailPage() {
     ? Math.min(8, selectedVariant.quantity)
     : 8
 
-  useEffect(() => {
-    setQuantity(1)
-  }, [selectedVariant?.id])
+  const currentCartLine = useMemo(() => {
+    if (!isAuthenticated || !product || !cartItems?.length) return null
+    const sizeGroup = (product.optionGroups || []).find((g) => g.isSize)
+    const colorGroup = (product.optionGroups || []).find((g) => g.isColor)
+    const currentSize = (sizeGroup ? selectedAttrs[sizeGroup.key] : undefined) ?? product.sizes?.[0] ?? null
+    const currentColor = (colorGroup ? selectedAttrs[colorGroup.key] : undefined) ?? product.colors?.[0] ?? null
+    const targetVariantId = selectedVariant?.id ? String(selectedVariant.id) : null
+    const targetProductId = String(product.id || product._id)
+
+    return (
+      cartItems.find((item) => {
+        if (String(item.productId) !== targetProductId) return false
+        if (targetVariantId && item.variantId) {
+          return String(item.variantId) === targetVariantId
+        }
+        if (item.variantId && targetVariantId && String(item.variantId) !== targetVariantId) {
+          return false
+        }
+        if (currentSize && item.size && item.size !== currentSize) return false
+        if (currentColor && item.color && item.color !== currentColor) return false
+        return true
+      }) || null
+    )
+  }, [isAuthenticated, product, cartItems, selectedVariant?.id, selectedAttrs])
+
+  const inCartQty = currentCartLine?.quantity || 0
 
   if (isLoading) {
     return (
@@ -229,23 +253,49 @@ function ProductDetailPage() {
     }
     const sizeGroup = (product.optionGroups || []).find((g) => g.isSize)
     const colorGroup = (product.optionGroups || []).find((g) => g.isColor)
-    const qty = Math.min(quantity, maxOrderQty)
     const options = {
       size: sizeGroup ? selectedAttrs[sizeGroup.key] : undefined,
       color: colorGroup ? selectedAttrs[colorGroup.key] : undefined,
       attrs: selectedAttrs,
       variantId: selectedVariant?.id,
-      quantity: qty,
+      quantity: 1,
     }
     const ok = await addItem(product, options)
     if (ok === false) return
     showAddedToCartToast(
       { ...product, name: displayTitle },
       {
-        quantity: qty,
+        quantity: 1,
         onViewBag: () => navigate('/account/cart'),
       }
     )
+  }
+
+  const handleIncreaseCart = async (e) => {
+    e?.preventDefault?.()
+    e?.stopPropagation?.()
+    if (!isAvailable) return
+    if (!isAuthenticated) {
+      navigate('/login', { state: { redirectTo: `/product/${slug}` }, replace: true })
+      return
+    }
+    if (currentCartLine) {
+      if (inCartQty >= maxOrderQty) return
+      await updateQuantity(currentCartLine.id, inCartQty + 1)
+      return
+    }
+    handleAddToCart()
+  }
+
+  const handleDecreaseCart = async (e) => {
+    e?.preventDefault?.()
+    e?.stopPropagation?.()
+    if (!isAuthenticated || !currentCartLine) return
+    if (inCartQty <= 1) {
+      await removeItem(currentCartLine.id)
+      return
+    }
+    await updateQuantity(currentCartLine.id, inCartQty - 1)
   }
 
   const handleBuyNow = async () => {
@@ -254,17 +304,18 @@ function ProductDetailPage() {
       navigate('/login', { state: { redirectTo: `/product/${slug}` }, replace: true })
       return
     }
-    const sizeGroup = (product.optionGroups || []).find((g) => g.isSize)
-    const colorGroup = (product.optionGroups || []).find((g) => g.isColor)
-    const qty = Math.min(quantity, maxOrderQty)
-    const ok = await addItem(product, {
-      size: sizeGroup ? selectedAttrs[sizeGroup.key] : undefined,
-      color: colorGroup ? selectedAttrs[colorGroup.key] : undefined,
-      attrs: selectedAttrs,
-      variantId: selectedVariant?.id,
-      quantity: qty,
-    })
-    if (ok === false) return
+    if (inCartQty === 0) {
+      const sizeGroup = (product.optionGroups || []).find((g) => g.isSize)
+      const colorGroup = (product.optionGroups || []).find((g) => g.isColor)
+      const ok = await addItem(product, {
+        size: sizeGroup ? selectedAttrs[sizeGroup.key] : undefined,
+        color: colorGroup ? selectedAttrs[colorGroup.key] : undefined,
+        attrs: selectedAttrs,
+        variantId: selectedVariant?.id,
+        quantity: 1,
+      })
+      if (ok === false) return
+    }
     navigate('/checkout')
   }
 
@@ -434,7 +485,7 @@ function ProductDetailPage() {
               <div className="pdp-info__actions pdp-info__actions--oos">
                 <Button
                   variant="secondary"
-                  size="lg"
+                  size="md"
                   className="pdp-info__cta"
                   disabled
                 >
@@ -442,7 +493,7 @@ function ProductDetailPage() {
                 </Button>
                 <Button
                   variant="secondary"
-                  size="lg"
+                  size="md"
                   className={`pdp-info__wish${inWishlist ? ' pdp-info__wish--active' : ''}`}
                   onClick={() => {
                     if (!isAuthenticated) {
@@ -454,7 +505,7 @@ function ProductDetailPage() {
                   aria-label={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
                   title={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
                 >
-                  <Heart size={20} fill={inWishlist ? 'currentColor' : 'none'} />
+                  <Heart size={18} fill={inWishlist ? 'currentColor' : 'none'} />
                 </Button>
               </div>
               <OutOfStockInquiryForm
@@ -464,64 +515,64 @@ function ProductDetailPage() {
               />
             </div>
           ) : (
-            <>
-              <div className="pdp-info__qty">
-                <p className="heading-sm">Quantity</p>
-                <div className="qty-stepper">
+            <div className="pdp-info__actions">
+              {inCartQty > 0 ? (
+                <div className="pdp-qty-btn pdp-info__cta" role="group" aria-label="Cart quantity">
                   <button
                     type="button"
-                    className="qty-stepper__btn"
-                    onClick={() => setQuantity((n) => Math.max(1, n - 1))}
+                    className="pdp-qty-btn__action"
+                    onClick={handleDecreaseCart}
                     aria-label="Decrease quantity"
                   >
-                    <Minus size={14} />
+                    <Minus size={16} />
                   </button>
-                  <span className="qty-stepper__value">{quantity}</span>
+                  <span className="pdp-qty-btn__qty" aria-live="polite">
+                    {inCartQty}
+                  </span>
                   <button
                     type="button"
-                    className="qty-stepper__btn"
-                    onClick={() => setQuantity((n) => Math.min(maxOrderQty, n + 1))}
+                    className="pdp-qty-btn__action"
+                    onClick={handleIncreaseCart}
                     aria-label="Increase quantity"
+                    disabled={inCartQty >= maxOrderQty}
                   >
-                    <Plus size={14} />
+                    <Plus size={16} />
                   </button>
                 </div>
-              </div>
-
-              <div className="pdp-info__actions">
+              ) : (
                 <Button
                   variant="primary"
-                  size="lg"
+                  size="md"
                   className="pdp-info__cta"
                   onClick={handleAddToCart}
                 >
                   Add to Bag
                 </Button>
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  className="pdp-info__cta"
-                  onClick={handleBuyNow}
-                >
-                  Buy Now
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  className={`pdp-info__wish${inWishlist ? ' pdp-info__wish--active' : ''}`}
-                  onClick={() => {
-                    if (!isAuthenticated) {
-                      navigate('/login', { state: { redirectTo: `/product/${slug}` }, replace: true })
-                      return
-                    }
-                    toggleWishlist(product)
-                  }}
-                  aria-label={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
-                >
-                  <Heart size={20} fill={inWishlist ? 'currentColor' : 'none'} />
-                </Button>
-              </div>
-            </>
+              )}
+              <Button
+                variant="secondary"
+                size="md"
+                className="pdp-info__cta"
+                onClick={handleBuyNow}
+              >
+                Buy Now
+              </Button>
+              <Button
+                variant="secondary"
+                size="md"
+                className={`pdp-info__wish${inWishlist ? ' pdp-info__wish--active' : ''}`}
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    navigate('/login', { state: { redirectTo: `/product/${slug}` }, replace: true })
+                    return
+                  }
+                  toggleWishlist(product)
+                }}
+                aria-label={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+              >
+                <Heart size={18} fill={inWishlist ? 'currentColor' : 'none'} />
+              </Button>
+            </div>
           )}
 
           {accordionItems.length > 0 && (
@@ -569,9 +620,34 @@ function ProductDetailPage() {
         <Button variant="secondary" size="md" onClick={handleBuyNow} disabled={!isAvailable}>
           Buy Now
         </Button>
-        <Button variant="primary" size="md" onClick={handleAddToCart} disabled={!isAvailable}>
-          {isAvailable ? 'Add to Bag' : 'Not available'}
-        </Button>
+        {inCartQty > 0 ? (
+          <div className="pdp-qty-btn pdp-qty-btn--sticky" role="group" aria-label="Cart quantity">
+            <button
+              type="button"
+              className="pdp-qty-btn__action"
+              onClick={handleDecreaseCart}
+              aria-label="Decrease quantity"
+            >
+              <Minus size={16} />
+            </button>
+            <span className="pdp-qty-btn__qty" aria-live="polite">
+              {inCartQty}
+            </span>
+            <button
+              type="button"
+              className="pdp-qty-btn__action"
+              onClick={handleIncreaseCart}
+              aria-label="Increase quantity"
+              disabled={inCartQty >= maxOrderQty}
+            >
+              <Plus size={16} />
+            </button>
+          </div>
+        ) : (
+          <Button variant="primary" size="md" onClick={handleAddToCart} disabled={!isAvailable}>
+            {isAvailable ? 'Add to Bag' : 'Not available'}
+          </Button>
+        )}
       </div>
     </div>
   )

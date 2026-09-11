@@ -40,7 +40,7 @@ export function NewArrivalsSection() {
         <ProductGridSkeleton count={4} />
       ) : (
         <Reveal delay={0.1}>
-          <ProductCarousel products={products} />
+          <ProductCarousel products={products} autoplay autoplayInterval={3000} />
         </Reveal>
       )}
     </section>

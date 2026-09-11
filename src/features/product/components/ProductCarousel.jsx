@@ -30,11 +30,11 @@ export function ProductCarousel({
     const amount = card ? card.getBoundingClientRect().width + gap : el.clientWidth * 0.8
     const maxScroll = el.scrollWidth - el.clientWidth
 
-    if (loop && dir > 0 && el.scrollLeft >= maxScroll - 8) {
+    if (loop && dir > 0 && el.scrollLeft >= maxScroll - 16) {
       el.scrollTo({ left: 0, behavior: 'smooth' })
       return
     }
-    if (loop && dir < 0 && el.scrollLeft <= 8) {
+    if (loop && dir < 0 && el.scrollLeft <= 16) {
       el.scrollTo({ left: maxScroll, behavior: 'smooth' })
       return
     }

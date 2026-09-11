@@ -144,9 +144,16 @@ export function ProductCard({ product, compact = false }) {
       }
     >
       <div className="product-card__media">
-        {product.badge && (
-          <div className="product-card__badge">
-            <Badge badge={product.badge} />
+        {(discount || product.badge) && (
+          <div className="product-card__badges">
+            {discount && (
+              <span className="product-card__discount-badge">
+                {discount}% OFF
+              </span>
+            )}
+            {product.badge && (
+              <Badge badge={product.badge} />
+            )}
           </div>
         )}
 

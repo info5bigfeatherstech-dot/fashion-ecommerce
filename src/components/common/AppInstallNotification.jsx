@@ -320,12 +320,12 @@ export function AppInstallNotification() {
               </div>
 
               {/* VIP Badge */}
-              <div className="flex justify-center">
+              {/* <div className="flex justify-center">
                 <span className="fab-app-center-badge">
                   <Sparkles size={12} />
                   Official App
                 </span>
-              </div>
+              </div> */}
 
               {/* Main Title */}
               <h2 className="fab-app-center-title">

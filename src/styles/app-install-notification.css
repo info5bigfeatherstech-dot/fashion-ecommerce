@@ -119,10 +119,10 @@
 .fab-app-center-title {
   font-family: var(--font-ui) !important;
   font-size: clamp(1.35rem, 3.2vw, 1.6rem);
-  font-weight: 700;
+  font-weight: 500;
   color: #14120F;
   letter-spacing: -0.01em;
-  line-height: 1.25;
+  line-height: 1.40;
   margin: 0 0 10px;
 }
 

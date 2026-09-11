@@ -11,7 +11,7 @@ export function showAddedToCartToast(product, { quantity = 1, onViewBag } = {}) 
         onViewBag={onViewBag}
       />
     ),
-    { duration: 2000, unstyled: true }
+    { duration: 3000, unstyled: true }
   )
 }
 

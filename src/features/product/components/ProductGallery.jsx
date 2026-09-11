@@ -37,6 +37,8 @@ export function ProductGallery({ images = [], name }) {
   })
   const mainRef = useRef(null)
   const touchStartX = useRef(null)
+  const pauseRef = useRef(false)
+  const thumbRefs = useRef([])
 
   const photos = images.length ? images : [FALLBACK_IMAGE]
   const photoKey = photos.join('|')
@@ -51,8 +53,40 @@ export function ProductGallery({ images = [], name }) {
   }, [photoKey])
 
   const goTo = (index) => {
-    setActiveIndex(Math.max(0, Math.min(photos.length - 1, index)))
+    if (photos.length <= 1) return
+    if (index < 0) {
+      setActiveIndex(photos.length - 1)
+      return
+    }
+    if (index >= photos.length) {
+      setActiveIndex(0)
+      return
+    }
+    setActiveIndex(index)
   }
+
+  // Auto rotate image to show next image every 3.5 seconds
+  useEffect(() => {
+    if (photos.length <= 1) return undefined
+
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)')
+    if (media.matches) return undefined
+
+    const interval = setInterval(() => {
+      if (pauseRef.current || isZooming) return
+      setActiveIndex((prev) => (prev + 1) % photos.length)
+    }, 3500)
+
+    return () => clearInterval(interval)
+  }, [photos.length, isZooming])
+
+  // Ensure active thumbnail scrolls into view
+  useEffect(() => {
+    const el = thumbRefs.current[safeIndex]
+    if (el?.scrollIntoView) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+    }
+  }, [safeIndex])
 
   const handleMouseMove = useCallback(
     (e) => {
@@ -88,20 +122,24 @@ export function ProductGallery({ images = [], name }) {
 
   const handleMouseEnter = useCallback(
     (e) => {
+      pauseRef.current = true
       handleMouseMove(e)
     },
     [handleMouseMove]
   )
 
   const handleMouseLeave = useCallback(() => {
+    pauseRef.current = false
     setIsZooming(false)
   }, [])
 
   const onTouchStart = (event) => {
+    pauseRef.current = true
     touchStartX.current = event.touches[0]?.clientX ?? null
   }
 
   const onTouchEnd = (event) => {
+    pauseRef.current = false
     if (touchStartX.current == null || photos.length < 2) return
     const delta = touchStartX.current - (event.changedTouches[0]?.clientX ?? touchStartX.current)
     touchStartX.current = null
@@ -110,12 +148,22 @@ export function ProductGallery({ images = [], name }) {
   }
 
   return (
-    <div className="pdp-gallery">
+    <div
+      className="pdp-gallery"
+      onMouseEnter={() => {
+        pauseRef.current = true
+      }}
+      onMouseLeave={() => {
+        pauseRef.current = false
+        setIsZooming(false)
+      }}
+    >
       {photos.length > 1 && (
         <div className="pdp-gallery__thumbs" role="tablist" aria-label="Product images">
           {photos.map((img, i) => (
             <button
               key={`${img}-${i}`}
+              ref={(el) => (thumbRefs.current[i] = el)}
               type="button"
               className={`pdp-gallery__thumb ${i === safeIndex ? 'pdp-gallery__thumb--active' : ''}`}
               onClick={() => setActiveIndex(i)}
