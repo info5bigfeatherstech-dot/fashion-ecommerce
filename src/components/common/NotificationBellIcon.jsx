@@ -12,6 +12,7 @@ export const NotificationBellIcon = memo(function NotificationBellIcon({
   onClick,
   className = '',
   ariaLabel,
+  id = 'header-notification-bell-btn',
 }) {
   const unread = Number(count) || 0
   const badge = badgeText(unread)
@@ -20,6 +21,7 @@ export const NotificationBellIcon = memo(function NotificationBellIcon({
   return (
     <button
       type="button"
+      id={id}
       onClick={onClick}
       className={`header__util header__util--icon ${className}`}
       aria-label={ariaLabel || (unread > 0 ? `${unread} unread notifications` : 'Notifications')}

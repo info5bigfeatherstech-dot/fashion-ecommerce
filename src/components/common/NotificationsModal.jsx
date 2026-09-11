@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Bell, CheckCheck, Loader2, X } from 'lucide-react'
@@ -59,6 +59,54 @@ export const NotificationsModal = memo(function NotificationsModal({
   const [error, setError] = useState('')
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
+  const [panelStyle, setPanelStyle] = useState({})
+
+  const updatePosition = useCallback(() => {
+    if (typeof window === 'undefined') return
+    if (window.innerWidth <= 640) {
+      setPanelStyle({})
+      return
+    }
+
+    const bell = document.getElementById('header-notification-bell-btn')
+    if (!bell) {
+      setPanelStyle({
+        top: '72px',
+        right: '120px',
+      })
+      return
+    }
+
+    const rect = bell.getBoundingClientRect()
+    const panelWidth = Math.min(380, window.innerWidth - 32)
+    const bellCenter = rect.left + rect.width / 2
+
+    // Shift panel so it sits just below the notification icon
+    let left = bellCenter - panelWidth / 2
+    const minLeft = 16
+    const maxLeft = window.innerWidth - panelWidth - 16
+
+    if (left < minLeft) left = minLeft
+    if (left > maxLeft) left = maxLeft
+
+    const top = rect.bottom + 8
+
+    setPanelStyle({
+      top: `${Math.round(top)}px`,
+      left: `${Math.round(left)}px`,
+      right: 'auto',
+      width: `${panelWidth}px`,
+    })
+  }, [])
+
+  useLayoutEffect(() => {
+    if (!open) return undefined
+    updatePosition()
+    window.addEventListener('resize', updatePosition)
+    return () => {
+      window.removeEventListener('resize', updatePosition)
+    }
+  }, [open, updatePosition])
 
   useEffect(() => {
     if (!open) return undefined
@@ -172,6 +220,7 @@ export const NotificationsModal = memo(function NotificationsModal({
     >
       <div
         className="fab-notif-panel"
+        style={panelStyle}
         onClick={(e) => e.stopPropagation()}
       >
         <header className="fab-notif-panel__head">
