@@ -7,8 +7,9 @@ import '@/styles/app-install-notification.css'
 
 const NOTIFY_STORAGE_KEY = 'fabuniqo_push_permission_prompted'
 const NOTIFY_COOLDOWN_KEY = 'fabuniqo_notify_cooldown_until'
-const NOTIFY_ALLOWED_KEY = 'fabuniqo_notification_allowed'
 const NOTIFY_COOLDOWN_MS = 2 * 24 * 60 * 60 * 1000 // 2 days in milliseconds
+const INSTALL_COOLDOWN_KEY = 'fabuniqo_app_install_cooldown_until'
+const INSTALL_AUTHED_COOLDOWN_KEY = 'fabuniqo_app_install_authed_cooldown_until'
 
 // Helper to check if the notification prompt is currently on 2-day cooldown
 const isNotifyOnCooldown = () => {
@@ -84,14 +85,20 @@ export function AllowNotificationModal() {
     }, delay)
   }
 
+  const prevAuthRef = useRef(null)
+
   // Trigger on load / refresh when user is authenticated
   useEffect(() => {
     // Only prompt authenticated users
     if (!isAuthenticated || !authReady) {
       setIsOpen(false)
       if (timerRef.current) clearTimeout(timerRef.current)
+      prevAuthRef.current = isAuthenticated
       return undefined
     }
+
+    const justLoggedIn = prevAuthRef.current === false && isAuthenticated === true
+    prevAuthRef.current = isAuthenticated
 
     // If currently on 2-day cooldown after "Maybe Later", do not show
     if (isNotifyOnCooldown()) {
@@ -111,8 +118,10 @@ export function AllowNotificationModal() {
 
     if (dismissedThisSessionRef.current) return undefined
 
-    // Wait 8 seconds (appears after Install App popup at 1.5s)
-    scheduleNotifyPopup(8000)
+    // If user just logged in, show Allow Notifications promptly (1000ms).
+    // On normal reload / visit while already logged in, show after 3500ms.
+    const delay = justLoggedIn ? 1000 : 3500
+    scheduleNotifyPopup(delay)
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
@@ -128,13 +137,13 @@ export function AllowNotificationModal() {
       try {
         localStorage.removeItem(NOTIFY_COOLDOWN_KEY)
         sessionStorage.removeItem('fabuniqo_show_notify_popup')
-        sessionStorage.removeItem(NOTIFY_ALLOWED_KEY)
+        sessionStorage.removeItem('fabuniqo_notification_allowed')
       } catch { /* ignore */ }
 
       dismissedThisSessionRef.current = false
       setIsOpen(false)
-      // Show 8 seconds after login (so Install App popup shows first at 1.5s)
-      scheduleNotifyPopup(8000)
+      // Show promptly 1s after login
+      scheduleNotifyPopup(1000)
     }
 
     window.addEventListener('fabuniqo:user-login', handleUserLogin)
@@ -209,9 +218,11 @@ export function AllowNotificationModal() {
   // "Allow Notifications" — request permission + save Web Push subscription
   const handleAllowClick = async () => {
     try {
-      // Mark notification allow as clicked so Install App popup does NOT show after this
+      // Clear any install cooldown and remove suppression so Install App popup can show on reload or tab switch
       try {
-        sessionStorage.setItem(NOTIFY_ALLOWED_KEY, 'true')
+        localStorage.removeItem(INSTALL_COOLDOWN_KEY)
+        localStorage.removeItem(INSTALL_AUTHED_COOLDOWN_KEY)
+        sessionStorage.removeItem('fabuniqo_notification_allowed')
       } catch {
         /* ignore */
       }
@@ -225,7 +236,7 @@ export function AllowNotificationModal() {
       await subscribeToWebPush()
       try {
         localStorage.setItem(NOTIFY_STORAGE_KEY, 'true')
-        sessionStorage.setItem(NOTIFY_ALLOWED_KEY, 'true')
+        sessionStorage.removeItem('fabuniqo_notification_allowed')
       } catch {
         /* ignore */
       }

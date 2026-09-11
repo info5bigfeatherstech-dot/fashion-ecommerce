@@ -8,9 +8,8 @@ import '@/styles/app-install-notification.css'
 
 const INSTALL_COOLDOWN_KEY = 'fabuniqo_app_install_cooldown_until'
 const INSTALL_AUTHED_COOLDOWN_KEY = 'fabuniqo_app_install_authed_cooldown_until'
-const NOTIFY_ALLOWED_KEY = 'fabuniqo_notification_allowed'
 const INSTALL_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
-const SHOW_DELAY_MS = 5000 // 5 seconds
+const SHOW_DELAY_MS = 2500
 
 // Helper to check if the app install prompt is currently on 7-day cooldown
 const isInstallOnCooldown = () => {
@@ -21,18 +20,6 @@ const isInstallOnCooldown = () => {
     }
     const authedCooldown = localStorage.getItem(INSTALL_AUTHED_COOLDOWN_KEY)
     if (authedCooldown && Date.now() < Number(authedCooldown)) {
-      return true
-    }
-  } catch {
-    // ignore
-  }
-  return false
-}
-
-// Helper to check if user has clicked allow notification in the notification popup
-const isNotificationAllowedThisSession = () => {
-  try {
-    if (sessionStorage.getItem(NOTIFY_ALLOWED_KEY) === 'true') {
       return true
     }
   } catch {
@@ -96,8 +83,13 @@ export function AppInstallNotification() {
 
   const timerRef = useRef(null)
   const dismissedThisSessionRef = useRef(false)
+  const suppressUntilReloadRef = useRef(false)
+  const prevAuthRef = useRef(null)
 
   const schedulePopup = (delay = SHOW_DELAY_MS) => {
+    // If user just logged in in this session, do not show until they reload
+    if (suppressUntilReloadRef.current) return
+
     const isStandalone =
       window.matchMedia?.('(display-mode: standalone)')?.matches ||
       window.navigator?.standalone === true
@@ -105,34 +97,53 @@ export function AppInstallNotification() {
 
     if (isInstallOnCooldown()) return
     if (dismissedThisSessionRef.current) return
-    if (isNotificationAllowedThisSession()) return
 
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => {
+      if (suppressUntilReloadRef.current) return
       if (isInstallOnCooldown()) return
       if (dismissedThisSessionRef.current) return
-      if (isNotificationAllowedThisSession()) return
       setIsOpen(true)
     }, delay)
   }
 
   // Show install popup:
-  // - authenticated users (or page reload while logged in): 1.5s delay
-  // - unauthenticated users: 5s delay
+  // - unauthenticated users: 2.5s delay
+  // - authenticated users on page reload: 1.2s delay
+  // - after login in this session: suppressed until page reload
   useEffect(() => {
     const isStandalone =
       window.matchMedia?.('(display-mode: standalone)')?.matches ||
       window.navigator?.standalone === true
     if (isStandalone) return undefined
 
+    // Clear any leftover notification allowed session flag so install popup shows
+    try {
+      sessionStorage.removeItem('fabuniqo_notification_allowed')
+    } catch { /* ignore */ }
+
     if (!authReady) return undefined
-    if (isInstallOnCooldown() || isNotificationAllowedThisSession()) {
+
+    // Detect if user just logged in (transitioned from false to true without reloading)
+    if (prevAuthRef.current === false && isAuthenticated === true) {
+      suppressUntilReloadRef.current = true
+      if (timerRef.current) clearTimeout(timerRef.current)
+      setIsOpen(false)
+      prevAuthRef.current = isAuthenticated
+      return undefined
+    }
+    prevAuthRef.current = isAuthenticated
+
+    // If user logged in during this session, do not show until page reload
+    if (suppressUntilReloadRef.current) return undefined
+
+    if (isInstallOnCooldown()) {
       setIsOpen(false)
       return undefined
     }
     if (dismissedThisSessionRef.current) return undefined
 
-    const delay = isAuthenticated ? 1500 : SHOW_DELAY_MS
+    const delay = isAuthenticated ? 1200 : SHOW_DELAY_MS
     schedulePopup(delay)
 
     return () => {
@@ -143,17 +154,18 @@ export function AppInstallNotification() {
   // Real-time login event listener (dispatched by AuthModal on successful sign-in)
   useEffect(() => {
     const handleUserLogin = () => {
-      // Clear old cooldowns so user sees the install prompt after login
+      // Per requirement: after login, install FabUniqo App popup should NOT come until reload!
+      suppressUntilReloadRef.current = true
+      if (timerRef.current) clearTimeout(timerRef.current)
+      setIsOpen(false)
+
+      // Clear old cooldowns so user sees the install prompt when they reload
       try {
         localStorage.removeItem(INSTALL_COOLDOWN_KEY)
         localStorage.removeItem(INSTALL_AUTHED_COOLDOWN_KEY)
         sessionStorage.removeItem('fabuniqo_show_install_popup')
-        sessionStorage.removeItem(NOTIFY_ALLOWED_KEY)
+        sessionStorage.removeItem('fabuniqo_notification_allowed')
       } catch { /* ignore */ }
-
-      dismissedThisSessionRef.current = false
-      setIsOpen(false)
-      schedulePopup(1500)
     }
 
     window.addEventListener('fabuniqo:user-login', handleUserLogin)
@@ -162,11 +174,10 @@ export function AppInstallNotification() {
     }
   }, [])
 
-  // When user clicks Allow Notification in the notification popup,
-  // ensure the Install FabUniqo App popup does NOT show after that
+  // When user is actively interacting with the notification allow popup,
+  // cancel timers so the install modal does not overlap at that exact second.
   useEffect(() => {
     const handleNotificationAllowed = () => {
-      dismissedThisSessionRef.current = true
       if (timerRef.current) clearTimeout(timerRef.current)
       setIsOpen(false)
     }
@@ -191,8 +202,8 @@ export function AppInstallNotification() {
       if (!hasLeftTabRef.current) return
       hasLeftTabRef.current = false
 
-      // If notification has been allowed in this session, do not show install popup
-      if (isNotificationAllowedThisSession()) return
+      // If user logged in during this session, do not show until page reload
+      if (suppressUntilReloadRef.current) return
 
       // Reset the session-dismiss flag so popup can show again on tab return
       dismissedThisSessionRef.current = false
@@ -212,9 +223,13 @@ export function AppInstallNotification() {
     }
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('blur', handleTabHide)
+    window.addEventListener('focus', handleTabReturn)
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('blur', handleTabHide)
+      window.removeEventListener('focus', handleTabReturn)
     }
   }, [])
 
