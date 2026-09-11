@@ -8,6 +8,7 @@ import '@/styles/app-install-notification.css'
 
 const INSTALL_COOLDOWN_KEY = 'fabuniqo_app_install_cooldown_until'
 const INSTALL_AUTHED_COOLDOWN_KEY = 'fabuniqo_app_install_authed_cooldown_until'
+const NOTIFY_ALLOWED_KEY = 'fabuniqo_notification_allowed'
 const INSTALL_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
 const SHOW_DELAY_MS = 5000 // 5 seconds
 
@@ -20,6 +21,18 @@ const isInstallOnCooldown = () => {
     }
     const authedCooldown = localStorage.getItem(INSTALL_AUTHED_COOLDOWN_KEY)
     if (authedCooldown && Date.now() < Number(authedCooldown)) {
+      return true
+    }
+  } catch {
+    // ignore
+  }
+  return false
+}
+
+// Helper to check if user has clicked allow notification in the notification popup
+const isNotificationAllowedThisSession = () => {
+  try {
+    if (sessionStorage.getItem(NOTIFY_ALLOWED_KEY) === 'true') {
       return true
     }
   } catch {
@@ -92,11 +105,13 @@ export function AppInstallNotification() {
 
     if (isInstallOnCooldown()) return
     if (dismissedThisSessionRef.current) return
+    if (isNotificationAllowedThisSession()) return
 
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => {
       if (isInstallOnCooldown()) return
       if (dismissedThisSessionRef.current) return
+      if (isNotificationAllowedThisSession()) return
       setIsOpen(true)
     }, delay)
   }
@@ -111,7 +126,7 @@ export function AppInstallNotification() {
     if (isStandalone) return undefined
 
     if (!authReady) return undefined
-    if (isInstallOnCooldown()) {
+    if (isInstallOnCooldown() || isNotificationAllowedThisSession()) {
       setIsOpen(false)
       return undefined
     }
@@ -133,6 +148,7 @@ export function AppInstallNotification() {
         localStorage.removeItem(INSTALL_COOLDOWN_KEY)
         localStorage.removeItem(INSTALL_AUTHED_COOLDOWN_KEY)
         sessionStorage.removeItem('fabuniqo_show_install_popup')
+        sessionStorage.removeItem(NOTIFY_ALLOWED_KEY)
       } catch { /* ignore */ }
 
       dismissedThisSessionRef.current = false
@@ -143,6 +159,23 @@ export function AppInstallNotification() {
     window.addEventListener('fabuniqo:user-login', handleUserLogin)
     return () => {
       window.removeEventListener('fabuniqo:user-login', handleUserLogin)
+    }
+  }, [])
+
+  // When user clicks Allow Notification in the notification popup,
+  // ensure the Install FabUniqo App popup does NOT show after that
+  useEffect(() => {
+    const handleNotificationAllowed = () => {
+      dismissedThisSessionRef.current = true
+      if (timerRef.current) clearTimeout(timerRef.current)
+      setIsOpen(false)
+    }
+
+    window.addEventListener('fabuniqo:notification-allow-clicked', handleNotificationAllowed)
+    window.addEventListener('fabuniqo:notification-allowed', handleNotificationAllowed)
+    return () => {
+      window.removeEventListener('fabuniqo:notification-allow-clicked', handleNotificationAllowed)
+      window.removeEventListener('fabuniqo:notification-allowed', handleNotificationAllowed)
     }
   }, [])
 
@@ -157,6 +190,9 @@ export function AppInstallNotification() {
     const handleTabReturn = () => {
       if (!hasLeftTabRef.current) return
       hasLeftTabRef.current = false
+
+      // If notification has been allowed in this session, do not show install popup
+      if (isNotificationAllowedThisSession()) return
 
       // Reset the session-dismiss flag so popup can show again on tab return
       dismissedThisSessionRef.current = false
@@ -176,13 +212,9 @@ export function AppInstallNotification() {
     }
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
-    window.addEventListener('blur', handleTabHide)
-    window.addEventListener('focus', handleTabReturn)
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('blur', handleTabHide)
-      window.removeEventListener('focus', handleTabReturn)
     }
   }, [])
 

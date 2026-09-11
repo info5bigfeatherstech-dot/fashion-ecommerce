@@ -7,6 +7,7 @@ import '@/styles/app-install-notification.css'
 
 const NOTIFY_STORAGE_KEY = 'fabuniqo_push_permission_prompted'
 const NOTIFY_COOLDOWN_KEY = 'fabuniqo_notify_cooldown_until'
+const NOTIFY_ALLOWED_KEY = 'fabuniqo_notification_allowed'
 const NOTIFY_COOLDOWN_MS = 2 * 24 * 60 * 60 * 1000 // 2 days in milliseconds
 
 // Helper to check if the notification prompt is currently on 2-day cooldown
@@ -127,6 +128,7 @@ export function AllowNotificationModal() {
       try {
         localStorage.removeItem(NOTIFY_COOLDOWN_KEY)
         sessionStorage.removeItem('fabuniqo_show_notify_popup')
+        sessionStorage.removeItem(NOTIFY_ALLOWED_KEY)
       } catch { /* ignore */ }
 
       dismissedThisSessionRef.current = false
@@ -178,13 +180,9 @@ export function AllowNotificationModal() {
     }
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
-    window.addEventListener('blur', handleTabHide)
-    window.addEventListener('focus', handleTabReturn)
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('blur', handleTabHide)
-      window.removeEventListener('focus', handleTabReturn)
     }
   }, [])
 
@@ -211,6 +209,14 @@ export function AllowNotificationModal() {
   // "Allow Notifications" — request permission + save Web Push subscription
   const handleAllowClick = async () => {
     try {
+      // Mark notification allow as clicked so Install App popup does NOT show after this
+      try {
+        sessionStorage.setItem(NOTIFY_ALLOWED_KEY, 'true')
+      } catch {
+        /* ignore */
+      }
+      window.dispatchEvent(new CustomEvent('fabuniqo:notification-allow-clicked'))
+
       if (!('Notification' in window)) {
         handleMaybeLater()
         return
@@ -219,9 +225,11 @@ export function AllowNotificationModal() {
       await subscribeToWebPush()
       try {
         localStorage.setItem(NOTIFY_STORAGE_KEY, 'true')
+        sessionStorage.setItem(NOTIFY_ALLOWED_KEY, 'true')
       } catch {
         /* ignore */
       }
+      window.dispatchEvent(new CustomEvent('fabuniqo:notification-allowed'))
       setGrantedFeedback(true)
       setTimeout(() => {
         setIsOpen(false)
