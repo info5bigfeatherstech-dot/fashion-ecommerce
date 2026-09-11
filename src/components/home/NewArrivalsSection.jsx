@@ -24,7 +24,7 @@ export function NewArrivalsSection() {
           </ScrollRevealText>
           <Reveal delay={0.08}>
             <p className="section-subheader">
-              Freshly curated and handcrafted — explore all our latest featured pieces.
+              Freshly Curated and Handcrafted — Explore all our Latest Featured Pieces.
             </p>
           </Reveal>
         </div>

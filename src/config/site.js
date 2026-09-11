@@ -120,7 +120,7 @@ export const HERO_SLIDES = [
     id: 'fabuniqo-main',
     eyebrow: 'FABUNIQO — Fashion Uniquely Yours',
     title: 'Style That Speaks Your Language',
-    subtitle: 'From trendsetting Korean & Western daily wear to gorgeous ethnic sets — discover your perfect piece.',
+    subtitle: 'From Trendsetting Korean & Western Daily Wear to Gorgeous Ethnic sets — Discover your Perfect Piece.',
     cta: 'Explore New Drops',
     href: '/shop/new-arrivals',
     video: 'https://res.cloudinary.com/kiqmlqnj/video/upload/v1787745696/web_1.mp4',

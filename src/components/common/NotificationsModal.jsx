@@ -8,7 +8,6 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from '@/features/notifications/api'
-import { stopLenis, startLenis } from '@/lib/lenis'
 import '@/styles/notifications-panel.css'
 
 function fmtWhen(iso) {
@@ -99,26 +98,41 @@ export const NotificationsModal = memo(function NotificationsModal({
     })
   }, [])
 
+  const panelRef = useRef(null)
+
   useLayoutEffect(() => {
     if (!open) return undefined
     updatePosition()
     window.addEventListener('resize', updatePosition)
+    window.addEventListener('scroll', updatePosition, { passive: true })
     return () => {
       window.removeEventListener('resize', updatePosition)
+      window.removeEventListener('scroll', updatePosition)
     }
   }, [open, updatePosition])
 
   useEffect(() => {
     if (!open) return undefined
-    stopLenis()
-    document.documentElement.classList.add('modal-open')
-    document.body.style.overflow = 'hidden'
-    return () => {
-      startLenis()
-      document.documentElement.classList.remove('modal-open')
-      document.body.style.overflow = ''
+
+    const handleClickOutside = (event) => {
+      if (panelRef.current && !panelRef.current.contains(event.target)) {
+        const bell = document.getElementById('header-notification-bell-btn')
+        if (bell && bell.contains(event.target)) return
+        onClose()
+      }
     }
-  }, [open])
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose()
+    }
+
+    document.addEventListener('pointerdown', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [open, onClose])
 
   const onUnreadChangeRef = useRef(onUnreadChange)
   useEffect(() => {
@@ -211,17 +225,19 @@ export const NotificationsModal = memo(function NotificationsModal({
   if (!open) return null
 
   return createPortal(
-    <div
-      className="fab-notif-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Notifications"
-      onClick={onClose}
-    >
+    <>
       <div
+        className="fab-notif-overlay"
+        aria-hidden="true"
+        onClick={onClose}
+      />
+      <div
+        ref={panelRef}
         className="fab-notif-panel"
+        role="dialog"
+        aria-modal="false"
+        aria-label="Notifications"
         style={panelStyle}
-        onClick={(e) => e.stopPropagation()}
       >
         <header className="fab-notif-panel__head">
           <div className="fab-notif-panel__head-text">
@@ -292,7 +308,7 @@ export const NotificationsModal = memo(function NotificationsModal({
             ))}
         </div>
       </div>
-    </div>,
+    </>,
     document.body
   )
 })

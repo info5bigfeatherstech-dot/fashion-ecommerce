@@ -74,7 +74,7 @@ export function Header() {
 
   const handleOpenNotifications = useCallback(() => {
     if (!isAuthenticated) return
-    setNotificationsOpen(true)
+    setNotificationsOpen((open) => !open)
   }, [isAuthenticated])
 
   const { homeItem, categoryNavItems, moreCategories, allCategories } = useMemo(() => {

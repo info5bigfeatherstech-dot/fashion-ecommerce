@@ -89,7 +89,7 @@ export function CircularCategoriesSection() {
             </ScrollRevealText>
             <Reveal delay={0.08}>
               <p className="section-subheader circle-categories__subheader">
-                From everyday essentials to statement gifting — find your perfect piece.
+                From Everyday Essentials to Statement Ggifting — Find your Perfect Piece.
               </p>
             </Reveal>
           </div>
