@@ -47,14 +47,7 @@
 
 /* Center ambient warm glow halo behind the logo */
 .fab-app-center-glow {
-  position: absolute;
-  top: -60px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 240px;
-  height: 240px;
-  background: radial-gradient(circle, rgba(209, 167, 67, 0.12) 0%, transparent 70%);
-  pointer-events: none;
+  display: none;
 }
 
 /* Close 'X' Button */
@@ -83,20 +76,25 @@
   transform: rotate(90deg);
 }
 
-/* Logo Showcase */
+/* Logo Showcase — transparent wide mark */
 .fab-app-logo-showcase {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 12px;
-  max-width: 220px;
+  margin: 0 auto 14px;
+  width: 78%;
+  max-width: 260px;
+  background: transparent;
 }
 
 .fab-app-logo-showcase img {
-  max-height: 64px;
-  width: auto;
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 78px;
   object-fit: contain;
-  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.08));
+  background: transparent;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.06));
 }
 
 /* Badge */
@@ -119,9 +117,9 @@
 
 /* Titles */
 .fab-app-center-title {
-  font-family: var(--font-display) !important;
-  font-size: clamp(1.45rem, 3.5vw, 1.75rem);
-  font-weight: 600;
+  font-family: var(--font-ui) !important;
+  font-size: clamp(1.35rem, 3.2vw, 1.6rem);
+  font-weight: 700;
   color: #14120F;
   letter-spacing: -0.01em;
   line-height: 1.25;

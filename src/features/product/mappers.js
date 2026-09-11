@@ -171,12 +171,12 @@ function mapVariant(variant, fallbackImages = []) {
 export function mapProduct(dto) {
   if (!dto) return null
 
-  const allVariants = asArray(dto.variants)
-  // Only use the first variant that comes in the API
-  const variants = allVariants.length > 0 ? [allVariants[0]] : []
+  // Keep every API variant so PDP optionGroups / pickers can show all attribute values.
+  // Inactive variants stay available for resolveVariant (exact match / OOS UX).
+  const variants = asArray(dto.variants)
   const attributes = asArray(dto.attributes)
-  const primaryVariant = variants[0] || null
-  const images = collectImages(dto, allVariants)
+  const primaryVariant = pickPrimaryVariant(variants)
+  const images = collectImages(dto, variants)
   const mappedVariants = variants.map((v) => mapVariant(v, images)).filter(Boolean)
   const price = toNumber(
     primaryVariant?.finalPrice ??

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Download, Sparkles, Smartphone, Share, PlusSquare, Zap, ShieldCheck, Tag } from 'lucide-react'
 import { useAppStore } from '@/store'
 import { stopLenis, startLenis } from '@/lib/lenis'
-import fabUniqoLogo from '@/assets/FabUniqo- Fashion Uniquely yours.png'
+import fabUniqoLogo from '@/assets/FabUniqo-logo-install.png'
 import '@/styles/app-install-notification.css'
 
 const INSTALL_COOLDOWN_KEY = 'fabuniqo_app_install_cooldown_until'
