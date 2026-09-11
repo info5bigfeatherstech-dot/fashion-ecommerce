@@ -128,6 +128,8 @@ export const API_ENDPOINTS = {
     productsPreviewCsv: '/admin/products/preview-csv',
     productsImportCsv: '/admin/products/import-csv',
     productsBulkNew: '/admin/products/bulk-new-products',
+    productsDownloadErrorReport: (fileName) =>
+      `/admin/products/download-error-report/${encodeURIComponent(String(fileName))}`,
     productsActive: '/admin/products/active',
     productsLowStock: '/admin/products/low-stock',
     productsArchived: '/admin/products/archived',

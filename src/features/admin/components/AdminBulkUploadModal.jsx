@@ -5,6 +5,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import {
   downloadAdminBulkUploadTemplate,
+  downloadAdminBulkErrorReport,
   importAdminBulkCsv,
   importAdminBulkWithZip,
   previewAdminBulkCsv,
@@ -21,12 +22,28 @@ function normalizePreview(raw) {
   const data = raw?.data || raw || {}
   const summary = data.summary || data
   const products = data.products || summary.products || []
-  const invalidCount =
-    summary.invalidCount ??
-    products.filter((p) => (p.errors?.length ?? 0) > 0 || p.status === 'failed').length
-  const validCount =
-    summary.validCount ??
-    products.filter((p) => (p.errors?.length ?? 0) === 0 && p.status !== 'failed').length
+
+  const invalidFromProducts = products.filter(
+    (p) =>
+      Boolean(p.hasErrors) ||
+      (p.errors?.length ?? 0) > 0 ||
+      (p.invalidVariants ?? 0) > 0 ||
+      p.status === 'failed'
+  ).length
+  const validFromProducts = products.filter(
+    (p) =>
+      !p.hasErrors &&
+      (p.errors?.length ?? 0) === 0 &&
+      (p.invalidVariants ?? 0) === 0 &&
+      p.status !== 'failed'
+  ).length
+
+  const invalidCount = Number(
+    summary.invalidProducts ?? summary.invalidCount ?? invalidFromProducts
+  )
+  const validCount = Number(
+    summary.validProducts ?? summary.validCount ?? validFromProducts
+  )
 
   return {
     products,
@@ -35,6 +52,9 @@ function normalizePreview(raw) {
     invalidCount,
     importBlocked: Boolean(summary.importBlocked ?? invalidCount > 0),
     hasImageUrls: Boolean(summary.hasImageUrls ?? products.some((p) => p.imageUrlCount > 0)),
+    downloadUrl: data.downloadUrl || summary.downloadUrl || null,
+    errorReportFileName: data.errorReportFileName || summary.errorReportFileName || null,
+    warning: data.warning || summary.warning || null,
   }
 }
 
@@ -189,6 +209,21 @@ export function AdminBulkUploadModal({ open, onOpenChange, onComplete }) {
     }
   }
 
+  const handleDownloadErrorReport = async (urlOrName) => {
+    const target = urlOrName || preview?.downloadUrl || result?.downloadUrl
+    if (!target) {
+      toast.error('Error report is not available')
+      return
+    }
+    const toastId = toast.loading('Downloading error report…')
+    try {
+      await downloadAdminBulkErrorReport(target)
+      toast.success('Error report downloaded', { id: toastId })
+    } catch (err) {
+      toast.error(err?.message || 'Failed to download error report', { id: toastId })
+    }
+  }
+
   const simulateProgress = () => {
     setProgressPct(0)
     const start = performance.now()
@@ -260,8 +295,28 @@ export function AdminBulkUploadModal({ open, onOpenChange, onComplete }) {
         toast.error(`${fmt(failed)} row(s) had errors. Check the result summary.`)
       }
     } catch (err) {
-      setStep(imageMode === 'zip' && preview ? 'zip' : 'preview')
-      toast.error(err?.message || 'Import failed')
+      const details = err?.details && typeof err.details === 'object' ? err.details : null
+      const downloadUrl = details?.downloadUrl || null
+      const errorReportFileName = details?.errorReportFileName || null
+      // ZIP/CSV preflight failures return 422 with downloadable report — show result + download.
+      if (downloadUrl || errorReportFileName || details?.aborted) {
+        setProgressPct(100)
+        setResult({
+          aborted: true,
+          message: err?.message || details?.message || 'Import blocked',
+          insertedProducts: details?.successful ?? details?.insertedProducts ?? 0,
+          updatedProducts: details?.updatedProducts ?? 0,
+          failedCount: details?.failed ?? details?.failedCount ?? preview?.invalidCount ?? 0,
+          downloadUrl,
+          errorReportFileName,
+          summary: details?.summary || null,
+        })
+        setStep('result')
+        toast.error(err?.message || 'Import blocked — download the error report')
+      } else {
+        setStep(imageMode === 'zip' && preview ? 'zip' : 'preview')
+        toast.error(err?.message || 'Import failed')
+      }
     } finally {
       setBusy(false)
     }
@@ -315,7 +370,7 @@ export function AdminBulkUploadModal({ open, onOpenChange, onComplete }) {
             onClick={handleImport}
             className="bulk-upload-btn--indigo"
           >
-            {preview?.invalidCount > 0
+            {preview?.invalidCount > 0 || preview?.importBlocked
               ? 'Fix errors to import'
               : `Import ${preview?.validCount || 0} product${preview?.validCount !== 1 ? 's' : ''} →`}
           </Button>
@@ -329,7 +384,7 @@ export function AdminBulkUploadModal({ open, onOpenChange, onComplete }) {
             onClick={() => setStep('zip')}
             className="bulk-upload-btn--violet"
           >
-            {preview?.invalidCount > 0 ? 'Fix errors first' : 'Upload ZIP →'}
+            {preview?.invalidCount > 0 || preview?.importBlocked ? 'Fix errors first' : 'Upload ZIP →'}
           </Button>
         )}
 
@@ -518,6 +573,26 @@ export function AdminBulkUploadModal({ open, onOpenChange, onComplete }) {
               </p>
             )}
 
+            {(preview.invalidCount > 0 || preview.importBlocked) && (
+              <div className="bulk-upload-notice bulk-upload-notice--error">
+                <p>
+                  <strong>{fmt(preview.invalidCount)}</strong> product(s) have validation errors.
+                  Import is blocked until every row is fixed.
+                  {preview.warning ? ` ${preview.warning}` : ''}
+                </p>
+                {preview.downloadUrl && (
+                  <button
+                    type="button"
+                    className="bulk-upload-error-download"
+                    onClick={() => handleDownloadErrorReport(preview.downloadUrl)}
+                    disabled={busy}
+                  >
+                    ↓ Download error report (CSV)
+                  </button>
+                )}
+              </div>
+            )}
+
             <div className="bulk-upload-table-wrap">
               <table className="bulk-upload-table">
                 <thead>
@@ -529,25 +604,39 @@ export function AdminBulkUploadModal({ open, onOpenChange, onComplete }) {
                 </thead>
                 <tbody>
                   {preview.products.length > 0 ? (
-                    preview.products.slice(0, 50).map((p, i) => (
-                      <tr key={i} className={p.errors?.length ? 'has-error' : ''}>
+                    preview.products.slice(0, 50).map((p, i) => {
+                      const hasErrors =
+                        Boolean(p.hasErrors) ||
+                        (p.errors?.length ?? 0) > 0 ||
+                        (p.invalidVariants ?? 0) > 0
+                      const codes =
+                        p.productCodes ||
+                        p.productCode ||
+                        (p.variantsPreview || p.variants || [])
+                          .map((v) => v.productCode)
+                          .filter(Boolean)
+                          .join(', ') ||
+                        '—'
+                      return (
+                      <tr key={i} className={hasErrors ? 'has-error' : ''}>
                         <td>{p.name || '—'}</td>
                         <td>{p.category || '—'}</td>
-                        <td className="is-center">{p.variantCount ?? p.variants ?? '—'}</td>
-                        <td>{p.productCodes || p.productCode || '—'}</td>
-                        <td className="is-center">{p.quantity ?? '—'}</td>
+                        <td className="is-center">{p.variantCount ?? p.variants?.length ?? '—'}</td>
+                        <td>{codes}</td>
+                        <td className="is-center">{p.totalQuantity ?? p.quantity ?? '—'}</td>
                         <td className="is-center">
-                          {imageMode === 'url' ? (p.imageUrlCount ?? '—') : '(ZIP)'}
+                          {imageMode === 'url' ? (p.imageUrlCount ?? (p.hasImages ? 'Yes' : '0')) : '(ZIP)'}
                         </td>
                         <td>
-                          {p.errors?.length ? (
+                          {hasErrors ? (
                             <span className="bulk-upload-status bulk-upload-status--error">Errors</span>
                           ) : (
                             <span className="bulk-upload-status bulk-upload-status--ok">Valid</span>
                           )}
                         </td>
                       </tr>
-                    ))
+                      )
+                    })
                   ) : (
                     <tr>
                       <td colSpan={7} className="bulk-upload-table__empty">No products in preview.</td>
@@ -605,6 +694,25 @@ export function AdminBulkUploadModal({ open, onOpenChange, onComplete }) {
               ))}
             </div>
             {result.message && <p className="bulk-upload-notice">{result.message}</p>}
+            {(result.downloadUrl || result.errorReportFileName) && (
+              <div className="bulk-upload-notice bulk-upload-notice--error">
+                <p>
+                  {result.aborted
+                    ? 'Upload was blocked (CSV and/or ZIP errors). Download the error report, fix every row/folder, then retry.'
+                    : 'Some rows failed. Download the error report, fix them, then retry.'}
+                </p>
+                <button
+                  type="button"
+                  className="bulk-upload-error-download"
+                  onClick={() =>
+                    handleDownloadErrorReport(result.downloadUrl || result.errorReportFileName)
+                  }
+                  disabled={busy}
+                >
+                  ↓ Download error report (CSV)
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

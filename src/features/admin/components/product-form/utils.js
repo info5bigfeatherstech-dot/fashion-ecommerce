@@ -3,6 +3,8 @@ import {
   marketingTagsFromProductTags,
 } from '@/features/admin/constants/productMarketingTags'
 
+export const MAX_VARIANT_IMAGES = 10
+
 export const formatIndianRupee = (amount) =>
   new Intl.NumberFormat('en-IN', {
     style: 'currency',

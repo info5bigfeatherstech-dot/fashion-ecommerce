@@ -254,6 +254,28 @@ export async function downloadAdminBulkUploadTemplate() {
   downloadBlob(response.data, 'bulk_upload_template.xlsx')
 }
 
+/**
+ * Download bulk preview/import error report CSV (auth required).
+ * Accepts absolute downloadUrl from API or a bare filename.
+ */
+export async function downloadAdminBulkErrorReport(urlOrFileName) {
+  let requestPath = String(urlOrFileName || '')
+  const marker = '/admin/products/download-error-report/'
+  const idx = requestPath.indexOf(marker)
+  if (idx !== -1) {
+    requestPath = requestPath.slice(idx)
+  } else if (requestPath && !requestPath.startsWith('/')) {
+    requestPath = API_ENDPOINTS.admin.productsDownloadErrorReport(requestPath)
+  }
+  if (!requestPath.includes('/download-error-report/')) {
+    throw new Error('Invalid error report URL')
+  }
+  const response = await adminGetBlob(requestPath)
+  const filename = decodeURIComponent(requestPath.split('/').pop() || `error-report-${Date.now()}.csv`)
+  downloadBlob(response.data, filename)
+  return filename
+}
+
 export async function previewAdminBulkCsv(formData) {
   const axiosClient = (await import('@/api/axiosClient')).default
   const response = await axiosClient.request({

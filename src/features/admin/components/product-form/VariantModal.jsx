@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import VariantCatalogFieldsSection from './VariantCatalogFieldsSection'
 import { emptyVariantShippingForm } from '@/lib/variantCatalogForm'
-import { parseQuantityInput, quantityFieldValue } from './utils'
+import { parseQuantityInput, quantityFieldValue, MAX_VARIANT_IMAGES } from './utils'
 
 export const defaultVariant = {
   attributes: [{ key: '', value: '' }],
@@ -49,7 +49,7 @@ const VariantModal = ({
     const files = Array.from(e.target.files);
     const newImages = [...variantForm.images];
     files.forEach((file, index) => {
-      if (newImages.length < 4) {
+      if (newImages.length < MAX_VARIANT_IMAGES) {
         const reader = new FileReader();
         const imageId = `vimg-${Date.now()}-${index}`;
         reader.onloadend = () => {
@@ -347,9 +347,9 @@ const VariantModal = ({
           </div>
 
           <div className="pf-variant-section">
-            <label className="pf-variant-label">Images (up to 4)</label>
+            <label className="pf-variant-label">Images (up to {MAX_VARIANT_IMAGES})</label>
             <label
-              className={`pf-variant-dropzone${variantImageDragging ? ' is-drag' : ''}${variantForm.images.length >= 4 ? ' is-full' : ''}`}
+              className={`pf-variant-dropzone${variantImageDragging ? ' is-drag' : ''}${variantForm.images.length >= MAX_VARIANT_IMAGES ? ' is-full' : ''}`}
               onDragOver={(e) => { e.preventDefault(); setVariantImageDragging(true) }}
               onDragLeave={() => setVariantImageDragging(false)}
               onDrop={(e) => {
@@ -358,8 +358,8 @@ const VariantModal = ({
                 handleVariantImageUpload({ target: { files: e.dataTransfer.files } })
               }}
             >
-              <input type="file" multiple accept="image/*" onChange={handleVariantImageUpload} className="pf-variant-file" disabled={variantForm.images.length >= 4} />
-              <p>Click or drop images ({variantForm.images.length}/4)</p>
+              <input type="file" multiple accept="image/*" onChange={handleVariantImageUpload} className="pf-variant-file" disabled={variantForm.images.length >= MAX_VARIANT_IMAGES} />
+              <p>Click or drop images ({variantForm.images.length}/{MAX_VARIANT_IMAGES})</p>
             </label>
             {variantForm.images.length > 0 ? (
               <div className="pf-variant-thumbs">

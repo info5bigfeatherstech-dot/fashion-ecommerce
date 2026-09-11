@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ADMIN_PRODUCT_MARKETING_TAGS } from '@/features/admin/constants/productMarketingTags'
-import { parseQuantityInput, quantityFieldValue } from './utils'
+import { parseQuantityInput, quantityFieldValue, MAX_VARIANT_IMAGES } from './utils'
 
 const MARKETING_TOGGLE_CLASS = {
   'today-arrival': 'pf-toggle--today',
@@ -64,7 +64,7 @@ export default function ProductFormBody({
     const files = Array.from(e.target.files);
     const current = [...galleryImages];
     files.forEach((file, i) => {
-      if (current.length >= 5) return;
+      if (current.length >= MAX_VARIANT_IMAGES) return;
       const id = `gimg-${Date.now()}-${i}`;
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -783,7 +783,7 @@ export default function ProductFormBody({
         <div className="pf-card pf-gallery">
           <div className="pf-card__head">
             <h3>Product Gallery</h3>
-            <p>{isEditMode ? 'Main variant images · ★ = thumbnail · saved with Save Changes' : 'Up to 5 · drag to reorder · ★ = thumbnail'}</p>
+            <p>{isEditMode ? 'Main variant images · ★ = thumbnail · saved with Save Changes' : `Up to ${MAX_VARIANT_IMAGES} · drag to reorder · ★ = thumbnail`}</p>
           </div>
           {mainGalleryImage && (
             <div className="pf-gallery__hero">
@@ -793,14 +793,14 @@ export default function ProductFormBody({
           )}
           <div className="pf-card__body">
             <label
-              className={`pf-dropzone${isDraggingZone ? ' is-drag' : ''}${galleryImages.length >= 5 ? ' is-full' : ''}`}
+              className={`pf-dropzone${isDraggingZone ? ' is-drag' : ''}${galleryImages.length >= MAX_VARIANT_IMAGES ? ' is-full' : ''}`}
               onDragOver={(e) => { e.preventDefault(); setIsDraggingZone(true); }}
               onDragLeave={() => setIsDraggingZone(false)}
               onDrop={(e) => { e.preventDefault(); setIsDraggingZone(false); handleGalleryUpload({ target: { files: e.dataTransfer.files } }); }}
             >
-              <input type="file" multiple accept="image/*" className="hidden" disabled={galleryImages.length >= 5} onChange={handleGalleryUpload} />
+              <input type="file" multiple accept="image/*" className="hidden" disabled={galleryImages.length >= MAX_VARIANT_IMAGES} onChange={handleGalleryUpload} />
               <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-              <p>{galleryImages.length}/5 · click or drop</p>
+              <p>{galleryImages.length}/{MAX_VARIANT_IMAGES} · click or drop</p>
             </label>
             {galleryImages.length > 0 && (
               <div className="mt-3 space-y-2">
