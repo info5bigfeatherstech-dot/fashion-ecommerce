@@ -7,25 +7,28 @@ import fabUniqoLogo from '@/assets/FabUniqo-logo-install.png'
 import '@/styles/app-install-notification.css'
 
 const INSTALL_COOLDOWN_KEY = 'fabuniqo_app_install_cooldown_until'
-const INSTALL_AUTHED_COOLDOWN_KEY = 'fabuniqo_app_install_authed_cooldown_until'
-const INSTALL_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
+const INSTALL_COOLDOWN_MS = 24 * 60 * 60 * 1000 // 24 hours (comes on the next day)
 const SHOW_DELAY_MS = 2500
 
-// Helper to check if the app install prompt is currently on 7-day cooldown
+// Helper to check if the app install prompt is currently on next-day cooldown
 const isInstallOnCooldown = () => {
   try {
     const cooldownUntil = localStorage.getItem(INSTALL_COOLDOWN_KEY)
     if (cooldownUntil && Date.now() < Number(cooldownUntil)) {
       return true
     }
-    const authedCooldown = localStorage.getItem(INSTALL_AUTHED_COOLDOWN_KEY)
-    if (authedCooldown && Date.now() < Number(authedCooldown)) {
-      return true
-    }
   } catch {
     // ignore
   }
   return false
+}
+
+const setNextDayCooldown = () => {
+  try {
+    localStorage.setItem(INSTALL_COOLDOWN_KEY, String(Date.now() + INSTALL_COOLDOWN_MS))
+  } catch {
+    // ignore
+  }
 }
 
 export function AppInstallNotification() {
@@ -161,8 +164,6 @@ export function AppInstallNotification() {
 
       // Clear old cooldowns so user sees the install prompt when they reload
       try {
-        localStorage.removeItem(INSTALL_COOLDOWN_KEY)
-        localStorage.removeItem(INSTALL_AUTHED_COOLDOWN_KEY)
         sessionStorage.removeItem('fabuniqo_show_install_popup')
         sessionStorage.removeItem('fabuniqo_notification_allowed')
       } catch { /* ignore */ }
@@ -190,67 +191,19 @@ export function AppInstallNotification() {
     }
   }, [])
 
-  // Re-trigger when user switches to a different tab and comes back
-  const hasLeftTabRef = useRef(false)
-
-  useEffect(() => {
-    const handleTabHide = () => {
-      hasLeftTabRef.current = true
-    }
-
-    const handleTabReturn = () => {
-      if (!hasLeftTabRef.current) return
-      hasLeftTabRef.current = false
-
-      // If user logged in during this session, do not show until page reload
-      if (suppressUntilReloadRef.current) return
-
-      // Reset the session-dismiss flag so popup can show again on tab return
-      dismissedThisSessionRef.current = false
-
-      if (isInstallOnCooldown()) return
-
-      // Show popup when user returns from a different tab
-      schedulePopup(600)
-    }
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        handleTabHide()
-      } else if (document.visibilityState === 'visible') {
-        handleTabReturn()
-      }
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    window.addEventListener('blur', handleTabHide)
-    window.addEventListener('focus', handleTabReturn)
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('blur', handleTabHide)
-      window.removeEventListener('focus', handleTabReturn)
-    }
-  }, [])
-
-  // Close handler: triggered when user clicks the [X] cross icon ->
-  // closes popup, and will show again when the person reloads or goes to a different tab and comes back
+  // Close handler: triggered when user clicks the [X] cross icon -> snoozes until next day
   const handleClose = () => {
     dismissedThisSessionRef.current = true
     setIsOpen(false)
     if (timerRef.current) clearTimeout(timerRef.current)
+    setNextDayCooldown()
   }
 
-  // Maybe Later handler: snoozes the install app popup for 7 days
+  // Maybe Later handler: snoozes the install app popup until next day
   const handleMaybeLater = () => {
     setIsOpen(false)
     if (timerRef.current) clearTimeout(timerRef.current)
-    try {
-      localStorage.setItem(INSTALL_COOLDOWN_KEY, String(Date.now() + INSTALL_COOLDOWN_MS))
-      localStorage.removeItem(INSTALL_AUTHED_COOLDOWN_KEY)
-    } catch {
-      // ignore
-    }
+    setNextDayCooldown()
   }
 
   // Install button click handler
