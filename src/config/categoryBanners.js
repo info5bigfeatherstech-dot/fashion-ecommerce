@@ -72,7 +72,7 @@ export function getCategoryBanner(slug, { label, image } = {}) {
 
   return {
     title: isGraphic ? '' : formattedTitle,
-    subtitle: isGraphic ? '' : (base?.subtitle || `Shop the latest ${formattedTitle} from FABUNIQO.`),
+    // subtitle: isGraphic ? '' : (base?.subtitle || `Shop the latest ${formattedTitle} from FABUNIQO.`),
     image: resolvedImage,
     alt: base?.alt || `${formattedTitle} collection`,
     isGraphic,

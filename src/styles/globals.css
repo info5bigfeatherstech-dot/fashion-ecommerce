@@ -3584,9 +3584,9 @@ div.auth-google-btn {
   gap: 6px;
   padding: 5px 13px;
   border-radius: var(--radius-full, 9999px);
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  color: var(--color-paper, #faf7f2);
+  background: rgba(209, 167, 67, 0.14);
+  border: 1px solid var(--color-gold, rgb(209, 167, 67));
+  color: var(--color-gold, rgb(209, 167, 67));
   font-family: var(--font-ui);
   font-size: clamp(0.625rem, 0.75vw, 0.6875rem);
   font-weight: 700;
@@ -3594,20 +3594,21 @@ div.auth-google-btn {
   text-transform: uppercase;
   cursor: pointer;
   white-space: nowrap;
+  box-shadow: 0 0 10px rgba(209, 167, 67, 0.18);
   transition: all var(--transition-fast);
 }
 
 .header__nav-more-btn:hover,
 .header__nav-more-wrapper:hover .header__nav-more-btn {
-  background: rgba(209, 167, 67, 0.14);
+  background: rgba(209, 167, 67, 0.22);
   border-color: var(--color-gold, rgb(209, 167, 67));
   color: var(--color-gold, rgb(209, 167, 67));
-  box-shadow: 0 0 14px rgba(209, 167, 67, 0.25);
+  box-shadow: 0 0 16px rgba(209, 167, 67, 0.32);
 }
 
 .header__nav-more-icon {
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), color 0.25s ease;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-gold, rgb(209, 167, 67));
 }
 
 .header__nav-more-btn:hover .header__nav-more-icon,
