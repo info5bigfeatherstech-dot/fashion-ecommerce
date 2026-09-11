@@ -9932,13 +9932,23 @@ a.cart-item__name:hover {
 }
 
 .plp-banner__eyebrow {
-  margin: 0 0 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0 0.55rem;
+  padding: 0.28rem 0.7rem;
   font-family: var(--font-ui);
   font-size: var(--text-xs);
   font-weight: var(--weight-semibold);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  opacity: 0.88;
+  color: #fff;
+  opacity: 1;
+  border-radius: 9999px;
+  background: rgba(209, 167, 67, 0.38);
+  border: 1px solid rgba(232, 201, 112, 0.45);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 16px rgba(120, 85, 20, 0.22);
 }
 
 .plp-banner__title {
