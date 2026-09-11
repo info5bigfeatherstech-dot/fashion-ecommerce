@@ -314,6 +314,7 @@ export function AdminBulkUploadModal({ open, onOpenChange, onComplete }) {
         setStep('result')
         toast.error(err?.message || 'Import blocked — download the error report')
       } else {
+        setProgressPct(100)
         setStep(imageMode === 'zip' && preview ? 'zip' : 'preview')
         toast.error(err?.message || 'Import failed')
       }

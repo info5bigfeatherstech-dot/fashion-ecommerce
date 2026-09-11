@@ -296,6 +296,7 @@ export async function importAdminBulkCsv(formData) {
     data: formData,
     headers: { 'Content-Type': 'multipart/form-data' },
     useAdminAuth: true,
+    timeout: 300000,
   })
   return unwrapAdmin(response.data)
 }
