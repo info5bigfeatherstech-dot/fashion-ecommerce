@@ -941,22 +941,33 @@ export function useArchiveAdminProduct() {
         if (changed) {
           if (typeof next.total === 'number') next.total = Math.max(0, next.total - 1)
           if (typeof next.totalProducts === 'number') next.totalProducts = Math.max(0, next.totalProducts - 1)
-          if (next.pagination && typeof next.pagination.total === 'number') {
-            next.pagination = {
-              ...next.pagination,
-              total: Math.max(0, next.pagination.total - 1),
-            }
+          if (next.pagination && typeof next.pagination === 'object') {
+            const nextPag = { ...next.pagination }
+            if (typeof nextPag.total === 'number') nextPag.total = Math.max(0, nextPag.total - 1)
+            if (typeof nextPag.totalItems === 'number') nextPag.totalItems = Math.max(0, nextPag.totalItems - 1)
+            next.pagination = nextPag
           }
         }
         return changed ? next : container
       }
 
+      let nextResult = old
       if (old.data && typeof old.data === 'object') {
         const nextData = patchContainer(old.data)
-        if (nextData !== old.data) return { ...old, data: nextData }
+        if (nextData !== old.data) {
+          nextResult = { ...old, data: nextData }
+          if (typeof nextResult.total === 'number') nextResult.total = Math.max(0, nextResult.total - 1)
+          if (typeof nextResult.totalProducts === 'number') nextResult.totalProducts = Math.max(0, nextResult.totalProducts - 1)
+          if (nextResult.pagination && typeof nextResult.pagination === 'object') {
+            const nextPag = { ...nextResult.pagination }
+            if (typeof nextPag.total === 'number') nextPag.total = Math.max(0, nextPag.total - 1)
+            if (typeof nextPag.totalItems === 'number') nextPag.totalItems = Math.max(0, nextPag.totalItems - 1)
+            nextResult.pagination = nextPag
+          }
+          return nextResult
+        }
       }
-      const nextRoot = patchContainer(old)
-      return nextRoot !== old ? nextRoot : old
+      return patchContainer(old)
     }
 
     queryClient.setQueriesData({ queryKey: ['admin', 'products-all'] }, strip)
@@ -978,8 +989,8 @@ export function useArchiveAdminProduct() {
       context?.previousLowStock?.forEach(([key, data]) => queryClient.setQueryData(key, data))
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'products-all'] })
-      queryClient.invalidateQueries({ queryKey: adminKeys.productsLowStock() })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products-all'], refetchType: 'none' })
+      queryClient.invalidateQueries({ queryKey: adminKeys.productsLowStock(), refetchType: 'none' })
       queryClient.invalidateQueries({ queryKey: adminKeys.productsActive() })
       queryClient.invalidateQueries({ queryKey: ['admin', 'products-archived'] })
     },
