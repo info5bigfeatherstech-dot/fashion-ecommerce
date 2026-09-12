@@ -1,3 +1,5 @@
+import { normalizePersonName } from '@/lib/personName'
+
 function joinParts(parts) {
   return parts
     .map((part) => String(part || '').trim())
@@ -78,7 +80,7 @@ export function toAddressPayload(form = {}) {
   const phoneDigits = String(form.phone || '').replace(/\D/g, '')
 
   return {
-    fullName: String(form.fullName || '').trim(),
+    fullName: normalizePersonName(form.fullName),
     phone: phoneDigits,
     houseNumber: String(form.houseNumber || '').trim(),
     building: String(form.building || '').trim() || undefined,

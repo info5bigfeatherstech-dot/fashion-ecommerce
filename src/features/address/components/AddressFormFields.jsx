@@ -5,6 +5,7 @@ import { Input, InputGroup } from '@/components/ui/Input'
 import { buildCourierLines } from '@/features/address/mappers'
 import { COURIER_MAX_LENGTH } from '@/features/address/schema'
 import { fetchPostalPincode } from '@/features/address/pincode'
+import { bindPersonNameRegister } from '@/lib/personName'
 
 const ADDRESS_TYPES = [
   { value: 'home', label: 'Home' },
@@ -68,7 +69,7 @@ function AddressContactDefaultFields({ register, errors, idPrefix = 'addr' }) {
 
       <div className="address-form__row">
         <InputGroup label="Full name" htmlFor={`${idPrefix}-fullName`} error={errors?.fullName?.message} required>
-          <Input id={`${idPrefix}-fullName`} placeholder="Rahul Sharma" error={errors?.fullName} {...register('fullName')} />
+          <Input id={`${idPrefix}-fullName`} placeholder="Rahul Sharma" error={errors?.fullName} {...bindPersonNameRegister(register, 'fullName')} />
         </InputGroup>
 
         <InputGroup label="Phone" htmlFor={`${idPrefix}-phone`} error={errors?.phone?.message} required>
@@ -135,7 +136,7 @@ function AddressContactWizardFields({
   return (
     <div className="address-wizard__fields">
       <InputGroup label="Full name" htmlFor={`${idPrefix}-fullName`} error={errors?.fullName?.message} required>
-        <Input id={`${idPrefix}-fullName`} placeholder="Rahul Sharma" error={errors?.fullName} {...register('fullName')} />
+        <Input id={`${idPrefix}-fullName`} placeholder="Rahul Sharma" error={errors?.fullName} {...bindPersonNameRegister(register, 'fullName')} />
       </InputGroup>
 
       <InputGroup label="Phone" htmlFor={`${idPrefix}-phone`} error={errors?.phone?.message} required>
@@ -181,7 +182,7 @@ export function AddressContactFields({
       return (
         <div className="address-wizard__fields">
           <InputGroup label="Full name" htmlFor={`${idPrefix}-fullName`} error={errors?.fullName?.message} required>
-            <Input id={`${idPrefix}-fullName`} placeholder="Rahul Sharma" error={errors?.fullName} {...register('fullName')} />
+            <Input id={`${idPrefix}-fullName`} placeholder="Rahul Sharma" error={errors?.fullName} {...bindPersonNameRegister(register, 'fullName')} />
           </InputGroup>
 
           <InputGroup label="Phone" htmlFor={`${idPrefix}-phone`} error={errors?.phone?.message} required>

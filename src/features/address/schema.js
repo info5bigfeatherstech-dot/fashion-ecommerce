@@ -1,11 +1,12 @@
 import { z } from 'zod'
+import { personNameSchema } from '@/lib/personName'
 import { buildCourierLines } from './mappers'
 
 export const COURIER_MAX_LENGTH = 190
 
 export const addressFormSchema = z
   .object({
-    fullName: z.string().trim().min(1, 'Full name required'),
+    fullName: personNameSchema,
     phone: z
       .string()
       .trim()

@@ -24,6 +24,7 @@ import {
   forgotPasswordResetDirect,
 } from '@/features/auth/api'
 import { AuthDivider, GoogleSignInButton } from '@/features/auth/components/GoogleSignInButton'
+import { bindPersonNameRegister, personNameSchema } from '@/lib/personName'
 
 const loginSchema = z.object({
   identifier: z.string().min(3, 'Email or Phone is required'),
@@ -32,7 +33,7 @@ const loginSchema = z.object({
 
 const registerSchema = z
   .object({
-    name: z.string().min(2, 'Full name is required'),
+    name: personNameSchema,
     email: z.string().email('Valid email required'),
     phone: z
       .string()
@@ -505,7 +506,7 @@ export function AuthForms({
                   id="reg-name"
                   placeholder="Ali Khan"
                   error={registerForm.formState.errors.name}
-                  {...registerForm.register('name')}
+                  {...bindPersonNameRegister(registerForm.register, 'name')}
                 />
               </InputGroup>
               <InputGroup label="Phone Number" htmlFor="reg-phone" error={registerForm.formState.errors.phone?.message}>
