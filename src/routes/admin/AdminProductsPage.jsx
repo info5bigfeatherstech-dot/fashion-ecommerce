@@ -765,7 +765,6 @@ export default function AdminProductsPage() {
   const [flagLoading, setFlagLoading] = useState(false)
   const [showEcomMenu, setShowEcomMenu] = useState(false)
   const [showWholesaleMenu, setShowWholesaleMenu] = useState(false)
-  const isRefetchingRef = useRef(false)
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -871,29 +870,15 @@ export default function AdminProductsPage() {
     products.filter(isLowStockProduct).length
   const archivedCount = catalogCounts?.archived ?? 0
 
-  // Auto-adjust page if current page becomes empty or page is out of bounds
+  // After delete/archive: if this page is empty, go to the previous page (no refetch loop).
   useEffect(() => {
     if (listLoading || listFetching || listError) return
 
     const validTotalPages = totalPages != null && totalPages > 0 ? totalPages : 1
-    const remainingCount = listTotal ?? catalogTotal ?? 0
-
-    // If current page is beyond total pages (e.g. was on page 2, but items reduced such that totalPages is 1)
     if (page > validTotalPages) {
       setPage(validTotalPages)
-      return
     }
-
-    // When all products on the current page have been deleted, fetch the next products onto this page
-    if (products.length === 0 && remainingCount > 0) {
-      if (!isRefetchingRef.current) {
-        isRefetchingRef.current = true
-        listRefetch().finally(() => {
-          isRefetchingRef.current = false
-        })
-      }
-    }
-  }, [listLoading, listFetching, listError, page, totalPages, products.length, listTotal, catalogTotal, listRefetch])
+  }, [listLoading, listFetching, listError, page, totalPages])
 
   const stats = [
     { label: 'Total Products', value: totalProducts, icon: Package, tone: 'blue' },
@@ -1295,14 +1280,14 @@ export default function AdminProductsPage() {
       </div>
 
       <div className="admin-card admin-card--flush admin-products__table-card">
-        {(listLoading || (products.length === 0 && !listError && (listFetching || (listTotal ?? catalogTotal ?? 0) > 0))) && (
+        {(listLoading || (listFetching && products.length === 0 && !listError)) && (
           <AdminLoading label="Loading products…" />
         )}
         {listError && <AdminError message={listErr?.message} onRetry={listRefetch} />}
-        {!listLoading && !listFetching && !listError && products.length === 0 && (listTotal ?? catalogTotal ?? 0) === 0 && (
+        {!listLoading && !listFetching && !listError && products.length === 0 && (
           <AdminEmpty message={showLowStockOnly ? 'No low stock products.' : 'No products found.'} />
         )}
-        {!listLoading && products.length > 0 && (
+        {!listLoading && !listError && products.length > 0 && (
           <div className="admin-table-wrap">
             <table className="admin-table admin-products-table">
               <thead>
