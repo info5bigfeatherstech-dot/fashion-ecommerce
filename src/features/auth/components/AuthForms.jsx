@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -24,7 +25,29 @@ import {
   forgotPasswordResetDirect,
 } from '@/features/auth/api'
 import { AuthDivider, GoogleSignInButton } from '@/features/auth/components/GoogleSignInButton'
+import { BrandLogo } from '@/components/layout/BrandLogo'
+import fabuniqoLogo from '@/assets/FabUniqo-logo-transparent.png'
+import loginPanelImage from '@/assets/Heavy Set.png'
+import registerPanelImage from '@/assets/Earrings.png'
+import { SITE_NAME } from '@/config/site'
 import { bindPersonNameRegister, personNameSchema } from '@/lib/personName'
+
+function AuthSplitLayout({ children, image = loginPanelImage }) {
+  return (
+    <div className="auth-modal__split">
+      <aside className="auth-modal__panel" aria-hidden="true">
+        <img src={image} alt="" className="auth-modal__panel-image" />
+        <div className="auth-modal__panel-scrim" />
+        <div className="auth-modal__panel-copy">
+          <p className="auth-modal__panel-eyebrow">Welcome to</p>
+          <p className="auth-modal__panel-brand">{SITE_NAME}</p>
+          <p className="auth-modal__panel-tagline">Where timeless style meets everyday shine.</p>
+        </div>
+      </aside>
+      <div className="auth-modal__main">{children}</div>
+    </div>
+  )
+}
 
 const loginSchema = z.object({
   identifier: z.string().min(3, 'Email or Phone is required'),
@@ -88,6 +111,7 @@ export function AuthForms({
   const [emailHint, setEmailHint] = useState('')
   const [infoMessage, setInfoMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [showLoginPassword, setShowLoginPassword] = useState(false)
 
   const loginForm = useForm({
     resolver: zodResolver(loginSchema),
@@ -480,12 +504,16 @@ export function AuthForms({
 
   if (view === 'register') {
     return (
+      <AuthSplitLayout image={registerPanelImage}>
       <div className="auth-modal__form auth-modal__form--register">
         <div className="auth-modal__welcome">
+          <div className="auth-modal__logo">
+            <BrandLogo src={fabuniqoLogo} />
+          </div>
           <h2 className="auth-modal__welcome-title">
-            Create <em>Account</em>
+            Create Account
           </h2>
-          <p className="auth-modal__welcome-sub">Join us for exclusive jewellery & offers</p>
+          <p className="auth-modal__welcome-sub">Join us for Exclusive Jewellery and Offers</p>
         </div>
 
         {alertBlock}
@@ -496,59 +524,63 @@ export function AuthForms({
           onSuccess={handleGoogleSuccess}
           onError={handleGoogleError}
         />
-        <AuthDivider label="Or register with details" />
+        {/* <AuthDivider label="Or register with details" /> */}
 
         <form onSubmit={registerForm.handleSubmit(handleRegister)} noValidate>
-          <div className="form-grid" style={{ gap: 'var(--space-3)' }}>
+          <div className="form-grid" style={{ gap: '20px' }}>
             <div className="form-grid form-grid--2">
-              <InputGroup label="Full Name" htmlFor="reg-name" error={registerForm.formState.errors.name?.message}>
+              <InputGroup htmlFor="reg-name" error={registerForm.formState.errors.name?.message}>
                 <Input
                   id="reg-name"
-                  placeholder="Ali Khan"
+                  placeholder="Full Name"
+                  aria-label="Full Name"
                   error={registerForm.formState.errors.name}
                   {...bindPersonNameRegister(registerForm.register, 'name')}
                 />
               </InputGroup>
-              <InputGroup label="Phone Number" htmlFor="reg-phone" error={registerForm.formState.errors.phone?.message}>
+              <InputGroup htmlFor="reg-phone" error={registerForm.formState.errors.phone?.message}>
                 <Input
                   id="reg-phone"
                   type="tel"
-                  placeholder="9876543210"
+                  placeholder="Phone Number"
+                  aria-label="Phone Number"
                   error={registerForm.formState.errors.phone}
                   {...registerForm.register('phone')}
                 />
               </InputGroup>
             </div>
 
-            <InputGroup label="Email" htmlFor="reg-email" error={registerForm.formState.errors.email?.message}>
+            <InputGroup htmlFor="reg-email" error={registerForm.formState.errors.email?.message}>
               <Input
                 id="reg-email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder="Email"
+                aria-label="Email"
                 error={registerForm.formState.errors.email}
                 {...registerForm.register('email')}
               />
             </InputGroup>
 
             <div className="form-grid form-grid--2">
-              <InputGroup label="Password" htmlFor="reg-password" error={registerForm.formState.errors.password?.message}>
+              <InputGroup htmlFor="reg-password" error={registerForm.formState.errors.password?.message}>
                 <Input
                   id="reg-password"
                   type="password"
-                  placeholder="Create password"
+                  placeholder="Password"
+                  aria-label="Password"
                   error={registerForm.formState.errors.password}
                   {...registerForm.register('password')}
                 />
               </InputGroup>
               <InputGroup
-                label="Confirm Password"
                 htmlFor="reg-confirm-password"
                 error={registerForm.formState.errors.confirmPassword?.message}
               >
                 <Input
                   id="reg-confirm-password"
                   type="password"
-                  placeholder="Re-enter password"
+                  placeholder="Confirm Password"
+                  aria-label="Confirm Password"
                   error={registerForm.formState.errors.confirmPassword}
                   {...registerForm.register('confirmPassword')}
                 />
@@ -556,10 +588,12 @@ export function AuthForms({
             </div>
 
             <InputGroup
-              label="Security question"
               htmlFor="reg-question"
               error={registerForm.formState.errors.questionId?.message}
             >
+              <p className="auth-modal__field-hint">
+                Select and Answer any 1 Question for Password Recovery
+              </p>
               <Controller
                 control={registerForm.control}
                 name="questionId"
@@ -570,7 +604,7 @@ export function AuthForms({
                     disabled={questionsLoading || !securityQuestions.length}
                   >
                     <SelectTrigger id="reg-question" className="select-trigger--full">
-                      <SelectValue placeholder={questionsLoading ? 'Loading questions…' : 'Select a question'} />
+                      <SelectValue placeholder={questionsLoading ? 'Loading questions…' : 'Security Question'} />
                     </SelectTrigger>
                     <SelectContent>
                       {securityQuestions.map((question) => (
@@ -585,41 +619,46 @@ export function AuthForms({
             </InputGroup>
 
             <InputGroup
-              label="Security answer"
               htmlFor="reg-answer"
               error={registerForm.formState.errors.securityAnswer?.message}
             >
               <Input
                 id="reg-answer"
-                placeholder="Your answer (for account recovery)"
+                placeholder="Security Answer"
+                aria-label="Security Answer"
                 error={registerForm.formState.errors.securityAnswer}
                 {...registerForm.register('securityAnswer')}
               />
             </InputGroup>
 
-            <Button type="submit" variant="primary" fullWidth disabled={submitting} style={{ marginTop: 'var(--space-2)' }}>
+            <Button type="submit" variant="primary" fullWidth disabled={submitting}>
               {submitting ? 'Creating account…' : 'Create Account'}
             </Button>
-
-            <p className="body-sm text-muted" style={{ textAlign: 'center', marginTop: 'var(--space-3)' }}>
-              Already have an account?{' '}
-              <button className="section-header__link" type="button" onClick={() => switchTo('login', 'login')}>
-                Sign in
-              </button>
-            </p>
           </div>
+
+          <p className="body-sm text-muted" style={{ textAlign: 'center', marginTop: '28px' }}>
+            Already have an account?{' '}
+            <button className="section-header__link" type="button" onClick={() => switchTo('login', 'login')}>
+              Sign in
+            </button>
+          </p>
         </form>
       </div>
+      </AuthSplitLayout>
     )
   }
 
   return (
-    <div className="auth-modal__form">
+    <AuthSplitLayout>
+    <div className="auth-modal__form auth-modal__form--login">
       <div className="auth-modal__welcome">
+        <div className="auth-modal__logo">
+          <BrandLogo src={fabuniqoLogo} />
+        </div>
         <h2 className="auth-modal__welcome-title">
-          Welcome <em>Back</em>
+          Welcome   Back
         </h2>
-        <p className="auth-modal__welcome-sub">Access your premium dashboard</p>
+        <p className="auth-modal__welcome-sub">Login to continue shopping your favourite pieces.</p>
       </div>
 
       {alertBlock}
@@ -633,7 +672,7 @@ export function AuthForms({
       <AuthDivider label="Or" />
 
       <form onSubmit={loginForm.handleSubmit(handleLogin)} noValidate>
-        <div className="form-grid" style={{ gap: 'var(--space-4)' }}>
+        <div className="form-grid" style={{ gap: 'var(--space-3)' }}>
           <InputGroup label="Email or Phone" htmlFor="login-identifier" error={loginForm.formState.errors.identifier?.message}>
             <Input
               id="login-identifier"
@@ -647,13 +686,23 @@ export function AuthForms({
             <label htmlFor="login-password" className="input-label">
               Password
             </label>
-            <Input
-              id="login-password"
-              type="password"
-              placeholder="Your password"
-              error={loginForm.formState.errors.password}
-              {...loginForm.register('password')}
-            />
+            <div className="auth-modal__password">
+              <Input
+                id="login-password"
+                type={showLoginPassword ? 'text' : 'password'}
+                placeholder="Your password"
+                error={loginForm.formState.errors.password}
+                {...loginForm.register('password')}
+              />
+              <button
+                type="button"
+                className="auth-modal__eye"
+                onClick={() => setShowLoginPassword((open) => !open)}
+                aria-label={showLoginPassword ? 'Hide password' : 'Show password'}
+              >
+                {showLoginPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             {loginForm.formState.errors.password?.message && (
               <span className="input-error" role="alert">
                 {loginForm.formState.errors.password.message}
@@ -675,17 +724,18 @@ export function AuthForms({
             </div>
           </div>
 
-          <Button type="submit" variant="primary" fullWidth disabled={submitting} style={{ marginTop: 'var(--space-2)' }}>
+          <Button type="submit" variant="primary" fullWidth disabled={submitting}>
             {submitting ? 'Signing in…' : 'Sign In'}
           </Button>
         </div>
 
-        <p className="body-sm text-muted" style={{ textAlign: 'center', marginTop: 'var(--space-5)' }}>
+        <p className="body-sm text-muted" style={{ textAlign: 'center', marginTop: 'var(--space-3)' }}>
           <button className="section-header__link" type="button" onClick={() => switchTo('register', 'register')}>
             Create an account
           </button>
         </p>
       </form>
     </div>
+    </AuthSplitLayout>
   )
 }

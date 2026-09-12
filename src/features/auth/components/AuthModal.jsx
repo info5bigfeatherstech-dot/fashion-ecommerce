@@ -53,7 +53,7 @@ export function AuthModal() {
       open={authModalOpen}
       onOpenChange={handleOpenChange}
       title={formMode === 'register' ? 'Create Account' : 'Sign In'}
-      className="modal-content--auth"
+      className={formMode === 'register' ? 'modal-content--auth modal-content--auth-split modal-content--auth-register' : 'modal-content--auth modal-content--auth-split'}
       overlayClassName="modal-overlay--black"
     >
       <div className="auth-modal">

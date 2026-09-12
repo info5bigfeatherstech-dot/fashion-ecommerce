@@ -73,7 +73,6 @@ export function HeroSection() {
               <img src={slide.image} alt={slide.alt} />
             ) : null}
           </div>
-          <div className="hero__overlay" />
           <div className="hero__content">
             <Reveal y={18} delay={0.05}>
               <p className="hero__eyebrow">{slide.eyebrow}</p>

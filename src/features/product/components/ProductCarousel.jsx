@@ -22,25 +22,40 @@ export function ProductCarousel({
     setCanNext(el.scrollLeft < maxScroll - 8)
   }, [])
 
+  const scrollTo = useCallback((el, left) => {
+    const restoreSnap = () => {
+      el.style.scrollSnapType = ''
+      el.removeEventListener('scrollend', restoreSnap)
+    }
+    // Snap-stop would otherwise halt a multi-card jump on the first card.
+    el.style.scrollSnapType = 'none'
+    el.scrollTo({ left, behavior: 'smooth' })
+    el.addEventListener('scrollend', restoreSnap)
+    window.setTimeout(restoreSnap, 800)
+  }, [])
+
   const scrollByDir = useCallback((dir, { loop = false } = {}) => {
     const el = trackRef.current
     if (!el) return
     const card = el.querySelector('.product-carousel__item')
     const gap = Number.parseFloat(getComputedStyle(el).gap) || 0
-    const amount = card ? card.getBoundingClientRect().width + gap : el.clientWidth * 0.8
+    const cardWidth = card ? card.getBoundingClientRect().width : el.clientWidth * 0.8
+    const pageSize = Math.max(1, Math.round((el.clientWidth + gap) / (cardWidth + gap)))
+    const amount = (cardWidth + gap) * pageSize
     const maxScroll = el.scrollWidth - el.clientWidth
 
     if (loop && dir > 0 && el.scrollLeft >= maxScroll - 16) {
-      el.scrollTo({ left: 0, behavior: 'smooth' })
+      scrollTo(el, 0)
       return
     }
     if (loop && dir < 0 && el.scrollLeft <= 16) {
-      el.scrollTo({ left: maxScroll, behavior: 'smooth' })
+      scrollTo(el, maxScroll)
       return
     }
 
-    el.scrollBy({ left: dir * amount, behavior: 'smooth' })
-  }, [])
+    const target = Math.max(0, Math.min(maxScroll, el.scrollLeft + dir * amount))
+    scrollTo(el, target)
+  }, [scrollTo])
 
   useEffect(() => {
     updateArrows()
