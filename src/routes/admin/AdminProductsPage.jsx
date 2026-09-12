@@ -31,9 +31,7 @@ import { CategoryQuickModal } from '@/features/admin/components/product-form/Cat
 import { ADMIN_PRODUCT_MARKETING_TAGS } from '@/features/admin/constants/productMarketingTags'
 import {
   useAdminCategories,
-  useAdminProductsActiveCount,
   useAdminProductsAll,
-  useAdminProductsArchived,
   useAdminProductsLowStock,
   useArchiveAdminProduct,
   useBulkUpdateAdminProductFlags,
@@ -191,15 +189,17 @@ function getWholesaleStatus(product) {
   return status === 'active' ? { label: 'Active', tone: 'success' } : { label: 'Inactive', tone: 'muted' }
 }
 
-function extractCount(data) {
-  if (data == null) return null
-  if (typeof data === 'number') return data
-  if (typeof data?.total === 'number') return data.total
-  if (typeof data?.activeCount === 'number') return data.activeCount
-  if (typeof data?.count === 'number') return data.count
-  if (Array.isArray(data?.products)) return data.products.length
-  if (Array.isArray(data)) return data.length
-  return null
+function extractCatalogCounts(data) {
+  const raw = data?.counts || data?.data?.counts
+  if (!raw || typeof raw !== 'object') return null
+  return {
+    total: toNumber(raw.total, 0),
+    active: toNumber(raw.active, 0),
+    inactive: toNumber(raw.inactive, 0),
+    archived: toNumber(raw.archived, 0),
+    featured: toNumber(raw.featured, 0),
+    lowStock: toNumber(raw.lowStock, 0),
+  }
 }
 
 function DateFilterButton({ dateFilter, setDateFilter, startDate, setStartDate, endDate, setEndDate }) {
@@ -781,7 +781,6 @@ export default function AdminProductsPage() {
     limit: 20,
     status: statusFilter !== 'all' ? statusFilter : '',
     category: categoryFilter !== 'all' ? categoryFilter : '',
-    enabled: !showLowStockOnly,
   })
   const lowStockListQuery = useAdminProductsLowStock({
     page,
@@ -795,9 +794,6 @@ export default function AdminProductsPage() {
   const listError = showLowStockOnly ? lowStockListQuery.isError : isError
   const listErr = showLowStockOnly ? lowStockListQuery.error : error
   const listRefetch = showLowStockOnly ? lowStockListQuery.refetch : refetch
-  const { data: activeData } = useAdminProductsActiveCount()
-  const { data: lowStockData } = useAdminProductsLowStock()
-  const { data: archivedData } = useAdminProductsArchived({ page: 1, limit: 1 })
   const { data: categoriesData, refetch: refetchCategories } = useAdminCategories()
 
   const exportProducts = useExportAdminProducts()
@@ -861,24 +857,19 @@ export default function AdminProductsPage() {
     return list
   }, [rawProducts, statusFilter, categoryFilter, dateFilter, startDate, endDate])
 
+  const catalogCounts = extractCatalogCounts(data)
   const catalogTotal = listTotal ?? products.length
-  const activeCount = extractCount(activeData) ?? products.filter((p) => getEcomStatus(p).label === 'Active').length
-  const featuredCount = products.filter((p) => p.isFeatured).length
-  const lowStockCount = extractCount(lowStockData) ?? products.filter(isLowStockProduct).length
-  const archivedCount =
-    archivedData?.total ??
-    archivedData?.pagination?.total ??
-    archivedData?.pagination?.totalItems ??
-    archivedData?.data?.total ??
-    archivedData?.data?.pagination?.total ??
-    extractCount(archivedData) ??
-    extractListPayload(archivedData, ['products']).pagination?.total ??
-    extractListPayload(archivedData, ['products']).items.length ??
-    0
-
-  const totalProducts = statusFilter === 'archived'
-    ? (archivedCount || catalogTotal)
-    : ((catalogTotal ?? 0) + (archivedCount ?? 0))
+  const totalProducts = catalogCounts?.total ?? catalogTotal
+  const activeCount =
+    catalogCounts?.active ??
+    products.filter((p) => getEcomStatus(p).label === 'Active').length
+  const featuredCount =
+    catalogCounts?.featured ??
+    products.filter((p) => p.isFeatured && !isArchivedProduct(p)).length
+  const lowStockCount =
+    catalogCounts?.lowStock ??
+    products.filter(isLowStockProduct).length
+  const archivedCount = catalogCounts?.archived ?? 0
 
   // Auto-adjust page if current page becomes empty or page is out of bounds
   useEffect(() => {

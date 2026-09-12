@@ -617,7 +617,6 @@ export function useAdminProductsAll({ page = 1, search = '', limit = 50, status 
     queryFn: ({ signal }) => getAdminProductsAll({ signal, page, search, limit, status, category }),
     enabled: queryEnabled,
     staleTime: 1000 * 30,
-    refetchOnMount: 'always',
   })
 }
 
