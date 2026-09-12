@@ -58,8 +58,8 @@ const wholesaleSchema = z.object({
   businessEmail: z
     .string()
     .trim()
-    .optional()
-    .refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'Enter a valid business email'),
+    .min(1, 'Email is required')
+    .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Enter a valid email'),
   phone: z
     .string()
     .min(8, 'Phone / WhatsApp number is required')
@@ -175,21 +175,21 @@ export default function Wholesale() {
       <div className="wholesale-page__intro">
         <p className="heading-sm text-accent">B2B Inquiry</p>
         <h1 className="display-lg">Wholesale</h1>
-        <p className="body-lg text-muted">
-          Buy artificial jewelry in bulk for your shop, boutique, or online store.
-          Share a few details and we will get back to you with rates and MOQ.
+        <p className="body-lg text-muted captialize">
+          Buy Artificial Jewelry in Bulk for your Shop, Boutique, or Online store.
+          Share a few details and we will get back to you with Rates and MOQ.
         </p>
       </div>
 
       <div className="wholesale-page__layout">
         <aside className="card wholesale-page__side">
           <Warehouse size={28} aria-hidden="true" />
-          <h2 className="display-md" style={{ fontSize: 'var(--text-xl)' }}>For retailers and resellers</h2>
+          <h2 className="display-md" style={{ fontSize: 'var(--text-xl)' }}>For Retailers and Resellers</h2>
           <p className="body-sm text-muted">
             Earrings, necklaces, rings, bangles, and matching sets — priced for bulk orders.
           </p>
           <ul className="wholesale-page__points">
-            <li>Minimum order discussed after inquiry</li>
+            <li>Minimum order value is just ₹3,000 to create your own variety</li>
             <li>GST invoice available</li>
             <li>Dispatch by courier or transport</li>
           </ul>
@@ -224,14 +224,15 @@ export default function Wholesale() {
                     />
                   </InputGroup>
                   <InputGroup
-                    label="Business Email"
+                    label="Email"
                     htmlFor="ws-email"
+                    required
                     error={errors.businessEmail?.message}
                   >
                     <Input
                       id="ws-email"
                       type="email"
-                      placeholder="you@business.com"
+                      placeholder="you@gmail.com"
                       error={errors.businessEmail}
                       {...register('businessEmail')}
                     />
@@ -330,7 +331,7 @@ export default function Wholesale() {
                   </InputGroup>
                 </div>
 
-                <fieldset className="wholesale-page__fieldset">
+                {/* <fieldset className="wholesale-page__fieldset">
                   <legend className="input-label">Categories of Interest</legend>
                   <div className="wholesale-page__categories">
                     {CATEGORY_OPTIONS.map((cat) => (
@@ -340,7 +341,7 @@ export default function Wholesale() {
                       </label>
                     ))}
                   </div>
-                </fieldset>
+                </fieldset> */}
 
                 <InputGroup
                   label="Expected Order Volume"
