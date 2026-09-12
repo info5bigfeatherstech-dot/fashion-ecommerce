@@ -861,18 +861,31 @@ export default function AdminProductsPage() {
     return list
   }, [rawProducts, statusFilter, categoryFilter, dateFilter, startDate, endDate])
 
-  const totalProducts = listTotal ?? products.length
+  const catalogTotal = listTotal ?? products.length
   const activeCount = extractCount(activeData) ?? products.filter((p) => getEcomStatus(p).label === 'Active').length
   const featuredCount = products.filter((p) => p.isFeatured).length
   const lowStockCount = extractCount(lowStockData) ?? products.filter(isLowStockProduct).length
-  const archivedCount = archivedData?.total ?? archivedData?.pagination?.total ?? extractListPayload(archivedData, ['products']).items.length
+  const archivedCount =
+    archivedData?.total ??
+    archivedData?.pagination?.total ??
+    archivedData?.pagination?.totalItems ??
+    archivedData?.data?.total ??
+    archivedData?.data?.pagination?.total ??
+    extractCount(archivedData) ??
+    extractListPayload(archivedData, ['products']).pagination?.total ??
+    extractListPayload(archivedData, ['products']).items.length ??
+    0
+
+  const totalProducts = statusFilter === 'archived'
+    ? (archivedCount || catalogTotal)
+    : ((catalogTotal ?? 0) + (archivedCount ?? 0))
 
   // Auto-adjust page if current page becomes empty or page is out of bounds
   useEffect(() => {
     if (listLoading || listFetching || listError) return
 
     const validTotalPages = totalPages != null && totalPages > 0 ? totalPages : 1
-    const remainingCount = listTotal ?? totalProducts ?? 0
+    const remainingCount = listTotal ?? catalogTotal ?? 0
 
     // If current page is beyond total pages (e.g. was on page 2, but items reduced such that totalPages is 1)
     if (page > validTotalPages) {
@@ -889,7 +902,7 @@ export default function AdminProductsPage() {
         })
       }
     }
-  }, [listLoading, listFetching, listError, page, totalPages, products.length, listTotal, totalProducts, listRefetch])
+  }, [listLoading, listFetching, listError, page, totalPages, products.length, listTotal, catalogTotal, listRefetch])
 
   const stats = [
     { label: 'Total Products', value: totalProducts, icon: Package, tone: 'blue' },
@@ -1291,11 +1304,11 @@ export default function AdminProductsPage() {
       </div>
 
       <div className="admin-card admin-card--flush admin-products__table-card">
-        {(listLoading || (products.length === 0 && !listError && (listFetching || (listTotal ?? totalProducts ?? 0) > 0))) && (
+        {(listLoading || (products.length === 0 && !listError && (listFetching || (listTotal ?? catalogTotal ?? 0) > 0))) && (
           <AdminLoading label="Loading products…" />
         )}
         {listError && <AdminError message={listErr?.message} onRetry={listRefetch} />}
-        {!listLoading && !listFetching && !listError && products.length === 0 && (listTotal ?? totalProducts ?? 0) === 0 && (
+        {!listLoading && !listFetching && !listError && products.length === 0 && (listTotal ?? catalogTotal ?? 0) === 0 && (
           <AdminEmpty message={showLowStockOnly ? 'No low stock products.' : 'No products found.'} />
         )}
         {!listLoading && products.length > 0 && (

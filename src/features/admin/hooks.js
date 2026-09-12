@@ -974,19 +974,51 @@ export function useArchiveAdminProduct() {
     queryClient.setQueriesData({ queryKey: adminKeys.productsLowStock() }, strip)
   }
 
+  const incrementArchivedLists = () => {
+    queryClient.setQueriesData({ queryKey: ['admin', 'products-archived'] }, (old) => {
+      if (!old) return old
+      const next = { ...old }
+      if (typeof next.total === 'number') next.total = next.total + 1
+      if (typeof next.totalProducts === 'number') next.totalProducts = next.totalProducts + 1
+      if (next.pagination && typeof next.pagination === 'object') {
+        next.pagination = {
+          ...next.pagination,
+          total: typeof next.pagination.total === 'number' ? next.pagination.total + 1 : next.pagination.total,
+          totalItems: typeof next.pagination.totalItems === 'number' ? next.pagination.totalItems + 1 : next.pagination.totalItems,
+        }
+      }
+      if (next.data && typeof next.data === 'object') {
+        const nextData = { ...next.data }
+        if (typeof nextData.total === 'number') nextData.total = nextData.total + 1
+        if (nextData.pagination && typeof nextData.pagination === 'object') {
+          nextData.pagination = {
+            ...nextData.pagination,
+            total: typeof nextData.pagination.total === 'number' ? nextData.pagination.total + 1 : nextData.pagination.total,
+          }
+        }
+        next.data = nextData
+      }
+      return next
+    })
+  }
+
   return useMutation({
     mutationFn: archiveAdminProduct,
     onMutate: async (slug) => {
       await queryClient.cancelQueries({ queryKey: ['admin', 'products-all'] })
       await queryClient.cancelQueries({ queryKey: adminKeys.productsLowStock() })
+      await queryClient.cancelQueries({ queryKey: ['admin', 'products-archived'] })
       const previousAll = queryClient.getQueriesData({ queryKey: ['admin', 'products-all'] })
       const previousLowStock = queryClient.getQueriesData({ queryKey: adminKeys.productsLowStock() })
+      const previousArchived = queryClient.getQueriesData({ queryKey: ['admin', 'products-archived'] })
       removeFromProductLists(slug)
-      return { previousAll, previousLowStock }
+      incrementArchivedLists()
+      return { previousAll, previousLowStock, previousArchived }
     },
     onError: (_err, _slug, context) => {
       context?.previousAll?.forEach(([key, data]) => queryClient.setQueryData(key, data))
       context?.previousLowStock?.forEach(([key, data]) => queryClient.setQueryData(key, data))
+      context?.previousArchived?.forEach(([key, data]) => queryClient.setQueryData(key, data))
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'products-all'], refetchType: 'none' })
