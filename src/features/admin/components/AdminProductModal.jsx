@@ -15,10 +15,17 @@ import {
   emptyProductForm,
   formatIndianRupee,
   getDiscountPercentage,
+  nextVariantProductCode,
   normaliseVariantsForEdit,
   productToEditForm,
   validateCreateProductForm,
 } from '@/features/admin/components/product-form/utils'
+import {
+  clearCreateProductDraft,
+  readCreateProductDraft,
+  rehydrateCreateDraft,
+  writeCreateProductDraft,
+} from '@/features/admin/components/product-form/createDraft'
 import { shippingFormFromVariant } from '@/lib/variantCatalogForm'
 import {
   addAdminProductVariant,
@@ -132,6 +139,9 @@ export function AdminProductModal({
   /** Full product from GET — used to preserve wholesale eligibility on partial saves. */
   const [loadedProduct, setLoadedProduct] = useState(null)
   const savedMarketingTagsRef = useRef(null)
+  const createHydratedRef = useRef(false)
+  const draftQuotaWarnedRef = useRef(false)
+  const [hasCreateDraft, setHasCreateDraft] = useState(false)
 
   useEffect(() => {
     setCategories(categoriesProp)
@@ -147,14 +157,41 @@ export function AdminProductModal({
     setError('')
 
     if (!isEdit) {
-      setFormData(emptyProductForm())
+      createHydratedRef.current = false
       setLoadedProduct(null)
       savedMarketingTagsRef.current = null
       setLoadingProduct(false)
-      return
+      let cancelled = false
+      ;(async () => {
+        try {
+          const draft = readCreateProductDraft()
+          if (cancelled) return
+          if (draft) {
+            const restored = await rehydrateCreateDraft(draft)
+            if (cancelled) return
+            setFormData(restored || draft)
+            setHasCreateDraft(true)
+            toast.message('Unsaved product draft restored')
+          } else {
+            setFormData(emptyProductForm())
+            setHasCreateDraft(false)
+          }
+        } catch {
+          if (!cancelled) {
+            setFormData(emptyProductForm())
+            setHasCreateDraft(false)
+          }
+        } finally {
+          if (!cancelled) createHydratedRef.current = true
+        }
+      })()
+      return () => {
+        cancelled = true
+      }
     }
 
     // Hydrate immediately from list row, then refresh from full product GET.
+    createHydratedRef.current = false
     const initialForm = productToEditForm(product)
     setFormData(initialForm)
     savedMarketingTagsRef.current = { ...(initialForm.marketingTags || {}) }
@@ -185,6 +222,19 @@ export function AdminProductModal({
   }, [open, isEdit, product?.slug, product?._id])
 
   useEffect(() => {
+    if (!open || isEdit || !createHydratedRef.current) return undefined
+    const timer = setTimeout(() => {
+      const result = writeCreateProductDraft(formData)
+      if (result.ok && result.strippedImages && !draftQuotaWarnedRef.current) {
+        draftQuotaWarnedRef.current = true
+        toast.message('Draft saved without images (storage limit). Text fields are kept.')
+      }
+      setHasCreateDraft(result.ok && Boolean(readCreateProductDraft()))
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [formData, open, isEdit])
+
+  useEffect(() => {
     if (!open) {
       startLenis()
       document.documentElement.classList.remove('modal-open')
@@ -200,6 +250,7 @@ export function AdminProductModal({
       setVariantSaveError(null)
       setError('')
       setLoadedProduct(null)
+      createHydratedRef.current = false
       return undefined
     }
     stopLenis()
@@ -247,10 +298,21 @@ export function AdminProductModal({
   }
 
   const openAddVariant = () => {
-    setVariantForm(defaultVariant)
+    const nextCode = nextVariantProductCode(formData)
+    setVariantForm({
+      ...defaultVariant,
+      ProductCode: nextCode,
+    })
     setEditingVariantIndex(null)
     setVariantSaveError(null)
     setShowVariantModal(true)
+  }
+
+  const discardCreateDraft = () => {
+    clearCreateProductDraft()
+    setHasCreateDraft(false)
+    setFormData(emptyProductForm())
+    toast.message('Draft discarded')
   }
 
   const openEditVariant = (index) => {
@@ -741,6 +803,8 @@ export function AdminProductModal({
         await syncAdminProductMarketingTags(slug, formData.marketingTags, {})
       }
       toast.success('Product created')
+      clearCreateProductDraft()
+      setHasCreateDraft(false)
       onOpenChange(false)
       onSaved?.()
     } catch (err) {
@@ -773,6 +837,17 @@ export function AdminProductModal({
               <div className="modal-header__text">
                 <Dialog.Title className="modal-title">{title}</Dialog.Title>
                 {subtitle ? <p className="modal-subtitle">{subtitle}</p> : null}
+                {!isEdit && hasCreateDraft ? (
+                  <button
+                    type="button"
+                    className="btn btn--ghost"
+                    style={{ marginTop: 8, fontSize: '0.8rem' }}
+                    onClick={discardCreateDraft}
+                    disabled={busy}
+                  >
+                    Discard draft
+                  </button>
+                ) : null}
               </div>
               <Dialog.Close asChild>
                 <button type="button" className="btn btn--ghost btn--icon" aria-label="Close" disabled={busy}>

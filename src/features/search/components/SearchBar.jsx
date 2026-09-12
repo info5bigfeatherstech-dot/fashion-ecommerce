@@ -80,7 +80,11 @@ export function Autosuggest({ results, onSelect }) {
             onSelect()
           }}
         >
-          <img src={product.images?.[0]} alt="" className="search-suggest__thumb" />
+          {product.images?.[0] ? (
+            <img src={product.images[0]} alt="" className="search-suggest__thumb" />
+          ) : (
+            <div className="search-suggest__thumb search-suggest__thumb--empty" aria-hidden="true" />
+          )}
           <div>
             <p className="body-sm" style={{ fontWeight: 'var(--weight-medium)' }}>{product.name}</p>
             <p className="body-sm text-muted">{product.categoryLabel || product.category}</p>

@@ -1,5 +1,3 @@
-import { getDummyProductImages } from './constants'
-
 const SIZE_KEYS = /size|capacity|fit/i
 const COLOR_KEYS = /colou?r|shade|main\s*colou?r/i
 const PLATING_KEYS = /plating|metal|finish|coating/i
@@ -79,10 +77,7 @@ function collectImages(dto, variants) {
     }
   }
 
-  const uniqueUrls = unique(urls)
-  if (uniqueUrls.length) return uniqueUrls
-
-  return getDummyProductImages(dto.slug || dto.id || dto._id || dto.name)
+  return unique(urls)
 }
 
 function resolveVariantInStock(variant) {

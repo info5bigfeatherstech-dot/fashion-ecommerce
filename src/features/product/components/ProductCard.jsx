@@ -183,12 +183,16 @@ export function ProductCard({ product, compact = false }) {
             <Heart size={compact ? 16 : 18} />
           </motion.div>
         </button>
-        <img
-          src={product.images?.[0]}
-          alt={product.name}
-          className="product-card__image product-card__image--primary"
-          loading="lazy"
-        />
+        {product.images?.[0] ? (
+          <img
+            src={product.images[0]}
+            alt={product.name}
+            className="product-card__image product-card__image--primary"
+            loading="lazy"
+          />
+        ) : (
+          <div className="product-card__image product-card__image--empty" aria-hidden="true" />
+        )}
         {!compact && product.images?.[1] && (
           <img
             src={product.images[1]}

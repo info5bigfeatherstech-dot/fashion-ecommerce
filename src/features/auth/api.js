@@ -141,14 +141,18 @@ export async function getSecurityQuestions() {
  * Returns OTP challenge — user is not logged in yet.
  */
 export async function register(data) {
-  const payload = await http.post(API_ENDPOINTS.auth.register, {
-    name: data.name,
-    email: data.email,
-    phone: data.phone,
-    password: data.password,
-    confirmPassword: data.confirmPassword,
-    securityAnswers: data.securityAnswers,
-  })
+  const payload = await http.post(
+    API_ENDPOINTS.auth.register,
+    {
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      password: data.password,
+      confirmPassword: data.confirmPassword,
+      securityAnswers: data.securityAnswers,
+    },
+    { skipAuthRefresh: true }
+  )
 
   return {
     requiresOTPVerification: Boolean(payload?.requiresOTPVerification),
@@ -165,11 +169,15 @@ export async function register(data) {
  * Completes registration and logs the user in.
  */
 export async function verifyRegistrationOtp({ identifier, otp, email }) {
-  const payload = await http.post(API_ENDPOINTS.auth.otpVerifyLogin, {
-    identifier: identifier || email,
-    email: email || undefined,
-    otp: String(otp || '').trim(),
-  })
+  const payload = await http.post(
+    API_ENDPOINTS.auth.otpVerifyLogin,
+    {
+      identifier: identifier || email,
+      email: email || undefined,
+      otp: String(otp || '').trim(),
+    },
+    { skipAuthRefresh: true }
+  )
 
   const session = applyLoginPayload(payload)
   try {
@@ -188,11 +196,15 @@ export async function verifyRegistrationOtp({ identifier, otp, email }) {
  * Always sends portal: "ecomm" for the storefront.
  */
 export async function login({ identifier, email, password }) {
-  const payload = await http.post(API_ENDPOINTS.auth.login, {
-    identifier: identifier || email,
-    password,
-    portal: AUTH_PORTAL,
-  })
+  const payload = await http.post(
+    API_ENDPOINTS.auth.login,
+    {
+      identifier: identifier || email,
+      password,
+      portal: AUTH_PORTAL,
+    },
+    { skipAuthRefresh: true }
+  )
 
   const session = applyLoginPayload(payload)
   try {
@@ -211,9 +223,13 @@ export async function login({ identifier, email, password }) {
  * Body: { idToken } — JWT from Google Identity Services callback.
  */
 export async function googleLogin({ idToken }) {
-  const payload = await http.post(API_ENDPOINTS.auth.google, {
-    idToken: String(idToken || '').trim(),
-  })
+  const payload = await http.post(
+    API_ENDPOINTS.auth.google,
+    {
+      idToken: String(idToken || '').trim(),
+    },
+    { skipAuthRefresh: true }
+  )
 
   const session = applyLoginPayload(payload)
   try {
@@ -249,11 +265,15 @@ export async function logout() {
 
 /** POST /api/auth/forgot-password/find-user */
 export async function forgotPasswordFindUser({ identifier, email, phone }) {
-  const payload = await http.post(API_ENDPOINTS.auth.forgotFindUser, {
-    identifier: identifier || email || phone,
-    email: email || undefined,
-    phone: phone || undefined,
-  })
+  const payload = await http.post(
+    API_ENDPOINTS.auth.forgotFindUser,
+    {
+      identifier: identifier || email || phone,
+      email: email || undefined,
+      phone: phone || undefined,
+    },
+    { skipAuthRefresh: true }
+  )
 
   return {
     message: payload?.message,
@@ -267,10 +287,14 @@ export async function forgotPasswordFindUser({ identifier, email, phone }) {
 
 /** POST /api/auth/forgot-password/verify-answers */
 export async function forgotPasswordVerifyAnswers({ challengeToken, answers }) {
-  const payload = await http.post(API_ENDPOINTS.auth.forgotVerifyAnswers, {
-    challengeToken,
-    answers,
-  })
+  const payload = await http.post(
+    API_ENDPOINTS.auth.forgotVerifyAnswers,
+    {
+      challengeToken,
+      answers,
+    },
+    { skipAuthRefresh: true }
+  )
 
   return {
     message: payload?.message,
@@ -288,10 +312,14 @@ export async function forgotPasswordVerifyAnswers({ challengeToken, answers }) {
 
 /** POST /api/auth/forgot-password/verify-otp-fallback */
 export async function forgotPasswordVerifyOtpFallback({ challengeToken, otp }) {
-  const payload = await http.post(API_ENDPOINTS.auth.forgotVerifyOtpFallback, {
-    challengeToken,
-    otp: String(otp || '').trim(),
-  })
+  const payload = await http.post(
+    API_ENDPOINTS.auth.forgotVerifyOtpFallback,
+    {
+      challengeToken,
+      otp: String(otp || '').trim(),
+    },
+    { skipAuthRefresh: true }
+  )
 
   return {
     message: payload?.message,
@@ -303,11 +331,15 @@ export async function forgotPasswordVerifyOtpFallback({ challengeToken, otp }) {
 
 /** POST /api/auth/forgot-password/reset-direct */
 export async function forgotPasswordResetDirect({ resetToken, newPassword, confirmPassword }) {
-  const payload = await http.post(API_ENDPOINTS.auth.forgotResetDirect, {
-    resetToken,
-    newPassword,
-    confirmPassword,
-  })
+  const payload = await http.post(
+    API_ENDPOINTS.auth.forgotResetDirect,
+    {
+      resetToken,
+      newPassword,
+      confirmPassword,
+    },
+    { skipAuthRefresh: true }
+  )
 
   return {
     message: payload?.message || 'Password reset successful.',

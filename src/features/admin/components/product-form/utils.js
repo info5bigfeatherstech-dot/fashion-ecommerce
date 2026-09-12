@@ -20,6 +20,36 @@ export const getDiscountPercentage = (base, sale) => {
 
 export const SUFFIXED_PRODUCT_CODE_REGEX = /^([A-Z0-9]+)-(\d+)$/
 
+/** Next unused BASE-N for "Add Variant" (1221-1 → 1221-2 → 1221-3). */
+export function nextVariantProductCode(formData) {
+  const codes = []
+  const push = (raw) => {
+    const c = String(raw || '').trim().toUpperCase()
+    if (c) codes.push(c)
+  }
+  push(formData?.ProductCode)
+  for (const v of Array.isArray(formData?.variants) ? formData.variants : []) {
+    push(v?.ProductCode || v?.productCode)
+  }
+
+  const parsed = []
+  for (const code of codes) {
+    const match = code.match(SUFFIXED_PRODUCT_CODE_REGEX)
+    if (match) parsed.push({ base: match[1], seq: Number(match[2]) })
+  }
+
+  if (parsed.length) {
+    const base = parsed[0].base
+    const used = new Set(parsed.filter((p) => p.base === base).map((p) => p.seq))
+    let next = 1
+    while (used.has(next)) next += 1
+    return `${base}-${next}`
+  }
+
+  const bare = codes[0] && /^[A-Z0-9]+$/.test(codes[0]) ? codes[0] : ''
+  return bare ? `${bare}-2` : ''
+}
+
 export function validateProductCodeSeries(rawCodes, contextLabel = 'variants') {
   const normalized = (rawCodes || []).map((c) => String(c || '').trim().toUpperCase()).filter(Boolean)
   if (!normalized.length) {

@@ -104,7 +104,11 @@ export function WishlistProductGrid({
                 className={`wishlist-row${inBagQty > 0 ? ' wishlist-row--in-cart' : ''}`}
               >
                 <Link to={`/product/${product.slug}`} className="wishlist-row__media">
-                  <img src={image} alt="" className="wishlist-row__thumb" />
+                  {image ? (
+                    <img src={image} alt="" className="wishlist-row__thumb" />
+                  ) : (
+                    <div className="wishlist-row__thumb wishlist-row__thumb--empty" aria-hidden="true" />
+                  )}
                 </Link>
 
                 <div className="wishlist-row__body">

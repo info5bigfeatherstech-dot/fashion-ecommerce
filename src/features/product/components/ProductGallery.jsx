@@ -40,7 +40,7 @@ export function ProductGallery({ images = [], name }) {
   const pauseRef = useRef(false)
   const thumbRefs = useRef([])
 
-  const photos = images.length ? images : [FALLBACK_IMAGE]
+  const photos = images.filter(Boolean)
   const photoKey = photos.join('|')
   const safeIndex = Math.min(activeIndex, photos.length - 1)
   const active = photos[safeIndex]
@@ -179,13 +179,17 @@ export function ProductGallery({ images = [], name }) {
       <div
         ref={mainRef}
         className="pdp-gallery__main"
-        onMouseMove={handleMouseMove}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
+        onMouseMove={photos.length ? handleMouseMove : undefined}
+        onMouseEnter={photos.length ? handleMouseEnter : undefined}
+        onMouseLeave={photos.length ? handleMouseLeave : undefined}
+        onTouchStart={photos.length ? onTouchStart : undefined}
+        onTouchEnd={photos.length ? onTouchEnd : undefined}
       >
-        <GalleryImage key={active} src={active} alt={name} />
+        {active ? (
+          <GalleryImage key={active} src={active} alt={name} />
+        ) : (
+          <div className="pdp-gallery__empty" aria-hidden="true" />
+        )}
 
         {isZooming && lensState.mainWidth > 0 && (
           <div

@@ -7,6 +7,18 @@ import { refreshAdminSession } from '@/features/admin/api'
 
 let interceptorsInstalled = false
 
+/** Pre-auth / reset routes must never trigger a session refresh. */
+function isPublicAuthRequest(config) {
+  const url = String(config?.url || '')
+  return (
+    url.includes('/auth/forgot-password') ||
+    url.includes('/auth/login') ||
+    url.includes('/auth/register') ||
+    url.includes('/auth/google') ||
+    url.includes('/auth/otp-verify')
+  )
+}
+
 export function setupInterceptors() {
   if (interceptorsInstalled) return
   interceptorsInstalled = true
@@ -58,7 +70,8 @@ export function setupInterceptors() {
     async (error) => {
       const original = error.config
       const status = error.response?.status
-      const skipRefresh = original?.skipAuthRefresh || original?._retry
+      const skipRefresh =
+        original?.skipAuthRefresh || original?._retry || isPublicAuthRequest(original)
 
       if (status === 401 && original && !skipRefresh) {
         original._retry = true

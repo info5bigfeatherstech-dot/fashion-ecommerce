@@ -173,6 +173,27 @@ function isArchivedProduct(product) {
   return String(product?.status || '').toLowerCase() === 'archived'
 }
 
+/** 1221-1, 1221-2, 1221-3 → "1221-1, -2, -3" */
+function formatVariantProductCodes(product) {
+  const codes = (Array.isArray(product?.variants) ? product.variants : [])
+    .map((v) => String(v?.productCode || v?.sku || '').trim())
+    .filter(Boolean)
+
+  if (!codes.length) {
+    return String(product?.productCode || product?.sku || '').trim()
+  }
+
+  const first = codes[0]
+  const dash = first.lastIndexOf('-')
+  const base = dash > 0 ? first.slice(0, dash) : ''
+
+  const rest = codes.slice(1).map((code) => (
+    base && code.startsWith(`${base}-`) ? code.slice(base.length) : code
+  ))
+
+  return [first, ...rest].join(', ')
+}
+
 function getEcomStatus(product) {
   const status = String(product?.channelStatus?.ecomm || product?.status || '').toLowerCase()
   if (product?.isActive === false || status === 'draft' || status === 'archived' || status === 'inactive') {
@@ -1317,6 +1338,7 @@ export default function AdminProductsPage() {
                   const ecom = getEcomStatus(product)
                   const wholesale = getWholesaleStatus(product)
                   const isChecked = selectedSlugs.has(product.slug)
+                  const productCodes = formatVariantProductCodes(product)
 
                   return (
                     <tr key={id} className={isChecked ? 'is-selected' : undefined}>
@@ -1328,7 +1350,11 @@ export default function AdminProductsPage() {
                           <ProductThumb src={thumb} alt={product.name || product.title} />
                           <div className="admin-product-cell__text">
                             <strong>{product.name || product.title || '—'}</strong>
-                            <span>{product.title && product.name ? product.title : (product.sku || product.slug || '')}</span>
+                            {productCodes ? (
+                              <span className="admin-product-cell__codes" title={productCodes}>
+                                {productCodes}
+                              </span>
+                            ) : null}
                             {Array.isArray(product.tags) && product.tags.length > 0 ? (
                               <span className="admin-product-tags">
                                 {ADMIN_PRODUCT_MARKETING_TAGS.filter((tag) => product.tags.includes(tag.id)).map((tag) => (
