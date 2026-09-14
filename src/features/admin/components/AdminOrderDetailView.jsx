@@ -360,7 +360,7 @@ export function AdminOrderDetailView({
       const text =
         row?.message ||
         (deferred
-          ? 'Order confirmed. Shiprocket create failed — retry Ship now below.'
+          ? `Order confirmed. ${providerName} create failed — retry Ship now below.`
           : 'Order confirmed.')
       setActionMsg({ type: deferred ? 'warn' : 'ok', text })
       toast.success(deferred ? 'Confirmed (shipment deferred)' : 'Order confirmed')
