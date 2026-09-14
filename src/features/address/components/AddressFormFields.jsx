@@ -459,6 +459,11 @@ function AddressLocationFieldsWithWatch({
 
         <InputGroup label="Landmark" htmlFor={`${idPrefix}-landmark`} error={errors.landmark?.message}>
           <Input id={`${idPrefix}-landmark`} placeholder="Near City Mall (optional)" error={errors.landmark} {...register('landmark')} />
+          {overLimit && (
+            <p className="address-form__hint address-form__hint--warn" style={{ marginTop: '4px' }}>
+              Address is {courier.combinedLength}/{COURIER_MAX_LENGTH} chars — shorten a field to fit courier limits.
+            </p>
+          )}
         </InputGroup>
 
         <InputGroup label="Street address (line 1)" htmlFor={`${idPrefix}-line1`} error={errors.addressLine1?.message} required>
@@ -516,12 +521,6 @@ function AddressLocationFieldsWithWatch({
             <span className="input-error" role="alert">{errors.addressType.message}</span>
           )}
         </div>
-
-        {overLimit && (
-          <p className="address-form__hint address-form__hint--warn">
-            Address is {courier.combinedLength}/{COURIER_MAX_LENGTH} chars — shorten a field to fit courier limits.
-          </p>
-        )}
       </div>
     )
   }
@@ -583,6 +582,11 @@ function AddressLocationFieldsWithWatch({
       <div className="address-form__row">
         <InputGroup label="Landmark (optional)" htmlFor={`${idPrefix}-landmark`} error={errors.landmark?.message}>
           <Input id={`${idPrefix}-landmark`} placeholder="Near metro" error={errors.landmark} {...register('landmark')} />
+          {overLimit && (
+            <p className="address-form__hint address-form__hint--warn" style={{ marginTop: '4px' }}>
+              Address is {courier.combinedLength}/{COURIER_MAX_LENGTH} chars — shorten a field to fit courier limits.
+            </p>
+          )}
         </InputGroup>
         <InputGroup label="PIN code" htmlFor={`${idPrefix}-pin`} error={errors.postalCode?.message} required>
           <Input
@@ -621,12 +625,6 @@ function AddressLocationFieldsWithWatch({
           </select>
         </InputGroup>
       </div>
-
-      {overLimit && (
-        <p className="address-form__hint address-form__hint--warn">
-          Address is {courier.combinedLength}/{COURIER_MAX_LENGTH} chars — shorten a field to fit courier limits.
-        </p>
-      )}
     </section>
   )
 }
