@@ -116,7 +116,7 @@ export function CartDrawer() {
                   </div>
                   <div className="checkout-summary__row">
                     <span>Shipping</span>
-                    <span>{cartTotal >= 100 ? 'Free' : 'Calculated at checkout'}</span>
+                    <span>Calculated at checkout</span>
                   </div>
                   <div className="checkout-summary__row">
                     <span className="drawer__summary-note"><Sparkles size={14} /> Secure checkout</span>

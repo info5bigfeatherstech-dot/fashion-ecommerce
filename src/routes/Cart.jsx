@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, ChevronDown, Lock, ShoppingBag, Sparkles, Truck } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ChevronDown, Lock, ShoppingBag, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { CartItem } from '@/features/cart/components/CartItem'
 import { useCart } from '@/features/cart/hooks'
@@ -8,8 +8,6 @@ import { useAppStore } from '@/store'
 import { useCartDiscount, useCartTotal } from '@/store/selectors'
 import { formatPrice } from '@/lib/utils'
 import { CheckoutAddressModal } from '@/components/checkout/CheckoutAddressModal'
-
-const FREE_SHIPPING_THRESHOLD = 100
 
 export default function Cart() {
   const cartItems = useAppStore((s) => s.cartItems)
@@ -30,10 +28,6 @@ export default function Cart() {
   }, [isAuthenticated, cartItems.length])
 
   const itemCount = cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0)
-  const shipping = cartTotal >= FREE_SHIPPING_THRESHOLD ? 0 : 9.95
-  const total = cartTotal + shipping
-  const shippingProgress = Math.min(100, (cartTotal / FREE_SHIPPING_THRESHOLD) * 100)
-  const remainingForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - cartTotal)
 
   if (!isAuthenticated) {
     return (
@@ -114,7 +108,7 @@ export default function Cart() {
               onClick={() => setSummaryCollapsed((open) => !open)}
               aria-expanded={!summaryCollapsed}
             >
-              <span>Order Summary · {formatPrice(total)}</span>
+              <span>Order Summary · {formatPrice(cartTotal)}</span>
               <ChevronDown size={18} className="cart-summary__toggle-icon" aria-hidden />
             </button>
 
@@ -124,31 +118,6 @@ export default function Cart() {
                 <span className="body-sm text-muted">
                   {itemCount} {itemCount === 1 ? 'item' : 'items'}
                 </span>
-              </div>
-
-              <div className="cart-summary__shipping">
-                <div className="cart-summary__shipping-top">
-                  <Truck size={16} />
-                  <p className="body-sm">
-                    {shipping === 0 ? (
-                      <>You&apos;ve unlocked <strong>free shipping</strong></>
-                    ) : (
-                      <>
-                        Add <strong>{formatPrice(remainingForFreeShipping)}</strong> for free shipping
-                      </>
-                    )}
-                  </p>
-                </div>
-                <div
-                  className="cart-summary__progress"
-                  role="progressbar"
-                  aria-valuenow={Math.round(shippingProgress)}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-label="Progress toward free shipping"
-                >
-                  <span style={{ width: `${shippingProgress}%` }} />
-                </div>
               </div>
 
               <div className="checkout-summary__rows">
@@ -164,11 +133,11 @@ export default function Cart() {
                 )}
                 <div className="checkout-summary__row">
                   <span>Shipping</span>
-                  <span>{shipping === 0 ? 'Free' : formatPrice(shipping)}</span>
+                  <span>Calculated at checkout</span>
                 </div>
                 <div className="checkout-summary__total">
                   <span>Total</span>
-                  <span>{formatPrice(total)}</span>
+                  <span>{formatPrice(cartTotal)}</span>
                 </div>
               </div>
 

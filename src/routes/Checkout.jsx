@@ -67,6 +67,16 @@ function normalizeCouponCode(code) {
   return String(code || '').trim().toUpperCase()
 }
 
+/** Display-only; Razorpay charge is computed on the server from the locked quote. */
+function suggestedAdvanceFromQuote(quote, percent) {
+  const totalInr = Number(quote?.amountPayable)
+  const pct = Number(percent)
+  if (!Number.isFinite(totalInr) || totalInr <= 0 || !Number.isFinite(pct) || pct <= 0) return 0
+  const raw = Math.round(((totalInr * pct) / 100 + Number.EPSILON) * 100) / 100
+  const cap = Math.round((totalInr - 0.01 + Number.EPSILON) * 100) / 100
+  return Math.max(1, Math.min(cap, raw))
+}
+
 function removeCachedCheckoutQuotes(queryClient) {
   return queryClient.removeQueries({
     predicate: (query) => (
@@ -253,16 +263,10 @@ export default function Checkout() {
 
   const itemsSubtotal = activeQuote ? activeQuote.itemsSubtotal : cartTotal
   const promotionDiscount = activeQuote ? activeQuote.promotionDiscount : 0
-  const deliveryCharges = activeQuote
-    ? activeQuote.deliveryCharges
-    : (isReviewStep ? null : (cartTotal >= 100 ? 0 : 9.95))
+  const deliveryCharges = activeQuote ? activeQuote.deliveryCharges : null
   const taxes = activeQuote ? activeQuote.taxes : 0
-  const total = activeQuote
-    ? activeQuote.amountPayable
-    : Math.max(0, cartTotal + (deliveryCharges ?? 0))
-  const suggestedPartial = partialPaymentPercent > 0
-    ? Math.round((total * partialPaymentPercent) / 100)
-    : 0
+  const total = activeQuote ? activeQuote.amountPayable : cartTotal
+  const suggestedPartial = suggestedAdvanceFromQuote(activeQuote, partialPaymentPercent)
   const itemCount = activeQuote?.itemCount
     || cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0)
 
@@ -790,13 +794,15 @@ export default function Checkout() {
     || 'Customer'
 
   const freeShippingApplied = Boolean(activeQuote?.freeShippingApplied)
-  const originalShippingForDisplay = Number(activeQuote?.originalFreightInr || activeQuote?.originalDeliveryCharges || 0)
-  const originalCodFeeInr = Number(activeQuote?.originalCodFeeInr || 0)
+  const originalShippingForDisplay = Number(
+    activeQuote?.originalFreightInr || activeQuote?.originalDeliveryCharges || 0,
+  )
+  const shippingIsFree = Boolean(activeQuote) && (freeShippingApplied || Number(deliveryCharges) === 0)
 
   const shippingLabel = activeQuote
-    ? (freeShippingApplied || deliveryCharges === 0 ? 'Free' : formatPrice(deliveryCharges))
+    ? (shippingIsFree ? 'Free' : formatPrice(deliveryCharges))
     : isReviewStep
-      ? 'Calculated next step'
+      ? 'Calculated at checkout'
       : quoteLoading
         ? 'Calculating…'
         : 'Select address'
@@ -1097,21 +1103,6 @@ export default function Checkout() {
                         <small>Secure checkout via Razorpay</small>
                       </span>
                     </button>
-                    {codEnabled && (
-                      <button
-                        type="button"
-                        role="radio"
-                        aria-checked={paymentMethod === 'cod'}
-                        className={`checkout-pay-option${paymentMethod === 'cod' ? ' checkout-pay-option--active' : ''}`}
-                        onClick={() => setPaymentMethod('cod')}
-                      >
-                        <Truck size={18} />
-                        <span>
-                          <strong>Cash on delivery</strong>
-                          <small>Pay when your order arrives</small>
-                        </span>
-                      </button>
-                    )}
                     {partialPaymentEnabled && (
                       <button
                         type="button"
@@ -1124,10 +1115,25 @@ export default function Checkout() {
                         <span>
                           <strong>Partial payment</strong>
                           <small>
-                            {partialPaymentPercent > 0
+                            {partialPaymentPercent > 0 && suggestedPartial > 0
                               ? `Pay ${partialPaymentPercent}% now (${formatPrice(suggestedPartial)})`
                               : 'Pay a portion now, rest later'}
                           </small>
+                        </span>
+                      </button>
+                    )}
+                    {codEnabled && (
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={paymentMethod === 'cod'}
+                        className={`checkout-pay-option${paymentMethod === 'cod' ? ' checkout-pay-option--active' : ''}`}
+                        onClick={() => setPaymentMethod('cod')}
+                      >
+                        <Truck size={18} />
+                        <span>
+                          <strong>Cash on delivery</strong>
+                          <small>Pay when your order arrives</small>
                         </span>
                       </button>
                     )}
@@ -1210,7 +1216,7 @@ export default function Checkout() {
               )}
               <div className="checkout-summary__row">
                 <span>Shipping</span>
-                <span style={freeShippingApplied || deliveryCharges === 0 ? { color: '#1a7a40', fontWeight: 700 } : {}}>
+                <span style={shippingIsFree ? { color: '#1a7a40', fontWeight: 700 } : {}}>
                   {freeShippingApplied ? (
                     <span>
                       <span>Free</span>
@@ -1229,7 +1235,7 @@ export default function Checkout() {
                   <span>{formatPrice(taxes)}</span>
                 </div>
               )}
-              {deliveryCharges === 0 && activeQuote?.includesShippingAndHandling && (
+              {Number(deliveryCharges) === 0 && activeQuote?.includesShippingAndHandling && (
                 <p className="checkout-summary__perk">Complimentary shipping on this order</p>
               )}
             </div>

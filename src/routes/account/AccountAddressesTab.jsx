@@ -16,6 +16,13 @@ import {
 import { applyFieldErrors } from '@/features/address/mappers'
 import { ADDRESS_FORM_DEFAULTS, addressFormSchema } from '@/features/address/schema'
 import { useAppStore } from '@/store'
+import { scrollToTop } from '@/lib/lenis'
+
+function revealAddressesTop() {
+  scrollToTop()
+  requestAnimationFrame(scrollToTop)
+  window.setTimeout(scrollToTop, 50)
+}
 
 export function AccountAddressesTab() {
   const user = useAppStore((s) => s.user)
@@ -85,13 +92,14 @@ export function AccountAddressesTab() {
       deliveryInstructions: addr.deliveryInstructions || '',
     })
     setShowAddressForm(true)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    revealAddressesTop()
   }
 
   const closeAddressForm = () => {
     setAddressFormError('')
     setEditingAddressId(null)
     setShowAddressForm(false)
+    revealAddressesTop()
   }
 
   const handleSaveAddress = async (data) => {
@@ -121,6 +129,7 @@ export function AccountAddressesTab() {
       })
       setEditingAddressId(null)
       setShowAddressForm(false)
+      revealAddressesTop()
     } catch (err) {
       const applied = applyFieldErrors(err, addressForm.setError)
       if (!applied) {
