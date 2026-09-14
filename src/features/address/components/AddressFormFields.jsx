@@ -59,32 +59,23 @@ export function usePincodeLookup(postalCodeVal, setValue, cityVal, stateVal, are
 }
 
 function PhoneFieldWithCaution({ register, errors, idPrefix = 'addr' }) {
-  const [phoneVal, setPhoneVal] = useState('')
-  const digits = phoneVal.replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '')
-  const hasCaution = digits.length > 10
-
   return (
     <InputGroup label="Phone" htmlFor={`${idPrefix}-phone`} error={errors?.phone?.message} required>
       <Input
         id={`${idPrefix}-phone`}
         type="tel"
         inputMode="numeric"
+        maxLength={10}
         placeholder="10-digit mobile number"
         error={errors?.phone}
         onKeyDown={restrictToNumbersKeyDown}
         {...register('phone', {
           onChange: (e) => {
-            const clean = e.target.value.replace(/\D/g, '')
+            const clean = e.target.value.replace(/\D/g, '').slice(0, 10)
             e.target.value = clean
-            setPhoneVal(clean)
           },
         })}
       />
-      {hasCaution && (
-        <span className="input-caution" role="status">
-          ⚠️ Number can only be 10 digits ({digits.length} entered)
-        </span>
-      )}
     </InputGroup>
   )
 }

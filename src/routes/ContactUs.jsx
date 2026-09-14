@@ -65,10 +65,6 @@ export default function ContactUs() {
     },
   })
 
-  const phoneVal = watch('phone') || ''
-  const phoneDigits = phoneVal.replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '')
-  const phoneCaution = phoneDigits.length > 10
-
   const onSubmit = async (data) => {
     try {
       const formData = new FormData()
@@ -187,20 +183,16 @@ export default function ContactUs() {
                       id="cu-phone"
                       type="tel"
                       inputMode="numeric"
+                      maxLength={10}
                       placeholder="10-digit phone number"
                       error={errors.phone}
                       onKeyDown={restrictToNumbersKeyDown}
                       {...register('phone', {
                         onChange: (e) => {
-                          e.target.value = e.target.value.replace(/\D/g, '')
+                          e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10)
                         },
                       })}
                     />
-                    {phoneCaution && (
-                      <span className="input-caution" role="status">
-                        ⚠️ Number can only be 10 digits ({phoneDigits.length} entered)
-                      </span>
-                    )}
                   </InputGroup>
                 </div>
 

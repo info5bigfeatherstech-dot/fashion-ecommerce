@@ -8,6 +8,7 @@ import {
   isValidInquiryPhone,
   validateInquiryContact,
 } from '@/features/product/oosInquiryValidation'
+import { restrictToNumbersKeyDown } from '@/lib/utils'
 
 /**
  * PDP out-of-stock notify form.
@@ -167,6 +168,7 @@ export function OutOfStockInquiryForm({ productId, variantId, disabled = false }
               disabled={submitting || disabled}
               maxLength={10}
               pattern="[6-9][0-9]{9}"
+              onKeyDown={restrictToNumbersKeyDown}
               onChange={(e) => {
                 const next = e.target.value.replace(/\D/g, '').slice(0, 10)
                 setPhone(next)

@@ -123,9 +123,6 @@ export default function Wholesale() {
   })
 
   const attachmentFiles = watch('attachment')
-  const phoneVal = watch('phone') || ''
-  const phoneDigits = phoneVal.replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '')
-  const phoneCaution = phoneDigits.length > 10
   const attachmentName = attachmentFiles?.[0]?.name
 
   const onSubmit = async (data) => {
@@ -267,20 +264,16 @@ export default function Wholesale() {
                       id="ws-phone"
                       type="tel"
                       inputMode="numeric"
+                      maxLength={10}
                       placeholder="10-digit phone / WhatsApp number"
                       error={errors.phone}
                       onKeyDown={restrictToNumbersKeyDown}
                       {...register('phone', {
                         onChange: (e) => {
-                          e.target.value = e.target.value.replace(/\D/g, '')
+                          e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10)
                         },
                       })}
                     />
-                    {phoneCaution && (
-                      <span className="input-caution" role="status">
-                        ⚠️ Number can only be 10 digits ({phoneDigits.length} entered)
-                      </span>
-                    )}
                   </InputGroup>
                   <InputGroup label="Country" htmlFor="ws-country" required error={errors.country?.message}>
                     <select

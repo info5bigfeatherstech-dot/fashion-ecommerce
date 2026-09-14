@@ -136,9 +136,6 @@ export function AuthForms({
     },
   })
 
-  const regPhone = registerForm.watch('phone') || ''
-  const regPhoneDigits = String(regPhone).replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '')
-  const regPhoneCaution = regPhoneDigits.length > 10
   const forgotFindForm = useForm({
     resolver: zodResolver(forgotFindSchema),
     defaultValues: { identifier: '' },
@@ -553,21 +550,17 @@ export function AuthForms({
                   id="reg-phone"
                   type="tel"
                   inputMode="numeric"
+                  maxLength={10}
                   placeholder="10-digit Phone Number"
                   aria-label="Phone Number"
                   error={registerForm.formState.errors.phone}
                   onKeyDown={restrictToNumbersKeyDown}
                   {...registerForm.register('phone', {
                     onChange: (e) => {
-                      e.target.value = e.target.value.replace(/\D/g, '')
+                      e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10)
                     },
                   })}
                 />
-                {regPhoneCaution && (
-                  <span className="input-caution" role="status">
-                    ⚠️ Number can only be 10 digits ({regPhoneDigits.length} entered)
-                  </span>
-                )}
               </InputGroup>
             </div>
 

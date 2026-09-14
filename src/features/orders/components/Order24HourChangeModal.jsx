@@ -318,16 +318,12 @@ export function Order24HourChangeModal({ open, onClose, order }) {
                   <Input
                     type="tel"
                     inputMode="numeric"
+                    maxLength={10}
                     placeholder="10-digit phone number (optional)"
                     value={phone}
                     onKeyDown={restrictToNumbersKeyDown}
-                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                   />
-                  {phone.replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '').length > 10 && (
-                    <span className="input-caution" role="status">
-                      ⚠️ Number can only be 10 digits ({phone.replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '').length} entered)
-                    </span>
-                  )}
                 </InputGroup>
               </div>
 

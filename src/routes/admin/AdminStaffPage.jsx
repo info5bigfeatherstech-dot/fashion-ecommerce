@@ -271,18 +271,14 @@ function CreateStaffModal({ onClose, onSuccess }) {
             <input
               type="tel"
               inputMode="numeric"
+              maxLength={10}
               value={form.phone}
               onKeyDown={restrictToNumbersKeyDown}
-              onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value.replace(/\D/g, '') }))}
+              onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
               placeholder="10-digit mobile number"
               title="10-digit phone number (optional)"
             />
           </div>
-          {form.phone.trim().replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '').length > 10 && (
-            <span className="input-caution" role="status" style={{ marginTop: '6px' }}>
-              ⚠️ Number can only be 10 digits ({form.phone.trim().replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '').length} entered)
-            </span>
-          )}
         </label>
 
         <label className="admin-staff__field">
@@ -478,18 +474,14 @@ function EditStaffModal({ staff, onClose, onSuccess }) {
             <input
               type="tel"
               inputMode="numeric"
+              maxLength={10}
               value={form.phone}
               onKeyDown={restrictToNumbersKeyDown}
-              onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value.replace(/\D/g, '') }))}
+              onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
               placeholder="10-digit mobile number"
               title="10-digit phone number"
             />
           </div>
-          {form.phone.trim().replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '').length > 10 && (
-            <span className="input-caution" role="status" style={{ marginTop: '6px' }}>
-              ⚠️ Number can only be 10 digits ({form.phone.trim().replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '').length} entered)
-            </span>
-          )}
         </label>
 
         <label className="admin-staff__field">

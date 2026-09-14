@@ -122,5 +122,13 @@ export function restrictToNumbersKeyDown(e) {
   }
   if (!/^\d$/.test(e.key)) {
     e.preventDefault()
+    return
+  }
+  const target = e.target
+  if (target && typeof target.value === 'string') {
+    const selectedLen = (target.selectionEnd || 0) - (target.selectionStart || 0)
+    if (target.value.replace(/\D/g, '').length >= 10 && selectedLen === 0) {
+      e.preventDefault()
+    }
   }
 }
