@@ -337,10 +337,80 @@ function AreaLocalitySelect({
   )
 }
 
+export function clampAddressFieldValue(fieldName, nextValue, allFields, maxLength = COURIER_MAX_LENGTH) {
+  if (typeof nextValue !== 'string') return nextValue
+
+  const testFields = { ...allFields, [fieldName]: nextValue }
+  if (buildCourierLines(testFields).combinedLength <= maxLength) {
+    return nextValue
+  }
+
+  // If user is shortening or deleting, allow it
+  const currentVal = String(allFields[fieldName] || '')
+  if (nextValue.length <= currentVal.length) {
+    return nextValue
+  }
+
+  // Binary search for maximum prefix that fits within maxLength
+  let low = 0
+  let high = nextValue.length
+  let best = 0
+
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2)
+    const candidate = nextValue.slice(0, mid)
+    const candidateFields = { ...allFields, [fieldName]: candidate }
+    if (buildCourierLines(candidateFields).combinedLength <= maxLength) {
+      best = mid
+      low = mid + 1
+    } else {
+      high = mid - 1
+    }
+  }
+
+  return nextValue.slice(0, best)
+}
+
+export function handleAddressKeyDown(e, fieldName, allFields, maxLength = COURIER_MAX_LENGTH) {
+  if (
+    e.key === 'Backspace' ||
+    e.key === 'Delete' ||
+    e.key === 'Tab' ||
+    e.key === 'Escape' ||
+    e.key === 'Enter' ||
+    e.key === 'ArrowLeft' ||
+    e.key === 'ArrowRight' ||
+    e.key === 'ArrowUp' ||
+    e.key === 'ArrowDown' ||
+    e.key === 'Home' ||
+    e.key === 'End' ||
+    e.ctrlKey ||
+    e.metaKey ||
+    e.altKey
+  ) {
+    return
+  }
+
+  if (e.key.length === 1) {
+    const target = e.target
+    const start = target.selectionStart ?? target.value.length
+    const end = target.selectionEnd ?? target.value.length
+
+    const currentVal = target.value || ''
+    const nextVal = currentVal.slice(0, start) + e.key + currentVal.slice(end)
+
+    const testFields = { ...allFields, [fieldName]: nextVal }
+    if (buildCourierLines(testFields).combinedLength > maxLength) {
+      e.preventDefault()
+    }
+  }
+}
+
 function AddressLocationFieldsWithWatch({
   register,
   control,
   setValue,
+  getValues,
   errors,
   idPrefix = 'addr',
   layout = 'default',
@@ -396,6 +466,65 @@ function AddressLocationFieldsWithWatch({
 
   const overLimit = courier.combinedLength > COURIER_MAX_LENGTH
 
+  const getLatestFields = () => {
+    if (typeof getValues === 'function') {
+      const vals = getValues() || {}
+      return {
+        houseNumber: vals.houseNumber ?? '',
+        building: vals.building ?? '',
+        floor: vals.floor ?? '',
+        addressLine1: vals.addressLine1 ?? '',
+        addressLine2: vals.addressLine2 ?? '',
+        area: vals.area ?? '',
+        landmark: vals.landmark ?? '',
+      }
+    }
+    if (control?._formValues) {
+      const vals = control._formValues
+      return {
+        houseNumber: vals.houseNumber ?? '',
+        building: vals.building ?? '',
+        floor: vals.floor ?? '',
+        addressLine1: vals.addressLine1 ?? '',
+        addressLine2: vals.addressLine2 ?? '',
+        area: vals.area ?? '',
+        landmark: vals.landmark ?? '',
+      }
+    }
+    return {
+      houseNumber: houseNumberVal || '',
+      building: buildingVal || '',
+      floor: floorVal || '',
+      addressLine1: line1Val || '',
+      addressLine2: line2Val || '',
+      area: areaVal || '',
+      landmark: landmarkVal || '',
+    }
+  }
+
+  const bindAddressField = (fieldName) => {
+    const reg = register(fieldName, {
+      onChange: (e) => {
+        const original = e.target.value
+        const latest = getLatestFields()
+        const clamped = clampAddressFieldValue(fieldName, original, latest, COURIER_MAX_LENGTH)
+        if (clamped !== original) {
+          e.target.value = clamped
+          if (setValue) {
+            setValue(fieldName, clamped, { shouldValidate: true, shouldDirty: true })
+          }
+        }
+      },
+    })
+    return {
+      ...reg,
+      onKeyDown: (e) => {
+        const latest = getLatestFields()
+        handleAddressKeyDown(e, fieldName, latest, COURIER_MAX_LENGTH)
+      },
+    }
+  }
+
   const locationPill = (
     <>
       {isFetchingPin && (
@@ -428,16 +557,16 @@ function AddressLocationFieldsWithWatch({
 
         <div className="address-wizard__row address-wizard__row--2col">
           <InputGroup label="House / flat no." htmlFor={`${idPrefix}-house`} error={errors.houseNumber?.message} required>
-            <Input id={`${idPrefix}-house`} placeholder="e.g. 42B" error={errors.houseNumber} {...register('houseNumber')} />
+            <Input id={`${idPrefix}-house`} placeholder="e.g. 42B" error={errors.houseNumber} {...bindAddressField('houseNumber')} />
           </InputGroup>
           <InputGroup label="Floor no." htmlFor={`${idPrefix}-floor`} error={errors.floor?.message}>
-            <Input id={`${idPrefix}-floor`} placeholder="e.g. 4th Floor" error={errors.floor} {...register('floor')} />
+            <Input id={`${idPrefix}-floor`} placeholder="e.g. 4th Floor" error={errors.floor} {...bindAddressField('floor')} />
           </InputGroup>
         </div>
 
         <div className="address-wizard__row address-wizard__row--2col">
           <InputGroup label="Building no." htmlFor={`${idPrefix}-building`} error={errors.building?.message}>
-            <Input id={`${idPrefix}-building`} placeholder="e.g. Sunrise Apartments" error={errors.building} {...register('building')} />
+            <Input id={`${idPrefix}-building`} placeholder="e.g. Sunrise Apartments" error={errors.building} {...bindAddressField('building')} />
           </InputGroup>
           <InputGroup label="Area / locality" htmlFor={`${idPrefix}-area`} error={errors.area?.message} required>
             <Controller
@@ -458,12 +587,18 @@ function AddressLocationFieldsWithWatch({
         </div>
 
         <InputGroup label="Landmark" htmlFor={`${idPrefix}-landmark`} error={errors.landmark?.message}>
-          <Input id={`${idPrefix}-landmark`} placeholder="Near City Mall (optional)" error={errors.landmark} {...register('landmark')} />
-          {overLimit && (
+          <Input id={`${idPrefix}-landmark`} placeholder="Near City Mall (optional)" error={errors.landmark} {...bindAddressField('landmark')} />
+          {courier.combinedLength >= COURIER_MAX_LENGTH ? (
             <p className="address-form__hint address-form__hint--warn" style={{ marginTop: '4px' }}>
-              Address is {courier.combinedLength}/{COURIER_MAX_LENGTH} chars — shorten a field to fit courier limits.
+              {courier.combinedLength > COURIER_MAX_LENGTH
+                ? `Address is ${courier.combinedLength}/${COURIER_MAX_LENGTH} chars — shorten a field to fit courier limits.`
+                : `Address is ${courier.combinedLength}/${COURIER_MAX_LENGTH} chars — maximum courier limit reached.`}
             </p>
-          )}
+          ) : courier.combinedLength >= 170 ? (
+            <p className="address-form__hint" style={{ marginTop: '4px', color: 'var(--color-muted)' }}>
+              Address is {courier.combinedLength}/{COURIER_MAX_LENGTH} chars ({COURIER_MAX_LENGTH - courier.combinedLength} chars left)
+            </p>
+          ) : null}
         </InputGroup>
 
         <InputGroup label="Street address (line 1)" htmlFor={`${idPrefix}-line1`} error={errors.addressLine1?.message} required>
@@ -471,12 +606,12 @@ function AddressLocationFieldsWithWatch({
             id={`${idPrefix}-line1`}
             placeholder="Street and road details"
             error={errors.addressLine1}
-            {...register('addressLine1')}
+            {...bindAddressField('addressLine1')}
           />
         </InputGroup>
 
         <InputGroup label="Address line 2 (optional)" htmlFor={`${idPrefix}-line2`} error={errors.addressLine2?.message}>
-          <Input id={`${idPrefix}-line2`} placeholder="Wing and apartment details" error={errors.addressLine2} {...register('addressLine2')} />
+          <Input id={`${idPrefix}-line2`} placeholder="Wing and apartment details" error={errors.addressLine2} {...bindAddressField('addressLine2')} />
         </InputGroup>
 
         <div className="address-wizard__row address-wizard__row--2col">
@@ -536,16 +671,16 @@ function AddressLocationFieldsWithWatch({
 
       <div className="address-form__row">
         <InputGroup label="House / flat no." htmlFor={`${idPrefix}-house`} error={errors.houseNumber?.message} required>
-          <Input id={`${idPrefix}-house`} placeholder="12-A" error={errors.houseNumber} {...register('houseNumber')} />
+          <Input id={`${idPrefix}-house`} placeholder="12-A" error={errors.houseNumber} {...bindAddressField('houseNumber')} />
         </InputGroup>
         <InputGroup label="Building (optional)" htmlFor={`${idPrefix}-building`} error={errors.building?.message}>
-          <Input id={`${idPrefix}-building`} placeholder="Apartment / society" error={errors.building} {...register('building')} />
+          <Input id={`${idPrefix}-building`} placeholder="Apartment / society" error={errors.building} {...bindAddressField('building')} />
         </InputGroup>
       </div>
 
       <div className="address-form__row address-form__row--asymmetric">
         <InputGroup label="Floor (optional)" htmlFor={`${idPrefix}-floor`} error={errors.floor?.message}>
-          <Input id={`${idPrefix}-floor`} placeholder="3" error={errors.floor} {...register('floor')} />
+          <Input id={`${idPrefix}-floor`} placeholder="3" error={errors.floor} {...bindAddressField('floor')} />
         </InputGroup>
         <InputGroup label="Area / locality" htmlFor={`${idPrefix}-area`} error={errors.area?.message} required>
           <Controller
@@ -566,27 +701,33 @@ function AddressLocationFieldsWithWatch({
       </div>
 
       <div className="address-form__row">
-        <InputGroup label="Street address" htmlFor={`${idPrefix}-line1`} error={errors.addressLine1?.message} required>
+        <InputGroup label="Address line 1" htmlFor={`${idPrefix}-line1`} error={errors.addressLine1?.message} required>
           <Input
             id={`${idPrefix}-line1`}
             placeholder="Road, street, landmark"
             error={errors.addressLine1}
-            {...register('addressLine1')}
+            {...bindAddressField('addressLine1')}
           />
         </InputGroup>
-        <InputGroup label="Address line 2 (optional)" htmlFor={`${idPrefix}-line2`} error={errors.addressLine2?.message}>
-          <Input id={`${idPrefix}-line2`} placeholder="Lane / wing" error={errors.addressLine2} {...register('addressLine2')} />
+        <InputGroup label="Address line 2 " htmlFor={`${idPrefix}-line2`} error={errors.addressLine2?.message}>
+          <Input id={`${idPrefix}-line2`} placeholder="Lane / wing" error={errors.addressLine2} {...bindAddressField('addressLine2')} />
         </InputGroup>
       </div>
 
       <div className="address-form__row">
         <InputGroup label="Landmark (optional)" htmlFor={`${idPrefix}-landmark`} error={errors.landmark?.message}>
-          <Input id={`${idPrefix}-landmark`} placeholder="Near metro" error={errors.landmark} {...register('landmark')} />
-          {overLimit && (
+          <Input id={`${idPrefix}-landmark`} placeholder="Near metro" error={errors.landmark} {...bindAddressField('landmark')} />
+          {courier.combinedLength >= COURIER_MAX_LENGTH ? (
             <p className="address-form__hint address-form__hint--warn" style={{ marginTop: '4px' }}>
-              Address is {courier.combinedLength}/{COURIER_MAX_LENGTH} chars — shorten a field to fit courier limits.
+              {courier.combinedLength > COURIER_MAX_LENGTH
+                ? `Address is ${courier.combinedLength}/${COURIER_MAX_LENGTH} chars — shorten a field to fit courier limits.`
+                : `Address is ${courier.combinedLength}/${COURIER_MAX_LENGTH} chars — maximum courier limit reached.`}
             </p>
-          )}
+          ) : courier.combinedLength >= 170 ? (
+            <p className="address-form__hint" style={{ marginTop: '4px', color: 'var(--color-muted)' }}>
+              Address is {courier.combinedLength}/{COURIER_MAX_LENGTH} chars ({COURIER_MAX_LENGTH - courier.combinedLength} chars left)
+            </p>
+          ) : null}
         </InputGroup>
         <InputGroup label="PIN code" htmlFor={`${idPrefix}-pin`} error={errors.postalCode?.message} required>
           <Input
@@ -633,6 +774,7 @@ export function AddressLocationFields({
   register,
   control: controlProp,
   setValue: setValueProp,
+  getValues: getValuesProp,
   errors: errorsProp,
   idPrefix = 'addr',
   layout = 'default',
@@ -641,6 +783,7 @@ export function AddressLocationFields({
   const control = controlProp || formContext?.control
   const errors = errorsProp || formContext?.formState?.errors || {}
   const setValue = setValueProp || formContext?.setValue
+  const getValues = getValuesProp || formContext?.getValues
 
   if (!control) {
     return null
@@ -651,6 +794,7 @@ export function AddressLocationFields({
       register={register}
       control={control}
       setValue={setValue}
+      getValues={getValues}
       errors={errors}
       idPrefix={idPrefix}
       layout={layout}
@@ -662,8 +806,10 @@ export function AddressFormFields({
   register,
   control,
   setValue,
+  getValues,
   errors,
   idPrefix = 'addr',
+  layout = 'default',
 }) {
   return (
     <div className="address-form">
@@ -671,15 +817,19 @@ export function AddressFormFields({
         register={register}
         control={control}
         setValue={setValue}
+        getValues={getValues}
         errors={errors}
         idPrefix={idPrefix}
+        layout={layout}
       />
       <AddressLocationFields
         register={register}
         control={control}
         setValue={setValue}
+        getValues={getValues}
         errors={errors}
         idPrefix={idPrefix}
+        layout={layout}
       />
     </div>
   )

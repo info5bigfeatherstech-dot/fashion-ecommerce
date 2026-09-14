@@ -243,6 +243,7 @@ export function AccountAddressesTab() {
               register={addressForm.register}
               control={addressForm.control}
               setValue={addressForm.setValue}
+              getValues={addressForm.getValues}
               errors={addressForm.formState.errors}
               idPrefix="account-addr"
             />

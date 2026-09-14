@@ -278,6 +278,7 @@ export function CheckoutAddressModal({ open, onOpenChange, onProceed }) {
                 register={addressForm.register}
                 control={addressForm.control}
                 setValue={addressForm.setValue}
+                getValues={addressForm.getValues}
                 errors={addressForm.formState.errors}
                 idPrefix="checkout-addr"
                 layout="wizard"
