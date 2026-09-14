@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
-import { MapPin, Plus, Pencil } from 'lucide-react'
+import { MapPin, Plus, Pencil, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { AddressFormFields } from '@/features/address/components/AddressFormFields'
@@ -195,6 +195,15 @@ export function AccountAddressesTab() {
         <div className="account-panel account-panel--address-form">
           <div className="account-panel__header account-address-form__header">
             <div>
+              <button
+                type="button"
+                className="account-address-form__back-btn"
+                onClick={closeAddressForm}
+                aria-label="Back to all addresses"
+              >
+                <ArrowLeft size={14} aria-hidden="true" />
+                <span>Back to Addresses</span>
+              </button>
               <p className="heading-sm text-accent">
                 {editingAddressId ? 'Edit address' : 'New address'}
               </p>
@@ -211,6 +220,18 @@ export function AccountAddressesTab() {
                   : 'Enter your delivery details so checkout is faster next time.'}
               </p>
             </div>
+            {/* {addresses.length > 0 && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={closeAddressForm}
+                className="account-address-form__top-back-btn"
+              >
+                <ArrowLeft size={14} />
+                All addresses
+              </Button>
+            )} */}
           </div>
 
           <form
