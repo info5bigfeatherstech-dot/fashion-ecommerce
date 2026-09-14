@@ -13,6 +13,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input, InputGroup } from '@/components/ui/Input'
 import { toast } from 'sonner'
+import { restrictToNumbersKeyDown } from '@/lib/utils'
 import { getHoursRemainingIn24h, formatOrderDateTime } from '../utils'
 import { createReturnRequest } from '../api'
 
@@ -73,6 +74,16 @@ export function Order24HourChangeModal({ open, onClose, order }) {
     e.preventDefault()
     if (!query.trim()) {
       toast.error('Please describe your return/refund query.')
+      return
+    }
+
+    const cleanPhone = phone.replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '')
+    if (phone.trim() && cleanPhone.length !== 10) {
+      if (cleanPhone.length > 10) {
+        toast.error('Number can only be 10 digits')
+      } else {
+        toast.error('Please enter a valid 10-digit phone number.')
+      }
       return
     }
 
@@ -306,10 +317,17 @@ export function Order24HourChangeModal({ open, onClose, order }) {
                 <InputGroup label="Preferred contact phone number (optional)">
                   <Input
                     type="tel"
-                    placeholder="e.g. +91 98765 43210"
+                    inputMode="numeric"
+                    placeholder="10-digit phone number (optional)"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onKeyDown={restrictToNumbersKeyDown}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
                   />
+                  {phone.replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '').length > 10 && (
+                    <span className="input-caution" role="status">
+                      ⚠️ Number can only be 10 digits ({phone.replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '').length} entered)
+                    </span>
+                  )}
                 </InputGroup>
               </div>
 

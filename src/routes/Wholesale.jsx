@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/Button'
 import { Input, InputGroup } from '@/components/ui/Input'
 import { SITE_CONTACT } from '@/config/site'
+import { restrictToNumbersKeyDown } from '@/lib/utils'
 
 const WHOLESALE_EMAIL = SITE_CONTACT.wholesaleEmail || 'fabuniqo@gmail.com'
 
@@ -62,8 +63,21 @@ const wholesaleSchema = z.object({
     .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Enter a valid email'),
   phone: z
     .string()
-    .min(8, 'Phone / WhatsApp number is required')
-    .max(20, 'Phone number looks too long'),
+    .trim()
+    .min(1, 'Phone / WhatsApp number is required')
+    .refine(
+      (v) => {
+        const digits = v.replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '')
+        return digits.length === 10
+      },
+      (v) => {
+        const digits = v.replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '')
+        if (digits.length > 10) {
+          return { message: 'Number can only be 10 digits' }
+        }
+        return { message: 'Enter a valid 10-digit phone / WhatsApp number' }
+      }
+    ),
   country: z.string().min(2, 'Country is required'),
   cityState: z.string().min(2, 'City & state is required'),
   companyName: z.string().optional(),
@@ -109,6 +123,9 @@ export default function Wholesale() {
   })
 
   const attachmentFiles = watch('attachment')
+  const phoneVal = watch('phone') || ''
+  const phoneDigits = phoneVal.replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '')
+  const phoneCaution = phoneDigits.length > 10
   const attachmentName = attachmentFiles?.[0]?.name
 
   const onSubmit = async (data) => {
@@ -249,10 +266,21 @@ export default function Wholesale() {
                     <Input
                       id="ws-phone"
                       type="tel"
-                      placeholder="+91 98765 43210"
+                      inputMode="numeric"
+                      placeholder="10-digit phone / WhatsApp number"
                       error={errors.phone}
-                      {...register('phone')}
+                      onKeyDown={restrictToNumbersKeyDown}
+                      {...register('phone', {
+                        onChange: (e) => {
+                          e.target.value = e.target.value.replace(/\D/g, '')
+                        },
+                      })}
                     />
+                    {phoneCaution && (
+                      <span className="input-caution" role="status">
+                        ⚠️ Number can only be 10 digits ({phoneDigits.length} entered)
+                      </span>
+                    )}
                   </InputGroup>
                   <InputGroup label="Country" htmlFor="ws-country" required error={errors.country?.message}>
                     <select

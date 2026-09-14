@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
-import { MapPin, Plus } from 'lucide-react'
+import { MapPin, Plus, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { AddressFormFields } from '@/features/address/components/AddressFormFields'
 import {
   useAddresses,
   useCreateAddress,
+  useUpdateAddress,
   useDeleteAddress,
   useSetDefaultAddress,
 } from '@/features/address/hooks'
@@ -21,6 +22,7 @@ export function AccountAddressesTab() {
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
   const [addressFormError, setAddressFormError] = useState('')
   const [showAddressForm, setShowAddressForm] = useState(false)
+  const [editingAddressId, setEditingAddressId] = useState(null)
 
   const {
     data: addressData,
@@ -29,6 +31,7 @@ export function AccountAddressesTab() {
     error: addressesError,
   } = useAddresses({ enabled: isAuthenticated, refetchOnMount: 'always' })
   const createAddress = useCreateAddress()
+  const updateAddress = useUpdateAddress()
   const deleteAddress = useDeleteAddress()
   const setDefaultAddress = useSetDefaultAddress()
 
@@ -43,8 +46,14 @@ export function AccountAddressesTab() {
     },
   })
 
+  const isSaving =
+    createAddress.isPending ||
+    updateAddress.isPending ||
+    addressForm.formState.isSubmitting
+
   const openAddressForm = () => {
     setAddressFormError('')
+    setEditingAddressId(null)
     addressForm.reset({
       ...ADDRESS_FORM_DEFAULTS,
       fullName: user?.name || '',
@@ -53,27 +62,72 @@ export function AccountAddressesTab() {
     setShowAddressForm(true)
   }
 
+  const handleEditAddress = (addr) => {
+    setAddressFormError('')
+    setEditingAddressId(addr.id)
+    addressForm.reset({
+      fullName: addr.fullName || '',
+      phone: addr.phone || '',
+      houseNumber: addr.houseNumber || '',
+      building: addr.building || '',
+      floor: addr.floor || '',
+      area: addr.area || '',
+      landmark: addr.landmark || '',
+      addressLine1: addr.addressLine1 || '',
+      addressLine2: addr.addressLine2 || '',
+      city: addr.city || '',
+      state: addr.state || '',
+      postalCode: addr.postalCode || addr.zip || '',
+      country: addr.country || 'India',
+      addressType: addr.addressType || 'home',
+      isDefault: Boolean(addr.isDefault),
+      isGift: Boolean(addr.isGift),
+      deliveryInstructions: addr.deliveryInstructions || '',
+    })
+    setShowAddressForm(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   const closeAddressForm = () => {
     setAddressFormError('')
+    setEditingAddressId(null)
     setShowAddressForm(false)
   }
 
-  const handleAddAddress = async (data) => {
+  const handleSaveAddress = async (data) => {
     setAddressFormError('')
     try {
-      const result = await createAddress.mutateAsync(data)
-      toast.success(result.message || 'Address saved')
+      if (editingAddressId) {
+        const result = await updateAddress.mutateAsync({
+          id: editingAddressId,
+          patch: data,
+        })
+        const checkout = useAppStore.getState().checkoutAddress
+        if (checkout?.id === editingAddressId) {
+          useAppStore.getState().setCheckoutAddress({
+            ...checkout,
+            ...data,
+          })
+        }
+        toast.success(result.message || 'Address updated')
+      } else {
+        const result = await createAddress.mutateAsync(data)
+        toast.success(result.message || 'Address saved')
+      }
       addressForm.reset({
         ...ADDRESS_FORM_DEFAULTS,
-        fullName: user?.name || data.fullName || '',
+        fullName: user?.name || '',
         phone: user?.phone || '',
       })
+      setEditingAddressId(null)
       setShowAddressForm(false)
     } catch (err) {
       const applied = applyFieldErrors(err, addressForm.setError)
       if (!applied) {
-        setAddressFormError(err?.message || 'Could not save address')
-        toast.error(err?.message || 'Could not save address')
+        const msg =
+          err?.message || (editingAddressId ? 'Could not update address' : 'Could not save address')
+        setAddressFormError(msg)
+        toast.error(msg)
       }
     }
   }
@@ -84,6 +138,9 @@ export function AccountAddressesTab() {
       const checkout = useAppStore.getState().checkoutAddress
       if (checkout?.id === id) {
         useAppStore.getState().clearCheckoutAddress()
+      }
+      if (editingAddressId === id) {
+        closeAddressForm()
       }
       toast.success(result.message || 'Address removed')
     } catch (err) {
@@ -101,13 +158,13 @@ export function AccountAddressesTab() {
   }
 
   useEffect(() => {
-    if (!user) return
+    if (!user || editingAddressId) return
     addressForm.reset({
       ...ADDRESS_FORM_DEFAULTS,
       fullName: user.name || '',
       phone: user.phone || '',
     })
-  }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.id, editingAddressId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="account-section">
@@ -138,19 +195,27 @@ export function AccountAddressesTab() {
         <div className="account-panel account-panel--address-form">
           <div className="account-panel__header account-address-form__header">
             <div>
-              <p className="heading-sm text-accent">New address</p>
+              <p className="heading-sm text-accent">
+                {editingAddressId ? 'Edit address' : 'New address'}
+              </p>
               <h3 className="display-md">
-                {addresses.length === 0 ? 'Add your address' : 'Add a new address'}
+                {editingAddressId
+                  ? 'Update your address'
+                  : addresses.length === 0
+                    ? 'Add your address'
+                    : 'Add a new address'}
               </h3>
               <p className="body-sm text-muted account-address-form__lede">
-                Enter your delivery details so checkout is faster next time.
+                {editingAddressId
+                  ? 'Make changes to your delivery address details.'
+                  : 'Enter your delivery details so checkout is faster next time.'}
               </p>
             </div>
           </div>
 
           <form
             className="account-address-form"
-            onSubmit={addressForm.handleSubmit(handleAddAddress)}
+            onSubmit={addressForm.handleSubmit(handleSaveAddress)}
             noValidate
           >
             <AddressFormFields
@@ -173,7 +238,7 @@ export function AccountAddressesTab() {
                 variant="secondary"
                 size="sm"
                 onClick={closeAddressForm}
-                disabled={createAddress.isPending || addressForm.formState.isSubmitting}
+                disabled={isSaving}
               >
                 Cancel
               </Button>
@@ -181,9 +246,15 @@ export function AccountAddressesTab() {
                 type="submit"
                 variant="primary"
                 size="sm"
-                disabled={createAddress.isPending || addressForm.formState.isSubmitting}
+                disabled={isSaving}
               >
-                {createAddress.isPending ? 'Saving…' : 'Save address'}
+                {isSaving
+                  ? editingAddressId
+                    ? 'Updating…'
+                    : 'Saving…'
+                  : editingAddressId
+                    ? 'Update address'
+                    : 'Save address'}
               </Button>
             </div>
           </form>
@@ -226,6 +297,14 @@ export function AccountAddressesTab() {
                 {addr.phone && <p className="account-address-card__phone">Phone: {addr.phone}</p>}
               </div>
               <div className="account-address-card__actions">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleEditAddress(addr)}
+                >
+                  <Pencil size={14} />
+                  Edit
+                </Button>
                 {!addr.isDefault && (
                   <Button
                     variant="secondary"

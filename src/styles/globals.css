@@ -121,7 +121,7 @@
   :root {
     --header-height: 68px;
     --logo-height: 48px;
-    --logo-inner-scale: 2.4;
+    --logo-inner-scale: 1;
     --space-8: 48px;
     --space-10: 56px;
   }
@@ -1271,6 +1271,21 @@ select.input {
 .input-error {
   font-size: var(--text-xs);
   color: var(--color-error);
+}
+
+.input-caution {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-xs);
+  color: #b45309;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 4px;
+  padding: 3px 8px;
+  margin-top: 4px;
+  font-weight: var(--weight-medium);
+  line-height: 1.3;
 }
 
 .input-row {
@@ -3730,6 +3745,7 @@ div.auth-google-btn {
 /* Mobile: hamburger + logo on row 1; search icon / search bar on row 2 */
 @media (max-width: 767px) {
   .header__main-inner {
+    position: relative;
     gap: var(--space-1);
     flex-wrap: wrap;
   }
@@ -3763,18 +3779,48 @@ div.auth-google-btn {
 
   .header__menu-btn {
     order: 1;
+    position: relative;
+    z-index: 3;
   }
 
   .header__logo {
     order: 2;
-    height: calc(var(--header-height) - 16px);
-    padding: 1px 10px;
-    margin-right: auto;
+    position: absolute;
+    left: 50%;
+    top: 6px;
+    transform: translateX(-50%);
+    height: 40px;
+    max-height: 42px;
+    padding: 0;
+    margin: 0;
     background-color: transparent;
+    overflow: visible;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
   }
 
-  .header__logo .brand-logo {
+  .header__logo .brand-logo-picture {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    max-height: 100%;
+  }
+
+  .header__logo .brand-logo,
+  .brand-logo--header {
+    height: 100%;
+    width: auto;
+    max-height: 38px;
+    min-width: 0 !important;
+    max-width: 175px !important;
+    object-fit: contain !important;
+    object-position: center center;
+    transform: none !important;
     background: transparent;
+    margin-inline: auto;
   }
 
   .header__util:not(.header__util--icon),
@@ -5730,8 +5776,31 @@ div.auth-google-btn {
 
 @media (max-width: 767px) {
   .footer__logo {
-    height: calc(var(--header-height) - 16px);
-    padding: 1px 10px;
+    height: 44px;
+    padding: 2px 10px;
+    overflow: visible;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .footer__logo .brand-logo-picture {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+  }
+
+  .footer__logo img,
+  .footer__logo .brand-logo {
+    height: 100%;
+    width: auto;
+    max-height: 42px;
+    min-width: 0 !important;
+    max-width: 180px !important;
+    object-fit: contain !important;
+    transform: none !important;
+    mix-blend-mode: normal;
   }
 }
 
@@ -10297,17 +10366,19 @@ a.cart-item__name:hover {
   padding-block: var(--space-4) var(--space-2);
 }
 
-/* Compact category PLP banner — full hero width, shorter height */
+/* Compact category PLP banner — aligns with page content container */
 .plp-banner {
   width: 100%;
-  padding: clamp(var(--space-2), 1.5vw, var(--space-3)) clamp(var(--space-2), 2vw, var(--space-2)) 0;
+  padding-block: clamp(var(--space-2), 1.5vw, var(--space-3)) var(--space-2);
+  padding-inline: 0;
 }
 
 .plp-banner__frame {
   position: relative;
-  max-width: var(--hero-max);
+  width: 100%;
+  max-width: 100%;
   margin-inline: auto;
-  min-height: clamp(10.5rem, 26svh, 15.5rem);
+  min-height: clamp(10.5rem, 24vh, 15rem);
   border-radius: var(--radius-lg);
   overflow: hidden;
   background-color: var(--color-ink);
@@ -10315,7 +10386,7 @@ a.cart-item__name:hover {
 
 @media (min-width: 768px) {
   .plp-banner__frame {
-    min-height: clamp(12rem, 28vh, 16.5rem);
+    min-height: clamp(11.5rem, 25vh, 15.5rem);
   }
 }
 
@@ -10717,12 +10788,21 @@ a.cart-item__name:hover {
   font-weight: var(--weight-medium);
   color: var(--color-ink);
   text-decoration: none;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  line-height: inherit;
   padding: 6px 10px 6px 0;
-  transition: opacity 0.15s;
+  transition: opacity 0.15s, transform 0.15s;
 }
 
 .checkout-back:hover {
   opacity: 0.7;
+}
+
+.checkout-back:active {
+  transform: translateX(-2px);
 }
 
 .checkout-page__heading {
@@ -10764,6 +10844,26 @@ a.cart-item__name:hover {
   gap: 6px;
   position: relative;
   flex: 1;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  color: inherit;
+}
+
+.checkout-steps__item--clickable,
+.checkout-steps__item--complete {
+  cursor: pointer;
+}
+
+.checkout-steps__item--clickable:hover .checkout-steps__index,
+.checkout-steps__item--complete:hover .checkout-steps__index {
+  transform: scale(1.08);
+}
+
+.checkout-steps__item--clickable:hover .checkout-steps__label,
+.checkout-steps__item--complete:hover .checkout-steps__label {
+  color: #e8a020;
 }
 
 /* Connecting line between steps */
@@ -15925,14 +16025,17 @@ a.cart-item__name:hover {
 /* ─── Category landing ─── */
 
 .cat-hero {
-  padding: clamp(var(--space-2), 2vw, var(--space-3)) clamp(var(--space-2), 2vw, var(--space-2)) 0;
+  width: 100%;
+  padding-block: clamp(var(--space-2), 1.5vw, var(--space-3)) var(--space-2);
+  padding-inline: 0;
 }
 
 .cat-hero__frame {
   position: relative;
-  max-width: var(--hero-max);
+  width: 100%;
+  max-width: 100%;
   margin-inline: auto;
-  min-height: clamp(18rem, 48svh, 28rem);
+  min-height: clamp(10.5rem, 24vh, 15rem);
   border-radius: var(--radius-lg);
   overflow: hidden;
   background-color: var(--color-ink);
@@ -15940,7 +16043,7 @@ a.cart-item__name:hover {
 
 @media (min-width: 768px) {
   .cat-hero__frame {
-    min-height: 48vh;
+    min-height: clamp(11.5rem, 25vh, 15.5rem);
   }
 }
 
@@ -15980,9 +16083,9 @@ a.cart-item__name:hover {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  justify-content: flex-end;
-  min-height: clamp(18rem, 48svh, 28rem);
-  padding: clamp(var(--space-4), 5vw, var(--space-6)) clamp(var(--space-3), 4vw, var(--space-4));
+  justify-content: center;
+  min-height: clamp(10.5rem, 24vh, 15rem);
+  padding: clamp(var(--space-3), 3vw, var(--space-4));
   max-width: min(36rem, 100%);
   margin-left: 0;
   color: var(--color-paper);
@@ -15991,9 +16094,9 @@ a.cart-item__name:hover {
 
 @media (min-width: 768px) {
   .cat-hero__content {
-    min-height: 48vh;
+    min-height: clamp(11.5rem, 25vh, 15.5rem);
     justify-content: center;
-    padding: var(--space-8) var(--space-6);
+    padding: var(--space-4) var(--space-6);
     margin-left: auto;
     text-align: right;
     align-items: flex-end;

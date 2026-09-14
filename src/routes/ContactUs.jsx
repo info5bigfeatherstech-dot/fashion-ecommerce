@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/Button'
 import { Input, InputGroup } from '@/components/ui/Input'
 import { SITE_CONTACT } from '@/config/site'
+import { restrictToNumbersKeyDown } from '@/lib/utils'
 
 const CONTACT_EMAIL =
   SITE_CONTACT.contactEmail || SITE_CONTACT.wholesaleEmail || SITE_CONTACT.email?.trim() || 'fabuniqo@gmail.com'
@@ -26,8 +27,21 @@ const contactSchema = z.object({
     .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Enter a valid email address'),
   phone: z
     .string()
-    .min(8, 'Phone number is required')
-    .max(20, 'Phone number looks too long'),
+    .trim()
+    .min(1, 'Phone number is required')
+    .refine(
+      (v) => {
+        const digits = v.replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '')
+        return digits.length === 10
+      },
+      (v) => {
+        const digits = v.replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '')
+        if (digits.length > 10) {
+          return { message: 'Number can only be 10 digits' }
+        }
+        return { message: 'Enter a valid 10-digit phone number' }
+      }
+    ),
   reason: z.string().min(1, 'Please select a reason'),
   message: z.string().min(10, 'Please enter at least 10 characters'),
 })
@@ -38,6 +52,7 @@ export default function ContactUs() {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(contactSchema),
@@ -49,6 +64,10 @@ export default function ContactUs() {
       message: '',
     },
   })
+
+  const phoneVal = watch('phone') || ''
+  const phoneDigits = phoneVal.replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '')
+  const phoneCaution = phoneDigits.length > 10
 
   const onSubmit = async (data) => {
     try {
@@ -167,10 +186,21 @@ export default function ContactUs() {
                     <Input
                       id="cu-phone"
                       type="tel"
-                      placeholder="+91 98765 43210"
+                      inputMode="numeric"
+                      placeholder="10-digit phone number"
                       error={errors.phone}
-                      {...register('phone')}
+                      onKeyDown={restrictToNumbersKeyDown}
+                      {...register('phone', {
+                        onChange: (e) => {
+                          e.target.value = e.target.value.replace(/\D/g, '')
+                        },
+                      })}
                     />
+                    {phoneCaution && (
+                      <span className="input-caution" role="status">
+                        ⚠️ Number can only be 10 digits ({phoneDigits.length} entered)
+                      </span>
+                    )}
                   </InputGroup>
                 </div>
 

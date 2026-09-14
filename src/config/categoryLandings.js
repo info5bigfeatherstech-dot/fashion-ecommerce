@@ -85,7 +85,7 @@ export const CATEGORY_LANDINGS = {
       { label: 'Bags', href: '/shop/bags', image: 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?auto=format&fit=crop&w=400&h=400&q=80' },
       { label: 'Jewelry', href: '/shop/watches-accessories/jewelry', image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=400&h=400&q=80' },
       { label: 'Innerwear', href: '/shop/innerwear', image: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=400&h=400&q=80' },
-      { label: 'New In', href: '/shop/new-arrivals', image: 'https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=400&h=400&q=80' },
+      { label: 'New In', href: '/shop/new-arrivals', image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=400&h=400&q=80' },
     ],
     collections: [
       {
@@ -528,48 +528,6 @@ export const CATEGORY_LANDINGS = {
         image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=720&h=960&q=80',
       },
     ],
-    spotlights: [],
-  },
-
-  'new-arrivals': {
-    hero: {
-      eyebrow: 'Just Launched',
-      brand: 'VERAÒ',
-      title: 'New Drops',
-      subtitle: 'The latest from the atelier — limited, numbered, ours.',
-      cta: 'Shop New In',
-      href: '/shop/new-arrivals',
-      image: 'https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=1600&h=700&q=80',
-      alt: 'New season garments on a rack',
-    },
-    shops: [
-      { label: 'Women', href: '/shop/women', image: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=400&h=400&q=80' },
-      { label: 'Men', href: '/shop/men', image: 'https://images.unsplash.com/photo-1617137968427-85924c800a22?auto=format&fit=crop&w=400&h=400&q=80' },
-      { label: 'Beauty', href: '/shop/beauty', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=400&h=400&q=80' },
-      { label: 'Bags', href: '/shop/bags', image: 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?auto=format&fit=crop&w=400&h=400&q=80' },
-    ],
-    collections: [],
-    spotlights: [],
-  },
-
-  sale: {
-    hero: {
-      eyebrow: 'Seasonal Sale',
-      brand: 'VERAÒ',
-      title: 'Up to 40% Off',
-      subtitle: 'Selected styles across the house. While they last.',
-      cta: 'Shop Sale',
-      href: '/shop/sale',
-      image: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=1600&h=700&q=80',
-      alt: 'Sale edit of garments and accessories',
-    },
-    shops: [
-      { label: 'Women', href: '/shop/women', image: 'https://images.unsplash.com/photo-1483985988355-763728ad1434?auto=format&fit=crop&w=400&h=400&q=80' },
-      { label: 'Men', href: '/shop/men', image: 'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?auto=format&fit=crop&w=400&h=400&q=80' },
-      { label: 'Kids', href: '/shop/kids', image: 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=400&h=400&q=80' },
-      { label: 'Beauty', href: '/shop/beauty', image: 'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?auto=format&fit=crop&w=400&h=400&q=80' },
-    ],
-    collections: [],
     spotlights: [],
   },
 }

@@ -10,7 +10,20 @@ export const addressFormSchema = z
     phone: z
       .string()
       .trim()
-      .refine((v) => /^\d{10}$/.test(v.replace(/\D/g, '')), 'Enter a 10-digit mobile number'),
+      .min(1, 'Phone number is required')
+      .refine(
+        (v) => {
+          const digits = v.replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '')
+          return digits.length === 10
+        },
+        (v) => {
+          const digits = v.replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '')
+          if (digits.length > 10) {
+            return { message: 'Number can only be 10 digits' }
+          }
+          return { message: 'Enter a valid 10-digit mobile number' }
+        }
+      ),
     houseNumber: z.string().trim().min(1, 'House / flat number required'),
     building: z.string().optional(),
     floor: z.string().optional(),

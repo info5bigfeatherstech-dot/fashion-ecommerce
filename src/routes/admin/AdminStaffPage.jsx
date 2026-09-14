@@ -25,6 +25,7 @@ import {
   X,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { restrictToNumbersKeyDown } from '@/lib/utils'
 import { ADMIN_ROLES } from '@/api/endpoints'
 import { extractListPayload } from '@/features/admin/components/AdminUi'
 import {
@@ -220,9 +221,15 @@ function CreateStaffModal({ onClose, onSuccess }) {
       role: form.role,
     }
     const name = form.name.trim()
-    const phone = form.phone.trim()
+    const phone = form.phone.trim().replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '')
     if (name) payload.name = name
-    if (phone) payload.phone = phone
+    if (form.phone.trim()) {
+      if (phone.length !== 10) {
+        toast.error('Phone number must be exactly 10 digits')
+        return
+      }
+      payload.phone = phone
+    }
 
     try {
       await createStaff.mutateAsync(payload)
@@ -263,13 +270,19 @@ function CreateStaffModal({ onClose, onSuccess }) {
             <Phone size={16} aria-hidden />
             <input
               type="tel"
+              inputMode="numeric"
               value={form.phone}
-              onChange={set('phone')}
-              placeholder="9876543210"
-              pattern="[0-9]{10}"
+              onKeyDown={restrictToNumbersKeyDown}
+              onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value.replace(/\D/g, '') }))}
+              placeholder="10-digit mobile number"
               title="10-digit phone number (optional)"
             />
           </div>
+          {form.phone.trim().replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '').length > 10 && (
+            <span className="input-caution" role="status" style={{ marginTop: '6px' }}>
+              ⚠️ Number can only be 10 digits ({form.phone.trim().replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '').length} entered)
+            </span>
+          )}
         </label>
 
         <label className="admin-staff__field">
@@ -359,11 +372,16 @@ function EditStaffModal({ staff, onClose, onSuccess }) {
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    const cleanPhone = form.phone.trim().replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '')
+    if (form.phone.trim() && cleanPhone.length !== 10) {
+      toast.error('Phone number must be exactly 10 digits')
+      return
+    }
+
     const payload = {
       name: form.name,
       email: form.email,
-      phone: form.phone,
+      phone: form.phone.trim() ? cleanPhone : '',
       role: form.role,
       status: form.status,
     }
@@ -459,12 +477,19 @@ function EditStaffModal({ staff, onClose, onSuccess }) {
             <Phone size={16} aria-hidden />
             <input
               type="tel"
+              inputMode="numeric"
               value={form.phone}
-              onChange={set('phone')}
-              pattern="[0-9]{10}"
+              onKeyDown={restrictToNumbersKeyDown}
+              onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value.replace(/\D/g, '') }))}
+              placeholder="10-digit mobile number"
               title="10-digit phone number"
             />
           </div>
+          {form.phone.trim().replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '').length > 10 && (
+            <span className="input-caution" role="status" style={{ marginTop: '6px' }}>
+              ⚠️ Number can only be 10 digits ({form.phone.trim().replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '').length} entered)
+            </span>
+          )}
         </label>
 
         <label className="admin-staff__field">

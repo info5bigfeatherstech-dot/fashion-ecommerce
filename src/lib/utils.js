@@ -97,3 +97,30 @@ export function formatCategoryTitle(str) {
     })
     .join(' ')
 }
+
+/**
+ * Block non-numeric keys in phone number inputs (disallows a-z, A-Z, symbols).
+ * Allows control keys (Backspace, Tab, Delete, Arrows, Ctrl/Cmd shortcuts).
+ */
+export function restrictToNumbersKeyDown(e) {
+  if (
+    e.key === 'Backspace' ||
+    e.key === 'Delete' ||
+    e.key === 'Tab' ||
+    e.key === 'Escape' ||
+    e.key === 'Enter' ||
+    e.key === 'ArrowLeft' ||
+    e.key === 'ArrowRight' ||
+    e.key === 'ArrowUp' ||
+    e.key === 'ArrowDown' ||
+    e.key === 'Home' ||
+    e.key === 'End' ||
+    e.ctrlKey ||
+    e.metaKey
+  ) {
+    return
+  }
+  if (!/^\d$/.test(e.key)) {
+    e.preventDefault()
+  }
+}

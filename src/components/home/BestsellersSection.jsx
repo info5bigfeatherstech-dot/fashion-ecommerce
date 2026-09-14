@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom'
 import { ProductCarousel } from '@/features/product/components/ProductCarousel'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
 import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
@@ -35,7 +34,7 @@ export function BestsellersSection() {
         <ProductGridSkeleton count={4} />
       ) : products.length > 0 ? (
         <Reveal delay={0.1}>
-          <ProductCarousel products={products} />
+          <ProductCarousel products={products} autoplay autoplayInterval={3000} />
         </Reveal>
       ) : (
         <p className="body-sm text-muted">

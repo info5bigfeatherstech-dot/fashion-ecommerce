@@ -6,6 +6,7 @@ import { buildCourierLines } from '@/features/address/mappers'
 import { COURIER_MAX_LENGTH } from '@/features/address/schema'
 import { fetchPostalPincode } from '@/features/address/pincode'
 import { bindPersonNameRegister } from '@/lib/personName'
+import { restrictToNumbersKeyDown } from '@/lib/utils'
 
 const ADDRESS_TYPES = [
   { value: 'home', label: 'Home' },
@@ -57,6 +58,37 @@ export function usePincodeLookup(postalCodeVal, setValue, cityVal, stateVal, are
   return { pincodeDetails, isFetchingPin }
 }
 
+function PhoneFieldWithCaution({ register, errors, idPrefix = 'addr' }) {
+  const [phoneVal, setPhoneVal] = useState('')
+  const digits = phoneVal.replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '')
+  const hasCaution = digits.length > 10
+
+  return (
+    <InputGroup label="Phone" htmlFor={`${idPrefix}-phone`} error={errors?.phone?.message} required>
+      <Input
+        id={`${idPrefix}-phone`}
+        type="tel"
+        inputMode="numeric"
+        placeholder="10-digit mobile number"
+        error={errors?.phone}
+        onKeyDown={restrictToNumbersKeyDown}
+        {...register('phone', {
+          onChange: (e) => {
+            const clean = e.target.value.replace(/\D/g, '')
+            e.target.value = clean
+            setPhoneVal(clean)
+          },
+        })}
+      />
+      {hasCaution && (
+        <span className="input-caution" role="status">
+          ⚠️ Number can only be 10 digits ({digits.length} entered)
+        </span>
+      )}
+    </InputGroup>
+  )
+}
+
 function AddressContactDefaultFields({ register, errors, idPrefix = 'addr' }) {
   return (
     <section className="address-form__section" aria-labelledby={`${idPrefix}-contact-heading`}>
@@ -72,16 +104,7 @@ function AddressContactDefaultFields({ register, errors, idPrefix = 'addr' }) {
           <Input id={`${idPrefix}-fullName`} placeholder="Rahul Sharma" error={errors?.fullName} {...bindPersonNameRegister(register, 'fullName')} />
         </InputGroup>
 
-        <InputGroup label="Phone" htmlFor={`${idPrefix}-phone`} error={errors?.phone?.message} required>
-          <Input
-            id={`${idPrefix}-phone`}
-            type="tel"
-            inputMode="numeric"
-            placeholder="10-digit mobile"
-            error={errors?.phone}
-            {...register('phone')}
-          />
-        </InputGroup>
+        <PhoneFieldWithCaution register={register} errors={errors} idPrefix={idPrefix} />
       </div>
     </section>
   )
@@ -139,16 +162,7 @@ function AddressContactWizardFields({
         <Input id={`${idPrefix}-fullName`} placeholder="Rahul Sharma" error={errors?.fullName} {...bindPersonNameRegister(register, 'fullName')} />
       </InputGroup>
 
-      <InputGroup label="Phone" htmlFor={`${idPrefix}-phone`} error={errors?.phone?.message} required>
-        <Input
-          id={`${idPrefix}-phone`}
-          type="tel"
-          inputMode="numeric"
-          placeholder="10-digit mobile"
-          error={errors?.phone}
-          {...register('phone')}
-        />
-      </InputGroup>
+      <PhoneFieldWithCaution register={register} errors={errors} idPrefix={idPrefix} />
 
       <InputGroup label="Pincode" htmlFor={`${idPrefix}-pin`} error={errors?.postalCode?.message} required>
         <Input
@@ -185,16 +199,7 @@ export function AddressContactFields({
             <Input id={`${idPrefix}-fullName`} placeholder="Rahul Sharma" error={errors?.fullName} {...bindPersonNameRegister(register, 'fullName')} />
           </InputGroup>
 
-          <InputGroup label="Phone" htmlFor={`${idPrefix}-phone`} error={errors?.phone?.message} required>
-            <Input
-              id={`${idPrefix}-phone`}
-              type="tel"
-              inputMode="numeric"
-              placeholder="10-digit mobile"
-              error={errors?.phone}
-              {...register('phone')}
-            />
-          </InputGroup>
+          <PhoneFieldWithCaution register={register} errors={errors} idPrefix={idPrefix} />
 
           <InputGroup label="Pincode" htmlFor={`${idPrefix}-pin`} error={errors?.postalCode?.message} required>
             <Input

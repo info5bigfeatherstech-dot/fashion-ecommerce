@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -78,6 +78,9 @@ function removeCachedCheckoutQuotes(queryClient) {
 }
 
 export default function Checkout() {
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const stepParam = searchParams.get('step')
   const queryClient = useQueryClient()
   const cartItems = useAppStore((s) => s.cartItems)
   const cartTotal = useCartTotal()
@@ -89,7 +92,11 @@ export default function Checkout() {
   const clearCheckoutAddress = useAppStore((s) => s.clearCheckoutAddress)
   const [orderPlaced, setOrderPlaced] = useState(false)
   const [successOrderId, setSuccessOrderId] = useState(null)
-  const [checkoutStep, setCheckoutStep] = useState(CHECKOUT_STEP.REVIEW)
+  const [checkoutStep, setCheckoutStep] = useState(() => {
+    if (stepParam === 'payment') return CHECKOUT_STEP.PAYMENT
+    if (stepParam === 'delivery') return CHECKOUT_STEP.DELIVERY
+    return CHECKOUT_STEP.REVIEW
+  })
   const [addressModalOpen, setAddressModalOpen] = useState(false)
   const [couponInput, setCouponInput] = useState('')
   const [appliedCouponCode, setAppliedCouponCode] = useState('')
@@ -118,6 +125,21 @@ export default function Checkout() {
   const isReviewStep = checkoutStep === CHECKOUT_STEP.REVIEW
   const isDeliveryStep = checkoutStep === CHECKOUT_STEP.DELIVERY
   const isPaymentStep = checkoutStep === CHECKOUT_STEP.PAYMENT
+
+  useEffect(() => {
+    if (orderPlaced) return
+    if (stepParam === 'payment') {
+      if (checkoutAddress?.id) {
+        setCheckoutStep(CHECKOUT_STEP.PAYMENT)
+      } else {
+        setCheckoutStep(CHECKOUT_STEP.DELIVERY)
+      }
+    } else if (stepParam === 'delivery') {
+      setCheckoutStep(CHECKOUT_STEP.DELIVERY)
+    } else {
+      setCheckoutStep(CHECKOUT_STEP.REVIEW)
+    }
+  }, [stepParam, checkoutAddress?.id, orderPlaced])
 
   const { data: checkoutSettings } = useCheckoutSettings({
     enabled: isAuthenticated && checkoutStep >= CHECKOUT_STEP.DELIVERY,
@@ -393,8 +415,9 @@ export default function Checkout() {
     setRazorpayOrderData(null)
     setRazorpayPaymentState(PAYMENT_STATE.IDLE)
     setOrderPlaced(true)
+    setSearchParams({}, { replace: true })
     toast.success(isOnline ? 'Payment verified — order confirmed' : 'Order placed successfully')
-  }, [clearCart, clearCheckoutAddress, placedOrder])
+  }, [clearCart, clearCheckoutAddress, placedOrder, setSearchParams])
 
   const handleRazorpaySuccess = useCallback(async (response) => {
     try {
@@ -690,7 +713,7 @@ export default function Checkout() {
     toast.success('Coupon removed')
   }
 
-  const goToDeliveryStep = () => {
+  const goToDeliveryStep = (replace = false) => {
     if (cartItems.length === 0) {
       toast.error('Your bag is empty')
       return
@@ -698,15 +721,17 @@ export default function Checkout() {
     setShowRazorpay(false)
     setRazorpayOrderData(null)
     setCheckoutStep(CHECKOUT_STEP.DELIVERY)
+    setSearchParams({ step: 'delivery' }, { replace })
   }
 
-  const goToReviewStep = () => {
+  const goToReviewStep = (replace = true) => {
     setShowRazorpay(false)
     setRazorpayOrderData(null)
     setCheckoutStep(CHECKOUT_STEP.REVIEW)
+    setSearchParams({}, { replace })
   }
 
-  const goToPaymentStep = () => {
+  const goToPaymentStep = (replace = false) => {
     if (!checkoutAddress?.id) {
       toast.error('Select a delivery address')
       setAddressModalOpen(true)
@@ -731,6 +756,18 @@ export default function Checkout() {
     setShowRazorpay(false)
     setRazorpayOrderData(null)
     setCheckoutStep(CHECKOUT_STEP.PAYMENT)
+    setSearchParams({ step: 'payment' }, { replace })
+  }
+
+  const handleBack = (e) => {
+    e?.preventDefault?.()
+    if (checkoutStep === CHECKOUT_STEP.PAYMENT) {
+      goToDeliveryStep(true)
+    } else if (checkoutStep === CHECKOUT_STEP.DELIVERY) {
+      goToReviewStep(true)
+    } else {
+      navigate('/account/cart')
+    }
   }
 
   const submitting = isSubmitting
@@ -768,10 +805,21 @@ export default function Checkout() {
     <div className="checkout-page">
       <div className="checkout-page__inner">
         <div className="checkout-page__header">
-          <Link to="/account/cart" className="checkout-back">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="checkout-back"
+            aria-label={
+              checkoutStep === CHECKOUT_STEP.PAYMENT
+                ? 'Back to delivery details'
+                : checkoutStep === CHECKOUT_STEP.DELIVERY
+                  ? 'Back to order review'
+                  : 'Back to bag'
+            }
+          >
             <ArrowLeft size={16} />
             Back
-          </Link>
+          </button>
           <div className="checkout-page__heading">
             <h1>{SITE_NAME}</h1>
             <p>
@@ -787,16 +835,36 @@ export default function Checkout() {
           {STEPS.map((step, index) => {
             const isActive = checkoutStep === index
             const isComplete = checkoutStep > index
+            const isClickable =
+              isComplete
+              || (index === CHECKOUT_STEP.DELIVERY && cartItems.length > 0)
+              || (index === CHECKOUT_STEP.PAYMENT && Boolean(checkoutAddress?.id))
+
+            const handleStepClick = () => {
+              if (index === checkoutStep) return
+              if (index === CHECKOUT_STEP.REVIEW) {
+                goToReviewStep(true)
+              } else if (index === CHECKOUT_STEP.DELIVERY) {
+                goToDeliveryStep(index < checkoutStep)
+              } else if (index === CHECKOUT_STEP.PAYMENT) {
+                goToPaymentStep()
+              }
+            }
+
             return (
-              <div
+              <button
                 key={step.id}
-                className={`checkout-steps__item${isActive ? ' checkout-steps__item--active' : ''}${isComplete ? ' checkout-steps__item--complete' : ''}`}
+                type="button"
+                onClick={isClickable ? handleStepClick : undefined}
+                disabled={!isClickable && !isActive}
+                className={`checkout-steps__item${isActive ? ' checkout-steps__item--active' : ''}${isComplete ? ' checkout-steps__item--complete' : ''}${isClickable ? ' checkout-steps__item--clickable' : ''}`}
+                title={isClickable ? `Go to ${step.label}` : step.label}
               >
                 <span className="checkout-steps__index">
                   <span>{index + 1}</span>
                 </span>
                 <span className="checkout-steps__label">{step.label}</span>
-              </div>
+              </button>
             )
           })}
         </nav>
@@ -1188,7 +1256,7 @@ export default function Checkout() {
                       type="button"
                       variant="secondary"
                       size="lg"
-                      onClick={() => setCheckoutStep(CHECKOUT_STEP.DELIVERY)}
+                      onClick={() => goToDeliveryStep(true)}
                     >
                       Back
                     </Button>
@@ -1227,7 +1295,7 @@ export default function Checkout() {
                     type="button"
                     variant="secondary"
                     size="lg"
-                    onClick={goToReviewStep}
+                    onClick={() => goToReviewStep(true)}
                   >
                     Back
                   </Button>

@@ -231,10 +231,10 @@ export default function ProductListing() {
   }
 
   return (
-    <div className={landing || categoryBanner ? 'plp-page' : 'container'}>
-      {landing && <CategoryLanding landing={landing} />}
-      {!landing && categoryBanner && <CategoryBanner banner={categoryBanner} />}
-      <div className={landing || categoryBanner ? 'container' : undefined}>
+    <div className="plp-page">
+      <div className="container">
+        {!landing && categoryBanner && <CategoryBanner banner={categoryBanner} />}
+        {landing && <CategoryLanding landing={landing} />}
         <nav className="breadcrumb" aria-label="Breadcrumb">
           <Link to="/">Home</Link>
           <span className="breadcrumb__sep">/</span>

@@ -1,5 +1,5 @@
 import desktopLogo from '@/assets/FabUniqo- Fashion Uniquely yours.png'
-import mobileLogo from '@/assets/FabUniqo-logo-install.png'
+import mobileLogo from '@/assets/FabUniqo-logo-transparent.png'
 import { SITE_NAME } from '@/config/site'
 
 export function BrandLogo({ className = '', src }) {

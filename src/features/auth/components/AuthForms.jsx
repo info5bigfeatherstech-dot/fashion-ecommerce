@@ -31,6 +31,7 @@ import loginPanelImage from '@/assets/Heavy Set.png'
 import registerPanelImage from '@/assets/Earrings.png'
 import { SITE_NAME } from '@/config/site'
 import { bindPersonNameRegister, personNameSchema } from '@/lib/personName'
+import { restrictToNumbersKeyDown } from '@/lib/utils'
 
 function AuthSplitLayout({ children, image = loginPanelImage }) {
   return (
@@ -60,8 +61,13 @@ const registerSchema = z
     email: z.string().email('Valid email required'),
     phone: z
       .string()
-      .transform((v) => v.replace(/\D/g, ''))
-      .refine((v) => v.length === 10, 'Enter a 10-digit phone number'),
+      .trim()
+      .min(1, 'Phone number is required')
+      .transform((v) => v.replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, ''))
+      .refine(
+        (v) => v.length === 10,
+        (v) => (v.length > 10 ? { message: 'Number can only be 10 digits' } : { message: 'Enter a valid 10-digit phone number' })
+      ),
     password: z.string().min(6, 'Password must be at least 6 characters'),
     confirmPassword: z.string().min(6, 'Confirm your password'),
     questionId: z.string().min(1, 'Select a security question'),
@@ -129,6 +135,10 @@ export function AuthForms({
       securityAnswer: '',
     },
   })
+
+  const regPhone = registerForm.watch('phone') || ''
+  const regPhoneDigits = String(regPhone).replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '')
+  const regPhoneCaution = regPhoneDigits.length > 10
   const forgotFindForm = useForm({
     resolver: zodResolver(forgotFindSchema),
     defaultValues: { identifier: '' },
@@ -542,11 +552,22 @@ export function AuthForms({
                 <Input
                   id="reg-phone"
                   type="tel"
-                  placeholder="Phone Number"
+                  inputMode="numeric"
+                  placeholder="10-digit Phone Number"
                   aria-label="Phone Number"
                   error={registerForm.formState.errors.phone}
-                  {...registerForm.register('phone')}
+                  onKeyDown={restrictToNumbersKeyDown}
+                  {...registerForm.register('phone', {
+                    onChange: (e) => {
+                      e.target.value = e.target.value.replace(/\D/g, '')
+                    },
+                  })}
                 />
+                {regPhoneCaution && (
+                  <span className="input-caution" role="status">
+                    ⚠️ Number can only be 10 digits ({regPhoneDigits.length} entered)
+                  </span>
+                )}
               </InputGroup>
             </div>
 
