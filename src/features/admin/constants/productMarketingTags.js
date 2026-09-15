@@ -1,6 +1,13 @@
 /** Admin-controlled ProductTag values (backend ProductTag model enum). */
 export const ADMIN_PRODUCT_MARKETING_TAGS = [
   {
+    id: 'on-sale',
+    label: 'On Sale',
+    shortLabel: 'On Sale',
+    bulkLabel: 'On Sale',
+    description: 'Shows on the website Sale is live / shop sale listing.',
+  },
+  {
     id: 'today-arrival',
     label: "Today's Deal",
     shortLabel: 'Today Deal',
@@ -30,12 +37,20 @@ export function emptyMarketingTagsState() {
 }
 
 export function marketingTagsFromProductTags(tags = []) {
-  const list = Array.isArray(tags) ? tags : []
-  return Object.fromEntries(
-    ADMIN_PRODUCT_MARKETING_TAG_IDS.map((id) => [id, list.includes(id)])
-  )
+  try {
+    const list = Array.isArray(tags) ? tags : []
+    return Object.fromEntries(
+      ADMIN_PRODUCT_MARKETING_TAG_IDS.map((id) => [id, list.includes(id)])
+    )
+  } catch {
+    return emptyMarketingTagsState()
+  }
 }
 
 export function productHasMarketingTag(product, tagId) {
-  return Array.isArray(product?.tags) && product.tags.includes(tagId)
+  try {
+    return Array.isArray(product?.tags) && product.tags.includes(tagId)
+  } catch {
+    return false
+  }
 }

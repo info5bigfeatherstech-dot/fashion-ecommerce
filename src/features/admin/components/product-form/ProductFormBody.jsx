@@ -3,6 +3,7 @@ import { ADMIN_PRODUCT_MARKETING_TAGS } from '@/features/admin/constants/product
 import { parseQuantityInput, quantityFieldValue, MAX_VARIANT_IMAGES } from './utils'
 
 const MARKETING_TOGGLE_CLASS = {
+  'on-sale': 'pf-toggle--onsale',
   'today-arrival': 'pf-toggle--today',
   'jewellery-spotted': 'pf-toggle--spotted',
   'bestselling-jewelry': 'pf-toggle--bestselling',
@@ -268,7 +269,7 @@ export default function ProductFormBody({
 
             <div className="admin-product-tags-form">
               <p className="admin-product-tags-form__hint">
-                Homepage sections (storefront wiring uses these tags later)
+                Marketing tags for storefront sections (Sale is live, Today’s Deal, etc.)
               </p>
               {ADMIN_PRODUCT_MARKETING_TAGS.map((tag) => {
                 const isOn = Boolean(formData.marketingTags?.[tag.id])

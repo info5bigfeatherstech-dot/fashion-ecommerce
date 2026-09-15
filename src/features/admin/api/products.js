@@ -218,28 +218,52 @@ export async function syncAdminProductMarketingTags(slug, nextTags = {}, previou
     throw new ApiError({ message: 'Product slug is required', status: 400, code: 'SLUG_REQUIRED' })
   }
 
-  const prev = previousTags && typeof previousTags === 'object' && !Array.isArray(previousTags)
-    ? previousTags
-    : marketingTagsFromList(previousTags)
+  try {
+    const prev = previousTags && typeof previousTags === 'object' && !Array.isArray(previousTags)
+      ? previousTags
+      : marketingTagsFromList(previousTags)
 
-  const next = nextTags && typeof nextTags === 'object' && !Array.isArray(nextTags)
-    ? nextTags
-    : marketingTagsFromList(nextTags)
+    const next = nextTags && typeof nextTags === 'object' && !Array.isArray(nextTags)
+      ? nextTags
+      : marketingTagsFromList(nextTags)
 
-  const updates = ADMIN_PRODUCT_MARKETING_TAG_IDS.filter(
-    (tagId) => Boolean(next[tagId]) !== Boolean(prev[tagId])
-  ).map((tagId) =>
-    bulkUpdateAdminProductFlags({
-      slugs: [normalizedSlug],
-      flagType: tagId,
-      value: Boolean(next[tagId]),
+    const updates = ADMIN_PRODUCT_MARKETING_TAG_IDS.filter(
+      (tagId) => Boolean(next[tagId]) !== Boolean(prev[tagId])
+    ).map((tagId) =>
+      bulkUpdateAdminProductFlags({
+        slugs: [normalizedSlug],
+        flagType: tagId,
+        value: Boolean(next[tagId]),
+      })
+    )
+
+    if (!updates.length) return { updated: 0 }
+
+    const results = await Promise.allSettled(updates)
+    const failed = results.filter((r) => r.status === 'rejected')
+    if (failed.length) {
+      const firstMessage =
+        failed[0]?.reason?.message ||
+        failed[0]?.reason?.response?.data?.message ||
+        'Failed to sync one or more marketing tags'
+      throw new ApiError({
+        message: firstMessage,
+        status: failed[0]?.reason?.status || failed[0]?.reason?.response?.status || 500,
+        code: 'MARKETING_TAGS_SYNC_FAILED',
+        details: { failedCount: failed.length, total: results.length },
+        cause: failed[0]?.reason,
+      })
+    }
+    return { updated: updates.length }
+  } catch (error) {
+    if (error instanceof ApiError) throw error
+    throw new ApiError({
+      message: error?.message || 'Failed to sync marketing tags',
+      status: error?.status || 500,
+      code: 'MARKETING_TAGS_SYNC_FAILED',
+      cause: error,
     })
-  )
-
-  if (!updates.length) return { updated: 0 }
-
-  await Promise.all(updates)
-  return { updated: updates.length }
+  }
 }
 
 function marketingTagsFromList(tags) {

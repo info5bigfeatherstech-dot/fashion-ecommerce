@@ -780,9 +780,11 @@ export default function AdminProductsPage() {
   const [todayArrival, setTodayArrival] = useState(false)
   const [jewellerySpotted, setJewellerySpotted] = useState(false)
   const [bestsellingJewelry, setBestsellingJewelry] = useState(false)
+  const [onSale, setOnSale] = useState(false)
   const [todayIndeterminate, setTodayIndeterminate] = useState(false)
   const [spottedIndeterminate, setSpottedIndeterminate] = useState(false)
   const [bestsellingIndeterminate, setBestsellingIndeterminate] = useState(false)
+  const [onSaleIndeterminate, setOnSaleIndeterminate] = useState(false)
   const [flagLoading, setFlagLoading] = useState(false)
   const [showEcomMenu, setShowEcomMenu] = useState(false)
   const [showWholesaleMenu, setShowWholesaleMenu] = useState(false)
@@ -930,30 +932,41 @@ export default function AdminProductsPage() {
   }, [page])
 
   useEffect(() => {
-    if (selectedSlugs.size === 0) {
-      setTodayArrival(false)
-      setJewellerySpotted(false)
-      setBestsellingJewelry(false)
-      setTodayIndeterminate(false)
-      setSpottedIndeterminate(false)
-      setBestsellingIndeterminate(false)
-      setShowEcomMenu(false)
-      setShowWholesaleMenu(false)
-      return
+    try {
+      if (selectedSlugs.size === 0) {
+        setTodayArrival(false)
+        setJewellerySpotted(false)
+        setBestsellingJewelry(false)
+        setOnSale(false)
+        setTodayIndeterminate(false)
+        setSpottedIndeterminate(false)
+        setBestsellingIndeterminate(false)
+        setOnSaleIndeterminate(false)
+        setShowEcomMenu(false)
+        setShowWholesaleMenu(false)
+        return
+      }
+
+      const selected = products.filter((p) => selectedSlugs.has(p.slug))
+      const total = selected.length
+      if (!total) return
+
+      const todayCount = selected.filter((p) => p.tags?.includes('today-arrival')).length
+      const spottedCount = selected.filter((p) => p.tags?.includes('jewellery-spotted')).length
+      const bestsellingCount = selected.filter((p) => p.tags?.includes('bestselling-jewelry')).length
+      const onSaleCount = selected.filter((p) => p.tags?.includes('on-sale')).length
+
+      setTodayArrival(todayCount === total)
+      setTodayIndeterminate(todayCount > 0 && todayCount < total)
+      setJewellerySpotted(spottedCount === total)
+      setSpottedIndeterminate(spottedCount > 0 && spottedCount < total)
+      setBestsellingJewelry(bestsellingCount === total)
+      setBestsellingIndeterminate(bestsellingCount > 0 && bestsellingCount < total)
+      setOnSale(onSaleCount === total)
+      setOnSaleIndeterminate(onSaleCount > 0 && onSaleCount < total)
+    } catch {
+      /* keep previous bulk-flag UI state if selection math fails */
     }
-
-    const selected = products.filter((p) => selectedSlugs.has(p.slug))
-    const total = selected.length
-    const todayCount = selected.filter((p) => p.tags?.includes('today-arrival')).length
-    const spottedCount = selected.filter((p) => p.tags?.includes('jewellery-spotted')).length
-    const bestsellingCount = selected.filter((p) => p.tags?.includes('bestselling-jewelry')).length
-
-    setTodayArrival(todayCount === total)
-    setTodayIndeterminate(todayCount > 0 && todayCount < total)
-    setJewellerySpotted(spottedCount === total)
-    setSpottedIndeterminate(spottedCount > 0 && spottedCount < total)
-    setBestsellingJewelry(bestsellingCount === total)
-    setBestsellingIndeterminate(bestsellingCount > 0 && bestsellingCount < total)
   }, [selectedSlugs, products])
 
   const handleExport = async () => {
@@ -988,13 +1001,18 @@ export default function AdminProductsPage() {
     }
     if (flagLoading) return
 
+    const normalizedFlag = String(flagType || '').trim().replace(/_/g, '-')
     const stateMap = {
+      'on-sale': [onSale, setOnSale, onSaleIndeterminate],
       'today-arrival': [todayArrival, setTodayArrival, todayIndeterminate],
       'jewellery-spotted': [jewellerySpotted, setJewellerySpotted, spottedIndeterminate],
       'bestselling-jewelry': [bestsellingJewelry, setBestsellingJewelry, bestsellingIndeterminate],
     }
-    const stateEntry = stateMap[flagType]
-    if (!stateEntry) return
+    const stateEntry = stateMap[normalizedFlag]
+    if (!stateEntry) {
+      toast.error('Unknown marketing tag')
+      return
+    }
 
     const [currentValue, setValue, isIndeterminate] = stateEntry
     const newValue = isIndeterminate ? true : !currentValue
@@ -1003,12 +1021,16 @@ export default function AdminProductsPage() {
     setValue(newValue)
 
     try {
-      await bulkFlags.mutateAsync({ slugs, flagType, value: newValue })
+      await bulkFlags.mutateAsync({ slugs, flagType: normalizedFlag, value: newValue })
       toast.success('Products updated successfully')
       setTimeout(() => setSelectedSlugs(new Set()), 400)
       listRefetch()
     } catch (err) {
-      setValue(currentValue)
+      try {
+        setValue(currentValue)
+      } catch {
+        /* ignore rollback UI errors */
+      }
       toast.error(err?.message || 'Failed to update flags')
     } finally {
       setFlagLoading(false)
@@ -1121,6 +1143,7 @@ export default function AdminProductsPage() {
             <div className="admin-bulk-bar__actions">
               {ADMIN_PRODUCT_MARKETING_TAGS.map((tag) => {
                 const stateById = {
+                  'on-sale': [onSale, onSaleIndeterminate],
                   'today-arrival': [todayArrival, todayIndeterminate],
                   'jewellery-spotted': [jewellerySpotted, spottedIndeterminate],
                   'bestselling-jewelry': [bestsellingJewelry, bestsellingIndeterminate],

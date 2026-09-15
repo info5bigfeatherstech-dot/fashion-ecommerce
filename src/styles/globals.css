@@ -25329,6 +25329,11 @@ button.admin-stats-chip:hover {
   border-color: #047857;
 }
 
+.pf-toggle--onsale.is-on {
+  background: #dc2626;
+  border-color: #b91c1c;
+}
+
 .admin-product-tags-form {
   display: flex;
   flex-direction: column;
