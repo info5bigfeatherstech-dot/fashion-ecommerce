@@ -22,7 +22,7 @@ export const SITE_CONTACT = {
 export const TOP_BANNER = {
   headline: 'Get Every Gift with Every Purchase',
   message: 'Free Shipping on orders above ₹1099',
-  href: '/shop/women',
+  href: '/product-all',
   cta: 'Shop now',
 }
 
