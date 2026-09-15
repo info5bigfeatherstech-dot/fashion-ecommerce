@@ -148,9 +148,55 @@ export function AccountOrderCard({ order, onSelect, isHydrating = false }) {
     setShowReturnModal(true)
   }
 
+  const openOrderDetail = () => {
+    if (!order?.orderId || typeof onSelect !== 'function') return
+    onSelect(order.orderId)
+  }
+
+  /** Whole card opens order detail; links/buttons keep their own actions. */
+  const handleCardClick = (event) => {
+    try {
+      const target = event?.target
+      if (!(target instanceof Element)) {
+        openOrderDetail()
+        return
+      }
+      if (target.closest('a, button, input, textarea, select, label, [data-order-card-stop="1"]')) {
+        return
+      }
+      openOrderDetail()
+    } catch {
+      openOrderDetail()
+    }
+  }
+
+  const handleCardKeyDown = (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return
+    try {
+      const target = event?.target
+      if (target instanceof Element && target !== event.currentTarget) {
+        if (target.closest('a, button, input, textarea, select, label, [data-order-card-stop="1"]')) {
+          return
+        }
+      }
+      event.preventDefault()
+      openOrderDetail()
+    } catch {
+      event.preventDefault()
+      openOrderDetail()
+    }
+  }
+
   return (
     <>
-      <article className="account-order-card">
+      <article
+        className="account-order-card account-order-card--clickable"
+        onClick={handleCardClick}
+        onKeyDown={handleCardKeyDown}
+        role="button"
+        tabIndex={0}
+        aria-label={`View order details from ${formatOrderDate(order.createdAt)}`}
+      >
         <div className="account-order-card__row">
           <OrderProductMedia item={primaryItem} label={primaryName} extraCount={extraCount} />
 

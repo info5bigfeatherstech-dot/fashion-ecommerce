@@ -48,6 +48,7 @@ import {
   isOrderTrackable,
   isPaymentWindowExpired,
 } from '@/features/orders/utils'
+import { getRemovedItemsArchive } from '@/features/orders/removedItemsArchive'
 import { formatPrice } from '@/lib/utils'
 import { useAppStore } from '@/store'
 import {
@@ -56,6 +57,7 @@ import {
   OrderReturnModal,
   OrderTrackerSection,
   OrderTrackingModal,
+  RemovedOrderItemsSection,
 } from '@/features/orders/components'
 
 function OrderStatusBadge({ status }) {
@@ -205,6 +207,7 @@ export function AccountOrderDetail({ orderId, onBack }) {
   }
 
   const items = getOrderItems(order)
+  const removedArchive = getRemovedItemsArchive(order)
   const address = order.shippingAddress || order.addressSnapshot || order.address || order.deliveryAddress
   const hasAddress = Boolean(
     address &&
@@ -427,12 +430,16 @@ export function AccountOrderDetail({ orderId, onBack }) {
         <OrderTrackerSection orderId={orderId} order={order} />
 
         {/* Items List */}
-        {items.length > 0 && (
+        {(items.length > 0 || removedArchive.length > 0) && (
           <div className="account-panel">
             <div className="account-panel__header">
               <div>
                 <p className="heading-sm text-accent">Items</p>
-                <h3 className="display-md">{items.length} {items.length === 1 ? 'item' : 'items'}</h3>
+                <h3 className="display-md">
+                  {items.length > 0
+                    ? `${items.length} ${items.length === 1 ? 'item' : 'items'}`
+                    : 'Order items'}
+                </h3>
               </div>
             </div>
             <div className="account-order-items">
@@ -440,6 +447,11 @@ export function AccountOrderDetail({ orderId, onBack }) {
                 <OrderLineItem key={item._id || item.id || `${item.productId}-${index}`} item={item} />
               ))}
             </div>
+            <RemovedOrderItemsSection
+              order={order}
+              variant="account"
+              title="Removed items"
+            />
           </div>
         )}
 

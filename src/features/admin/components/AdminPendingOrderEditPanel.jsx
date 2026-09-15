@@ -4,6 +4,8 @@ import {
   useAdminApplyPendingOrderEdit,
   useAdminPreviewPendingOrderEdit,
 } from '@/features/admin/hooks'
+import { RemovedOrderItemsSection } from '@/features/orders/components'
+import { getRemovedItemsArchive } from '@/features/orders/removedItemsArchive'
 
 function formatInr(n) {
   const v = Number(n)
@@ -139,7 +141,9 @@ export function AdminPendingOrderEditPanel({ order, orderId, disabled, onApplied
     }
   }
 
-  if (!items.length) return null
+  const removedArchive = useMemo(() => getRemovedItemsArchive(order), [order])
+
+  if (!items.length && !removedArchive.length) return null
 
   const displaySubtotal = preview?.after?.subtotal ?? order?.subtotal
   const displayDelivery = preview?.shipping?.customerDelivery ?? order?.deliveryCharges
@@ -228,51 +232,62 @@ export function AdminPendingOrderEditPanel({ order, orderId, disabled, onApplied
         })}
       </div>
 
-      <div className="od-pending-items__totals">
-        <div className="od-pending-items__row">
-          <span>Subtotal</span>
-          <span>{formatInr(displaySubtotal)}</span>
-        </div>
-        <div className="od-pending-items__row">
-          <span>Shipping</span>
-          <span>
-            {Number(displayDelivery) === 0 ? (
-              <span className="od-pending-items__free">FREE</span>
-            ) : (
-              formatInr(displayDelivery)
-            )}
-          </span>
-        </div>
-        {Number(displayDiscount) > 0 ? (
-          <div className="od-pending-items__row od-pending-items__row--discount">
-            <span>Discount{couponCode ? ` (${couponCode})` : ''}</span>
-            <span>−{formatInr(displayDiscount)}</span>
-          </div>
-        ) : null}
-        <div className="od-pending-items__row od-pending-items__row--total">
-          <span>Total</span>
-          <span>{formatInr(displayTotal)}</span>
-        </div>
-      </div>
+      <RemovedOrderItemsSection
+        order={order}
+        variant="admin"
+        formatMoney={formatInr}
+        title="Already removed from this order"
+      />
 
-      <div className="od-pending-items__actions">
-        <button
-          type="button"
-          className="od-pending-items__btn od-pending-items__btn--secondary"
-          disabled={busy || !hasChanges}
-          onClick={runPreview}
-        >
-          {previewEdit.isPending ? 'Calculating…' : 'Preview totals'}
-        </button>
-        <button
-          type="button"
-          className="od-pending-items__btn od-pending-items__btn--primary"
-          disabled={busy || !hasChanges}
-          onClick={runApply}
-        >
-          {applyEdit.isPending ? 'Applying…' : 'Apply changes'}
-        </button>
-      </div>
+      {items.length > 0 ? (
+        <>
+          <div className="od-pending-items__totals">
+            <div className="od-pending-items__row">
+              <span>Subtotal</span>
+              <span>{formatInr(displaySubtotal)}</span>
+            </div>
+            <div className="od-pending-items__row">
+              <span>Shipping</span>
+              <span>
+                {Number(displayDelivery) === 0 ? (
+                  <span className="od-pending-items__free">FREE</span>
+                ) : (
+                  formatInr(displayDelivery)
+                )}
+              </span>
+            </div>
+            {Number(displayDiscount) > 0 ? (
+              <div className="od-pending-items__row od-pending-items__row--discount">
+                <span>Discount{couponCode ? ` (${couponCode})` : ''}</span>
+                <span>−{formatInr(displayDiscount)}</span>
+              </div>
+            ) : null}
+            <div className="od-pending-items__row od-pending-items__row--total">
+              <span>Total</span>
+              <span>{formatInr(displayTotal)}</span>
+            </div>
+          </div>
+
+          <div className="od-pending-items__actions">
+            <button
+              type="button"
+              className="od-pending-items__btn od-pending-items__btn--secondary"
+              disabled={busy || !hasChanges}
+              onClick={runPreview}
+            >
+              {previewEdit.isPending ? 'Calculating…' : 'Preview totals'}
+            </button>
+            <button
+              type="button"
+              className="od-pending-items__btn od-pending-items__btn--primary"
+              disabled={busy || !hasChanges}
+              onClick={runApply}
+            >
+              {applyEdit.isPending ? 'Applying…' : 'Apply changes'}
+            </button>
+          </div>
+        </>
+      ) : null}
 
       {localMsg?.text ? (
         <p className={`od-pending-items__msg od-pending-items__msg--${localMsg.type || 'ok'}`}>

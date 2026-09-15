@@ -14,6 +14,7 @@ import { AdminPendingAddressPanel } from '@/features/admin/components/AdminPendi
 import { AdminPendingOrderEditPanel } from '@/features/admin/components/AdminPendingOrderEditPanel'
 import { OrderPaymentSummaryCard } from '@/features/admin/components/OrderPaymentSummaryCard'
 import { OrderShipmentTrackingPanel } from '@/features/admin/components/OrderShipmentTrackingPanel'
+import { RemovedOrderItemsSection } from '@/features/orders/components'
 import {
   buildCarrierTimeline,
   resolveCarrierStatusDisplay,
@@ -692,6 +693,12 @@ export function AdminOrderDetailView({
                 )
               })}
             </div>
+            <RemovedOrderItemsSection
+              order={order}
+              variant="admin"
+              formatMoney={formatInr}
+              title="Removed items"
+            />
             <div className="od-totals">
               <div className="od-totals__row">
                 <span className="od-totals__label">Subtotal</span>
