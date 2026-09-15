@@ -495,6 +495,59 @@ export default function Checkout() {
     void gatewayDismissHandlerRef.current?.()
   }, [])
 
+  // Must stay above any early returns — otherwise success/empty cart skips these hooks.
+  const cartEditsLocked = Boolean(
+    cartMutatingId
+    || hasPendingOnlineOrder
+    || isRecoveringCheckout
+    || showRazorpay
+    || isSubmitting
+    || confirmCheckout.isPending
+    || createOrder.isPending
+    || verifyPayment.isPending
+  )
+
+  const afterCheckoutCartMutation = useCallback(async () => {
+    await removeCachedCheckoutQuotes(queryClient)
+    if (
+      checkoutStep >= CHECKOUT_STEP.DELIVERY
+      && checkoutAddress?.id
+      && isAuthenticated
+    ) {
+      void refetchQuote()
+    }
+  }, [
+    queryClient,
+    checkoutStep,
+    checkoutAddress?.id,
+    isAuthenticated,
+    refetchQuote,
+  ])
+
+  const handleCheckoutUpdateQty = useCallback(async (item, delta) => {
+    if (!item?.id || cartEditsLocked) return
+    const nextQty = Number(item.quantity || 0) + delta
+    if (nextQty < 1) return
+    setCartMutatingId(item.id)
+    try {
+      await updateQuantity(item.id, nextQty)
+      await afterCheckoutCartMutation()
+    } finally {
+      setCartMutatingId(null)
+    }
+  }, [cartEditsLocked, updateQuantity, afterCheckoutCartMutation])
+
+  const handleCheckoutRemoveItem = useCallback(async (item) => {
+    if (!item?.id || cartEditsLocked) return
+    setCartMutatingId(item.id)
+    try {
+      await removeItem(item.id)
+      await afterCheckoutCartMutation()
+    } finally {
+      setCartMutatingId(null)
+    }
+  }, [cartEditsLocked, removeItem, afterCheckoutCartMutation])
+
   if (cartItems.length === 0 && !orderPlaced && !placedOrder && !isRecoveringCheckout) {
     return (
       <div className="container empty-state">
@@ -682,59 +735,6 @@ export default function Checkout() {
   const setPaymentMethod = (method) => {
     setValue('paymentMethod', method, { shouldValidate: true })
   }
-
-  const cartEditsLocked = Boolean(
-    cartMutatingId
-    || hasPendingOnlineOrder
-    || isRecoveringCheckout
-    || showRazorpay
-    || isSubmitting
-    || confirmCheckout.isPending
-    || createOrder.isPending
-    || verifyPayment.isPending
-  )
-
-  const afterCheckoutCartMutation = useCallback(async () => {
-    await removeCachedCheckoutQuotes(queryClient)
-    if (
-      checkoutStep >= CHECKOUT_STEP.DELIVERY
-      && checkoutAddress?.id
-      && isAuthenticated
-    ) {
-      // cartKey change already remounts the quote query; refetch covers in-flight races.
-      void refetchQuote()
-    }
-  }, [
-    queryClient,
-    checkoutStep,
-    checkoutAddress?.id,
-    isAuthenticated,
-    refetchQuote,
-  ])
-
-  const handleCheckoutUpdateQty = useCallback(async (item, delta) => {
-    if (!item?.id || cartEditsLocked) return
-    const nextQty = Number(item.quantity || 0) + delta
-    if (nextQty < 1) return
-    setCartMutatingId(item.id)
-    try {
-      await updateQuantity(item.id, nextQty)
-      await afterCheckoutCartMutation()
-    } finally {
-      setCartMutatingId(null)
-    }
-  }, [cartEditsLocked, updateQuantity, afterCheckoutCartMutation])
-
-  const handleCheckoutRemoveItem = useCallback(async (item) => {
-    if (!item?.id || cartEditsLocked) return
-    setCartMutatingId(item.id)
-    try {
-      await removeItem(item.id)
-      await afterCheckoutCartMutation()
-    } finally {
-      setCartMutatingId(null)
-    }
-  }, [cartEditsLocked, removeItem, afterCheckoutCartMutation])
 
   const handleApplyCoupon = async (code) => {
     const couponCode = String(code || couponInput || '').trim().toUpperCase()
