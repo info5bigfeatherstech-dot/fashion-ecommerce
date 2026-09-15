@@ -12,9 +12,12 @@ import {
   CreditCard,
   Lock,
   MapPin,
+  Minus,
   Package,
+  Plus,
   ShieldCheck,
   Tag,
+  Trash2,
   Truck,
   Wallet,
 } from 'lucide-react'
@@ -96,12 +99,15 @@ export default function Checkout() {
   const cartTotal = useCartTotal()
   const replaceCartFromApi = useAppStore((s) => s.replaceCartFromApi)
   const clearCart = useAppStore((s) => s.clearCart)
+  const updateQuantity = useAppStore((s) => s.updateQuantity)
+  const removeItem = useAppStore((s) => s.removeItem)
   const user = useAppStore((s) => s.user)
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
   const checkoutAddress = useAppStore((s) => s.checkoutAddress)
   const clearCheckoutAddress = useAppStore((s) => s.clearCheckoutAddress)
   const [orderPlaced, setOrderPlaced] = useState(false)
   const [successOrderId, setSuccessOrderId] = useState(null)
+  const [cartMutatingId, setCartMutatingId] = useState(null)
   const [checkoutStep, setCheckoutStep] = useState(() => {
     if (stepParam === 'payment') return CHECKOUT_STEP.PAYMENT
     if (stepParam === 'delivery') return CHECKOUT_STEP.DELIVERY
@@ -677,6 +683,59 @@ export default function Checkout() {
     setValue('paymentMethod', method, { shouldValidate: true })
   }
 
+  const cartEditsLocked = Boolean(
+    cartMutatingId
+    || hasPendingOnlineOrder
+    || isRecoveringCheckout
+    || showRazorpay
+    || isSubmitting
+    || confirmCheckout.isPending
+    || createOrder.isPending
+    || verifyPayment.isPending
+  )
+
+  const afterCheckoutCartMutation = useCallback(async () => {
+    await removeCachedCheckoutQuotes(queryClient)
+    if (
+      checkoutStep >= CHECKOUT_STEP.DELIVERY
+      && checkoutAddress?.id
+      && isAuthenticated
+    ) {
+      // cartKey change already remounts the quote query; refetch covers in-flight races.
+      void refetchQuote()
+    }
+  }, [
+    queryClient,
+    checkoutStep,
+    checkoutAddress?.id,
+    isAuthenticated,
+    refetchQuote,
+  ])
+
+  const handleCheckoutUpdateQty = useCallback(async (item, delta) => {
+    if (!item?.id || cartEditsLocked) return
+    const nextQty = Number(item.quantity || 0) + delta
+    if (nextQty < 1) return
+    setCartMutatingId(item.id)
+    try {
+      await updateQuantity(item.id, nextQty)
+      await afterCheckoutCartMutation()
+    } finally {
+      setCartMutatingId(null)
+    }
+  }, [cartEditsLocked, updateQuantity, afterCheckoutCartMutation])
+
+  const handleCheckoutRemoveItem = useCallback(async (item) => {
+    if (!item?.id || cartEditsLocked) return
+    setCartMutatingId(item.id)
+    try {
+      await removeItem(item.id)
+      await afterCheckoutCartMutation()
+    } finally {
+      setCartMutatingId(null)
+    }
+  }, [cartEditsLocked, removeItem, afterCheckoutCartMutation])
+
   const handleApplyCoupon = async (code) => {
     const couponCode = String(code || couponInput || '').trim().toUpperCase()
     if (!couponCode) {
@@ -906,26 +965,69 @@ export default function Checkout() {
                 {reviewOpen && (
                   <>
                     <p className="body-sm text-muted checkout-panel__hint">
-                      Check items and apply a coupon. Shipping is calculated after you choose a delivery address.
+                      Adjust quantities or remove items, then apply a coupon if you have one.
+                      Shipping is calculated after you choose a delivery address.
                     </p>
                     <div className="checkout-review-items">
-                      {cartItems.map((item) => (
-                        <div key={item.id} className="checkout-summary__item">
-                          <div className="checkout-summary__thumb">
-                            <img src={item.image} alt="" />
-                            <span>{item.quantity}</span>
+                      {cartItems.map((item) => {
+                        const isMutating = cartMutatingId === item.id
+                        const rowBusy = Boolean(cartMutatingId)
+                        return (
+                          <div
+                            key={item.id}
+                            className={`checkout-summary__item${isMutating ? ' checkout-summary__item--busy' : ''}`}
+                          >
+                            <div className="checkout-summary__thumb">
+                              {item.image ? <img src={item.image} alt="" /> : null}
+                              <span>{item.quantity}</span>
+                            </div>
+                            <div className="checkout-summary__item-meta">
+                              <p className="checkout-summary__item-name">{item.name}</p>
+                              {item.productCode && (
+                                <p className="body-sm text-muted">{item.productCode}</p>
+                              )}
+                              <div className="checkout-summary__item-actions">
+                                <div className="qty-stepper checkout-summary__qty" role="group" aria-label="Quantity">
+                                  <button
+                                    type="button"
+                                    className="qty-stepper__btn"
+                                    disabled={rowBusy || cartEditsLocked || item.quantity <= 1}
+                                    onClick={() => handleCheckoutUpdateQty(item, -1)}
+                                    aria-label="Decrease quantity"
+                                  >
+                                    <Minus size={13} />
+                                  </button>
+                                  <span className="qty-stepper__value" aria-live="polite">
+                                    {isMutating ? '…' : item.quantity}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    className="qty-stepper__btn"
+                                    disabled={rowBusy || cartEditsLocked}
+                                    onClick={() => handleCheckoutUpdateQty(item, 1)}
+                                    aria-label="Increase quantity"
+                                  >
+                                    <Plus size={13} />
+                                  </button>
+                                </div>
+                                <button
+                                  type="button"
+                                  className="checkout-summary__remove"
+                                  disabled={rowBusy || cartEditsLocked}
+                                  onClick={() => handleCheckoutRemoveItem(item)}
+                                  aria-label={`Remove ${item.name}`}
+                                  title="Remove item"
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              </div>
+                            </div>
+                            <p className="checkout-summary__item-price">
+                              {formatPrice(item.price * item.quantity)}
+                            </p>
                           </div>
-                          <div className="checkout-summary__item-meta">
-                            <p className="checkout-summary__item-name">{item.name}</p>
-                            {item.productCode && (
-                              <p className="body-sm text-muted">{item.productCode}</p>
-                            )}
-                          </div>
-                          <p className="checkout-summary__item-price">
-                            {formatPrice(item.price * item.quantity)}
-                          </p>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                     <div className="checkout-coupon checkout-coupon--inline">
                       <div className="checkout-coupon__head">
@@ -1326,12 +1428,13 @@ export default function Checkout() {
                   variant="primary"
                   size="lg"
                   fullWidth
+                  disabled={Boolean(cartMutatingId)}
                   onClick={(e) => {
                     e?.preventDefault?.()
                     goToDeliveryStep()
                   }}
                 >
-                  Continue to delivery
+                  {cartMutatingId ? 'Updating bag…' : 'Continue to delivery'}
                 </Button>
               )}
             </div>
