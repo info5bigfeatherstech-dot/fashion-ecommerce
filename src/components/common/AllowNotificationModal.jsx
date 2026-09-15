@@ -10,6 +10,8 @@ const NOTIFY_COOLDOWN_KEY = 'fabuniqo_notify_cooldown_until'
 const NOTIFY_COOLDOWN_MS = 2 * 24 * 60 * 60 * 1000 // 2 days in milliseconds
 const INSTALL_COOLDOWN_KEY = 'fabuniqo_app_install_cooldown_until'
 const INSTALL_AUTHED_COOLDOWN_KEY = 'fabuniqo_app_install_authed_cooldown_until'
+/** Session-scoped: X dismiss / already shown this tab session — survives tab blur/focus, clears on new tab/window */
+const NOTIFY_SESSION_DISMISSED_KEY = 'fabuniqo_notify_dismissed_session'
 
 // Helper to check if the notification prompt is currently on 2-day cooldown
 const isNotifyOnCooldown = () => {
@@ -23,6 +25,36 @@ const isNotifyOnCooldown = () => {
   }
   return false
 }
+
+const isNotifyDismissedThisSession = () => {
+  try {
+    return sessionStorage.getItem(NOTIFY_SESSION_DISMISSED_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+const markNotifyDismissedThisSession = () => {
+  try {
+    sessionStorage.setItem(NOTIFY_SESSION_DISMISSED_KEY, '1')
+  } catch {
+    // ignore
+  }
+}
+
+const clearNotifyDismissedThisSession = () => {
+  try {
+    sessionStorage.removeItem(NOTIFY_SESSION_DISMISSED_KEY)
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * Survives React Strict Mode remounts within the same page lifetime.
+ * Resets on full reload / navigation away. Prevents duplicate auto-prompts.
+ */
+let notifyAutoPromptedThisPage = false
 
 export function AllowNotificationModal() {
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
@@ -54,40 +86,55 @@ export function AllowNotificationModal() {
   }, [isOpen])
 
   const timerRef = useRef(null)
-  // Tracks if the user dismissed the popup via X in this session.
-  // Resets on page reload (in-memory) or when they return from another tab.
-  const dismissedThisSessionRef = useRef(false)
+  // In-memory dismiss for this page mount (X close). Not reset on tab blur/focus.
+  const dismissedThisSessionRef = useRef(isNotifyDismissedThisSession())
+  // Prevents double-open from auth effect + login event + Strict Mode remounts.
+  const promptedThisLoadRef = useRef(false)
+
+  const canShowNotifyPrompt = () => {
+    try {
+      if (typeof window === 'undefined' || !('Notification' in window)) return false
+      if (Notification.permission === 'granted') return false
+      if (isNotifyOnCooldown()) return false
+      if (dismissedThisSessionRef.current || isNotifyDismissedThisSession()) return false
+      if (promptedThisLoadRef.current || notifyAutoPromptedThisPage) return false
+      const currentState = useAppStore.getState()
+      return Boolean(currentState.isAuthenticated)
+    } catch {
+      return false
+    }
+  }
 
   const scheduleNotifyPopup = (delay = 8000) => {
-    if (isNotifyOnCooldown()) return
-    if (dismissedThisSessionRef.current) return
-    if (timerRef.current) clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => {
-      if (isNotifyOnCooldown()) return
-      if (dismissedThisSessionRef.current) return
+    try {
+      if (!canShowNotifyPrompt()) return
+      if (timerRef.current) clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => {
+        try {
+          if (!canShowNotifyPrompt()) return
 
-      // If the install app popup is currently active on screen, wait a bit longer
-      const isInstallModalOpen = document.querySelector('[aria-label="Install FabUniqo App"]')
-      if (isInstallModalOpen) {
-        scheduleNotifyPopup(4000)
-        return
-      }
+          // If the install app popup is currently active on screen, wait a bit longer
+          const isInstallModalOpen = document.querySelector('[aria-label="Install FabUniqo App"]')
+          if (isInstallModalOpen) {
+            scheduleNotifyPopup(4000)
+            return
+          }
 
-      const currentState = useAppStore.getState()
-      if (
-        currentState.isAuthenticated &&
-        typeof window !== 'undefined' &&
-        'Notification' in window &&
-        Notification.permission !== 'granted'
-      ) {
-        setIsOpen(true)
-      }
-    }, delay)
+          promptedThisLoadRef.current = true
+          notifyAutoPromptedThisPage = true
+          setIsOpen(true)
+        } catch (err) {
+          console.error('AllowNotificationModal schedule error:', err)
+        }
+      }, delay)
+    } catch (err) {
+      console.error('AllowNotificationModal schedule setup error:', err)
+    }
   }
 
   const prevAuthRef = useRef(null)
 
-  // Trigger on load / refresh when user is authenticated
+  // Trigger once on load / refresh when user is authenticated — not on tab switch
   useEffect(() => {
     // Only prompt authenticated users
     if (!isAuthenticated || !authReady) {
@@ -100,26 +147,12 @@ export function AllowNotificationModal() {
     const justLoggedIn = prevAuthRef.current === false && isAuthenticated === true
     prevAuthRef.current = isAuthenticated
 
-    // If currently on 2-day cooldown after "Maybe Later", do not show
-    if (isNotifyOnCooldown()) {
-      setIsOpen(false)
+    if (!canShowNotifyPrompt()) {
+      if (isNotifyOnCooldown()) setIsOpen(false)
       return undefined
     }
 
-    // Check browser notification support
-    if (typeof window === 'undefined' || !('Notification' in window)) {
-      return undefined
-    }
-
-    // If permission already granted, skip
-    if (Notification.permission === 'granted') {
-      return undefined
-    }
-
-    if (dismissedThisSessionRef.current) return undefined
-
-    // If user just logged in, show Allow Notifications promptly (1000ms).
-    // On normal reload / visit while already logged in, show after 3500ms.
+    // Fresh login → prompt sooner; already-logged-in visit → short delay after paint
     const delay = justLoggedIn ? 1000 : 3500
     scheduleNotifyPopup(delay)
 
@@ -131,19 +164,25 @@ export function AllowNotificationModal() {
   // Real-time login event listener (dispatched by AuthModal on sign-in)
   useEffect(() => {
     const handleUserLogin = () => {
-      if (typeof window === 'undefined' || !('Notification' in window)) return
-      if (Notification.permission === 'granted') return
-
       try {
-        localStorage.removeItem(NOTIFY_COOLDOWN_KEY)
-        sessionStorage.removeItem('fabuniqo_show_notify_popup')
-        sessionStorage.removeItem('fabuniqo_notification_allowed')
-      } catch { /* ignore */ }
+        if (typeof window === 'undefined' || !('Notification' in window)) return
+        if (Notification.permission === 'granted') return
 
-      dismissedThisSessionRef.current = false
-      setIsOpen(false)
-      // Show promptly 1s after login
-      scheduleNotifyPopup(1000)
+        try {
+          localStorage.removeItem(NOTIFY_COOLDOWN_KEY)
+          sessionStorage.removeItem('fabuniqo_show_notify_popup')
+          sessionStorage.removeItem('fabuniqo_notification_allowed')
+          clearNotifyDismissedThisSession()
+        } catch { /* ignore */ }
+
+        dismissedThisSessionRef.current = false
+        promptedThisLoadRef.current = false
+        notifyAutoPromptedThisPage = false
+        setIsOpen(false)
+        scheduleNotifyPopup(1000)
+      } catch (err) {
+        console.error('AllowNotificationModal login handler error:', err)
+      }
     }
 
     window.addEventListener('fabuniqo:user-login', handleUserLogin)
@@ -152,60 +191,22 @@ export function AllowNotificationModal() {
     }
   }, [])
 
-  // Re-trigger when user switches to a different tab and comes back
-  const hasLeftTabRef = useRef(false)
-
-  useEffect(() => {
-    const handleTabHide = () => {
-      hasLeftTabRef.current = true
-    }
-
-    const handleTabReturn = () => {
-      if (!hasLeftTabRef.current) return
-      hasLeftTabRef.current = false
-
-      // Reset the session-dismiss flag so the popup can show again on tab return
-      dismissedThisSessionRef.current = false
-
-      if (isNotifyOnCooldown()) return
-      const currentState = useAppStore.getState()
-      if (
-        currentState.isAuthenticated &&
-        typeof window !== 'undefined' &&
-        'Notification' in window &&
-        Notification.permission !== 'granted'
-      ) {
-        // Show popup when user returns from a different tab
-        scheduleNotifyPopup(600)
-      }
-    }
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        handleTabHide()
-      } else if (document.visibilityState === 'visible') {
-        handleTabReturn()
-      }
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-    }
-  }, [])
-
-  // Close handler: triggered when user clicks the [X] cross icon.
-  // Sets a session flag so it won't auto-show again this session.
-  // Resets on page reload or when user returns from another tab.
+  // Close handler: X — do not auto-show again this browser tab session (incl. tab switches)
   const handleClose = () => {
     dismissedThisSessionRef.current = true
+    promptedThisLoadRef.current = true
+    notifyAutoPromptedThisPage = true
+    markNotifyDismissedThisSession()
     setIsOpen(false)
     if (timerRef.current) clearTimeout(timerRef.current)
   }
 
   // Maybe Later handler: snoozes the notification popup for 2 days
   const handleMaybeLater = () => {
+    dismissedThisSessionRef.current = true
+    promptedThisLoadRef.current = true
+    notifyAutoPromptedThisPage = true
+    markNotifyDismissedThisSession()
     setIsOpen(false)
     if (timerRef.current) clearTimeout(timerRef.current)
     try {
