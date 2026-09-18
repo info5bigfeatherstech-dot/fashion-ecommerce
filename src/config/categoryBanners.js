@@ -1,7 +1,6 @@
 import { JEWELRY_CATEGORIES } from '@/config/site'
 import { formatCategoryTitle } from '@/lib/utils'
 import giftBanner from '@/assets/gift.jpeg'
-import newArrivalsBanner from '@/assets/new-arrivals-banner.jpg'
 
 /**
  * Compact PLP banners for navbar jewelry categories.
@@ -43,12 +42,10 @@ export const CATEGORY_BANNERS = {
   sale: {
     title: 'Sale is Live',
     subtitle: 'Limited-time offers across your favorite jewelry picks.',
-    image: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=1600&h=700&q=80',
   },
   'new-arrivals': {
     title: 'New Arrivals',
     subtitle: 'Discover the latest handcrafted jewellery drops and fresh styles.',
-    image: newArrivalsBanner,
   },
   'jewellery-spotted': {
     title: 'Jewellery Spotted',
@@ -59,7 +56,7 @@ export const CATEGORY_BANNERS = {
 export const JEWELRY_FALLBACK_BANNER = ''
 
 export function getCategoryBanner(slug, { label, image } = {}) {
-  if (!slug) return null
+  if (!slug || slug === 'bestsellers' || slug === 'bestselling-jewelry') return null
 
   const base = CATEGORY_BANNERS[slug]
   const resolvedImage = image || base?.image || null

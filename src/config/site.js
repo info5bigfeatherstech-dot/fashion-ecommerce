@@ -1,10 +1,8 @@
-import craftsmanshipImage from '../assets/Heavy Set.png';
 import earringsImage from '../assets/Earrings.png';
 import braceletsImage from '../assets/(6) Bracelets & Bangles.png';
 import chokerNecklaceImage from '../assets/(2) Green Beads Stone Choker Necklace with Earrings Set for Party Wedding Jewellery (1).png';
 import heartPendantNecklaceImage from '../assets/C6-009-1 Best Friend Heart Pendant Necklace Set Matching Friendship Chain for Girls  (2).png';
 import giftBoxImage from '../assets/(10) Build A Gift Box.png';
-import starting29Image from '../assets/Artificial Jewellery Starting 29 rs only  at FabUniqo.png';
 
 export const SITE_NAME = 'FABUNIQO'
 export const SITE_TAGLINE = 'Artificial jewelry for everyday shine.'
@@ -256,8 +254,8 @@ export const CRAFTSMANSHIP_INSPECTION = {
   body: 'Our jewelry pieces are handcrafted by skilled artisans using high-quality alloys, premium stones, and fine polishes. Every piece is carefully selected to ensure everlasting shine, comfort, and timeless elegance for your special occasion.',
   ctaLabel: 'SHOP COLLECTION',
   ctaHref: '/product-all',
-  image: craftsmanshipImage,
-  alt: 'Twisted gold hoop earrings on white stones',
+  image: 'https://res.cloudinary.com/kiqmlqnj/image/upload/v1789715006/Heavy_Set.png',
+  alt: 'Luxury handcrafted jewelry set on display',
   specs: [
     {
       id: 'clarity',
@@ -307,7 +305,7 @@ export const JEWELRY_ARCHIVE = [
     tagEyebrow: 'EVERYDAY GLAM',
     tagName: 'Trendy Daily Wear Studs',
     tagPrice: 'Starting from ₹29',
-    image: starting29Image,
+    image: 'https://res.cloudinary.com/kiqmlqnj/image/upload/v1789714783/Artificial_Jewellery_Starting_29_rs_only_at_FabUniqo.png',
     alt: 'Artificial Jewellery Starting 29 rs only at FabUniqo',
   },
   // {

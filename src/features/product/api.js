@@ -22,7 +22,7 @@ export {
 
 const BEAUTY_CATEGORIES = new Set(['skincare', 'makeup', 'beauty', 'beauty-and-personal-care'])
 const FOOTWEAR_SUBS = new Set(['sneakers', 'sandals', 'heels', 'boots', 'loafers', 'flats', 'shoes'])
-const SPECIAL_CATEGORIES = new Set(['sale', 'new-arrivals', 'beauty', 'footwear', 'bags', 'jewellery-spotted'])
+const SPECIAL_CATEGORIES = new Set(['sale', 'new-arrivals', 'beauty', 'footwear', 'bags', 'jewellery-spotted', 'bestsellers', 'bestselling-jewelry'])
 const CATALOG_TTL_MS = 1000 * 60
 const FEATURED_TTL_MS = 1000 * 60
 
@@ -132,6 +132,16 @@ function applyProductFilters(products, filters = {}) {
     results = results.filter((product) =>
       Array.isArray(product.tags) && product.tags.some((t) => String(t).toLowerCase() === 'jewellery-spotted')
     )
+  } else if (filters.category === 'bestsellers' || filters.category === 'bestselling-jewelry') {
+    results = results.filter((product) => {
+      const tags = Array.isArray(product.tags) ? product.tags.map((t) => String(t).toLowerCase()) : []
+      return (
+        tags.includes('bestselling-jewelry') ||
+        tags.includes('bestseller') ||
+        Boolean(product.isBestseller) ||
+        product.badge === 'bestseller'
+      )
+    })
   } else if (filters.category && !SPECIAL_CATEGORIES.has(filters.category)) {
     const category = String(filters.category).toLowerCase()
     const matched = results.filter(
@@ -469,6 +479,7 @@ export async function getProducts(filters = {}) {
   const category = filters.category
   const searchQuery = String(filters.search || '').trim()
   const queryParams = buildProductQueryParams(filters)
+  const isBestsellers = category === 'bestsellers' || category === 'bestselling-jewelry'
   const tag =
     filters.tags ||
     filters.discountTag ||
@@ -478,7 +489,9 @@ export async function getProducts(filters = {}) {
         ? 'today-arrival'
         : category === 'jewellery-spotted'
           ? 'jewellery-spotted'
-          : null)
+          : isBestsellers
+            ? 'bestselling-jewelry'
+            : null)
 
   // Prefer dedicated search API when a query is present
   if (searchQuery.length >= 2) {
@@ -566,20 +579,22 @@ export async function getProducts(filters = {}) {
         limit: filters.limit || 25,
         ...queryParams,
       })
-      const filtered = applyProductFilters(products, {
-        ...filters,
-        category: undefined,
-        tags: undefined,
-        discountTag: undefined,
-        onSale: undefined,
-      })
-      return {
-        products: filtered,
-        total: filtered.length === products.length ? total : filtered.length,
-        pagination: {
-          ...pagination,
+      if (products.length > 0) {
+        const filtered = applyProductFilters(products, {
+          ...filters,
+          category: undefined,
+          tags: undefined,
+          discountTag: undefined,
+          onSale: undefined,
+        })
+        return {
+          products: filtered,
           total: filtered.length === products.length ? total : filtered.length,
-        },
+          pagination: {
+            ...pagination,
+            total: filtered.length === products.length ? total : filtered.length,
+          },
+        }
       }
     } catch {
       // Fall back to catalog filter if tags route is unavailable

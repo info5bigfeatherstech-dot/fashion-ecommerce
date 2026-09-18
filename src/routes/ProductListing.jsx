@@ -57,7 +57,8 @@ export default function ProductListing() {
     }
   }, [category, subcategory, search, navType])
 
-  const specials = ['new-arrivals', 'sale']
+  const specials = ['new-arrivals', 'sale', 'bestsellers', 'bestselling-jewelry']
+  const isBestsellers = category === 'bestsellers' || category === 'bestselling-jewelry'
   const resolvedCategory = specials.includes(category) ? category : category
   const categoryInfo = CATEGORY_TREE[category] || null
   const landing = !subcategory && !search ? getCategoryLanding(category) : null
@@ -109,13 +110,13 @@ export default function ProductListing() {
   const resolvedCategoryLabel = categoryInfo?.label || apiCategoryLabel || null
 
   const categoryBanner = useMemo(() => {
-    if (subcategory || search || landing) return null
+    if (subcategory || search || landing || isBestsellers) return null
     return getCategoryBanner(category, {
       label: resolvedCategoryLabel,
       // Prefer dedicated banner art; never reuse square card image as banner BG.
       image: apiCategoryBannerImage || undefined,
     })
-  }, [subcategory, search, landing, category, resolvedCategoryLabel, apiCategoryBannerImage])
+  }, [subcategory, search, landing, isBestsellers, category, resolvedCategoryLabel, apiCategoryBannerImage])
 
   const title = search
     ? `Results for "${search}"`
@@ -125,7 +126,9 @@ export default function ProductListing() {
         ? 'New Arrivals'
         : category === 'sale'
           ? 'Sale'
-          : formatCategoryTitle(resolvedCategoryLabel || category || 'All Products')
+          : isBestsellers
+            ? 'Bestselling Jewelry'
+            : formatCategoryTitle(resolvedCategoryLabel || category || 'All Products')
 
   const updateParam = (key, value) => {
     const params = new URLSearchParams(searchParams)

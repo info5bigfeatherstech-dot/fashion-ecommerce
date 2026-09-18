@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { ProductCarousel } from '@/features/product/components/ProductCarousel'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
 import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
@@ -36,6 +37,11 @@ export function BestsellersSection() {
             </p>
           </Reveal>
         </div>
+        <Reveal delay={0.12}>
+          <Link to="/shop/bestsellers" className="section-header__link">
+            View All
+          </Link>
+        </Reveal>
       </div>
       {isLoading ? (
         <ProductGridSkeleton count={4} />

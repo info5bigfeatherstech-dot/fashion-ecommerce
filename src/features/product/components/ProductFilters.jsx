@@ -67,7 +67,11 @@ export function ProductFilters({
     return [
       {
         slug: category,
-        label: categoryInfo?.label || String(category).replace(/-/g, ' '),
+        label:
+          categoryInfo?.label ||
+          (category === 'bestsellers' || category === 'bestselling-jewelry'
+            ? 'Bestselling Jewelry'
+            : String(category).replace(/-/g, ' ')),
       },
       ...fromApi,
     ]

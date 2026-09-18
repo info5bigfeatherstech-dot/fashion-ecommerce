@@ -32,12 +32,12 @@ export default function Home() {
       <SignatureJewelrySection />
       <CraftsmanshipSection />
       <TheArchiveSection />
-      <TrendingNowFastSection />
+      <BestsellersSection />
       <AsSeenOnYouSection />
       {/* <CategoryStripSection /> */}
       {/* <LatestCollectionsSection /> */}
       {/* <NewDropsSection /> */}
-      <BestsellersSection />
+      <TrendingNowFastSection />
       {/* <MostLovedSection /> */}
       {/* <BeautySpotlightSection /> */}
       {/* <ShopByCategorySection /> */}

@@ -79,6 +79,8 @@ export const router = createBrowserRouter([
       { path: 'contact', element: <ContactUs /> },
       { path: 'gifting', element: <Gifting /> },
       { path: 'jewellery-spotted', element: <Navigate to="/shop/jewellery-spotted" replace /> },
+      { path: 'bestsellers', element: <Navigate to="/shop/bestsellers" replace /> },
+      { path: 'bestselling-jewelry', element: <Navigate to="/shop/bestsellers" replace /> },
       { path: 'product-all', element: <ProductAll /> },
       { path: 'policies/:slug', element: <Policy /> },
       { path: '*', element: <NotFound /> },
