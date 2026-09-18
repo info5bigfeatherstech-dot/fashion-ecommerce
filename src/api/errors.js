@@ -40,6 +40,22 @@ export function normalizeApiError(error) {
   }
 
   if (!error?.response) {
+    // Axios aborts long requests with ECONNABORTED + "timeout of Xms exceeded"
+    const rawMessage = String(error?.message || '')
+    const isTimeout =
+      error?.code === 'ECONNABORTED' ||
+      error?.code === 'ETIMEDOUT' ||
+      /timeout/i.test(rawMessage)
+
+    if (isTimeout) {
+      return new ApiError({
+        message: rawMessage || 'Request timed out. Please try again.',
+        status: 0,
+        code: 'TIMEOUT',
+        cause: error,
+      })
+    }
+
     return new ApiError({
       message: error?.message || 'Network error. Please try again.',
       status: 0,

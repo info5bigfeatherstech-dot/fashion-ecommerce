@@ -9,6 +9,7 @@ import {
   importAdminBulkCsv,
   importAdminBulkWithZip,
   previewAdminBulkCsv,
+  ADMIN_BULK_IMPORT_TIMEOUT_MS,
 } from '@/features/admin/api/products'
 
 const STEPS_URL = ['Choose mode', 'Upload Excel', 'Preview', 'Done']
@@ -296,8 +297,9 @@ export function AdminBulkUploadModal({ open, onOpenChange, onComplete }) {
     }
     setBusy(true)
     setStep('importing')
-    // Import can run several minutes (download + compress + upload per image).
-    simulateProgress({ halfLifeMs: 180000, cap: 92 })
+    // Visual estimate aligned to the 15-minute client budget (not real server %).
+    const importHalfLifeMs = Math.max(120000, Math.round(ADMIN_BULK_IMPORT_TIMEOUT_MS / 2))
+    simulateProgress({ halfLifeMs: importHalfLifeMs, cap: 92 })
     try {
       const fd = new FormData()
       // Backend expects csvFile (preview/import) and imagesZip (ZIP mode)
@@ -324,6 +326,10 @@ export function AdminBulkUploadModal({ open, onOpenChange, onComplete }) {
       const details = err?.details && typeof err.details === 'object' ? err.details : null
       const downloadUrl = details?.downloadUrl || null
       const errorReportFileName = details?.errorReportFileName || null
+      const isTimeout =
+        err?.code === 'BULK_IMPORT_TIMEOUT' ||
+        err?.code === 'TIMEOUT' ||
+        /timeout/i.test(String(err?.message || ''))
       // ZIP/CSV preflight failures return 422 with downloadable report — show result + download.
       if (downloadUrl || errorReportFileName || details?.aborted) {
         stopSimulatedProgress()
@@ -344,7 +350,12 @@ export function AdminBulkUploadModal({ open, onOpenChange, onComplete }) {
         stopSimulatedProgress()
         setProgressPct(100)
         setStep(imageMode === 'zip' && preview ? 'zip' : 'preview')
-        toast.error(err?.message || 'Import failed')
+        toast.error(
+          err?.message ||
+            (isTimeout
+              ? 'Bulk import timed out. Check the products list before retrying.'
+              : 'Import failed')
+        )
       }
     } finally {
       setBusy(false)
@@ -702,7 +713,7 @@ export function AdminBulkUploadModal({ open, onOpenChange, onComplete }) {
             <p className="bulk-upload-importing-title">Importing products…</p>
             <p className="bulk-upload-importing-sub">
               Downloading, compressing, and uploading images in parallel. Keep this tab open —
-              large CSV+URL imports can take a few minutes.
+              large CSV+URL imports can take up to about 15 minutes.
             </p>
             <ProgressBar pct={progressPct} tone={tone} />
             <p className="bulk-upload-progress-meta is-center">

@@ -15,6 +15,42 @@ import {
   unwrapAdmin,
 } from './client'
 
+/**
+ * Client wait budget for admin bulk CSV / ZIP import (download + optimize + R2/Cloudinary).
+ * Keep nginx/proxy read timeout ≥ this value or the gateway will cut the request first.
+ */
+export const ADMIN_BULK_IMPORT_TIMEOUT_MS = 15 * 60 * 1000
+
+function isRequestTimeoutError(err) {
+  if (!err) return false
+  if (err.code === 'TIMEOUT' || err.code === 'ECONNABORTED' || err.code === 'BULK_IMPORT_TIMEOUT') {
+    return true
+  }
+  const msg = String(err.message || err.cause?.message || '')
+  return /timeout/i.test(msg)
+}
+
+function rethrowBulkImportError(err) {
+  if (isRequestTimeoutError(err)) {
+    throw new ApiError({
+      message:
+        'Bulk import timed out after 15 minutes. The server may still be finishing in the background — refresh the products list before retrying.',
+      status: 0,
+      code: 'BULK_IMPORT_TIMEOUT',
+      details: err?.details ?? null,
+      cause: err,
+    })
+  }
+  if (err instanceof ApiError) throw err
+  throw new ApiError({
+    message: err?.message || 'Bulk import failed',
+    status: err?.status || 0,
+    code: err?.code || 'BULK_IMPORT_ERROR',
+    details: err?.details ?? null,
+    cause: err,
+  })
+}
+
 export async function getAdminProductsAll({ signal, page = 1, limit = 50, search = '', status = '', category = '' } = {}) {
   const params = { page, limit }
   if (String(search || '').trim()) params.search = String(search).trim()
@@ -314,28 +350,36 @@ export async function previewAdminBulkCsv(formData) {
 
 export async function importAdminBulkCsv(formData) {
   const axiosClient = (await import('@/api/axiosClient')).default
-  const response = await axiosClient.request({
-    method: 'POST',
-    url: API_ENDPOINTS.admin.productsImportCsv,
-    data: formData,
-    headers: { 'Content-Type': 'multipart/form-data' },
-    useAdminAuth: true,
-    timeout: 300000,
-  })
-  return unwrapAdmin(response.data)
+  try {
+    const response = await axiosClient.request({
+      method: 'POST',
+      url: API_ENDPOINTS.admin.productsImportCsv,
+      data: formData,
+      headers: { 'Content-Type': 'multipart/form-data' },
+      useAdminAuth: true,
+      timeout: ADMIN_BULK_IMPORT_TIMEOUT_MS,
+    })
+    return unwrapAdmin(response.data)
+  } catch (err) {
+    rethrowBulkImportError(err)
+  }
 }
 
 export async function importAdminBulkWithZip(formData) {
   const axiosClient = (await import('@/api/axiosClient')).default
-  const response = await axiosClient.request({
-    method: 'POST',
-    url: API_ENDPOINTS.admin.productsBulkNew,
-    data: formData,
-    headers: { 'Content-Type': 'multipart/form-data' },
-    useAdminAuth: true,
-    timeout: 300000,
-  })
-  return unwrapAdmin(response.data)
+  try {
+    const response = await axiosClient.request({
+      method: 'POST',
+      url: API_ENDPOINTS.admin.productsBulkNew,
+      data: formData,
+      headers: { 'Content-Type': 'multipart/form-data' },
+      useAdminAuth: true,
+      timeout: ADMIN_BULK_IMPORT_TIMEOUT_MS,
+    })
+    return unwrapAdmin(response.data)
+  } catch (err) {
+    rethrowBulkImportError(err)
+  }
 }
 
 export function buildProductFormData(values, { isEdit = false } = {}) {
