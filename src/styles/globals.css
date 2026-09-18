@@ -15474,6 +15474,12 @@ a.cart-item__name:hover {
   margin-bottom: var(--space-2);
 }
 
+.account-profile-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-4);
+}
+
 .account-note {
   display: flex;
   gap: 10px;

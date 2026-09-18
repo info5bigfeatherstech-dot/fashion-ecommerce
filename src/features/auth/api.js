@@ -72,6 +72,21 @@ export function isFatalAuthRefreshError(error) {
   )
 }
 
+/** PUT /api/auth/profile — update storefront customer profile (name). */
+export async function updateProfile({ name }) {
+  const payload = await http.put(API_ENDPOINTS.auth.profile, {
+    name: String(name || '').trim(),
+  })
+  const user = mapAuthUser(payload?.user)
+  if (user) {
+    useAppStore.getState().setUser(user)
+  }
+  return {
+    message: payload?.message || 'Profile updated successfully.',
+    user,
+  }
+}
+
 /** GET /api/auth/me — used to hydrate user after cookie refresh when payload has no user. */
 export async function fetchCurrentUser(tokenOverride = null) {
   const token = tokenOverride || useAppStore.getState().accessToken

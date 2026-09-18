@@ -1,8 +1,12 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { NavLink, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ChevronRight, Heart, LogOut, MapPin, Package, ShoppingBag, UserRound } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
 import { Input, InputGroup } from '@/components/ui/Input'
+import { updateProfile } from '@/features/auth/api'
+import { normalizePersonName, personNameSchema } from '@/lib/personName'
 import { Separator } from '@/components/ui/Separator'
 import { logout } from '@/features/auth/api'
 import { useAppStore } from '@/store'
@@ -25,6 +29,11 @@ const ACCOUNT_MENU_LINKS = [
   { id: 'addresses', label: 'Saved addresses', icon: MapPin, to: '/account/addresses' },
 ]
 
+function getAccountDisplayName(user) {
+  if (!user) return ''
+  return user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim()
+}
+
 export default function Account() {
   const { section } = useParams()
   const location = useLocation()
@@ -35,8 +44,44 @@ export default function Account() {
   const cartCount = useCartCount()
   const wishlistCount = useWishlistCount()
   const navigate = useNavigate()
+  const [profileName, setProfileName] = useState('')
+  const [profileSaving, setProfileSaving] = useState(false)
 
   const activeTab = ACCOUNT_SECTIONS.has(section) ? section : null
+  const savedProfileName = normalizePersonName(getAccountDisplayName(user))
+
+  useEffect(() => {
+    if (activeTab === 'profile' && user) {
+      setProfileName(getAccountDisplayName(user))
+    }
+  }, [activeTab, user])
+
+  const profileNameDirty =
+    activeTab === 'profile' &&
+    normalizePersonName(profileName) !== savedProfileName
+
+  const handleSaveProfile = async (event) => {
+    event.preventDefault()
+    if (profileSaving || !profileNameDirty) return
+
+    const trimmed = normalizePersonName(profileName)
+    const parsed = personNameSchema.safeParse(trimmed)
+    if (!parsed.success) {
+      toast.error(parsed.error.errors[0]?.message || 'Please enter a valid name.')
+      return
+    }
+
+    setProfileSaving(true)
+    try {
+      const result = await updateProfile({ name: parsed.data })
+      setProfileName(result.user?.name || parsed.data)
+      toast.success(result.message || 'Profile updated successfully.')
+    } catch (error) {
+      toast.error(error?.message || 'Failed to update profile. Please try again.')
+    } finally {
+      setProfileSaving(false)
+    }
+  }
   const badgeCounts = useMemo(
     () => ({ cart: cartCount, wishlist: wishlistCount }),
     [cartCount, wishlistCount]
@@ -74,7 +119,7 @@ export default function Account() {
           </div>
           <div className="account-sidebar__identity">
             <p className="account-sidebar__hello">Hello,</p>
-            <p className="account-sidebar__name">{user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim()}</p>
+            <p className="account-sidebar__name">{getAccountDisplayName(user)}</p>
             <p className="account-sidebar__email">{user.email}</p>
           </div>
           <button
@@ -159,7 +204,7 @@ export default function Account() {
             <div className="account-hero">
               <div>
                 <p className="heading-sm">FABUNIQO Customer</p>
-                <h3 className="display-md account-hero__title">{user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim()}</h3>
+                <h3 className="display-md account-hero__title">{getAccountDisplayName(user)}</h3>
                 <p className="body-lg text-muted">Manage your Details, Delivery Addresses, and upcoming Orders from one Place.</p>
               </div>
             </div>
@@ -172,20 +217,44 @@ export default function Account() {
                 </div>
               </div>
 
-              <div className="form-grid form-grid--2">
-                <InputGroup label="Full name">
-                  <Input readOnly defaultValue={user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim()} />
-                </InputGroup>
-                <InputGroup label="Email">
-                  <Input readOnly defaultValue={user.email} />
-                </InputGroup>
-                <InputGroup label="Phone number">
-                  <Input readOnly defaultValue={user.phone || 'Not provided'} />
-                </InputGroup>
-                <InputGroup label="Member since">
-                  <Input readOnly defaultValue="Today" />
-                </InputGroup>
-              </div>
+              <form onSubmit={handleSaveProfile} className="account-profile-form">
+                <div className="form-grid form-grid--2">
+                  <InputGroup label="Full name">
+                    <Input
+                      id="account-profile-name"
+                      name="name"
+                      value={profileName}
+                      onChange={(event) => setProfileName(event.target.value)}
+                      autoComplete="name"
+                      required
+                    />
+                  </InputGroup>
+                  <InputGroup label="Email">
+                    <Input readOnly value={user.email} tabIndex={-1} aria-readonly="true" />
+                  </InputGroup>
+                  <InputGroup label="Phone number">
+                    <Input
+                      readOnly
+                      value={user.phone || 'Not provided'}
+                      tabIndex={-1}
+                      aria-readonly="true"
+                    />
+                  </InputGroup>
+                  <InputGroup label="Member since">
+                    <Input readOnly value="Today" tabIndex={-1} aria-readonly="true" />
+                  </InputGroup>
+                </div>
+
+                <div className="account-profile-form__actions">
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    disabled={!profileNameDirty || profileSaving}
+                  >
+                    {profileSaving ? 'Saving…' : 'Save profile'}
+                  </Button>
+                </div>
+              </form>
 
               <Separator style={{ marginBlock: 'var(--space-4)' }} />
             </div>
