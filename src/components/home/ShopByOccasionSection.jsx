@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, useReducedMotion } from 'framer-motion'
 import { SHOP_BY_OCCASION } from '@/config/site'
 import { Reveal, ScrollRevealText } from '@/components/motion/ScrollRevealText'
 import { BREAKPOINTS } from '@/config/breakpoints'
+import { useCircleCategories } from '@/features/category/hooks'
+import { resolveOccasionCategoryHref } from '@/features/category/nav'
 
 const DEFAULT_ACTIVE = 2
 const FLEX_ACTIVE = 4.8
@@ -53,8 +55,20 @@ export function ShopByOccasionSection() {
   const [activeIndex, setActiveIndex] = useState(DEFAULT_ACTIVE)
   const isMobile = useIsMobile()
   const reduceMotion = useReducedMotion()
+  const { data: categories = [] } = useCircleCategories()
   const { eyebrow, panels } = SHOP_BY_OCCASION
   const { active: activeWidth, inactive: inactiveWidth } = getPanelWidths(panels.length)
+
+  const resolvedPanels = useMemo(() => {
+    try {
+      return panels.map((panel) => ({
+        ...panel,
+        href: resolveOccasionCategoryHref(panel, categories),
+      }))
+    } catch {
+      return panels
+    }
+  }, [panels, categories])
 
   const panelTransition = reduceMotion
     ? { duration: 0 }
@@ -87,7 +101,7 @@ export function ShopByOccasionSection() {
           className="occasion-accordion"
           onMouseLeave={() => setActiveIndex(DEFAULT_ACTIVE)}
         >
-          {panels.map((panel, index) => {
+          {resolvedPanels.map((panel, index) => {
             const isActive = activeIndex === index
 
             return (
@@ -104,7 +118,7 @@ export function ShopByOccasionSection() {
                 onFocusCapture={() => setActiveIndex(index)}
               >
                 <Link
-                  to={panel.href || '/shop/sets'}
+                  to={panel.href || '/shop'}
                   state={{ fromSection: 'shop-by-occasion' }}
                   className={`occasion-accordion__panel${isActive ? ' is-active' : ''}`}
                   aria-label={`Shop ${panel.title}`}

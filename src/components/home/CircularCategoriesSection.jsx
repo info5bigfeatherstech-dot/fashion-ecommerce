@@ -150,7 +150,13 @@ export function CircularCategoriesSection() {
                       <span className="circle-categories__ring">
                         <span className="circle-categories__ring-inner">
                           {category.image ? (
-                            <img src={category.image} alt="" loading="lazy" />
+                            <img
+                              src={category.image}
+                              alt=""
+                              loading={index < 8 ? 'eager' : 'lazy'}
+                              decoding="async"
+                              fetchPriority={index < 4 ? 'high' : 'auto'}
+                            />
                           ) : (
                             <span className="circle-categories__ring-fallback" aria-hidden="true">
                               {(category.label || '?').charAt(0).toUpperCase()}
