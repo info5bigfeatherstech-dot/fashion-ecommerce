@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link2, Package, Download, FileSpreadsheet, Archive } from 'lucide-react'
 import { toast } from 'sonner'
 import { Modal } from '@/components/ui/Modal'
@@ -169,8 +169,19 @@ export function AdminBulkUploadModal({ open, onOpenChange, onComplete }) {
   const [busy, setBusy] = useState(false)
   const [progressPct, setProgressPct] = useState(0)
   const [templateDownloading, setTemplateDownloading] = useState(false)
+  const progressRafRef = useRef(0)
+  const progressActiveRef = useRef(false)
+
+  const stopSimulatedProgress = useCallback(() => {
+    progressActiveRef.current = false
+    if (progressRafRef.current) {
+      cancelAnimationFrame(progressRafRef.current)
+      progressRafRef.current = 0
+    }
+  }, [])
 
   const reset = () => {
+    stopSimulatedProgress()
     setStep('mode')
     setImageMode(null)
     setCsvFile(null)
@@ -224,17 +235,28 @@ export function AdminBulkUploadModal({ open, onOpenChange, onComplete }) {
     }
   }
 
-  const simulateProgress = () => {
+  const simulateProgress = (opts = {}) => {
+    // Visual estimate only — server does not stream %. Slow asymptote so long imports
+    // do not look "stuck" at ~70% while images are still uploading.
+    const halfLifeMs = Number(opts.halfLifeMs) > 0 ? Number(opts.halfLifeMs) : 120000
+    const cap = Number(opts.cap) > 0 ? Math.min(95, Number(opts.cap)) : 92
+
+    stopSimulatedProgress()
+    progressActiveRef.current = true
     setProgressPct(0)
     const start = performance.now()
+
     const tick = (now) => {
+      if (!progressActiveRef.current) return
       const elapsed = now - start
-      const progress = 1 - Math.exp(-elapsed / 90000)
-      setProgressPct(Math.round(Math.min(95, progress * 95)))
-      if (elapsed < 120000) requestAnimationFrame(tick)
+      const progress = 1 - Math.exp(-elapsed / halfLifeMs)
+      setProgressPct(Math.round(Math.min(cap, progress * cap)))
+      progressRafRef.current = requestAnimationFrame(tick)
     }
-    requestAnimationFrame(tick)
+    progressRafRef.current = requestAnimationFrame(tick)
   }
+
+  useEffect(() => () => stopSimulatedProgress(), [stopSimulatedProgress])
 
   const handlePreview = async () => {
     if (!csvFile) {
@@ -243,7 +265,7 @@ export function AdminBulkUploadModal({ open, onOpenChange, onComplete }) {
     }
     setBusy(true)
     setPreviewError(null)
-    simulateProgress()
+    simulateProgress({ halfLifeMs: 25000, cap: 90 })
     try {
       const fd = new FormData()
       // Backend multer.single('csvFile') — field name must match exactly
@@ -252,8 +274,10 @@ export function AdminBulkUploadModal({ open, onOpenChange, onComplete }) {
       const normalized = normalizePreview(raw)
       setPreview(normalized)
       setStep('preview')
+      stopSimulatedProgress()
       setProgressPct(100)
     } catch (err) {
+      stopSimulatedProgress()
       setPreviewError(err?.message || 'Preview failed')
       toast.error(err?.message || 'Preview failed')
     } finally {
@@ -272,7 +296,8 @@ export function AdminBulkUploadModal({ open, onOpenChange, onComplete }) {
     }
     setBusy(true)
     setStep('importing')
-    simulateProgress()
+    // Import can run several minutes (download + compress + upload per image).
+    simulateProgress({ halfLifeMs: 180000, cap: 92 })
     try {
       const fd = new FormData()
       // Backend expects csvFile (preview/import) and imagesZip (ZIP mode)
@@ -281,6 +306,7 @@ export function AdminBulkUploadModal({ open, onOpenChange, onComplete }) {
       const raw = imageMode === 'zip'
         ? await importAdminBulkWithZip(fd)
         : await importAdminBulkCsv(fd)
+      stopSimulatedProgress()
       setProgressPct(100)
       setResult(raw)
       setStep('result')
@@ -300,6 +326,7 @@ export function AdminBulkUploadModal({ open, onOpenChange, onComplete }) {
       const errorReportFileName = details?.errorReportFileName || null
       // ZIP/CSV preflight failures return 422 with downloadable report — show result + download.
       if (downloadUrl || errorReportFileName || details?.aborted) {
+        stopSimulatedProgress()
         setProgressPct(100)
         setResult({
           aborted: true,
@@ -314,6 +341,7 @@ export function AdminBulkUploadModal({ open, onOpenChange, onComplete }) {
         setStep('result')
         toast.error(err?.message || 'Import blocked — download the error report')
       } else {
+        stopSimulatedProgress()
         setProgressPct(100)
         setStep(imageMode === 'zip' && preview ? 'zip' : 'preview')
         toast.error(err?.message || 'Import failed')
@@ -672,9 +700,14 @@ export function AdminBulkUploadModal({ open, onOpenChange, onComplete }) {
         {step === 'importing' && (
           <div className="bulk-upload-panel bulk-upload-panel--center">
             <p className="bulk-upload-importing-title">Importing products…</p>
-            <p className="bulk-upload-importing-sub">This may take a minute for large files.</p>
+            <p className="bulk-upload-importing-sub">
+              Downloading, compressing, and uploading images in parallel. Keep this tab open —
+              large CSV+URL imports can take a few minutes.
+            </p>
             <ProgressBar pct={progressPct} tone={tone} />
-            <p className="bulk-upload-progress-meta is-center">{progressPct}%</p>
+            <p className="bulk-upload-progress-meta is-center">
+              {progressPct}% · working (estimate, not exact)
+            </p>
           </div>
         )}
 
