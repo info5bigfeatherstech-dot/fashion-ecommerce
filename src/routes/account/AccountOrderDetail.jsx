@@ -19,7 +19,10 @@ import { Button } from '@/components/ui/Button'
 import { Separator } from '@/components/ui/Separator'
 import { PAYMENT_STATE } from '@/features/checkout/constants'
 import { useVerifyRazorpayPayment } from '@/features/checkout/hooks'
-import RazorpayCheckout from '@/features/checkout/razorpay/RazorpayCheckout'
+import RazorpayCheckout, {
+  forceCloseRazorpayUi,
+  destroyRazorpayCheckoutSession,
+} from '@/features/checkout/razorpay/RazorpayCheckout'
 import { PaymentErrorOverlay } from '@/features/checkout/razorpay/PaymentErrorOverlay'
 import { PaymentLoadingOverlay } from '@/features/checkout/razorpay/PaymentLoadingOverlay'
 import {
@@ -154,12 +157,24 @@ export function AccountOrderDetail({ orderId, onBack }) {
           razorpay_signature: response.razorpay_signature,
           orderId,
         })
+        try {
+          destroyRazorpayCheckoutSession()
+        } catch {
+          /* ignore */
+        }
+        void forceCloseRazorpayUi()
         setRazorpayPaymentState(PAYMENT_STATE.VERIFIED)
         setShowRazorpay(false)
         setRazorpayBundle(null)
         invalidateOrders(orderId)
         await refetch()
       } catch (err) {
+        try {
+          destroyRazorpayCheckoutSession()
+        } catch {
+          /* ignore */
+        }
+        void forceCloseRazorpayUi()
         setShowRazorpay(false)
         setRazorpayBundle(null)
         setRazorpayPaymentState(PAYMENT_STATE.FAILED)
@@ -171,6 +186,12 @@ export function AccountOrderDetail({ orderId, onBack }) {
   )
 
   const handleRazorpayFailure = useCallback((message) => {
+    try {
+      destroyRazorpayCheckoutSession()
+    } catch {
+      /* ignore */
+    }
+    void forceCloseRazorpayUi()
     setShowRazorpay(false)
     setRazorpayBundle(null)
     setRazorpayPaymentState(PAYMENT_STATE.FAILED)
@@ -179,6 +200,12 @@ export function AccountOrderDetail({ orderId, onBack }) {
   }, [])
 
   const handleRazorpayClose = useCallback(() => {
+    try {
+      destroyRazorpayCheckoutSession()
+    } catch {
+      /* ignore */
+    }
+    void forceCloseRazorpayUi()
     setShowRazorpay(false)
     setRazorpayBundle(null)
     setRazorpayPaymentState(PAYMENT_STATE.IDLE)
