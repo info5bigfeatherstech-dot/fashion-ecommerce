@@ -44,7 +44,10 @@ import {
   PAYMENT_STATE,
 } from '@/features/checkout/constants'
 import { isCodPlacedOrder, isQuoteExpired, toConfirmPaymentBody } from '@/features/checkout/mappers'
-import RazorpayCheckout from '@/features/checkout/razorpay/RazorpayCheckout'
+import RazorpayCheckout, {
+  forceCloseRazorpayUi,
+  destroyRazorpayCheckoutSession,
+} from '@/features/checkout/razorpay/RazorpayCheckout'
 import { PaymentErrorOverlay } from '@/features/checkout/razorpay/PaymentErrorOverlay'
 import { PaymentLoadingOverlay } from '@/features/checkout/razorpay/PaymentLoadingOverlay'
 import { getCart } from '@/features/cart/api'
@@ -367,6 +370,12 @@ export default function Checkout() {
       gatewayDismissRecoveryInFlight.current = true
 
       try {
+        try {
+          destroyRazorpayCheckoutSession()
+        } catch {
+          /* ignore */
+        }
+        void forceCloseRazorpayUi()
         setShowRazorpay(false)
         setRazorpayOrderData(null)
         setRazorpayPaymentState(PAYMENT_STATE.CANCELLED)
@@ -417,6 +426,15 @@ export default function Checkout() {
       || placedOrder?.order?.orderId
       || placedOrder?.order?.id
       || null
+
+    // Always strip Razorpay overlay before toast / success UI (prevents stuck QR).
+    try {
+      destroyRazorpayCheckoutSession()
+    } catch {
+      /* ignore */
+    }
+    void forceCloseRazorpayUi()
+
     setSuccessOrderId(orderId)
     clearCart()
     clearCheckoutAddress()
@@ -434,7 +452,7 @@ export default function Checkout() {
       const currentOrderId =
         placedOrder?.order?.orderId
         || placedOrder?.order?.id
-        || response.notes?.orderId
+        || response?.notes?.orderId
       if (!currentOrderId) throw new Error('Order ID not found. Please contact support.')
 
       await verifyPayment.mutateAsync({
@@ -445,8 +463,14 @@ export default function Checkout() {
       })
 
       setRazorpayPaymentState(PAYMENT_STATE.VERIFIED)
-      finishOrderSuccess(true)
+      finishOrderSuccess(true, currentOrderId)
     } catch (err) {
+      try {
+        destroyRazorpayCheckoutSession()
+      } catch {
+        /* ignore */
+      }
+      void forceCloseRazorpayUi()
       setShowRazorpay(false)
       setRazorpayOrderData(null)
       setRazorpayPaymentState(PAYMENT_STATE.FAILED)
@@ -459,11 +483,20 @@ export default function Checkout() {
   }, [finishOrderSuccess, placedOrder, verifyPayment])
 
   const handleRazorpayNaturalDismiss = useCallback(() => {
+    void forceCloseRazorpayUi()
     setShowRazorpay(false)
     setRazorpayOrderData(null)
   }, [])
 
   const handleRazorpayFailure = useCallback((error) => {
+    try {
+      destroyRazorpayCheckoutSession()
+    } catch {
+      /* ignore */
+    }
+    void forceCloseRazorpayUi()
+    setShowRazorpay(false)
+    setRazorpayOrderData(null)
     setRazorpayPaymentState(PAYMENT_STATE.FAILED)
     setShowPaymentError(false)
     setPaymentError(null)
@@ -480,6 +513,8 @@ export default function Checkout() {
     }
 
     toast.error(msg)
+    setPaymentError(msg)
+    setShowPaymentError(true)
     checkoutAttemptKeyRef.current = null
   }, [])
 
@@ -488,6 +523,12 @@ export default function Checkout() {
   }, [])
 
   const handleRazorpayClose = useCallback(() => {
+    try {
+      destroyRazorpayCheckoutSession()
+    } catch {
+      /* ignore */
+    }
+    void forceCloseRazorpayUi()
     setShowPaymentError(false)
     setPaymentError(null)
     setShowRazorpay(false)
