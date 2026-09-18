@@ -57,16 +57,25 @@ export function mapCircleCategory(category) {
     bannerImage: bannerImage || null,
     slug: category?.slug || slug,
     name: label,
+    /** Admin dashboard display order — keep for storefront sort stability */
+    order: Number.isFinite(Number(category?.order)) ? Number(category.order) : 0,
   }
 }
 
+/**
+ * Top-level active categories in admin `order` (never shuffle — products only are randomized).
+ */
 export function mapCircleCategories(categories) {
   const list = Array.isArray(categories) ? categories : []
 
   return list
     .filter(isActiveCategory)
     .filter(isTopLevelCategory)
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    .sort(
+      (a, b) =>
+        (Number(a.order) || 0) - (Number(b.order) || 0) ||
+        String(a.name || '').localeCompare(String(b.name || ''))
+    )
     .map(mapCircleCategory)
 }
 

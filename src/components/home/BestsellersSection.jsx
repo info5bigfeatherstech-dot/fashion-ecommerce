@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { ProductCarousel } from '@/features/product/components/ProductCarousel'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
 import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
@@ -5,13 +6,22 @@ import { useProductsByTag } from '@/features/product/hooks'
 
 const BESTSELLING_JEWELRY_TAG = 'bestselling-jewelry'
 const BESTSELLING_LIMIT = 12
+/** Wider fetch so session shuffle can vary which bestsellers surface. */
+const BESTSELLING_FETCH_LIMIT = 48
 
 export function BestsellersSection() {
   const { data, isLoading } = useProductsByTag(BESTSELLING_JEWELRY_TAG, {
     page: 1,
-    limit: BESTSELLING_LIMIT,
+    limit: BESTSELLING_FETCH_LIMIT,
   })
-  const products = data?.products ?? []
+  const products = useMemo(() => {
+    try {
+      const list = Array.isArray(data?.products) ? data.products : []
+      return list.slice(0, BESTSELLING_LIMIT)
+    } catch {
+      return []
+    }
+  }, [data])
 
   return (
     <section id="bestsellers" className="section container">
@@ -26,9 +36,6 @@ export function BestsellersSection() {
             </p>
           </Reveal>
         </div>
-        {/* <Reveal delay={0.12}>
-          <Link to="/shop?sort=rating" className="section-header__link">Shop All</Link>
-        </Reveal> */}
       </div>
       {isLoading ? (
         <ProductGridSkeleton count={4} />

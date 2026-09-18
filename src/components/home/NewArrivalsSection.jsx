@@ -4,13 +4,21 @@ import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
 import { ProductCarousel } from '@/features/product/components/ProductCarousel'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
 import { useFeaturedProducts } from '@/features/product/hooks'
+import { splitFeaturedForHomeSections } from '@/lib/shuffleProducts'
 
 export function NewArrivalsSection() {
   const { data: rawProducts, isLoading } = useFeaturedProducts({ limit: 50 })
 
   const products = useMemo(() => {
-    const list = Array.isArray(rawProducts) ? rawProducts : rawProducts?.products ?? []
-    return list.filter((p) => p && p.isFeatured !== false)
+    try {
+      const list = Array.isArray(rawProducts) ? rawProducts : rawProducts?.products ?? []
+      const featured = list.filter((p) => p && p.isFeatured !== false)
+      const { newArrivals } = splitFeaturedForHomeSections(featured)
+      return newArrivals
+    } catch {
+      const list = Array.isArray(rawProducts) ? rawProducts : []
+      return list.filter((p) => p && p.isFeatured !== false)
+    }
   }, [rawProducts])
 
   if (!isLoading && products.length === 0) return null
@@ -40,10 +48,9 @@ export function NewArrivalsSection() {
         <ProductGridSkeleton count={4} />
       ) : (
         <Reveal delay={0.1}>
-          <ProductCarousel products={products} autoplay autoplayInterval={3000} />
+          <ProductCarousel products={products} autoplay autoplayInterval={2800} />
         </Reveal>
       )}
     </section>
   )
 }
-

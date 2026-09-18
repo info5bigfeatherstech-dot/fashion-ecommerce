@@ -6499,6 +6499,20 @@ div.auth-google-btn {
   transition: transform var(--transition-slow);
 }
 
+.circle-categories__ring-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-family: var(--font-display, Georgia, serif);
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgb(130, 102, 32);
+  background: linear-gradient(145deg, #f5efe3 0%, #ebe1d0 100%);
+}
+
 .circle-categories__shine {
   position: absolute;
   inset: 0;

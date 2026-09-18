@@ -8,15 +8,24 @@ import { useProductsByCategory } from '@/features/product/hooks'
 import { ProductCard } from '@/features/product/components/ProductCard'
 
 const PRODUCTS_PER_CATEGORY_ROW = 4
+/** Fetch a wider pool so shuffle picks random products, not only the newest 4. */
+const CATEGORY_ROW_FETCH_LIMIT = 40
 
 function CategoryProductRow({ category }) {
   const slug = category.slug || slugFromShopHref(category.href) || category.id
   const shopHref = `/shop/${slug}`
   const { data, isLoading } = useProductsByCategory(slug, {
     page: 1,
-    limit: PRODUCTS_PER_CATEGORY_ROW,
+    limit: CATEGORY_ROW_FETCH_LIMIT,
   })
-  const products = data?.products || []
+  const products = useMemo(() => {
+    try {
+      const list = Array.isArray(data?.products) ? data.products : []
+      return list.slice(0, PRODUCTS_PER_CATEGORY_ROW)
+    } catch {
+      return []
+    }
+  }, [data])
 
   if (!isLoading && products.length === 0) return null
 

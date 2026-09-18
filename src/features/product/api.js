@@ -2,6 +2,10 @@ import { http } from '@/api/http'
 import { API_ENDPOINTS, PRODUCT_CATALOG_MAX_PAGES, PRODUCT_CATALOG_PAGE_SIZE } from '@/api/endpoints'
 import { ApiError } from '@/api/errors'
 import { formatDiscount } from '@/lib/utils'
+import {
+  shuffleProducts,
+  shouldShuffleStorefrontList,
+} from '@/lib/shuffleProducts'
 import { extractProduct, extractProductList, mapPagination, mapProductList } from './mappers'
 
 
@@ -207,6 +211,17 @@ function applyProductFilters(products, filters = {}) {
       const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0
       return bTime - aTime
     })
+  } else if (shouldShuffleStorefrontList(filters)) {
+    // Default storefront order: randomize so listing order ≠ admin queue order
+    const scopeParts = [
+      'plp',
+      filters.category || '',
+      filters.subcategory || '',
+      filters.tags || filters.discountTag || '',
+      filters.page || 1,
+      filters.search || '',
+    ]
+    results = shuffleProducts(results, scopeParts.join(':'))
   }
 
   return results
@@ -231,18 +246,21 @@ export async function fetchProductsPage(
  * Products belonging to a category slug.
  * GET /api/products/category/:slug
  */
-export async function getProductsByCategory(slug, { page = 1, limit = 50, signal, ...params } = {}) {
+export async function getProductsByCategory(slug, { page = 1, limit = 50, signal, sort, ...params } = {}) {
   if (!slug) {
     return { products: [], total: 0, pagination: mapPagination(null) }
   }
 
   try {
     const payload = await http.get(API_ENDPOINTS.products.byCategory(slug), {
-      params: { page, limit, ...params },
+      params: { page, limit, ...(sort ? { sort } : {}), ...params },
       signal,
     })
 
-    const products = extractProductList(payload)
+    let products = extractProductList(payload)
+    if (shouldShuffleStorefrontList({ sort })) {
+      products = shuffleProducts(products, `category:${slug}:p${page}:l${limit}`)
+    }
     const pagination = mapPagination(payload?.pagination ?? payload?.data?.pagination, products.length)
     return {
       products,
@@ -268,13 +286,14 @@ export async function getRelatedProducts(slug, { signal, limit = 8, categorySlug
   if (!slug) return []
 
   const excludeCurrent = (list = []) =>
-    list
-      .filter((product) => {
+    shuffleProducts(
+      list.filter((product) => {
         if (!product) return false
         if (product.slug != null && String(product.slug) === String(slug)) return false
         return true
-      })
-      .slice(0, limit)
+      }),
+      `related:${slug}`
+    ).slice(0, limit)
 
   let related = []
   try {
@@ -404,7 +423,7 @@ export async function searchProducts(query, { page = 1, limit = 12, signal } = {
  * Products filtered by marketing tag (ProductTag collection on backend).
  * GET /api/products/all?tags=today-arrival&page=1&limit=25
  */
-export async function getProductsByTag(tag, { page = 1, limit = 25, signal, cacheBust = false, ...params } = {}) {
+export async function getProductsByTag(tag, { page = 1, limit = 25, signal, cacheBust = false, sort, ...params } = {}) {
   const normalized = String(tag || '').trim().toLowerCase().replace(/_/g, '-')
   if (!normalized) {
     return { products: [], total: 0, pagination: mapPagination(null) }
@@ -415,6 +434,7 @@ export async function getProductsByTag(tag, { page = 1, limit = 25, signal, cach
       page,
       limit,
       tags: normalized,
+      ...(sort ? { sort } : {}),
       ...params,
     }
     if (cacheBust) requestParams._cb = '1'
@@ -424,7 +444,10 @@ export async function getProductsByTag(tag, { page = 1, limit = 25, signal, cach
       signal,
     })
 
-    const products = mapProductList(payload.products)
+    let products = mapProductList(payload.products)
+    if (shouldShuffleStorefrontList({ sort })) {
+      products = shuffleProducts(products, `tag:${normalized}:p${page}:l${limit}`)
+    }
     const pagination = mapPagination(payload.pagination, products.length)
 
     return {
@@ -464,7 +487,7 @@ export async function getProducts(filters = {}) {
         page: filters.page || 1,
         limit: filters.limit || 12,
       })
-      const filtered = applyProductFilters(products, { ...filters, search: undefined })
+      const filtered = applyProductFilters(products, { ...filters, search: undefined, skipShuffle: true })
       return {
         products: filtered,
         total: filtered.length,
@@ -678,40 +701,58 @@ export async function getBestsellers({ limit = 12, signal } = {}) {
   try {
     const res = await getProductsByTag('bestselling-jewelry', { page: 1, limit, signal })
     if (res?.products && res.products.length > 0) {
-      return res.products
+      return shuffleProducts(res.products, `bestsellers:l${limit}`)
     }
   } catch (err) {
     console.warn('API request for bestselling-jewelry tag failed, using fallback', err)
   }
 
-  const { products } = await getProductCatalog()
-  const matched = products.filter(
-    (p) => Array.isArray(p.tags) && p.tags.some((t) => String(t).toLowerCase() === 'bestselling-jewelry')
-  )
-  if (matched.length > 0) return matched.slice(0, limit)
-
-  return [...products]
-    .sort(
-      (a, b) => b.soldCount - a.soldCount || b.reviewCount - a.reviewCount || Number(b.isFeatured) - Number(a.isFeatured)
+  try {
+    const { products } = await getProductCatalog()
+    const matched = products.filter(
+      (p) => Array.isArray(p.tags) && p.tags.some((t) => String(t).toLowerCase() === 'bestselling-jewelry')
     )
-    .slice(0, limit)
+    if (matched.length > 0) {
+      return shuffleProducts(matched, `bestsellers-fallback:l${limit}`).slice(0, limit)
+    }
+
+    return shuffleProducts(
+      [...products].sort(
+        (a, b) => b.soldCount - a.soldCount || b.reviewCount - a.reviewCount || Number(b.isFeatured) - Number(a.isFeatured)
+      ),
+      `bestsellers-catalog:l${limit}`
+    ).slice(0, limit)
+  } catch {
+    return []
+  }
 }
 
 export async function getNewArrivals() {
   try {
     const featured = await getFeaturedProducts({ limit: 50 })
-    if (featured && featured.length > 0) return featured
+    if (featured && featured.length > 0) {
+      return shuffleProducts(featured, 'new-arrivals-page')
+    }
   } catch {
     // fallback
   }
-  const { products } = await getProductCatalog()
-  const featuredOnly = products.filter((p) => p.isFeatured)
-  if (featuredOnly.length > 0) return featuredOnly
-  return [...products].sort((a, b) => {
-    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0
-    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0
-    return bTime - aTime
-  })
+  try {
+    const { products } = await getProductCatalog()
+    const featuredOnly = products.filter((p) => p.isFeatured)
+    if (featuredOnly.length > 0) {
+      return shuffleProducts(featuredOnly, 'new-arrivals-featured-fallback')
+    }
+    return shuffleProducts(
+      [...products].sort((a, b) => {
+        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0
+        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0
+        return bTime - aTime
+      }),
+      'new-arrivals-newest-fallback'
+    )
+  } catch {
+    return []
+  }
 }
 
 let featuredCache = null
@@ -756,17 +797,23 @@ export async function getJewellerySpotted({ limit = 12, signal } = {}) {
   try {
     const res = await getProductsByTag('jewellery-spotted', { page: 1, limit, signal })
     if (res?.products && res.products.length > 0) {
-      return res.products
+      return shuffleProducts(res.products, `jewellery-spotted:l${limit}`)
     }
   } catch (err) {
     console.warn('API request for jewellery-spotted tag failed', err)
   }
 
-  const { products } = await getProductCatalog()
-  const matched = products.filter(
-    (p) => Array.isArray(p.tags) && p.tags.some((t) => String(t).toLowerCase() === 'jewellery-spotted')
-  )
-  if (matched.length > 0) return matched.slice(0, limit)
+  try {
+    const { products } = await getProductCatalog()
+    const matched = products.filter(
+      (p) => Array.isArray(p.tags) && p.tags.some((t) => String(t).toLowerCase() === 'jewellery-spotted')
+    )
+    if (matched.length > 0) {
+      return shuffleProducts(matched, `jewellery-spotted-fallback:l${limit}`).slice(0, limit)
+    }
+  } catch {
+    // ignore
+  }
 
   return []
 }

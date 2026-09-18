@@ -9,8 +9,9 @@ import { useCircleCategories } from '@/features/category/hooks'
 const AUTOPLAY_MS = 3200
 
 export function CircularCategoriesSection() {
-  const { data: rawCategories = [] } = useCircleCategories()
-  const categories = rawCategories.filter((c) => Boolean(c?.image && String(c.image).trim()))
+  // Same admin `order` as header nav — do NOT drop categories without images
+  // (that previously made Shop by Category look out of sync with admin).
+  const { data: categories = [] } = useCircleCategories()
   const reduceMotion = useReducedMotion()
   const trackRef = useRef(null)
   const pauseRef = useRef(false)
@@ -45,10 +46,15 @@ export function CircularCategoriesSection() {
   }, [])
 
   useEffect(() => {
-    updateArrows()
     const el = trackRef.current
-    if (!el) return undefined
-
+    if (el) {
+      try {
+        el.scrollLeft = 0
+      } catch {
+        /* ignore */
+      }
+    }
+    updateArrows()
     const onResize = () => updateArrows()
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
@@ -143,7 +149,13 @@ export function CircularCategoriesSection() {
                     >
                       <span className="circle-categories__ring">
                         <span className="circle-categories__ring-inner">
-                          <img src={category.image} alt="" loading="lazy" />
+                          {category.image ? (
+                            <img src={category.image} alt="" loading="lazy" />
+                          ) : (
+                            <span className="circle-categories__ring-fallback" aria-hidden="true">
+                              {(category.label || '?').charAt(0).toUpperCase()}
+                            </span>
+                          )}
                           <span className="circle-categories__shine" aria-hidden="true" />
                         </span>
                       </span>

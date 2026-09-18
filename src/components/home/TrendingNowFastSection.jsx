@@ -2,18 +2,32 @@ import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { TrendingUp } from 'lucide-react'
 import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
+import { ProductCarousel } from '@/features/product/components/ProductCarousel'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
-import { useMovingFastCategories } from '@/features/category/hooks'
+import { useFeaturedProducts } from '@/features/product/hooks'
+import { splitFeaturedForHomeSections } from '@/lib/shuffleProducts'
 
 export function TrendingNowFastSection() {
-  const { data: categories = [], isLoading } = useMovingFastCategories()
+  const { data: rawProducts, isLoading } = useFeaturedProducts({ limit: 50 })
 
-  if (!isLoading && categories.length === 0) {
+  const products = useMemo(() => {
+    try {
+      const list = Array.isArray(rawProducts) ? rawProducts : rawProducts?.products ?? []
+      const featured = list.filter((p) => p && p.isFeatured !== false)
+      const { movingFast } = splitFeaturedForHomeSections(featured)
+      return movingFast
+    } catch {
+      const list = Array.isArray(rawProducts) ? rawProducts : []
+      return list.filter((p) => p && p.isFeatured !== false)
+    }
+  }, [rawProducts])
+
+  if (!isLoading && products.length === 0) {
     return null
   }
 
   return (
-    <section id="trending-now" className="section container trending-now-section">
+    <section id="trending-now" className="section container trending-now-section" aria-label="Moving fast">
       <div className="section-header">
         <div>
           <Reveal x={-14} y={0}>
@@ -27,38 +41,24 @@ export function TrendingNowFastSection() {
           </ScrollRevealText>
           <Reveal delay={0.08}>
             <p className="section-subheader">
-              Pieces climbing in popularity right now. Grab the looks everyone’s adding to cart.
+              Fresh featured pieces moving fast right now — grab them before they’re gone.
             </p>
           </Reveal>
         </div>
+        <Reveal delay={0.12}>
+          <Link to="/shop/new-arrivals" className="section-header__link">
+            Shop All
+          </Link>
+        </Reveal>
       </div>
 
-      <Reveal delay={0.1}>
-        {isLoading ? (
-          <ProductGridSkeleton count={4} />
-        ) : (
-          <div className="trending-now-videos" role="list">
-            {categories.map((item) => (
-              <div key={item.id} className="trending-now-videos__item" role="listitem">
-                <Link
-                  to={item.href}
-                  state={{ fromSection: 'trending-now' }}
-                  className="trending-now-videos__open"
-                  aria-label={`Shop ${item.label}`}
-                >
-                  <img
-                    src={item.image}
-                    alt={item.label}
-                    className="trending-now-videos__video"
-                    loading="lazy"
-                  />
-                  <span className="trending-now-videos__label">{item.label}</span>
-                </Link>
-              </div>
-            ))}
-          </div>
-        )}
-      </Reveal>
+      {isLoading ? (
+        <ProductGridSkeleton count={4} />
+      ) : (
+        <Reveal delay={0.1}>
+          <ProductCarousel products={products} autoplay autoplayInterval={3000} />
+        </Reveal>
+      )}
     </section>
   )
 }

@@ -2,7 +2,7 @@ import { formatCategoryTitle } from '@/lib/utils'
 
 /**
  * Storefront nav helpers — map public API categories into header/footer links.
- * Categories are already filtered (active, top-level) by mapCircleCategories.
+ * Categories keep admin `order` from mapCircleCategories (never shuffled).
  */
 
 export function slugFromShopHref(href) {
