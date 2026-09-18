@@ -173,7 +173,7 @@ export function CheckoutAddressModal({ open, onOpenChange, onProceed }) {
     return addressForm.handleSubmit((data) => handleCreate(data, { continueAfter }))
   }
 
-  const modalTitle = view === 'new' ? 'New Dddress' : 'Delivery Address'
+  const modalTitle = view === 'new' ? 'New Address' : 'Delivery Address'
   const wizardHint = formStep === 0
     ? 'Name and phone for delivery updates.'
     : 'Where the courier should arrive.'
