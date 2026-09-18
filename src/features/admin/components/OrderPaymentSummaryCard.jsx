@@ -15,6 +15,22 @@ function labelPaymentStatus(raw) {
   return PAYMENT_STATUS_LABELS[key] || key.replace(/_/g, ' ') || '—'
 }
 
+function readLockedCollectable(orderSafe) {
+  try {
+    const facing = orderSafe?.customerFacing
+    if (facing?.collectableLocked && facing.collectableInr != null) {
+      return Number(facing.collectableInr) || 0
+    }
+    const si = orderSafe?.shipmentInfo
+    if (si != null && si.courierCollectableInr != null && Number.isFinite(Number(si.courierCollectableInr))) {
+      return Number(si.courierCollectableInr) || 0
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
 export function OrderPaymentSummaryCard({
   order,
   showRazorpayIds = false,
@@ -28,12 +44,19 @@ export function OrderPaymentSummaryCard({
   const balanceDue = Number(orderSafe.balanceDueInr) || 0
   const amountPaid = Number(orderSafe.amountPaidInr) || 0
   const billTotal = Number(orderSafe.totalAmount) || 0
+  const lockedCollectable = readLockedCollectable(orderSafe)
+  const hasLockedCollectable = lockedCollectable != null
   const isPaid = payStatus === 'paid'
   const hasDue = balanceDue > 0.01
+  const lockDiffHint =
+    orderSafe?.courierCollectableLockHint?.message ||
+    (hasLockedCollectable && hasDue && Math.abs(lockedCollectable - balanceDue) > 0.05
+      ? `Courier collectable (locked at push): ${formatPrice(lockedCollectable)}. Internal due differs: ${formatPrice(balanceDue)}.`
+      : null)
 
   const statusTone = isPaid
     ? 'admin-badge admin-badge--success'
-    : hasDue || payStatus === 'partially_paid'
+    : hasDue || payStatus === 'partially_paid' || (hasLockedCollectable && lockedCollectable > 0.01)
       ? 'admin-badge admin-badge--warn'
       : payStatus === 'failed' || payStatus === 'refunded'
         ? 'admin-badge admin-badge--error'
@@ -62,9 +85,15 @@ export function OrderPaymentSummaryCard({
           <span>Already paid</span>
           <strong className="text-accent">{formatPrice(amountPaid)}</strong>
         </div>
+        {hasLockedCollectable ? (
+          <div className="admin-payment-row admin-payment-row--due">
+            <span>Courier collectable (locked at push)</span>
+            <strong>{formatPrice(lockedCollectable)}</strong>
+          </div>
+        ) : null}
         {hasDue ? (
           <div className="admin-payment-row admin-payment-row--due">
-            <span>Still due</span>
+            <span>{hasLockedCollectable ? 'Still due (internal)' : 'Still due'}</span>
             <strong>{formatPrice(balanceDue)}</strong>
           </div>
         ) : (
@@ -74,6 +103,12 @@ export function OrderPaymentSummaryCard({
           </div>
         )}
       </div>
+
+      {lockDiffHint ? (
+        <p className="admin-card__subtitle" style={{ marginTop: '0.5rem' }}>
+          {lockDiffHint}
+        </p>
+      ) : null}
 
       {showRazorpayIds && (pi.razorpayOrderId || pi.razorpayPaymentId) && (
         <div className="admin-payment-refs">

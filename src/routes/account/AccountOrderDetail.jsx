@@ -355,7 +355,16 @@ export function AccountOrderDetail({ orderId, onBack }) {
             <div>
               <p className="account-order-detail__label">Delivery</p>
               <p className="body-sm">
-                {Number(order.deliveryCharges) === 0 ? 'Free' : formatPrice(order.deliveryCharges || 0)}
+                {(() => {
+                  const delivery =
+                    order?.customerFacing?.deliveryInr != null
+                      ? Number(order.customerFacing.deliveryInr)
+                      : order?.shipmentInfo?.courierDeliveryInr != null &&
+                          order?.shipmentInfo?.courierCollectableInr != null
+                        ? Number(order.shipmentInfo.courierDeliveryInr)
+                        : Number(order.deliveryCharges) || 0
+                  return delivery === 0 ? 'Free' : formatPrice(delivery)
+                })()}
               </p>
             </div>
             <div>
@@ -370,7 +379,16 @@ export function AccountOrderDetail({ orderId, onBack }) {
             )}
             <div>
               <p className="account-order-detail__label">Total</p>
-              <p className="heading-sm">{formatPrice(order.totalAmount ?? 0)}</p>
+              <p className="heading-sm">
+                {formatPrice(
+                  order?.customerFacing?.totalInr != null
+                    ? order.customerFacing.totalInr
+                    : order?.shipmentInfo?.courierFacingTotalInr != null &&
+                        order?.shipmentInfo?.courierCollectableInr != null
+                      ? order.shipmentInfo.courierFacingTotalInr
+                      : (order.totalAmount ?? 0)
+                )}
+              </p>
             </div>
           </div>
 
@@ -379,11 +397,34 @@ export function AccountOrderDetail({ orderId, onBack }) {
               Payment: <strong>{getPaymentStatusLabel(order.paymentStatus)}</strong>
               {paymentMethod ? ` · ${paymentMethod.toUpperCase()}` : ''}
             </p>
-            {Number(order.balanceDueInr) > 0 && (
-              <p className="body-sm text-muted">
-                Balance due: {formatPrice(order.balanceDueInr)}
-              </p>
-            )}
+            {(() => {
+              const facing = order?.customerFacing
+              const lockedCollectable =
+                facing?.collectableInr != null
+                  ? Number(facing.collectableInr)
+                  : order?.shipmentInfo?.courierCollectableInr != null
+                    ? Number(order.shipmentInfo.courierCollectableInr)
+                    : null
+              const label =
+                facing?.collectableLabel ||
+                (lockedCollectable != null && lockedCollectable > 0.01
+                  ? 'Pay to courier'
+                  : Number(order.balanceDueInr) > 0.01
+                    ? 'Balance due'
+                    : null)
+              const amount =
+                lockedCollectable != null && lockedCollectable > 0.01
+                  ? lockedCollectable
+                  : Number(order.balanceDueInr) > 0.01
+                    ? Number(order.balanceDueInr)
+                    : 0
+              if (!(amount > 0.01) || !label) return null
+              return (
+                <p className="body-sm text-muted">
+                  {label}: {formatPrice(amount)}
+                </p>
+              )
+            })()}
             {order.appliedCoupon && (
               <p className="body-sm text-muted">
                 Coupon:{' '}
