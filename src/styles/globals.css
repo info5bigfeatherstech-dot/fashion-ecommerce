@@ -3069,13 +3069,12 @@ div.auth-google-btn {
 }
 
 .product-card__image {
+  display: block;
   width: 100%;
   height: 100%;
   max-width: none;
-  object-fit: contain;
+  object-fit: cover;
   object-position: center;
-  padding: var(--space-2);
-  box-sizing: border-box;
   transition: opacity var(--transition-base);
 }
 
