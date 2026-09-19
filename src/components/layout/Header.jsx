@@ -335,9 +335,6 @@ export function Header() {
                     className={`header__nav-more-dropdown ${moreOpen ? 'header__nav-more-dropdown--open' : ''}`}
                     role="menu"
                   >
-                    <div className="header__nav-more-header">
-                      <span>More Collections</span>
-                    </div>
                     <div className="header__nav-more-list">
                       {moreCategories.map((item) => (
                         <Link

@@ -3068,16 +3068,14 @@ div.auth-google-btn {
   transition: box-shadow var(--transition-base);
 }
 
-/* Fit full product photo inside fixed card media — no edge crop */
 .product-card__image {
-  position: absolute;
-  top: var(--space-2);
-  right: var(--space-2);
-  bottom: var(--space-2);
-  left: var(--space-2);
-  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
   object-fit: contain;
-  object-position: center center;
+  object-position: center;
+  padding: var(--space-2);
+  box-sizing: border-box;
   transition: opacity var(--transition-base);
 }
 
@@ -3086,6 +3084,8 @@ div.auth-google-btn {
 }
 
 .product-card__image--secondary {
+  position: absolute;
+  inset: 0;
   opacity: 0;
 }
 
