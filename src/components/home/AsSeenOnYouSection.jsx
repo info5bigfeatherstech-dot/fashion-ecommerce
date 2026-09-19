@@ -143,7 +143,7 @@ export function AsSeenOnYouSection() {
           {hasMore && (
             <div style={{ textAlign: 'center', marginTop: 'var(--space-6)' }}>
               <Link to="/shop/jewellery-spotted" className="btn btn--secondary btn--lg">
-                View All Jewellery Spotted ({products.length})
+                View All Jewellery Spotted
               </Link>
             </div>
           )}
