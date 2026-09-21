@@ -269,12 +269,28 @@ export async function getProductsByCategory(slug, { page = 1, limit = 50, signal
 
     let products = extractProductList(payload)
     if (shouldShuffleStorefrontList({ sort })) {
-      products = shuffleProducts(products, `category:${slug}:p${page}:l${limit}`)
+      products = shuffleProducts(products, `category:${slug}`)
     }
-    const pagination = mapPagination(payload?.pagination ?? payload?.data?.pagination, products.length)
+    let pagination = mapPagination(payload?.pagination ?? payload?.data?.pagination, products.length)
+    let total = pagination.total || products.length
+
+    if (products.length > limit) {
+      total = products.length
+      const totalPages = Math.ceil(total / limit) || 1
+      products = products.slice((page - 1) * limit, page * limit)
+      pagination = {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      }
+    }
+
     return {
       products,
-      total: pagination.total || products.length,
+      total,
       pagination,
       raw: payload,
     }
@@ -476,9 +492,11 @@ export async function getProductsByTag(tag, { page = 1, limit = 25, signal, cach
 }
 
 export async function getProducts(filters = {}) {
+  const page = Number(filters.page) || 1
+  const limit = Number(filters.limit) || 50
   const category = filters.category
   const searchQuery = String(filters.search || '').trim()
-  const queryParams = buildProductQueryParams(filters)
+  const queryParams = buildProductQueryParams({ ...filters, page, limit })
   const isBestsellers = category === 'bestsellers' || category === 'bestselling-jewelry'
   const tag =
     filters.tags ||
@@ -497,16 +515,28 @@ export async function getProducts(filters = {}) {
   if (searchQuery.length >= 2) {
     try {
       const { products, pagination, total } = await searchProducts(searchQuery, {
-        page: filters.page || 1,
-        limit: filters.limit || 12,
+        page,
+        limit,
       })
       const filtered = applyProductFilters(products, { ...filters, search: undefined, skipShuffle: true })
+      let totalCount = filtered.length === products.length ? total : filtered.length
+      let paginated = filtered
+      if (filtered.length > limit) {
+        totalCount = filtered.length
+        paginated = filtered.slice((page - 1) * limit, page * limit)
+      }
+      const totalPages = Math.ceil(totalCount / limit) || 1
       return {
-        products: filtered,
-        total: filtered.length,
+        products: paginated,
+        total: totalCount,
         pagination: {
           ...pagination,
-          total: filtered.length === products.length ? total : filtered.length,
+          total: totalCount,
+          page,
+          limit,
+          totalPages,
+          hasNextPage: pagination?.hasNextPage != null ? Boolean(pagination.hasNextPage) : page < totalPages,
+          hasPrevPage: page > 1,
         },
       }
     } catch {
@@ -514,21 +544,24 @@ export async function getProducts(filters = {}) {
     }
   }
 
-  // New Arrivals category — fetch all featured products
+  // New Arrivals category — fetch featured products
   if (category === 'new-arrivals') {
     try {
-      const featured = await getFeaturedProducts({ limit: filters.limit || 50 })
+      const featured = await getFeaturedProducts({ limit: 200 })
       const filtered = applyProductFilters(featured, { ...filters, category: undefined })
+      const total = filtered.length
+      const totalPages = Math.ceil(total / limit) || 1
+      const paginated = filtered.slice((page - 1) * limit, page * limit)
       return {
-        products: filtered,
-        total: filtered.length,
+        products: paginated,
+        total,
         pagination: {
-          total: filtered.length,
-          page: filters.page || 1,
-          limit: filters.limit || 50,
-          totalPages: Math.ceil(filtered.length / (filters.limit || 50)) || 1,
-          hasNextPage: false,
-          hasPrevPage: false,
+          total,
+          page,
+          limit,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1,
         },
       }
     } catch {
@@ -540,8 +573,8 @@ export async function getProducts(filters = {}) {
   if (hasServerFilterParams(queryParams) && !SPECIAL_CATEGORIES.has(category)) {
     try {
       const pageParams = {
-        page: filters.page || 1,
-        limit: filters.limit || PRODUCT_CATALOG_PAGE_SIZE,
+        page,
+        limit,
         ...queryParams,
       }
       if (category && !SPECIAL_CATEGORIES.has(category)) {
@@ -554,16 +587,27 @@ export async function getProducts(filters = {}) {
       const { products, pagination } = await fetchProductsPage(pageParams)
       const filtered = applyProductFilters(products, {
         ...filters,
-        // Keep category/subcategory client checks if API ignored them
         tags: undefined,
         onSale: undefined,
       })
+      let totalCount = filtered.length === products.length ? pagination.total || products.length : filtered.length
+      let paginated = filtered
+      if (filtered.length > limit) {
+        totalCount = filtered.length
+        paginated = filtered.slice((page - 1) * limit, page * limit)
+      }
+      const totalPages = Math.ceil(totalCount / limit) || 1
       return {
-        products: filtered,
-        total: filtered.length === products.length ? pagination.total || products.length : filtered.length,
+        products: paginated,
+        total: totalCount,
         pagination: {
           ...pagination,
-          total: filtered.length === products.length ? pagination.total || products.length : filtered.length,
+          total: totalCount,
+          page,
+          limit,
+          totalPages,
+          hasNextPage: pagination?.hasNextPage != null ? Boolean(pagination.hasNextPage) : page < totalPages,
+          hasPrevPage: page > 1,
         },
       }
     } catch {
@@ -575,8 +619,8 @@ export async function getProducts(filters = {}) {
   if (tag) {
     try {
       const { products, pagination, total } = await getProductsByTag(tag, {
-        page: filters.page || 1,
-        limit: filters.limit || 25,
+        page,
+        limit,
         ...queryParams,
       })
       if (products.length > 0) {
@@ -587,12 +631,24 @@ export async function getProducts(filters = {}) {
           discountTag: undefined,
           onSale: undefined,
         })
+        let totalCount = total || filtered.length
+        let paginated = filtered
+        if (filtered.length > limit) {
+          totalCount = filtered.length
+          paginated = filtered.slice((page - 1) * limit, page * limit)
+        }
+        const totalPages = Math.ceil(totalCount / limit) || 1
         return {
-          products: filtered,
-          total: filtered.length === products.length ? total : filtered.length,
+          products: paginated,
+          total: totalCount,
           pagination: {
             ...pagination,
-            total: filtered.length === products.length ? total : filtered.length,
+            total: totalCount,
+            page,
+            limit,
+            totalPages,
+            hasNextPage: pagination?.hasNextPage != null ? Boolean(pagination.hasNextPage) : page < totalPages,
+            hasPrevPage: page > 1,
           },
         }
       }
@@ -605,17 +661,29 @@ export async function getProducts(filters = {}) {
   if (category && !SPECIAL_CATEGORIES.has(category)) {
     try {
       const { products, pagination, total } = await getProductsByCategory(category, {
-        page: filters.page || 1,
-        limit: filters.limit || 50,
+        page,
+        limit,
         ...queryParams,
       })
       const filtered = applyProductFilters(products, { ...filters, category: undefined })
+      let totalCount = total || filtered.length
+      let paginated = filtered
+      if (filtered.length > limit) {
+        totalCount = filtered.length
+        paginated = filtered.slice((page - 1) * limit, page * limit)
+      }
+      const totalPages = Math.ceil(totalCount / limit) || 1
       return {
-        products: filtered,
-        total: filtered.length,
+        products: paginated,
+        total: totalCount,
         pagination: {
           ...pagination,
-          total: filtered.length === products.length ? total : filtered.length,
+          total: totalCount,
+          page,
+          limit,
+          totalPages,
+          hasNextPage: pagination?.hasNextPage != null ? Boolean(pagination.hasNextPage) : page < totalPages,
+          hasPrevPage: page > 1,
         },
       }
     } catch {
@@ -624,12 +692,22 @@ export async function getProducts(filters = {}) {
   }
 
   const catalog = await getProductCatalog()
-  const products = applyProductFilters(catalog.products, filters)
+  const filtered = applyProductFilters(catalog.products, filters)
+  const total = filtered.length
+  const totalPages = Math.ceil(total / limit) || 1
+  const paginated = filtered.slice((page - 1) * limit, page * limit)
 
   return {
-    products,
-    total: products.length,
-    pagination: catalog.pagination,
+    products: paginated,
+    total,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
   }
 }
 

@@ -32,6 +32,7 @@ export const useAppStore = create(
         // accessToken intentionally excluded — memory only
         // addresses come from the API — not persisted locally
         checkoutAddress: state.checkoutAddress,
+        appliedCoupon: state.appliedCoupon,
       }),
       merge: (persistedState, currentState) => {
         const persisted = persistedState && typeof persistedState === 'object' ? persistedState : {}

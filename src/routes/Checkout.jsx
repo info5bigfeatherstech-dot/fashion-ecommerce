@@ -52,8 +52,9 @@ import { PaymentErrorOverlay } from '@/features/checkout/razorpay/PaymentErrorOv
 import { PaymentLoadingOverlay } from '@/features/checkout/razorpay/PaymentLoadingOverlay'
 import { getCart } from '@/features/cart/api'
 import { useAvailableCoupons, useValidateCoupon } from '@/features/coupon/hooks'
+import { calculateCartCouponDiscounts } from '@/features/coupon/utils'
 import { useAppStore } from '@/store'
-import { useCartTotal } from '@/store/selectors'
+import { useCartCouponSummary, useCartTotal } from '@/store/selectors'
 import { formatPrice } from '@/lib/utils'
 import { SITE_NAME } from '@/config/site'
 
@@ -100,6 +101,15 @@ export default function Checkout() {
   const queryClient = useQueryClient()
   const cartItems = useAppStore((s) => s.cartItems)
   const cartTotal = useCartTotal()
+  const {
+    cartSubtotal,
+    totalDiscount: couponTotalDiscount,
+    finalTotal: couponFinalTotal,
+    items: discountedItems,
+    appliedCoupon,
+  } = useCartCouponSummary()
+  const applyCoupon = useAppStore((s) => s.applyCoupon)
+  const removeCoupon = useAppStore((s) => s.removeCoupon)
   const replaceCartFromApi = useAppStore((s) => s.replaceCartFromApi)
   const clearCart = useAppStore((s) => s.clearCart)
   const updateQuantity = useAppStore((s) => s.updateQuantity)
@@ -117,9 +127,16 @@ export default function Checkout() {
     return CHECKOUT_STEP.REVIEW
   })
   const [addressModalOpen, setAddressModalOpen] = useState(false)
-  const [couponInput, setCouponInput] = useState('')
-  const [appliedCouponCode, setAppliedCouponCode] = useState('')
+  const [couponInput, setCouponInput] = useState(() => appliedCoupon?.code || '')
+  const [appliedCouponCode, setAppliedCouponCode] = useState(() => appliedCoupon?.code || '')
   const [placedOrder, setPlacedOrder] = useState(null)
+
+  useEffect(() => {
+    if (appliedCoupon?.code && appliedCoupon.code !== appliedCouponCode) {
+      setAppliedCouponCode(appliedCoupon.code)
+      setCouponInput(appliedCoupon.code)
+    }
+  }, [appliedCoupon?.code])
   const [showRazorpay, setShowRazorpay] = useState(false)
   const [razorpayOrderData, setRazorpayOrderData] = useState(null)
   const [razorpayKey, setRazorpayKey] = useState(null)
@@ -270,11 +287,11 @@ export default function Checkout() {
   })
   const validateCoupon = useValidateCoupon()
 
-  const itemsSubtotal = activeQuote ? activeQuote.itemsSubtotal : cartTotal
-  const promotionDiscount = activeQuote ? activeQuote.promotionDiscount : 0
+  const itemsSubtotal = activeQuote ? activeQuote.itemsSubtotal : cartSubtotal
+  const promotionDiscount = activeQuote ? activeQuote.promotionDiscount : couponTotalDiscount
   const deliveryCharges = activeQuote ? activeQuote.deliveryCharges : null
   const taxes = activeQuote ? activeQuote.taxes : 0
-  const total = activeQuote ? activeQuote.amountPayable : cartTotal
+  const total = activeQuote ? activeQuote.amountPayable : Math.max(0, itemsSubtotal - promotionDiscount)
   const suggestedPartial = suggestedAdvanceFromQuote(activeQuote, partialPaymentPercent)
   const itemCount = activeQuote?.itemCount
     || cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0)
@@ -788,22 +805,50 @@ export default function Checkout() {
       const result = await validateCoupon.mutateAsync({
         couponCode,
         useServercart: true,
+        subtotal: cartSubtotal,
       })
       if (!result.valid) {
         toast.error(result.message || 'Invalid coupon')
         return
       }
-      // Quote locks the discount — validation alone does not.
+
+      const calculation = calculateCartCouponDiscounts(cartItems, result)
+      if (!calculation.isMinOrderSatisfied) {
+        toast.error(calculation.errorMessage || `Minimum order value of ₹${result.minOrderAmount} required`)
+        return
+      }
+      if (calculation.totalDiscount <= 0 && !result.freeShipping) {
+        toast.error(calculation.errorMessage || 'This coupon does not apply to any items in your bag')
+        return
+      }
+
+      applyCoupon({
+        ...result,
+        code: result.couponCode || couponCode,
+        discountAmount: calculation.totalDiscount || result.discountAmount || 0,
+      })
+
+      // Quote locks the discount on server — validation updates immediate client display
       await removeCachedCheckoutQuotes(queryClient)
       setAppliedCouponCode(result.couponCode || couponCode)
       setCouponInput(result.couponCode || couponCode)
-      toast.success(result.message || 'Coupon applied — updating quote…')
+      const savingsMsg = calculation.totalDiscount > 0 ? ` Saved ${formatPrice(calculation.totalDiscount)}!` : ''
+      toast.success(result.message || `Coupon applied!${savingsMsg}`)
+
+      if (
+        checkoutStep >= CHECKOUT_STEP.DELIVERY
+        && checkoutAddress?.id
+        && isAuthenticated
+      ) {
+        refetchQuote()
+      }
     } catch (err) {
       toast.error(err?.message || 'Could not validate coupon')
     }
   }
 
   const handleClearCoupon = async () => {
+    removeCoupon()
     setAppliedCouponCode('')
     setCouponInput('')
     await removeCachedCheckoutQuotes(queryClient)
@@ -1010,9 +1055,10 @@ export default function Checkout() {
                       Shipping is calculated after you choose a delivery address.
                     </p>
                     <div className="checkout-review-items">
-                      {cartItems.map((item) => {
+                      {discountedItems.map((item) => {
                         const isMutating = cartMutatingId === item.id
                         const rowBusy = Boolean(cartMutatingId)
+                        const hasItemDisc = Boolean(item.hasDiscount && item.itemDiscount > 0)
                         return (
                           <div
                             key={item.id}
@@ -1063,9 +1109,23 @@ export default function Checkout() {
                                 </button>
                               </div>
                             </div>
-                            <p className="checkout-summary__item-price">
-                              {formatPrice(item.price * item.quantity)}
-                            </p>
+                            <div className="checkout-summary__item-price">
+                              {hasItemDisc ? (
+                                <div style={{ textAlign: 'right' }}>
+                                  <span style={{ textDecoration: 'line-through', color: 'var(--color-muted)', fontSize: 13, display: 'block' }}>
+                                    {formatPrice(item.originalLineTotal)}
+                                  </span>
+                                  <span style={{ color: '#16a34a', fontWeight: 700, fontSize: 15 }}>
+                                    {formatPrice(item.discountedLineTotal)}
+                                  </span>
+                                  <span style={{ display: 'block', fontSize: 11, color: '#16a34a', fontWeight: 500 }}>
+                                    Saved {formatPrice(item.itemDiscount)}
+                                  </span>
+                                </div>
+                              ) : (
+                                formatPrice(item.price * item.quantity)
+                              )}
+                            </div>
                           </div>
                         )
                       })}
@@ -1073,7 +1133,7 @@ export default function Checkout() {
                     <div className="checkout-coupon checkout-coupon--inline">
                       <div className="checkout-coupon__head">
                         <Tag size={14} />
-                        <span>Coupon</span>
+                        <span>Coupon Code</span>
                       </div>
                       <div className="checkout-coupon__row">
                         <Input
@@ -1101,7 +1161,10 @@ export default function Checkout() {
                         )}
                       </div>
                       {appliedCouponCode && (
-                        <p className="checkout-coupon__ok">{appliedCouponCode} will apply at delivery step</p>
+                        <p className="checkout-coupon__ok" style={{ color: '#16a34a', display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <Check size={14} /> Coupon <strong>{appliedCouponCode}</strong> applied
+                          {promotionDiscount > 0 && ` · Saved ${formatPrice(promotionDiscount)}`}
+                        </p>
                       )}
                       {availableCoupons.length > 0 && !appliedCouponCode && (
                         <div className="checkout-coupon__list">
@@ -1340,10 +1403,11 @@ export default function Checkout() {
             </div>
 
             <div className="checkout-summary__rows">
-              {!isReviewStep && appliedCouponCode && (
-                <p className="checkout-coupon__ok" style={{ marginBottom: 8 }}>
-                  Coupon {appliedCouponCode}
-                  {promotionDiscount > 0 ? ` · −${formatPrice(promotionDiscount)}` : ''}
+              {appliedCouponCode && (
+                <p className="checkout-coupon__ok" style={{ marginBottom: 8, color: '#16a34a', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <Tag size={13} />
+                  <span>Coupon <strong>{appliedCouponCode}</strong></span>
+                  {promotionDiscount > 0 ? <span> · −{formatPrice(promotionDiscount)}</span> : ''}
                 </p>
               )}
 

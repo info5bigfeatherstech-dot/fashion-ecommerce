@@ -1,20 +1,25 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, ChevronDown, Lock, ShoppingBag, Sparkles } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ChevronDown, Lock, ShoppingBag, Sparkles, Tag } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { CartItem } from '@/features/cart/components/CartItem'
 import { useCart } from '@/features/cart/hooks'
 import { useAppStore } from '@/store'
-import { useCartDiscount, useCartTotal } from '@/store/selectors'
+import { useCartCouponSummary } from '@/store/selectors'
 import { formatPrice } from '@/lib/utils'
+import { CouponInput } from '@/features/coupon/components/CouponInput'
 import { CheckoutAddressModal } from '@/components/checkout/CheckoutAddressModal'
 
 export default function Cart() {
   const cartItems = useAppStore((s) => s.cartItems)
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
-  const cartTotalFromItems = useCartTotal()
-  const { totalDiscount, totalAmount: apiTotalAmount } = useCartDiscount()
-  const cartTotal = apiTotalAmount > 0 ? apiTotalAmount : cartTotalFromItems
+  const {
+    cartSubtotal,
+    totalDiscount,
+    finalTotal,
+    items: discountedItems,
+    appliedCoupon,
+  } = useCartCouponSummary()
   const clearCart = useAppStore((s) => s.clearCart)
   const navigate = useNavigate()
   const [checkoutAddressOpen, setCheckoutAddressOpen] = useState(false)
@@ -95,7 +100,7 @@ export default function Cart() {
             {cartSyncing && cartItems.length === 0 ? (
               <p className="body-lg text-muted">Loading your bag…</p>
             ) : (
-              cartItems.map((item) => (
+              discountedItems.map((item) => (
                 <CartItem key={item.id} item={item} layout="page" />
               ))
             )}
@@ -108,7 +113,7 @@ export default function Cart() {
               onClick={() => setSummaryCollapsed((open) => !open)}
               aria-expanded={!summaryCollapsed}
             >
-              <span>Order Summary · {formatPrice(cartTotal)}</span>
+              <span>Order Summary · {formatPrice(finalTotal)}</span>
               <ChevronDown size={18} className="cart-summary__toggle-icon" aria-hidden />
             </button>
 
@@ -120,15 +125,21 @@ export default function Cart() {
                 </span>
               </div>
 
+              <CouponInput className="cart-summary__coupon" />
+
               <div className="checkout-summary__rows">
                 <div className="checkout-summary__row">
                   <span>Subtotal</span>
-                  <span>{formatPrice(cartTotal)}</span>
+                  <span>{formatPrice(cartSubtotal)}</span>
                 </div>
                 {totalDiscount > 0 && (
-                  <div className="checkout-summary__row">
-                    <span>Discount</span>
-                    <span>-{formatPrice(totalDiscount)}</span>
+                  <div className="checkout-summary__row" style={{ color: '#16a34a' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <Tag size={13} /> Coupon ({appliedCoupon?.code || 'Applied'})
+                    </span>
+                    <span style={{ fontWeight: 'var(--weight-semibold)' }}>
+                      −{formatPrice(totalDiscount)}
+                    </span>
                   </div>
                 )}
                 <div className="checkout-summary__row">
@@ -137,7 +148,7 @@ export default function Cart() {
                 </div>
                 <div className="checkout-summary__total">
                   <span>Total</span>
-                  <span>{formatPrice(cartTotal)}</span>
+                  <span>{formatPrice(finalTotal)}</span>
                 </div>
               </div>
 
@@ -153,7 +164,7 @@ export default function Cart() {
               className="cart-summary__cta"
               onClick={() => setCheckoutAddressOpen(true)}
             >
-              Proceed to Checkout
+              Proceed to Checkout · {formatPrice(finalTotal)}
               <ArrowRight size={16} />
             </Button>
           </aside>

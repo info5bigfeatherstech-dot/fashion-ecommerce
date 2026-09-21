@@ -2,6 +2,8 @@ export const productKeys = {
   all: ['products'],
   lists: () => [...productKeys.all, 'list'],
   list: (filters) => [...productKeys.lists(), filters],
+  infiniteLists: () => [...productKeys.all, 'infinite-list'],
+  infiniteList: (filters) => [...productKeys.infiniteLists(), filters],
   details: () => [...productKeys.all, 'detail'],
   detail: (slug) => [...productKeys.details(), slug],
   detailedById: (id) => [...productKeys.all, 'detailed', id],

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query'
 import {
   getProducts,
   getProductBySlug,
@@ -19,6 +19,26 @@ export function useProductListing(filters = {}) {
   return useQuery({
     queryKey: productKeys.list(filters),
     queryFn: () => getProducts(filters),
+  })
+}
+
+export function useInfiniteProductListing(filters = {}) {
+  return useInfiniteQuery({
+    queryKey: productKeys.infiniteList(filters),
+    queryFn: ({ pageParam = 1, signal }) =>
+      getProducts({ ...filters, page: pageParam, limit: 50 }, { signal }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages) => {
+      if (lastPage?.pagination?.hasNextPage) {
+        return (lastPage?.pagination?.page || allPages.length) + 1
+      }
+      const loadedCount = allPages.reduce((acc, p) => acc + (p?.products?.length || 0), 0)
+      const total = lastPage?.pagination?.total ?? lastPage?.total ?? 0
+      if (total > loadedCount && (lastPage?.products?.length || 0) > 0) {
+        return allPages.length + 1
+      }
+      return undefined
+    },
   })
 }
 

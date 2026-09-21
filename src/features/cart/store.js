@@ -69,7 +69,18 @@ async function ensureVariantId(product, options = {}) {
 export const cartSlice = (set, get) => ({
   cartItems: [],
   isCartOpen: false,
+  appliedCoupon: null,
   ...emptyCartMeta(),
+
+  applyCoupon: (coupon) => {
+    if (!coupon) {
+      set({ appliedCoupon: null })
+      return
+    }
+    set({ appliedCoupon: coupon })
+  },
+
+  removeCoupon: () => set({ appliedCoupon: null }),
 
   replaceCartFromApi: (cart) => {
     if (!cart) {
@@ -270,7 +281,7 @@ export const cartSlice = (set, get) => ({
       cartTotalDiscountPercentage: get().cartTotalDiscountPercentage,
     }
 
-    set({ cartItems: [], ...emptyCartMeta() })
+    set({ cartItems: [], appliedCoupon: null, ...emptyCartMeta() })
 
     if (!get().accessToken) return
 

@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowRight, Lock, ShoppingBag, Sparkles, X } from 'lucide-react'
+import { ArrowRight, Lock, ShoppingBag, Sparkles, Tag, X } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { useAppStore } from '@/store'
-import { useCartTotal } from '@/store/selectors'
+import { useCartCouponSummary } from '@/store/selectors'
 import { formatPrice } from '@/lib/utils'
 import { useCart } from '@/features/cart/hooks'
 import { prefetchCheckoutRoute } from '@/features/checkout/prefetchRoute'
 import { CartItem } from './CartItem'
+import { CouponInput } from '@/features/coupon/components/CouponInput'
 import { CheckoutAddressModal } from '@/components/checkout/CheckoutAddressModal'
 import { startLenis, stopLenis } from '@/lib/lenis'
 
@@ -18,7 +19,13 @@ export function CartDrawer() {
   const closeCart = useAppStore((s) => s.closeCart)
   const cartItems = useAppStore((s) => s.cartItems)
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
-  const cartTotal = useCartTotal()
+  const {
+    cartSubtotal,
+    totalDiscount,
+    finalTotal,
+    items: discountedItems,
+    appliedCoupon,
+  } = useCartCouponSummary()
   const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
   const navigate = useNavigate()
   const [checkoutAddressOpen, setCheckoutAddressOpen] = useState(false)
@@ -104,19 +111,35 @@ export function CartDrawer() {
                   <Button variant="secondary" onClick={closeCart}>Continue Shopping</Button>
                 </div>
               ) : (
-                cartItems.map((item) => <CartItem key={item.id} item={item} />)
+                discountedItems.map((item) => <CartItem key={item.id} item={item} />)
               )}
             </div>
             {isAuthenticated && cartItems.length > 0 && (
               <div className="drawer__footer">
+                <CouponInput compact className="drawer__coupon" />
+
                 <div className="drawer__summary-card">
                   <div className="checkout-summary__row">
                     <span>Subtotal</span>
-                    <span style={{ fontWeight: 'var(--weight-semibold)' }}>{formatPrice(cartTotal)}</span>
+                    <span style={{ fontWeight: 'var(--weight-semibold)' }}>{formatPrice(cartSubtotal)}</span>
                   </div>
+                  {totalDiscount > 0 && (
+                    <div className="checkout-summary__row" style={{ color: '#16a34a' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <Tag size={13} /> Coupon ({appliedCoupon?.code || 'Applied'})
+                      </span>
+                      <span style={{ fontWeight: 'var(--weight-semibold)' }}>
+                        −{formatPrice(totalDiscount)}
+                      </span>
+                    </div>
+                  )}
                   <div className="checkout-summary__row">
                     <span>Shipping</span>
                     <span>Calculated at checkout</span>
+                  </div>
+                  <div className="checkout-summary__total" style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 8, marginTop: 4, borderTop: '1px solid #f0ebe3', fontWeight: 700 }}>
+                    <span>Estimated Total</span>
+                    <span>{formatPrice(finalTotal)}</span>
                   </div>
                   <div className="checkout-summary__row">
                     <span className="drawer__summary-note"><Sparkles size={14} /> Secure checkout</span>
@@ -134,7 +157,7 @@ export function CartDrawer() {
                     setCheckoutAddressOpen(true)
                   }}
                 >
-                  Proceed to Checkout <ArrowRight size={16} />
+                  Proceed to Checkout · {formatPrice(finalTotal)} <ArrowRight size={16} />
                 </Button>
                 <Link to="/account/cart" onClick={closeCart} style={{ display: 'block', textAlign: 'center', marginTop: 'var(--space-2)' }}>
                   <span className="body-sm section-header__link">View Full Bag</span>

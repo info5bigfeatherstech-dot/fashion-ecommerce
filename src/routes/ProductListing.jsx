@@ -1,7 +1,7 @@
 import { useState, useMemo, useLayoutEffect } from 'react'
 import { useParams, useSearchParams, Link, useNavigationType } from 'react-router-dom'
 import { scrollToTop } from '@/lib/lenis'
-import { SlidersHorizontal, X } from 'lucide-react'
+import { SlidersHorizontal, X, Loader2 } from 'lucide-react'
 import { ProductCard } from '@/features/product/components/ProductCard'
 import { ProductFilters } from '@/features/product/components/ProductFilters'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/Select'
-import { useProductListing } from '@/features/product/hooks'
+import { useInfiniteProductListing } from '@/features/product/hooks'
 import { PRICE_RANGES, DISCOUNT_OPTIONS } from '@/features/product/api'
 import { CATEGORY_TREE, DEFAULT_CATEGORY_IMAGE } from '@/features/category/api'
 import { useCircleCategories, useCategoryLabel } from '@/features/category/hooks'
@@ -81,7 +81,33 @@ export default function ProductListing() {
     search: search || undefined,
   }
 
-  const { data, isLoading } = useProductListing(filters)
+  const {
+    data,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useInfiniteProductListing(filters)
+
+  const allProducts = useMemo(() => {
+    if (!data?.pages) return []
+    const seen = new Set()
+    const list = []
+    for (const page of data.pages) {
+      for (const prod of (page?.products || [])) {
+        const id = prod?.id || prod?._id || prod?.slug
+        if (id && seen.has(id)) continue
+        if (id) seen.add(id)
+        list.push(prod)
+      }
+    }
+    return list
+  }, [data])
+
+  const totalProducts = useMemo(() => {
+    const rawTotal = data?.pages?.[0]?.pagination?.total ?? data?.pages?.[0]?.total
+    return Math.max(Number(rawTotal) || 0, allProducts.length)
+  }, [data, allProducts.length])
 
   useLayoutEffect(() => {
     if (navType === 'POP') return
@@ -259,7 +285,7 @@ export default function ProductListing() {
             <h1 className="display-lg">{title}</h1>
           )}
           <p className="body-lg text-muted" style={{ marginTop: 'var(--space-1)' }}>
-            {data?.total || 0} products
+            {totalProducts} products
           </p>
         </div>
 
@@ -308,7 +334,7 @@ export default function ProductListing() {
               <ProductFilters {...filterProps} />
               <div className="plp-sidebar__mobile-foot">
                 <Button variant="primary" fullWidth onClick={() => setFiltersOpen(false)}>
-                  Show {data?.total || 0} products
+                  Show {totalProducts} products
                 </Button>
               </div>
             </div>
@@ -317,7 +343,7 @@ export default function ProductListing() {
           <div className="plp-main">
             {isLoading ? (
               <ProductGridSkeleton count={8} />
-            ) : data?.products?.length === 0 ? (
+            ) : allProducts.length === 0 ? (
               <div className="empty-state">
                 <h2 className="empty-state__title">Soon this product will add</h2>
                 <p className="body-lg text-muted">We are currently updating our collection. Please check back soon!</p>
@@ -326,11 +352,58 @@ export default function ProductListing() {
                 </button>
               </div>
             ) : (
-              <div className="grid-4">
-                {data?.products?.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
+              <>
+                <div className="grid-4">
+                  {allProducts.map((product) => (
+                    <ProductCard key={product.id || product.slug} product={product} />
+                  ))}
+                </div>
+
+                {allProducts.length > 0 && (
+                  <div className="plp-pagination-container">
+                    <div className="plp-pagination-status">
+                      <p className="plp-pagination-status__text">
+                        Showing <strong>{allProducts.length}</strong> of <strong>{totalProducts}</strong> products
+                      </p>
+                      <div className="plp-pagination-progress">
+                        <div
+                          className="plp-pagination-progress__bar"
+                          style={{
+                            width: `${Math.min(100, Math.round((allProducts.length / Math.max(totalProducts, 1)) * 100))}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {hasNextPage ? (
+                      <button
+                        type="button"
+                        className="plp-load-more-btn"
+                        disabled={isFetchingNextPage}
+                        onClick={() => fetchNextPage()}
+                      >
+                        {isFetchingNextPage ? (
+                          <>
+                            <Loader2 size={18} className="animate-spin" />
+                            <span>Loading more products...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Load More Products</span>
+                            <span className="plp-load-more-pill">+50</span>
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <div className="plp-end-message">
+                        <span className="plp-end-dot" />
+                        <span>You've viewed all {totalProducts} products</span>
+                        <span className="plp-end-dot" />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

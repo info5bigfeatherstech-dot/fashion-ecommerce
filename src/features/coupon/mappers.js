@@ -56,12 +56,21 @@ export function mapCouponValidation(payload) {
     ?? (raw?.success && (raw?.discountAmount != null || raw?.discount != null))
   )
 
+  const applicable = raw?.applicableProducts || raw?.products || raw?.productIds || null
+  const applicableCategories = raw?.applicableCategories || raw?.categories || null
+
   return {
     valid,
     couponCode: String(raw?.couponCode || raw?.code || '').toUpperCase() || null,
     discountAmount: toNumber(raw?.discountAmount ?? raw?.discount, 0),
+    discountType: raw?.discountType || raw?.type || null,
+    discountValue: toNumber(raw?.discountValue ?? raw?.value, 0),
+    maxDiscountAmount: raw?.maxDiscountAmount != null ? toNumber(raw?.maxDiscountAmount) : null,
+    minOrderAmount: toNumber(raw?.minOrderAmount ?? raw?.minOrderValue ?? raw?.minCartValue, 0),
+    applicableProducts: Array.isArray(applicable) ? applicable : null,
+    applicableCategories: Array.isArray(applicableCategories) ? applicableCategories : null,
     message: raw?.message || (valid ? 'Coupon applied' : 'Invalid coupon'),
-    discountType: raw?.discountType || null,
     freeShipping: Boolean(raw?.freeShipping),
+    raw,
   }
 }

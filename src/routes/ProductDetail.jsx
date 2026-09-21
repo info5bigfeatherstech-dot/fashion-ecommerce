@@ -20,6 +20,9 @@ import { ProductGridSkeleton } from '@/components/ui/Skeleton'
 import { useProductDetail, useRelatedProducts } from '@/features/product/hooks'
 import { resolveDisplayImages, resolveVariant, isAttrValueInStock } from '@/features/product/mappers'
 import { useAppStore } from '@/store'
+import { useAppliedCoupon } from '@/store/selectors'
+import { ProductCouponSection } from '@/features/coupon/components/ProductCouponSection'
+import { isItemEligibleForCoupon } from '@/features/coupon/utils'
 import { showAddedToCartToast } from '@/lib/cart-toast'
 import { scrollToTop } from '@/lib/lenis'
 import { formatPrice } from '@/lib/utils'
@@ -161,6 +164,32 @@ function ProductDetailPage() {
       ? selectedVariant.originalPrice
       : product?.originalPrice
   const displayCode = selectedVariant?.productCode || product?.productCode
+
+  const appliedCoupon = useAppliedCoupon()
+  const isCouponEligible = useMemo(() => {
+    if (!appliedCoupon || !product) return false
+    return isItemEligibleForCoupon(product, appliedCoupon)
+  }, [appliedCoupon, product])
+
+  const productCouponSavings = useMemo(() => {
+    if (!appliedCoupon || !isCouponEligible || !displayPrice || displayPrice <= 0) return 0
+    const type = String(appliedCoupon.discountType || '').toLowerCase()
+    const val = Number(appliedCoupon.discountValue ?? appliedCoupon.discount ?? 0)
+    let discount = 0
+    if (type === 'percentage' || type === 'percent') {
+      discount = val > 0 ? Math.round((displayPrice * val) / 100) : 0
+    } else if (appliedCoupon.discountAmount > 0) {
+      discount = Math.min(displayPrice, Number(appliedCoupon.discountAmount))
+    } else if (val > 0) {
+      discount = Math.min(displayPrice, val)
+    }
+    const maxDiscount = Number(appliedCoupon.maxDiscountAmount)
+    if (Number.isFinite(maxDiscount) && maxDiscount > 0) {
+      discount = Math.min(discount, maxDiscount)
+    }
+    return Math.min(discount, displayPrice)
+  }, [appliedCoupon, isCouponEligible, displayPrice])
+
   // Prefer selected variant stock; if resolve failed, fall back to any in-stock variant / product flag.
   const isAvailable = selectedVariant
     ? Boolean(selectedVariant.inStock)
@@ -437,7 +466,13 @@ function ProductDetailPage() {
             countClassName="text-muted"
           />
 
-          <PriceBlock price={displayPrice} originalPrice={displayOriginal} size="large" />
+          <PriceBlock
+            price={displayPrice}
+            originalPrice={displayOriginal}
+            couponDiscount={productCouponSavings}
+            couponCode={appliedCoupon?.code}
+            size="large"
+          />
 
           {choosableGroups.map((group) => {
             const selected = selectedAttrs[group.key] ?? group.values[0]
@@ -479,6 +514,12 @@ function ProductDetailPage() {
               />
             )
           })}
+
+          <ProductCouponSection
+            product={product}
+            currentPrice={displayPrice}
+            className="pdp-info__coupon"
+          />
 
           {!isAvailable ? (
             <div className="pdp-oos">
@@ -612,9 +653,18 @@ function ProductDetailPage() {
         aria-hidden={!showStickyBar}
       >
         <div className="pdp-sticky-bar__price">
-          {formatPrice(displayPrice)}
-          {displayOriginal && displayOriginal > displayPrice && (
-            <small>{formatPrice(displayOriginal)}</small>
+          {productCouponSavings > 0 ? (
+            <>
+              {formatPrice(displayPrice - productCouponSavings)}
+              <small style={{ textDecoration: 'line-through' }}>{formatPrice(displayPrice)}</small>
+            </>
+          ) : (
+            <>
+              {formatPrice(displayPrice)}
+              {displayOriginal && displayOriginal > displayPrice && (
+                <small>{formatPrice(displayOriginal)}</small>
+              )}
+            </>
           )}
         </div>
         <Button variant="secondary" size="md" onClick={handleBuyNow} disabled={!isAvailable}>

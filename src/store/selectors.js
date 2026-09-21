@@ -1,5 +1,6 @@
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from '@/store'
+import { calculateCartCouponDiscounts } from '@/features/coupon/utils'
 
 export function useCartTotal() {
   return useAppStore((s) =>
@@ -38,4 +39,29 @@ export function useCartDiscount() {
           totalOriginalAmount: 0,
         }
   )))
+}
+
+export function useAppliedCoupon() {
+  return useAppStore((s) => s.appliedCoupon)
+}
+
+export function useCartCouponSummary() {
+  const cartItems = useAppStore((s) => s.cartItems)
+  const appliedCoupon = useAppStore((s) => s.appliedCoupon)
+  const isAuthenticated = useAppStore((s) => s.isAuthenticated)
+
+  if (!isAuthenticated) {
+    return {
+      cartSubtotal: 0,
+      totalDiscount: 0,
+      finalTotal: 0,
+      items: [],
+      hasCoupon: false,
+      appliedCoupon: null,
+      isMinOrderSatisfied: true,
+    }
+  }
+
+  // Imported dynamically or top-level to avoid circular dependency
+  return calculateCartCouponDiscounts(cartItems, appliedCoupon)
 }
