@@ -1087,7 +1087,9 @@ textarea {
 .grid-4 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-2);
+  /* Tighter between columns; clearer space between rows (product text vs next image) */
+  column-gap: var(--space-2);
+  row-gap: var(--space-4);
 }
 
 .grid-2>*,
@@ -1109,19 +1111,24 @@ textarea {
 
   .grid-4 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: var(--space-3);
+    row-gap: var(--space-5);
   }
 }
 
 @media (min-width: 1280px) {
   .grid-4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: var(--space-3);
+    column-gap: var(--space-3);
+    row-gap: var(--space-5);
   }
 }
 
 @media (min-width: 1536px) {
   .grid-4 {
     grid-template-columns: repeat(5, minmax(0, 1fr));
+    column-gap: var(--space-3);
+    row-gap: var(--space-5);
   }
 }
 
@@ -1603,7 +1610,7 @@ select.input {
 }
 
 .skeleton--image {
-  aspect-ratio: 3 / 4;
+  aspect-ratio: 1 / 1;
   width: 100%;
 }
 
@@ -2812,7 +2819,8 @@ div.auth-google-btn {
 }
 
 .product-carousel .product-card__media {
-  aspect-ratio: 3 / 4;
+  /* Square media: jewellery assets are often wide; less horizontal crop than 3:4 */
+  aspect-ratio: 1 / 1;
   border-radius: var(--radius-md);
 }
 
@@ -2857,7 +2865,7 @@ div.auth-google-btn {
   }
 
   .product-carousel .product-card__media {
-    aspect-ratio: 4 / 5;
+    aspect-ratio: 1 / 1;
     border-radius: var(--radius-md);
   }
 
@@ -3061,7 +3069,8 @@ div.auth-google-btn {
 
 .product-card__media {
   position: relative;
-  aspect-ratio: 3 / 4;
+  /* 1:1 across breakpoints — fills card width; height follows (no crop from taller 3:4 frame) */
+  aspect-ratio: 1 / 1;
   overflow: hidden;
   background-color: var(--color-paper);
   border-radius: var(--radius-sm);
@@ -3275,6 +3284,7 @@ div.auth-google-btn {
 
 .product-card__body {
   padding-top: var(--space-2);
+  padding-bottom: var(--space-1);
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
