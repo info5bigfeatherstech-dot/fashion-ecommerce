@@ -172,13 +172,20 @@ function ProductDetailPage() {
   }, [appliedCoupon, product])
 
   const productCouponSavings = useMemo(() => {
-    if (!appliedCoupon || !isCouponEligible || !displayPrice || displayPrice <= 0) return 0
+    if (!appliedCoupon || !displayPrice || displayPrice <= 0) return 0
+    // Treat coupon as eligible if it passes the check OR if it was already
+    // validated and applied (has a pre-stored discountAmount from validation)
+    const hasPrecomputedAmount = Number(appliedCoupon.discountAmount) > 0
+    const eligible = isCouponEligible || hasPrecomputedAmount
+    if (!eligible) return 0
     const type = String(appliedCoupon.discountType || '').toLowerCase()
     const val = Number(appliedCoupon.discountValue ?? appliedCoupon.discount ?? 0)
     let discount = 0
+    // Prefer recomputing from rate so it adapts to variant price changes
     if (type === 'percentage' || type === 'percent') {
       discount = val > 0 ? Math.round((displayPrice * val) / 100) : 0
-    } else if (appliedCoupon.discountAmount > 0) {
+    } else if (hasPrecomputedAmount) {
+      // Fall back to the pre-stored flat discount amount validated at apply time
       discount = Math.min(displayPrice, Number(appliedCoupon.discountAmount))
     } else if (val > 0) {
       discount = Math.min(displayPrice, val)

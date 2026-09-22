@@ -34,16 +34,21 @@ export function ProductCouponSection({
     return isItemEligibleForCoupon(product, appliedCoupon)
   }, [appliedCoupon, product])
 
-  // Calculate discount specifically on this product's current price
+  // Calculate discount specifically on this product's current price.
+  // Trust pre-stored discountAmount (set at validation time) when isEligible
+  // fails due to product ID format mismatches.
   const itemSavings = useMemo(() => {
-    if (!appliedCoupon || !isEligible || currentPrice <= 0) return 0
+    if (!appliedCoupon || currentPrice <= 0) return 0
+    const hasPrecomputedAmount = Number(appliedCoupon.discountAmount) > 0
+    const eligible = isEligible || hasPrecomputedAmount
+    if (!eligible) return 0
     const type = String(appliedCoupon.discountType || '').toLowerCase()
     const val = Number(appliedCoupon.discountValue ?? appliedCoupon.discount ?? 0)
     let discount = 0
 
     if (type === 'percentage' || type === 'percent') {
       discount = val > 0 ? Math.round((currentPrice * val) / 100) : 0
-    } else if (appliedCoupon.discountAmount > 0) {
+    } else if (hasPrecomputedAmount) {
       discount = Math.min(currentPrice, Number(appliedCoupon.discountAmount))
     } else if (val > 0) {
       discount = Math.min(currentPrice, val)
