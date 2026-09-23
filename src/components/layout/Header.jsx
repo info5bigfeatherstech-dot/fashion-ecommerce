@@ -17,6 +17,7 @@ import { startLenis, stopLenis } from '@/lib/lenis'
 import { NotificationBellIcon } from '@/components/common/NotificationBellIcon'
 import { NotificationsModal } from '@/components/common/NotificationsModal'
 import { fetchUnreadNotificationCount } from '@/features/notifications/api'
+import { refreshCurrentUser } from '@/features/auth/api'
 
 function navHref(item) {
   if (item.href) return item.href
@@ -50,6 +51,7 @@ export function Header() {
   const { navItems } = useHeaderNavItems()
   const accountFirstName = getUserFirstName(user)
   const accountLabel = isAuthenticated && accountFirstName ? accountFirstName : 'My Account'
+  const loyaltyBadge = isAuthenticated ? user?.loyalty?.badge : null
 
   // In-app badge: fetch once on session open / login. No polling, no per-route refetch.
   // Bell click opens modal which refreshes list + unread (see NotificationsModal).
@@ -67,6 +69,8 @@ export function Header() {
         // Don't wipe a good badge on a transient network blip after login.
         if (!cancelled) setUnreadNotifications((prev) => (prev > 0 ? prev : 0))
       })
+    // Keep loyalty gem in sync after admin assign / paid orders (once per session open).
+    refreshCurrentUser().catch(() => {})
     return () => {
       cancelled = true
     }
@@ -264,10 +268,22 @@ export function Header() {
                 to="/account/profile"
                 className="header__util header__util--desktop"
                 onClick={handleMyAccountClick}
-                aria-label="My Account"
+                aria-label={
+                  loyaltyBadge?.name
+                    ? `My Account, ${loyaltyBadge.name} Member`
+                    : 'My Account'
+                }
               >
                 <span className="header__util-icon">
                   <User size={22} />
+                  {loyaltyBadge?.name ? (
+                    <span
+                      className="header__loyalty-gem"
+                      style={{ '--loyalty-color': loyaltyBadge.color || '#C9A227' }}
+                      title={`${loyaltyBadge.name} Member`}
+                      aria-hidden
+                    />
+                  ) : null}
                 </span>
                 <span className="header__util-label">{accountLabel}</span>
               </Link>
@@ -463,7 +479,23 @@ export function Header() {
 
                     <div className="header__mobile-extras">
                       <Link to="/account/profile" onClick={handleMyAccountClick} aria-label="My Account">
-                        <User size={16} /> <span>{accountLabel}</span>
+                        <span className="header__mobile-account-icon">
+                          <User size={16} />
+                          {loyaltyBadge?.name ? (
+                            <span
+                              className="header__loyalty-gem header__loyalty-gem--sm"
+                              style={{ '--loyalty-color': loyaltyBadge.color || '#C9A227' }}
+                              title={`${loyaltyBadge.name} Member`}
+                              aria-hidden
+                            />
+                          ) : null}
+                        </span>
+                        <span>{accountLabel}</span>
+                        {loyaltyBadge?.name ? (
+                          <span className="header__loyalty-chip" style={{ '--loyalty-color': loyaltyBadge.color || '#C9A227' }}>
+                            {loyaltyBadge.name}
+                          </span>
+                        ) : null}
                       </Link>
                       <Link to="/wholesale" onClick={() => setMobileNavOpen(false)}>
                         <Warehouse size={16} /> <span>Wholesale</span>

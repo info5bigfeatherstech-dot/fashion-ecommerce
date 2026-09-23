@@ -59,6 +59,7 @@ export const ADMIN_NAV_ITEMS = [
     children: [
       { id: 'marketing-hub', label: 'Overview', path: '/admin/marketing' },
       { id: 'coupons', label: 'Coupons', path: '/admin/coupons' },
+      { id: 'loyalty-badges', label: 'Loyalty badges', path: '/admin/marketing/loyalty' },
       { id: 'free-shipping-offers', label: 'Offers', path: '/admin/marketing/offers' },
     ],
   },
@@ -105,6 +106,7 @@ export const ADMIN_TAB_PERMISSIONS = {
     'marketing',
     'marketing-hub',
     'coupons',
+    'loyalty-badges',
     'free-shipping-offers',
     'reviews',
     'reviews-submissions',
@@ -132,6 +134,7 @@ export const ADMIN_TAB_PERMISSIONS = {
     'marketing',
     'marketing-hub',
     'coupons',
+    'loyalty-badges',
     'free-shipping-offers',
     'leads',
     'customers',

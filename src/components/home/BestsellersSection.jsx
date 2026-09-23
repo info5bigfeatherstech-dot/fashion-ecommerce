@@ -4,21 +4,23 @@ import { ProductCarousel } from '@/features/product/components/ProductCarousel'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
 import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
 import { useProductsByTag } from '@/features/product/hooks'
+import { shuffleTake } from '@/lib/shuffleProducts'
 
 const BESTSELLING_JEWELRY_TAG = 'bestselling-jewelry'
 const BESTSELLING_LIMIT = 12
-/** Wider fetch so session shuffle can vary which bestsellers surface. */
+/** Random sample from the full tagged catalog (not only newest-first page). */
 const BESTSELLING_FETCH_LIMIT = 48
 
 export function BestsellersSection() {
   const { data, isLoading } = useProductsByTag(BESTSELLING_JEWELRY_TAG, {
     page: 1,
     limit: BESTSELLING_FETCH_LIMIT,
+    sort: 'random',
   })
   const products = useMemo(() => {
     try {
       const list = Array.isArray(data?.products) ? data.products : []
-      return list.slice(0, BESTSELLING_LIMIT)
+      return shuffleTake(list, BESTSELLING_LIMIT, 'home-bestsellers')
     } catch {
       return []
     }

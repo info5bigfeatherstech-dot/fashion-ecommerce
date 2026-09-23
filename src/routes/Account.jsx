@@ -5,10 +5,9 @@ import { ChevronRight, Heart, LogOut, MapPin, Package, ShoppingBag, UserRound } 
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Input, InputGroup } from '@/components/ui/Input'
-import { updateProfile } from '@/features/auth/api'
+import { updateProfile, logout, refreshCurrentUser } from '@/features/auth/api'
 import { normalizePersonName, personNameSchema } from '@/lib/personName'
 import { Separator } from '@/components/ui/Separator'
-import { logout } from '@/features/auth/api'
 import { useAppStore } from '@/store'
 import { useCartCount, useWishlistCount } from '@/store/selectors'
 import { AccountAddressesTab } from '@/routes/account/AccountAddressesTab'
@@ -102,6 +101,15 @@ export default function Account() {
     }
   }, [isAuthenticated, location.pathname, navigate, openAuthModal])
 
+  // Pull latest loyalty badge after admin recompute / new paid orders (store can be stale).
+  useEffect(() => {
+    if (!isAuthenticated) return undefined
+    refreshCurrentUser().catch(() => {
+      /* auth layer handles session errors */
+    })
+    return undefined
+  }, [isAuthenticated, activeTab])
+
   if (!isAuthenticated) {
     return null
   }
@@ -121,6 +129,15 @@ export default function Account() {
             <p className="account-sidebar__hello">Hello,</p>
             <p className="account-sidebar__name">{getAccountDisplayName(user)}</p>
             <p className="account-sidebar__email">{user.email}</p>
+            {user?.loyalty?.badge?.name ? (
+              <span
+                className="account-loyalty-pill account-loyalty-pill--sidebar"
+                style={{ '--loyalty-color': user.loyalty.badge.color || '#C9A227' }}
+              >
+                <span className="account-loyalty-pill__gem" aria-hidden />
+                <span className="account-loyalty-pill__text">{user.loyalty.badge.name}</span>
+              </span>
+            ) : null}
           </div>
           <button
             type="button"
@@ -193,19 +210,57 @@ export default function Account() {
 
         {activeTab === 'profile' && (
           <div className="account-section">
-            <div className="account-section__header account-section__header--profile">
+              <div className="account-section__header account-section__header--profile">
               <div>
                 <p className="heading-sm text-accent">Profile</p>
                 <h2 className="display-md">Your Account</h2>
               </div>
-              <Badge className="account-badge">Customer</Badge>
+              <div className="account-badge-row">
+                {user?.loyalty?.badge?.name ? (
+                  <span
+                    className="account-loyalty-pill"
+                    style={{
+                      '--loyalty-color': user.loyalty.badge.color || '#C9A227',
+                    }}
+                  >
+                    <span className="account-loyalty-pill__gem" aria-hidden />
+                    <span className="account-loyalty-pill__text">
+                      {user.loyalty.badge.name} Member
+                    </span>
+                  </span>
+                ) : null}
+                <Badge className="account-badge">Customer</Badge>
+              </div>
             </div>
 
             <div className="account-hero">
               <div>
-                <p className="heading-sm">FABUNIQO Customer</p>
+                <p className="heading-sm">
+                  {user?.loyalty?.badge?.name
+                    ? `${user.loyalty.badge.name} Member`
+                    : 'FABUNIQO Customer'}
+                </p>
                 <h3 className="display-md account-hero__title">{getAccountDisplayName(user)}</h3>
                 <p className="body-lg text-muted">Manage your Details, Delivery Addresses, and upcoming Orders from one Place.</p>
+                {user?.loyalty?.badge?.name ? (
+                  <div className="account-loyalty-card" style={{ '--loyalty-color': user.loyalty.badge.color || '#C9A227' }}>
+                    <p className="account-loyalty-card__eyebrow">Loyalty status</p>
+                    <p className="account-loyalty-card__title">{user.loyalty.badge.name} Member</p>
+                    <p className="account-loyalty-card__meta">
+                      Lifetime spend ₹{Number(user.loyalty.lifetimeSpendInr || 0).toLocaleString('en-IN')}
+                      {' · '}
+                      {Number(user.loyalty.lifetimeOrderCount || 0)} qualifying order
+                      {Number(user.loyalty.lifetimeOrderCount || 0) === 1 ? '' : 's'}
+                    </p>
+                  </div>
+                ) : (user?.loyalty?.lifetimeSpendInr > 0 || user?.loyalty?.lifetimeOrderCount > 0) ? (
+                  <p className="body-sm text-muted" style={{ marginTop: 8 }}>
+                    Lifetime spend ₹{Number(user.loyalty.lifetimeSpendInr || 0).toLocaleString('en-IN')}
+                    {' · '}
+                    {Number(user.loyalty.lifetimeOrderCount || 0)} qualifying order
+                    {Number(user.loyalty.lifetimeOrderCount || 0) === 1 ? '' : 's'}
+                  </p>
+                ) : null}
               </div>
             </div>
 

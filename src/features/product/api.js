@@ -262,14 +262,16 @@ export async function getProductsByCategory(slug, { page = 1, limit = 50, signal
   }
 
   try {
+    const effectiveSort =
+      sort || (shouldShuffleStorefrontList({ sort }) ? 'random' : undefined)
     const payload = await http.get(API_ENDPOINTS.products.byCategory(slug), {
-      params: { page, limit, ...(sort ? { sort } : {}), ...params },
+      params: { page, limit, ...(effectiveSort ? { sort: effectiveSort } : {}), ...params },
       signal,
     })
 
     let products = extractProductList(payload)
-    if (shouldShuffleStorefrontList({ sort })) {
-      products = shuffleProducts(products, `category:${slug}`)
+    if (shouldShuffleStorefrontList({ sort: effectiveSort === 'random' ? undefined : sort })) {
+      products = shuffleProducts(products, `category:${slug}:s${effectiveSort || 'default'}`)
     }
     let pagination = mapPagination(payload?.pagination ?? payload?.data?.pagination, products.length)
     let total = pagination.total || products.length
@@ -456,11 +458,17 @@ export async function getProductsByTag(tag, { page = 1, limit = 25, signal, cach
   }
 
   try {
+    // Default showcase lists: sample across the full match set (not newest-first page).
+    // Explicit sorts (price, etc.) keep deterministic order.
+    const effectiveSort =
+      sort ||
+      (shouldShuffleStorefrontList({ sort }) ? 'random' : undefined)
+
     const requestParams = {
       page,
       limit,
       tags: normalized,
-      ...(sort ? { sort } : {}),
+      ...(effectiveSort ? { sort: effectiveSort } : {}),
       ...params,
     }
     if (cacheBust) requestParams._cb = '1'
@@ -471,8 +479,11 @@ export async function getProductsByTag(tag, { page = 1, limit = 25, signal, cach
     })
 
     let products = mapProductList(payload.products)
-    if (shouldShuffleStorefrontList({ sort })) {
-      products = shuffleProducts(products, `tag:${normalized}:p${page}:l${limit}`)
+    if (shouldShuffleStorefrontList({ sort: effectiveSort === 'random' ? undefined : sort })) {
+      products = shuffleProducts(
+        products,
+        `tag:${normalized}:p${page}:l${limit}:s${effectiveSort || 'default'}`
+      )
     }
     const pagination = mapPagination(payload.pagination, products.length)
 
@@ -618,9 +629,11 @@ export async function getProducts(filters = {}) {
   // Sale / tagged collections — server-side tags filter
   if (tag) {
     try {
+      const shuffleOk = shouldShuffleStorefrontList(filters)
       const { products, pagination, total } = await getProductsByTag(tag, {
         page,
         limit,
+        sort: shuffleOk ? 'random' : filters.sort,
         ...queryParams,
       })
       if (products.length > 0) {
@@ -630,6 +643,7 @@ export async function getProducts(filters = {}) {
           tags: undefined,
           discountTag: undefined,
           onSale: undefined,
+          skipShuffle: true,
         })
         let totalCount = total || filtered.length
         let paginated = filtered
@@ -791,10 +805,16 @@ export async function getProductDetailedById(id, { signal } = {}) {
 }
 
 export async function getBestsellers({ limit = 12, signal } = {}) {
+  const fetchLimit = Math.min(Math.max(Number(limit) || 12, 12) * 4, 100)
   try {
-    const res = await getProductsByTag('bestselling-jewelry', { page: 1, limit, signal })
+    const res = await getProductsByTag('bestselling-jewelry', {
+      page: 1,
+      limit: fetchLimit,
+      sort: 'random',
+      signal,
+    })
     if (res?.products && res.products.length > 0) {
-      return shuffleProducts(res.products, `bestsellers:l${limit}`)
+      return shuffleProducts(res.products, `bestsellers:l${limit}`).slice(0, limit)
     }
   } catch (err) {
     console.warn('API request for bestselling-jewelry tag failed, using fallback', err)

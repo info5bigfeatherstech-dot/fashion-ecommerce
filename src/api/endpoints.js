@@ -174,6 +174,13 @@ export const API_ENDPOINTS = {
     coupons: '/admin/coupons',
     couponById: (id) => `/admin/coupons/${encodeURIComponent(String(id))}`,
     couponToggle: (id) => `/admin/coupons/${encodeURIComponent(String(id))}/toggle`,
+    loyaltyBadges: '/admin/loyalty-badges',
+    loyaltyBadgeById: (id) => `/admin/loyalty-badges/${encodeURIComponent(String(id))}`,
+    loyaltyBadgeToggle: (id) => `/admin/loyalty-badges/${encodeURIComponent(String(id))}/toggle`,
+    loyaltyBadgeMembers: (id) => `/admin/loyalty-badges/${encodeURIComponent(String(id))}/members`,
+    loyaltyRecompute: '/admin/loyalty-badges/recompute',
+    loyaltyRecomputeUser: (userId) =>
+      `/admin/loyalty-badges/recompute/${encodeURIComponent(String(userId))}`,
     freeShippingOffers: '/admin/free-shipping-offers',
     freeShippingOfferById: (id) => `/admin/free-shipping-offers/${encodeURIComponent(String(id))}`,
     freeShippingOfferToggle: (id) => `/admin/free-shipping-offers/${encodeURIComponent(String(id))}/toggle`,

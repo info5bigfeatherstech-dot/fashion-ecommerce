@@ -23,6 +23,11 @@ function mapAuthUser(user) {
     isPhoneVerified: Boolean(user.isPhoneVerified),
     isEmailVerified: Boolean(user.isEmailVerified),
     isProfileComplete: Boolean(user.isProfileComplete),
+    loyalty: user.loyalty || {
+      lifetimeSpendInr: 0,
+      lifetimeOrderCount: 0,
+      badge: null,
+    },
   }
 }
 
@@ -95,6 +100,19 @@ export async function fetchCurrentUser(tokenOverride = null) {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   })
   return mapAuthUser(payload?.user)
+}
+
+/**
+ * Refresh storefront user (including loyalty badge) into the app store.
+ * Uses normal auth refresh so an expired access token can rotate first.
+ */
+export async function refreshCurrentUser() {
+  const payload = await http.get(API_ENDPOINTS.auth.me)
+  const user = mapAuthUser(payload?.user)
+  if (user) {
+    useAppStore.getState().setUser(user)
+  }
+  return user
 }
 
 /**

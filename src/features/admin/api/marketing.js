@@ -29,6 +29,58 @@ export async function toggleAdminCoupon(id) {
   return unwrapAdmin(payload)
 }
 
+export async function getAdminLoyaltyBadges({ signal, status = 'all' } = {}) {
+  const params = {}
+  if (status && status !== 'all') params.status = status
+  const payload = await adminGet(API_ENDPOINTS.admin.loyaltyBadges, { signal, params })
+  return payload
+}
+
+export async function createAdminLoyaltyBadge(body) {
+  const payload = await adminPost(API_ENDPOINTS.admin.loyaltyBadges, body)
+  return unwrapAdmin(payload)
+}
+
+export async function updateAdminLoyaltyBadge(id, body) {
+  const payload = await adminPut(API_ENDPOINTS.admin.loyaltyBadgeById(id), body)
+  return unwrapAdmin(payload)
+}
+
+export async function deleteAdminLoyaltyBadge(id) {
+  const payload = await adminDelete(API_ENDPOINTS.admin.loyaltyBadgeById(id))
+  return unwrapAdmin(payload)
+}
+
+export async function toggleAdminLoyaltyBadge(id) {
+  const payload = await adminPatch(API_ENDPOINTS.admin.loyaltyBadgeToggle(id))
+  return unwrapAdmin(payload)
+}
+
+export async function getAdminLoyaltyBadgeMembers(
+  id,
+  { signal, page = 1, limit = 20, search = '' } = {}
+) {
+  const params = { page, limit }
+  if (String(search || '').trim()) params.search = String(search).trim()
+  const payload = await adminGet(API_ENDPOINTS.admin.loyaltyBadgeMembers(id), { signal, params })
+  return payload
+}
+
+/** Recompute one customer loyalty by email and/or userId (heals missed auto-assign). */
+export async function recomputeAdminLoyaltyUser({ email, userId } = {}) {
+  const body = {}
+  if (String(email || '').trim()) body.email = String(email).trim()
+  if (String(userId || '').trim()) body.userId = String(userId).trim()
+  const payload = await adminPost(API_ENDPOINTS.admin.loyaltyRecompute, body)
+  if (payload?.success === false) {
+    const err = new Error(payload?.message || 'Recompute failed')
+    err.code = payload?.code
+    throw err
+  }
+  // API returns loyalty/stats at top level (not under data)
+  return payload
+}
+
 export async function getAdminStaff({ signal, page = 1, limit = 20, search = '', role = '' } = {}) {
   const params = { page, limit }
   if (String(search || '').trim()) params.search = String(search).trim()

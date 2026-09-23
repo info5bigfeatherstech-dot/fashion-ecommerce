@@ -6,9 +6,10 @@ import { useApiCategories } from '@/features/category/hooks'
 import { slugFromShopHref } from '@/features/category/nav'
 import { useProductsByCategory } from '@/features/product/hooks'
 import { ProductCard } from '@/features/product/components/ProductCard'
+import { shuffleTake } from '@/lib/shuffleProducts'
 
 const PRODUCTS_PER_CATEGORY_ROW = 4
-/** Fetch a wider pool so shuffle picks random products, not only the newest 4. */
+/** Random sample from full category catalog (not only the newest N). */
 const CATEGORY_ROW_FETCH_LIMIT = 40
 
 function CategoryProductRow({ category }) {
@@ -17,15 +18,16 @@ function CategoryProductRow({ category }) {
   const { data, isLoading } = useProductsByCategory(slug, {
     page: 1,
     limit: CATEGORY_ROW_FETCH_LIMIT,
+    sort: 'random',
   })
   const products = useMemo(() => {
     try {
       const list = Array.isArray(data?.products) ? data.products : []
-      return list.slice(0, PRODUCTS_PER_CATEGORY_ROW)
+      return shuffleTake(list, PRODUCTS_PER_CATEGORY_ROW, `product-all:${slug}`)
     } catch {
       return []
     }
-  }, [data])
+  }, [data, slug])
 
   if (!isLoading && products.length === 0) return null
 

@@ -71,6 +71,22 @@ export function seededShuffle(items, seed) {
 }
 
 /**
+ * Shuffle then take the first `count` items (session-stable sample from a pool).
+ */
+export function shuffleTake(products, count, scope = 'default') {
+  try {
+    const n = Math.max(0, Math.floor(Number(count) || 0))
+    const shuffled = shuffleProducts(products, scope)
+    if (!n || shuffled.length <= n) return shuffled
+    return shuffled.slice(0, n)
+  } catch {
+    const list = Array.isArray(products) ? [...products] : []
+    const n = Math.max(0, Math.floor(Number(count) || 0))
+    return n ? list.slice(0, n) : list
+  }
+}
+
+/**
  * Shuffle products for a named storefront scope (category, tag, section, page…).
  * Same scope + same session → same order (stable UI).
  */
