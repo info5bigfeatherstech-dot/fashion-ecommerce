@@ -106,8 +106,12 @@ export default function ProductListing() {
 
   const totalProducts = useMemo(() => {
     const rawTotal = data?.pages?.[0]?.pagination?.total ?? data?.pages?.[0]?.total
-    return Math.max(Number(rawTotal) || 0, allProducts.length)
-  }, [data, allProducts.length])
+    const count = Math.max(Number(rawTotal) || 0, allProducts.length)
+    if (hasNextPage && count <= allProducts.length) {
+      return allProducts.length + 50
+    }
+    return count
+  }, [data, allProducts.length, hasNextPage])
 
   useLayoutEffect(() => {
     if (navType === 'POP') return
@@ -397,7 +401,7 @@ export default function ProductListing() {
                     ) : (
                       <div className="plp-end-message">
                         <span className="plp-end-dot" />
-                        <span>You've viewed all {totalProducts} products</span>
+                        <span>You've viewed all {allProducts.length} products</span>
                         <span className="plp-end-dot" />
                       </div>
                     )}

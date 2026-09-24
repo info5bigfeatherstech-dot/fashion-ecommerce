@@ -474,27 +474,51 @@ export function extractProductList(payload) {
   return []
 }
 
-export function mapPagination(pagination, fallbackCount = 0) {
-  const total = toNumber(pagination?.total, fallbackCount)
-  const page = toNumber(pagination?.page, 1)
-  const limit = toNumber(pagination?.limit, fallbackCount || 12)
+export function mapPagination(raw, fallbackCount = 0) {
+  const pagination =
+    raw?.pagination ||
+    raw?.data?.pagination ||
+    raw?.data ||
+    raw ||
+    {}
+
+  const total = toNumber(
+    pagination.total ?? raw?.total ?? raw?.data?.total,
+    fallbackCount
+  )
+  const page = toNumber(
+    pagination.page ?? raw?.page ?? raw?.data?.page,
+    1
+  )
+  const limit = toNumber(
+    pagination.limit ?? raw?.limit ?? raw?.data?.limit,
+    fallbackCount || 50
+  )
   const totalPages = toNumber(
-    pagination?.totalPages,
+    pagination.totalPages ?? raw?.totalPages ?? raw?.data?.totalPages,
     limit > 0 ? Math.max(1, Math.ceil(total / limit)) : 1
   )
+
+  const hasNextPage =
+    pagination.hasNextPage != null
+      ? Boolean(pagination.hasNextPage)
+      : raw?.hasNextPage != null
+        ? Boolean(raw.hasNextPage)
+        : page < totalPages || (fallbackCount >= limit && limit > 0)
+
+  const hasPrevPage =
+    pagination.hasPrevPage != null
+      ? Boolean(pagination.hasPrevPage)
+      : raw?.hasPrevPage != null
+        ? Boolean(raw.hasPrevPage)
+        : page > 1
 
   return {
     total,
     page,
     limit,
     totalPages,
-    hasNextPage:
-      pagination?.hasNextPage != null
-        ? Boolean(pagination.hasNextPage)
-        : page < totalPages,
-    hasPrevPage:
-      pagination?.hasPrevPage != null
-        ? Boolean(pagination.hasPrevPage)
-        : page > 1,
+    hasNextPage,
+    hasPrevPage,
   }
 }

@@ -250,7 +250,7 @@ export async function fetchProductsPage(
   })
 
   const products = mapProductList(payload.products)
-  const pagination = mapPagination(payload.pagination, products.length)
+  const pagination = mapPagination(payload?.pagination ?? payload, products.length)
 
   return { products, pagination, raw: payload }
 }
@@ -276,8 +276,8 @@ export async function getProductsByCategory(slug, { page = 1, limit = 50, signal
     if (shouldShuffleStorefrontList({ sort: effectiveSort === 'random' ? undefined : sort })) {
       products = shuffleProducts(products, `category:${slug}:s${effectiveSort || 'default'}`)
     }
-    let pagination = mapPagination(payload?.pagination ?? payload?.data?.pagination, products.length)
-    let total = pagination.total || products.length
+    let pagination = mapPagination(payload?.pagination ?? payload?.data?.pagination ?? payload, products.length)
+    let total = pagination.total || payload?.total || products.length
 
     if (products.length > limit) {
       total = products.length
@@ -488,7 +488,7 @@ export async function getProductsByTag(tag, { page = 1, limit = 25, signal, cach
         `tag:${normalized}:p${page}:l${limit}:s${effectiveSort || 'default'}`
       )
     }
-    const pagination = mapPagination(payload.pagination, products.length)
+    const pagination = mapPagination(payload?.pagination ?? payload, products.length)
 
     return {
       products,
@@ -720,13 +720,17 @@ export async function getProducts(filters = {}) {
         ...queryParams,
       })
       const filtered = applyProductFilters(products, { ...filters, category: undefined })
-      let totalCount = total || filtered.length
+      let totalCount = total || pagination?.total || filtered.length
       let paginated = filtered
       if (filtered.length > limit) {
         totalCount = filtered.length
         paginated = filtered.slice((page - 1) * limit, page * limit)
       }
       const totalPages = Math.ceil(totalCount / limit) || 1
+      const hasNextPage =
+        pagination?.hasNextPage != null
+          ? Boolean(pagination.hasNextPage)
+          : page < totalPages || products.length >= limit
       return {
         products: paginated,
         total: totalCount,
@@ -736,7 +740,7 @@ export async function getProducts(filters = {}) {
           page,
           limit,
           totalPages,
-          hasNextPage: pagination?.hasNextPage != null ? Boolean(pagination.hasNextPage) : page < totalPages,
+          hasNextPage,
           hasPrevPage: page > 1,
         },
       }
