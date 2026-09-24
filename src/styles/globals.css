@@ -3412,7 +3412,8 @@ div.auth-google-btn {
 
 /* Fine pointer desktops: body CTA hidden — use hover overlay */
 @media (hover: hover) and (min-width: 768px) {
-  .product-card__quick-add--body {
+  .product-card__quick-add--body,
+  .product-card__footer {
     display: none !important;
   }
 }
@@ -3503,6 +3504,14 @@ div.auth-google-btn {
 }
 
 /* Variant color preview — separate swatches (not stacked) */
+.product-card__colors-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 18px;
+  flex-wrap: wrap;
+}
+
 .product-card__colors {
   display: flex;
   align-items: center;

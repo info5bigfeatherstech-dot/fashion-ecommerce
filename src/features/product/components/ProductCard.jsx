@@ -336,39 +336,44 @@ export function ProductCard({ product, compact = false }) {
       </div>
       <div className="product-card__body">
         <h3 className="product-card__name">{product.name}</h3>
-        {(product.categoryLabel || product.productCode || product.sku) ? (
-          <p className="product-card__meta">
-            {product.categoryLabel ? <span>{product.categoryLabel}</span> : null}
-            {product.categoryLabel && (product.productCode || product.sku) ? (
-              <span className="product-card__meta-sep" aria-hidden="true">·</span>
-            ) : null}
-            {(product.productCode || product.sku) ? (
-              <span>{product.productCode || product.sku}</span>
-            ) : null}
-          </p>
+        {product.categoryLabel ? (
+          <p className="product-card__meta">{product.categoryLabel}</p>
         ) : null}
-        {colorSwatches.visible.length > 0 ? (
-          <div
-            className="product-card__colors"
-            aria-label={`${colorSwatches.visible.length + colorSwatches.extra} color options`}
-          >
-            <div className="product-card__colors-stack" aria-hidden="true">
-              {colorSwatches.visible.map((swatchColor, index) => (
-                <span
-                  key={`${swatchColor}-${index}`}
-                  className="product-card__swatch"
-                  title={swatchColor}
-                  style={{
-                    backgroundColor: resolveSwatchColor(swatchColor),
-                  }}
-                />
-              ))}
+        {(product.productCode || product.sku) ? (
+          <p className="product-card__code">{product.productCode || product.sku}</p>
+        ) : null}
+        <div className="product-card__colors-row">
+          {colorSwatches.visible.length > 0 ? (
+            <div
+              className="product-card__colors"
+              aria-label={`${colorSwatches.visible.length + colorSwatches.extra} color options`}
+            >
+              <div className="product-card__colors-stack" aria-hidden="true">
+                {colorSwatches.visible.map((swatchColor, index) => (
+                  <span
+                    key={`${swatchColor}-${index}`}
+                    className="product-card__swatch"
+                    title={swatchColor}
+                    style={{
+                      backgroundColor: resolveSwatchColor(swatchColor),
+                    }}
+                  />
+                ))}
+              </div>
+              {colorSwatches.extra > 0 ? (
+                <span className="product-card__swatch-more">+</span>
+              ) : null}
             </div>
-            {colorSwatches.extra > 0 ? (
-              <span className="product-card__swatch-more">+</span>
-            ) : null}
+          ) : null}
+          <div
+            className="product-card__rating"
+            data-empty={ratingDisplay.count === 0 ? 'true' : undefined}
+          >
+            <Star size={12} className="product-card__star" fill="currentColor" />
+            <span>{Number(ratingDisplay.average).toFixed(1)}</span>
+            <span>({ratingDisplay.count})</span>
           </div>
-        ) : null}
+        </div>
         <div className="product-card__price-row">
           <span className="product-card__price">{formatPrice(product.price)}</span>
           {product.originalPrice && (
@@ -378,8 +383,8 @@ export function ProductCard({ product, compact = false }) {
             <span className="product-card__discount">{discount}%</span>
           )}
         </div>
-        <div className="product-card__footer">
-          {showQuickAdd && (
+        {showQuickAdd && (
+          <div className="product-card__footer">
             <div
               className={cn(
                 'product-card__quick-add',
@@ -390,13 +395,8 @@ export function ProductCard({ product, compact = false }) {
             >
               <ProductCardBodyAdd {...qtyProps} />
             </div>
-          )}
-          <div className="product-card__rating">
-            <Star size={12} className="product-card__star" fill="currentColor" />
-            <span>{Number(ratingDisplay.average).toFixed(1)}</span>
-            <span>({ratingDisplay.count})</span>
           </div>
-        </div>
+        )}
       </div>
     </Link>
   )
