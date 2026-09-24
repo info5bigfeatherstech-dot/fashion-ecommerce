@@ -71,6 +71,7 @@
   --badge-new: #2F6FED;
   --badge-bestseller: #E0396A;
   --badge-limited: #C1443D;
+  --badge-sale: var(--color-gold);
 
   /* Layout */
   --header-height: 76px;
@@ -1561,7 +1562,7 @@ select.input {
 }
 
 .badge--sale {
-  background-color: var(--badge-limited);
+  background-color: var(--badge-sale);
   color: var(--color-white);
 }
 
@@ -3165,6 +3166,27 @@ div.auth-google-btn {
   padding: 2px 7px;
 }
 
+@media (max-width: 767px) {
+  .product-card__badges,
+  .product-card__badge {
+    top: 6px;
+    left: 6px;
+    gap: 3px;
+  }
+
+  .product-card__discount-badge {
+    font-size: 0.68rem;
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    box-shadow: 0 2px 6px rgba(224, 57, 106, 0.3);
+  }
+
+  .product-card__badges .badge {
+    font-size: 0.65rem;
+    padding: 2px 5px;
+  }
+}
+
 .product-card__in-cart {
   position: absolute;
   top: var(--space-1);
@@ -3305,6 +3327,44 @@ div.auth-google-btn {
   }
 }
 
+@media (max-width: 767px) {
+  .product-card__quick-add {
+    bottom: 6px;
+    left: 6px;
+    right: 6px;
+  }
+
+  .product-card__qty {
+    min-height: 28px;
+    height: 28px;
+  }
+
+  .product-card__qty-btn {
+    flex: 0 0 28px;
+    width: 28px;
+    height: 28px;
+  }
+
+  .product-card__qty-btn svg {
+    width: 11px;
+    height: 11px;
+  }
+
+  .product-card__qty-add.btn,
+  .product-card__qty-add {
+    min-height: 28px;
+    height: 28px !important;
+    padding: 0 6px !important;
+    font-size: 0.68rem !important;
+    letter-spacing: 0.04em;
+  }
+
+  .product-card__qty-value {
+    font-size: 0.72rem;
+    min-width: 1.5rem;
+  }
+}
+
 .product-card__body {
   padding-top: var(--space-2);
   padding-bottom: var(--space-1);
@@ -3423,6 +3483,12 @@ div.auth-google-btn {
   transition: transform var(--transition-fast), background-color var(--transition-fast);
 }
 
+.wishlist-btn > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .wishlist-btn:hover {
   transform: scale(1.08);
 }
@@ -3433,6 +3499,23 @@ div.auth-google-btn {
 
 .wishlist-btn--active svg {
   fill: var(--color-accent);
+}
+
+@media (max-width: 767px) {
+  .product-card__wishlist {
+    top: 6px;
+    right: 6px;
+  }
+
+  .wishlist-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .wishlist-btn svg {
+    width: 15px;
+    height: 15px;
+  }
 }
 
 .site-top {
