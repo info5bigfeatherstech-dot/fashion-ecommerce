@@ -10476,7 +10476,8 @@ a.cart-item__name:hover {
   width: 100%;
   max-width: 100%;
   margin-inline: auto;
-  min-height: clamp(10.5rem, 24vh, 15rem);
+  height: 300px;
+  min-height: 300px;
   border-radius: var(--radius-lg);
   overflow: hidden;
   background-color: var(--color-ink);
@@ -10484,7 +10485,8 @@ a.cart-item__name:hover {
 
 @media (min-width: 768px) {
   .plp-banner__frame {
-    min-height: clamp(11.5rem, 25vh, 15.5rem);
+    height: 300px;
+    min-height: 300px;
   }
 }
 

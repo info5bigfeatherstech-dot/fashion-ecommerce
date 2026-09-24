@@ -5,6 +5,7 @@ import { formatDiscount } from '@/lib/utils'
 import {
   shuffleProducts,
   shouldShuffleStorefrontList,
+  diversifyProductsByCategory,
 } from '@/lib/shuffleProducts'
 import { extractProduct, extractProductList, mapPagination, mapProductList } from './mappers'
 
@@ -133,7 +134,7 @@ function applyProductFilters(products, filters = {}) {
       Array.isArray(product.tags) && product.tags.some((t) => String(t).toLowerCase() === 'jewellery-spotted')
     )
   } else if (filters.category === 'bestsellers' || filters.category === 'bestselling-jewelry') {
-    results = results.filter((product) => {
+    const tagged = results.filter((product) => {
       const tags = Array.isArray(product.tags) ? product.tags.map((t) => String(t).toLowerCase()) : []
       return (
         tags.includes('bestselling-jewelry') ||
@@ -142,6 +143,8 @@ function applyProductFilters(products, filters = {}) {
         product.badge === 'bestseller'
       )
     })
+    // Admin picks win when present; otherwise fall back to the full catalog pool.
+    results = tagged.length > 0 ? tagged : results
   } else if (filters.category && !SPECIAL_CATEGORIES.has(filters.category)) {
     const category = String(filters.category).toLowerCase()
     const matched = results.filter(
@@ -647,9 +650,16 @@ export async function getProducts(filters = {}) {
         })
         let totalCount = total || filtered.length
         let paginated = filtered
-        if (filtered.length > limit) {
-          totalCount = filtered.length
-          paginated = filtered.slice((page - 1) * limit, page * limit)
+        if (isBestsellers && shuffleOk) {
+          paginated = diversifyProductsByCategory(filtered, {
+            windowSize: 4,
+            limit: filtered.length,
+            scope: `shop-bestsellers-tagged:p${page}`,
+          })
+        }
+        if (paginated.length > limit) {
+          totalCount = paginated.length
+          paginated = paginated.slice((page - 1) * limit, page * limit)
         }
         const totalPages = Math.ceil(totalCount / limit) || 1
         return {
@@ -662,6 +672,36 @@ export async function getProducts(filters = {}) {
             limit,
             totalPages,
             hasNextPage: pagination?.hasNextPage != null ? Boolean(pagination.hasNextPage) : page < totalPages,
+            hasPrevPage: page > 1,
+          },
+        }
+      }
+
+      // Bestselling Jewelry: no admin tags → random from full live catalog
+      if (isBestsellers && shuffleOk) {
+        const pageParams = { page, limit, sort: 'random' }
+        const { products: catalogProducts, pagination: catalogPagination } =
+          await fetchProductsPage(pageParams)
+        const diversified = diversifyProductsByCategory(catalogProducts, {
+          windowSize: 4,
+          limit,
+          scope: `shop-bestsellers-fallback:p${page}`,
+        })
+        const totalCount = catalogPagination?.total || diversified.length
+        const totalPages = Math.ceil(totalCount / limit) || 1
+        return {
+          products: diversified,
+          total: totalCount,
+          pagination: {
+            ...catalogPagination,
+            total: totalCount,
+            page,
+            limit,
+            totalPages,
+            hasNextPage:
+              catalogPagination?.hasNextPage != null
+                ? Boolean(catalogPagination.hasNextPage)
+                : page < totalPages,
             hasPrevPage: page > 1,
           },
         }
@@ -804,39 +844,75 @@ export async function getProductDetailedById(id, { signal } = {}) {
   return product
 }
 
-export async function getBestsellers({ limit = 12, signal } = {}) {
-  const fetchLimit = Math.min(Math.max(Number(limit) || 12, 12) * 4, 100)
+export async function getBestsellers({ limit = 20, signal } = {}) {
+  const result = await getHomeBestsellers({ limit, signal })
+  return Array.isArray(result?.products) ? result.products : []
+}
+
+/**
+ * Home / shop bestsellers strip:
+ * 1) Admin-tagged `bestselling-jewelry` when any exist (random sample of those)
+ * 2) Else random sample from the full live catalog
+ * Then category-diversify so a ~4-card viewport prefers different categories.
+ */
+export async function getHomeBestsellers({
+  limit = 20,
+  poolSize = 80,
+  windowSize = 4,
+  signal,
+} = {}) {
+  const want = Math.min(Math.max(1, Math.floor(Number(limit) || 20)), 48)
+  const pool = Math.min(
+    Math.max(want * 4, Math.floor(Number(poolSize) || 80), 40),
+    100
+  )
+  const win = Math.max(2, Math.floor(Number(windowSize) || 4))
+
+  let products = []
+  let source = 'tagged'
+
   try {
-    const res = await getProductsByTag('bestselling-jewelry', {
+    const tagged = await getProductsByTag('bestselling-jewelry', {
       page: 1,
-      limit: fetchLimit,
+      limit: pool,
       sort: 'random',
       signal,
     })
-    if (res?.products && res.products.length > 0) {
-      return shuffleProducts(res.products, `bestsellers:l${limit}`).slice(0, limit)
-    }
+    products = Array.isArray(tagged?.products) ? tagged.products : []
   } catch (err) {
-    console.warn('API request for bestselling-jewelry tag failed, using fallback', err)
+    console.warn('[bestsellers] tagged fetch failed', err)
+    products = []
   }
 
-  try {
-    const { products } = await getProductCatalog()
-    const matched = products.filter(
-      (p) => Array.isArray(p.tags) && p.tags.some((t) => String(t).toLowerCase() === 'bestselling-jewelry')
-    )
-    if (matched.length > 0) {
-      return shuffleProducts(matched, `bestsellers-fallback:l${limit}`).slice(0, limit)
+  if (!products.length) {
+    source = 'catalog'
+    try {
+      const payload = await http.get(API_ENDPOINTS.products.all, {
+        params: { page: 1, limit: pool, sort: 'random' },
+        signal,
+      })
+      products = mapProductList(payload?.products)
+    } catch (err) {
+      console.warn('[bestsellers] catalog random failed, using local catalog', err)
+      try {
+        const { products: catalog } = await getProductCatalog()
+        products = shuffleProducts(catalog || [], 'bestsellers-catalog-fallback').slice(0, pool)
+      } catch {
+        products = []
+      }
     }
+  }
 
-    return shuffleProducts(
-      [...products].sort(
-        (a, b) => b.soldCount - a.soldCount || b.reviewCount - a.reviewCount || Number(b.isFeatured) - Number(a.isFeatured)
-      ),
-      `bestsellers-catalog:l${limit}`
-    ).slice(0, limit)
-  } catch {
-    return []
+  const diversified = diversifyProductsByCategory(products, {
+    windowSize: win,
+    limit: want,
+    scope: `home-bestsellers:${source}`,
+  })
+
+  return {
+    products: diversified,
+    source,
+    total: Array.isArray(products) ? products.length : 0,
   }
 }
 

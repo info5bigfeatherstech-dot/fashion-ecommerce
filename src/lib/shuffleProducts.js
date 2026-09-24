@@ -119,6 +119,74 @@ function productKey(product) {
   return String(product.id || product._id || product.slug || '')
 }
 
+/** Stable category key for diversity (slug preferred). */
+export function productCategoryKey(product) {
+  try {
+    const raw =
+      product?.category ||
+      product?.categorySlug ||
+      product?.categoryLabel ||
+      product?.categoryName ||
+      'uncategorized'
+    const key = String(raw).trim().toLowerCase()
+    return key || 'uncategorized'
+  } catch {
+    return 'uncategorized'
+  }
+}
+
+/**
+ * Session-shuffle then reorder so a sliding window of `windowSize` prefers unique categories.
+ * Goal: viewport of ~4 cards rarely shows two items from the same category side-by-side.
+ * Falls back gracefully when the catalog has fewer categories than the window.
+ */
+export function diversifyProductsByCategory(
+  products,
+  { windowSize = 4, limit = null, scope = 'diversify' } = {}
+) {
+  try {
+    const pool = shuffleProducts(
+      (Array.isArray(products) ? products : []).filter((p) => p && productKey(p)),
+      scope
+    )
+    if (pool.length <= 1) {
+      const n = limit != null ? Math.max(0, Math.floor(Number(limit) || 0)) : 0
+      return n ? pool.slice(0, n) : pool
+    }
+
+    const win = Math.max(2, Math.floor(Number(windowSize) || 4))
+    const max =
+      limit != null
+        ? Math.min(Math.max(0, Math.floor(Number(limit) || 0)), pool.length)
+        : pool.length
+
+    const remaining = [...pool]
+    const out = []
+
+    while (out.length < max && remaining.length) {
+      const recent = out.slice(-(win - 1))
+      const recentCats = new Set(recent.map(productCategoryKey))
+      const lastCat = out.length ? productCategoryKey(out[out.length - 1]) : null
+
+      let idx = remaining.findIndex((p) => !recentCats.has(productCategoryKey(p)))
+      if (idx < 0 && lastCat) {
+        idx = remaining.findIndex((p) => productCategoryKey(p) !== lastCat)
+      }
+      if (idx < 0) idx = 0
+
+      out.push(remaining[idx])
+      remaining.splice(idx, 1)
+    }
+
+    return out
+  } catch {
+    const list = Array.isArray(products) ? [...products] : []
+    if (limit == null) return list
+    const n = Math.max(0, Math.floor(Number(limit) || 0))
+    return n ? list.slice(0, n) : list
+  }
+}
+
 /**
  * Same featured pool for New Arrivals + Moving Fast, each with a different session-stable shuffle.
  * Order differs between sections; both stay scrollable carousels of the full featured set.

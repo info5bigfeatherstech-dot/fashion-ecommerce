@@ -4,6 +4,7 @@ import {
   getProductBySlug,
   getProductDetailedById,
   getBestsellers,
+  getHomeBestsellers,
   getNewArrivals,
   getBeautyProducts,
   getFeaturedProducts,
@@ -94,10 +95,18 @@ export function useProductSearch(query, { page = 1, limit = 12 } = {}) {
   })
 }
 
-export function useBestsellers({ limit = 12 } = {}) {
+export function useBestsellers({ limit = 20 } = {}) {
   return useQuery({
     queryKey: [...productKeys.bestsellers(), limit],
     queryFn: ({ signal }) => getBestsellers({ limit, signal }),
+  })
+}
+
+export function useHomeBestsellers({ limit = 20 } = {}) {
+  return useQuery({
+    queryKey: [...productKeys.bestsellers(), 'home', limit],
+    queryFn: ({ signal }) => getHomeBestsellers({ limit, signal }),
+    staleTime: 1000 * 60,
   })
 }
 

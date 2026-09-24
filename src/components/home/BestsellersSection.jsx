@@ -1,30 +1,15 @@
-import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { ProductCarousel } from '@/features/product/components/ProductCarousel'
 import { ProductGridSkeleton } from '@/components/ui/Skeleton'
 import { ScrollRevealText, Reveal } from '@/components/motion/ScrollRevealText'
-import { useProductsByTag } from '@/features/product/hooks'
-import { shuffleTake } from '@/lib/shuffleProducts'
+import { useHomeBestsellers } from '@/features/product/hooks'
 
-const BESTSELLING_JEWELRY_TAG = 'bestselling-jewelry'
-const BESTSELLING_LIMIT = 12
-/** Random sample from the full tagged catalog (not only newest-first page). */
-const BESTSELLING_FETCH_LIMIT = 48
+/** 5 viewport scrolls × ~4 cards = 20 products per carousel loop. */
+const BESTSELLING_LIMIT = 20
 
 export function BestsellersSection() {
-  const { data, isLoading } = useProductsByTag(BESTSELLING_JEWELRY_TAG, {
-    page: 1,
-    limit: BESTSELLING_FETCH_LIMIT,
-    sort: 'random',
-  })
-  const products = useMemo(() => {
-    try {
-      const list = Array.isArray(data?.products) ? data.products : []
-      return shuffleTake(list, BESTSELLING_LIMIT, 'home-bestsellers')
-    } catch {
-      return []
-    }
-  }, [data])
+  const { data, isLoading } = useHomeBestsellers({ limit: BESTSELLING_LIMIT })
+  const products = Array.isArray(data?.products) ? data.products : []
 
   return (
     <section id="bestsellers" className="section container">
@@ -53,7 +38,7 @@ export function BestsellersSection() {
         </Reveal>
       ) : (
         <p className="body-sm text-muted">
-          No bestselling jewelry tagged yet. Mark products with the Bestselling Jewelry tag in admin.
+          No products available to show here yet. Add live products (or tag Bestselling Jewelry in admin).
         </p>
       )}
       <p className="section-footnote">
