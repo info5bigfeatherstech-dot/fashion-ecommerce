@@ -10,14 +10,130 @@ import { getProductRatingDisplay } from '@/lib/productRatingDisplay'
 import { FEATURE_FLAGS } from '@/config/site'
 import { showAddedToCartToast } from '@/lib/cart-toast'
 import { resolveVariantId } from '@/features/product/mappers'
+import { resolveSwatchColor } from '@/features/product/components/SizeSelector'
 
 const MAX_QUICK_QTY = 8
+const MAX_CARD_COLOR_SWATCHES = 3
 
 function getDefaultOptions(product) {
   return {
     size: product.sizes?.[0],
     color: product.colors?.[0],
   }
+}
+
+/** Unique color labels for card preview — max 3 visible, rest as "+". */
+function getCardColorSwatches(product) {
+  const seen = new Set()
+  const colors = []
+  for (const raw of product?.colors || []) {
+    const label = String(raw || '').trim()
+    if (!label) continue
+    const key = label.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    colors.push(label)
+  }
+  return {
+    visible: colors.slice(0, MAX_CARD_COLOR_SWATCHES),
+    extra: Math.max(0, colors.length - MAX_CARD_COLOR_SWATCHES),
+  }
+}
+
+function stopCardNav(e) {
+  e.preventDefault()
+  e.stopPropagation()
+}
+
+function ProductCardQtyControls({
+  inCartQty,
+  onDecrease,
+  onIncrease,
+  onQuickAdd,
+}) {
+  return (
+    <div className="product-card__qty" role="group" aria-label="Quick add quantity">
+      <button
+        type="button"
+        className="product-card__qty-btn"
+        onClick={onDecrease}
+        aria-label="Decrease quantity"
+        disabled={inCartQty === 0}
+      >
+        <Minus size={14} />
+      </button>
+
+      {inCartQty > 0 ? (
+        <span className="product-card__qty-value" aria-live="polite">
+          {inCartQty}
+        </span>
+      ) : (
+        <Button
+          variant="primary"
+          size="sm"
+          className="product-card__qty-add"
+          onClick={onQuickAdd}
+        >
+          Quick Add
+        </Button>
+      )}
+
+      <button
+        type="button"
+        className="product-card__qty-btn"
+        onClick={onIncrease}
+        aria-label="Increase quantity"
+        disabled={inCartQty >= MAX_QUICK_QTY}
+      >
+        <Plus size={14} />
+      </button>
+    </div>
+  )
+}
+
+/** Slim mobile/touch CTA — sits under price, never covers the photo. */
+function ProductCardBodyAdd({
+  inCartQty,
+  onDecrease,
+  onIncrease,
+  onQuickAdd,
+}) {
+  if (inCartQty > 0) {
+    return (
+      <div className="product-card__body-qty" role="group" aria-label="Bag quantity">
+        <button
+          type="button"
+          className="product-card__body-qty-btn"
+          onClick={onDecrease}
+          aria-label="Decrease quantity"
+        >
+          <Minus size={12} />
+        </button>
+        <span className="product-card__body-qty-value" aria-live="polite">
+          {inCartQty}
+        </span>
+        <button
+          type="button"
+          className="product-card__body-qty-btn"
+          onClick={onIncrease}
+          aria-label="Increase quantity"
+          disabled={inCartQty >= MAX_QUICK_QTY}
+        >
+          <Plus size={12} />
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      className="product-card__body-add"
+      onClick={onQuickAdd}
+    >
+      Add
+    </button>
+  )
 }
 
 export function ProductCard({ product, compact = false }) {
@@ -59,6 +175,7 @@ export function ProductCard({ product, compact = false }) {
 
   const discount = formatDiscount(product.originalPrice, product.price)
   const ratingDisplay = useMemo(() => getProductRatingDisplay(product), [product])
+  const colorSwatches = useMemo(() => getCardColorSwatches(product), [product])
   const inCartQty = cartLine?.quantity || 0
   const isInCart = cartQtyForProduct > 0
   const defaultVariant = useMemo(() => {
@@ -72,6 +189,7 @@ export function ProductCard({ product, compact = false }) {
   const canQuickAdd = defaultVariant
     ? Boolean(defaultVariant.inStock)
     : isAvailable
+  const showQuickAdd = !compact && FEATURE_FLAGS.enableQuickAdd && canQuickAdd
 
   const requireAuth = () => {
     if (isAuthenticated) return true
@@ -126,6 +244,13 @@ export function ProductCard({ product, compact = false }) {
     toggleWishlist(product)
   }
 
+  const qtyProps = {
+    inCartQty,
+    onDecrease: handleDecrease,
+    onIncrease: handleIncrease,
+    onQuickAdd: handleQuickAdd,
+  }
+
   return (
     <Link
       to={`/product/${product.slug}`}
@@ -163,13 +288,6 @@ export function ProductCard({ product, compact = false }) {
           </span>
         )}
 
-        {/* {isInCart && (
-          <span className="product-card__in-cart" aria-hidden="true">
-            <ShoppingBag size={12} />
-            In bag · {cartQtyForProduct}
-          </span>
-        )} */}
-
         <button
           type="button"
           className={`product-card__wishlist wishlist-btn ${inWishlist ? 'wishlist-btn--active' : ''}`}
@@ -202,58 +320,55 @@ export function ProductCard({ product, compact = false }) {
             aria-hidden="true"
           />
         )}
-        {!compact && FEATURE_FLAGS.enableQuickAdd && canQuickAdd && (
+        {/* Desktop: image overlay on hover only — keeps jewelry photo clean on mobile */}
+        {showQuickAdd && (
           <div
-            className={`product-card__quick-add${inCartQty > 0 ? ' product-card__quick-add--active' : ''}`}
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-            }}
+            className={cn(
+              'product-card__quick-add',
+              'product-card__quick-add--overlay',
+              inCartQty > 0 && 'product-card__quick-add--active',
+            )}
+            onClick={stopCardNav}
           >
-            <div className="product-card__qty" role="group" aria-label="Quick add quantity">
-              <button
-                type="button"
-                className="product-card__qty-btn"
-                onClick={handleDecrease}
-                aria-label="Decrease quantity"
-                disabled={inCartQty === 0}
-              >
-                <Minus size={14} />
-              </button>
-
-              {inCartQty > 0 ? (
-                <span className="product-card__qty-value" aria-live="polite">
-                  {inCartQty}
-                </span>
-              ) : (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="product-card__qty-add"
-                  onClick={handleQuickAdd}
-                >
-                  Quick Add
-                </Button>
-              )}
-
-              <button
-                type="button"
-                className="product-card__qty-btn"
-                onClick={handleIncrease}
-                aria-label="Increase quantity"
-                disabled={inCartQty >= MAX_QUICK_QTY}
-              >
-                <Plus size={14} />
-              </button>
-            </div>
+            <ProductCardQtyControls {...qtyProps} />
           </div>
         )}
       </div>
       <div className="product-card__body">
         <h3 className="product-card__name">{product.name}</h3>
-        {(product.productCode || product.sku) && (
-          <p className="product-card__code">Code: {product.productCode || product.sku}</p>
-        )}
+        {(product.categoryLabel || product.productCode || product.sku) ? (
+          <p className="product-card__meta">
+            {product.categoryLabel ? <span>{product.categoryLabel}</span> : null}
+            {product.categoryLabel && (product.productCode || product.sku) ? (
+              <span className="product-card__meta-sep" aria-hidden="true">·</span>
+            ) : null}
+            {(product.productCode || product.sku) ? (
+              <span>Code: {product.productCode || product.sku}</span>
+            ) : null}
+          </p>
+        ) : null}
+        {colorSwatches.visible.length > 0 ? (
+          <div
+            className="product-card__colors"
+            aria-label={`${colorSwatches.visible.length + colorSwatches.extra} color options`}
+          >
+            <div className="product-card__colors-stack" aria-hidden="true">
+              {colorSwatches.visible.map((swatchColor, index) => (
+                <span
+                  key={`${swatchColor}-${index}`}
+                  className="product-card__swatch"
+                  title={swatchColor}
+                  style={{
+                    backgroundColor: resolveSwatchColor(swatchColor),
+                  }}
+                />
+              ))}
+            </div>
+            {colorSwatches.extra > 0 ? (
+              <span className="product-card__swatch-more">+</span>
+            ) : null}
+          </div>
+        ) : null}
         <div className="product-card__price-row">
           <span className="product-card__price">{formatPrice(product.price)}</span>
           {product.originalPrice && (
@@ -263,10 +378,24 @@ export function ProductCard({ product, compact = false }) {
             <span className="product-card__discount">{discount}%</span>
           )}
         </div>
-        <div className="product-card__rating">
-          <Star size={12} className="product-card__star" fill="currentColor" />
-          <span>{Number(ratingDisplay.average).toFixed(1)}</span>
-          <span>({ratingDisplay.count})</span>
+        <div className="product-card__footer">
+          {showQuickAdd && (
+            <div
+              className={cn(
+                'product-card__quick-add',
+                'product-card__quick-add--body',
+                inCartQty > 0 && 'product-card__quick-add--active',
+              )}
+              onClick={stopCardNav}
+            >
+              <ProductCardBodyAdd {...qtyProps} />
+            </div>
+          )}
+          <div className="product-card__rating">
+            <Star size={12} className="product-card__star" fill="currentColor" />
+            <span>{Number(ratingDisplay.average).toFixed(1)}</span>
+            <span>({ratingDisplay.count})</span>
+          </div>
         </div>
       </div>
     </Link>

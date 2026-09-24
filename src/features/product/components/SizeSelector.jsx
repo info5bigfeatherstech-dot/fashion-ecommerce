@@ -84,7 +84,8 @@ function hashToColor(name) {
   return `hsl(${hue} ${sat}% ${light}%)`
 }
 
-function resolveSwatchColor(name) {
+/** Shared by PDP ColorSelector and listing ProductCard swatches. */
+export function resolveSwatchColor(name) {
   if (!name) return '#888888'
   const raw = String(name).trim()
   if (!raw) return '#888888'

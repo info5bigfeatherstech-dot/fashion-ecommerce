@@ -2860,6 +2860,7 @@ div.auth-google-btn {
   font-size: 0.875rem;
 }
 
+.product-carousel .product-card__meta,
 .product-carousel .product-card__code {
   font-size: 0.8125rem;
 }
@@ -2886,9 +2887,9 @@ div.auth-google-btn {
     border-radius: var(--radius-md);
   }
 
-  /* Quick Add overlay covers the photo on touch devices — keep image clean */
-  .product-carousel .product-card__quick-add {
-    display: none;
+  /* Overlay Quick Add covers jewelry on touch — body CTA is used instead */
+  .product-carousel .product-card__quick-add--overlay {
+    display: none !important;
   }
 
   .product-carousel .product-card__body {
@@ -2906,8 +2907,10 @@ div.auth-google-btn {
     -webkit-box-orient: vertical;
   }
 
+  .product-carousel .product-card__meta,
   .product-carousel .product-card__code {
-    display: none;
+    font-size: 0.75rem;
+    display: block;
   }
 
   .product-carousel .product-card__price {
@@ -3050,7 +3053,9 @@ div.auth-google-btn {
 
 .product-card {
   min-width: 0;
-  display: block;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .product-card--in-cart .product-card__media {
@@ -3092,6 +3097,7 @@ div.auth-google-btn {
   background-color: var(--color-paper);
   border-radius: var(--radius-sm);
   transition: box-shadow var(--transition-base);
+  flex-shrink: 0;
 }
 
 @media (max-width: 767px) {
@@ -3204,6 +3210,11 @@ div.auth-google-btn {
 }
 
 .product-card__quick-add {
+  z-index: 3;
+}
+
+/* Desktop: hover overlay on the photo */
+.product-card__quick-add--overlay {
   position: absolute;
   bottom: var(--space-1);
   left: var(--space-1);
@@ -3211,12 +3222,98 @@ div.auth-google-btn {
   opacity: 0;
   transform: translateY(var(--space-1));
   transition: opacity var(--transition-base), transform var(--transition-base);
-  z-index: 3;
+  pointer-events: none;
 }
 
-.product-card__quick-add--active {
+.product-card__quick-add--overlay.product-card__quick-add--active,
+.product-card:hover .product-card__quick-add--overlay {
+  pointer-events: auto;
+}
+
+.product-card__footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-top: var(--space-1);
+}
+
+/* Mobile / touch: Add under the image — never covers jewelry */
+.product-card__quick-add--body {
+  position: static;
+  display: none;
   opacity: 1;
-  transform: translateY(0);
+  transform: none;
+  pointer-events: auto;
+}
+
+/* Slim body CTA (mobile) — compact Add / mini qty, not a heavy full bar */
+.product-card__body-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 28px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--color-ink);
+  border-radius: var(--radius-sm);
+  background: var(--color-ink);
+  color: var(--color-white);
+  font-size: 0.6875rem;
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), opacity var(--transition-fast);
+}
+
+.product-card__body-add:hover {
+  background: #2a2622;
+}
+
+.product-card__body-qty {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-height: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--color-accent);
+  color: var(--color-white);
+}
+
+.product-card__body-qty-btn {
+  flex: 0 0 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: rgba(0, 0, 0, 0.18);
+  color: #fff;
+  cursor: pointer;
+}
+
+.product-card__body-qty-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.product-card__body-qty-btn svg {
+  color: #fff;
+  stroke: #fff;
+}
+
+.product-card__body-qty-value {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: var(--weight-semibold);
+  color: #fff;
+  min-width: 1.5rem;
 }
 
 .product-card__qty {
@@ -3226,13 +3323,15 @@ div.auth-google-btn {
   min-height: 36px;
   border-radius: var(--radius-sm);
   overflow: hidden;
-  background: var(--color-ink);
+  background: rgba(20, 18, 15, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: var(--color-white);
   box-shadow: var(--shadow-subtle);
 }
 
 .product-card--in-cart .product-card__qty {
-  background: var(--color-accent);
+  background: rgba(224, 57, 106, 0.78);
 }
 
 .product-card__qty-btn {
@@ -3292,16 +3391,66 @@ div.auth-google-btn {
 }
 
 @media (hover: hover) {
-  .product-card:hover .product-card__quick-add {
+  .product-card:hover .product-card__quick-add--overlay {
     opacity: 1;
     transform: translateY(0);
+    pointer-events: auto;
   }
 }
 
-@media (hover: none) {
-  .product-card:not(.product-card--compact) .product-card__quick-add {
-    opacity: 1;
-    transform: none;
+/* Touch devices + phones: image stays clean; Add lives in the card body */
+@media (hover: none), (max-width: 767px) {
+  .product-card__quick-add--overlay {
+    display: none !important;
+  }
+
+  .product-card__quick-add--body {
+    display: block;
+  }
+}
+
+/* Fine pointer desktops: body CTA hidden — use hover overlay */
+@media (hover: hover) and (min-width: 768px) {
+  .product-card__quick-add--body {
+    display: none !important;
+  }
+}
+
+/* Mobile product-card chrome — smaller badges / heart so image stays primary */
+@media (max-width: 767px) {
+  .product-card__badges,
+  .product-card__badge {
+    top: 6px;
+    left: 6px;
+    gap: 3px;
+  }
+
+  .product-card__discount-badge {
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    box-shadow: 0 2px 6px rgba(224, 57, 106, 0.3);
+  }
+
+  .product-card__badges .badge {
+    font-size: 0.6rem;
+    padding: 2px 5px;
+    letter-spacing: 0.04em;
+  }
+
+  .product-card__wishlist {
+    top: 6px;
+    right: 6px;
+  }
+
+  .product-card__wishlist.wishlist-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .product-card__wishlist.wishlist-btn svg {
+    width: 14px;
+    height: 14px;
   }
 }
 
@@ -3311,14 +3460,37 @@ div.auth-google-btn {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .product-card__name {
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+}
+
+.product-card__meta {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+  letter-spacing: 0.04em;
+  line-height: 1.35;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.product-card__meta-sep {
+  margin-inline: 0.35em;
+  opacity: 0.7;
 }
 
 .product-card__code {
@@ -3327,6 +3499,69 @@ div.auth-google-btn {
   color: var(--color-muted);
   letter-spacing: 0.04em;
   line-height: 1.3;
+}
+
+/* Variant color preview — separate swatches (not stacked) */
+.product-card__colors {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 18px;
+}
+
+.product-card__colors--empty {
+  display: none;
+}
+
+.product-card__colors-stack {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  gap: 5px;
+}
+
+.product-card__swatch {
+  display: block;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-paper);
+  box-shadow: 0 0 0 1px rgba(20, 18, 15, 0.16);
+  margin-left: 0;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.product-card__swatch:first-child {
+  margin-left: 0;
+}
+
+.product-card__swatch-more {
+  font-size: 0.8rem;
+  font-weight: var(--weight-semibold);
+  color: var(--color-muted);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+
+.product-card--compact .product-card__swatch {
+  width: 15px;
+  height: 15px;
+  margin-left: 0;
+}
+
+.product-card--compact .product-card__swatch:first-child {
+  margin-left: 0;
+}
+
+.product-card--compact .product-card__colors-stack {
+  gap: 4px;
+}
+
+.product-card--compact .product-card__swatch-more {
+  font-size: 0.72rem;
 }
 
 .product-card__price-row {
