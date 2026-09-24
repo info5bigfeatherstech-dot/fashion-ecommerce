@@ -336,9 +336,6 @@ export function ProductCard({ product, compact = false }) {
       </div>
       <div className="product-card__body">
         <h3 className="product-card__name">{product.name}</h3>
-        {product.categoryLabel ? (
-          <p className="product-card__meta">{product.categoryLabel}</p>
-        ) : null}
         {(product.productCode || product.sku) ? (
           <p className="product-card__code">{product.productCode || product.sku}</p>
         ) : null}
