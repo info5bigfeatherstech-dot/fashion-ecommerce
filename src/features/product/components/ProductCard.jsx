@@ -343,7 +343,7 @@ export function ProductCard({ product, compact = false }) {
               <span className="product-card__meta-sep" aria-hidden="true">·</span>
             ) : null}
             {(product.productCode || product.sku) ? (
-              <span>Code: {product.productCode || product.sku}</span>
+              <span>{product.productCode || product.sku}</span>
             ) : null}
           </p>
         ) : null}
