@@ -358,13 +358,16 @@ export function ProductCard({ product, compact = false }) {
                 ))}
               </div>
               {colorSwatches.extra > 0 ? (
-                <span className="product-card__swatch-more">+</span>
+                <span className="product-card__swatch-more">
+                  + {colorSwatches.extra} more
+                </span>
               ) : null}
             </div>
           ) : null}
           <div
             className="product-card__rating"
             data-empty={ratingDisplay.count === 0 ? 'true' : undefined}
+            aria-label={`Rated ${Number(ratingDisplay.average).toFixed(1)} from ${ratingDisplay.count} reviews`}
           >
             <Star size={12} className="product-card__star" fill="currentColor" />
             <span>{Number(ratingDisplay.average).toFixed(1)}</span>
