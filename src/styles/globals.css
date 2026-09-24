@@ -1614,6 +1614,12 @@ select.input {
   width: 100%;
 }
 
+@media (max-width: 767px) {
+  .skeleton--image {
+    aspect-ratio: 4 / 5;
+  }
+}
+
 /* ─── Card ─── */
 
 .card {
@@ -3088,6 +3094,12 @@ div.auth-google-btn {
   transition: box-shadow var(--transition-base);
 }
 
+@media (max-width: 767px) {
+  .product-card:not(.product-card--compact) .product-card__media {
+    aspect-ratio: 4 / 5;
+  }
+}
+
 .product-card__image {
   display: block;
   width: 100%;
@@ -3437,6 +3449,7 @@ div.auth-google-btn {
   overflow: hidden;
   border-radius: var(--radius-md) var(--radius-md) 0 0;
   box-shadow: var(--shadow-subtle);
+  background-color: rgb(196, 157, 64);
 }
 
 .top-banner__marquee {
@@ -3445,11 +3458,12 @@ div.auth-google-btn {
   min-height: 44px;
   text-decoration: none;
   color: var(--color-ink);
+  background-color: rgb(196, 157, 64);
   background:
     linear-gradient(90deg,
       rgb(168, 132, 48) 0%,
       rgb(196, 157, 64) 32%,
-      rgba(209, 167, 67, 0.82) 68%,
+      rgb(209, 167, 67) 68%,
       rgb(232, 218, 186) 86%,
       rgb(245, 236, 214) 100%);
   transition: filter 0.2s ease;
