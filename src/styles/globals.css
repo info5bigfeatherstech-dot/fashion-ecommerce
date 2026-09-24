@@ -71,6 +71,7 @@
   --badge-new: #2F6FED;
   --badge-bestseller: #E0396A;
   --badge-limited: #C1443D;
+  --badge-sale: var(--color-gold);
 
   /* Layout */
   --header-height: 76px;
@@ -1561,7 +1562,7 @@ select.input {
 }
 
 .badge--sale {
-  background-color: var(--badge-limited);
+  background-color: var(--badge-sale);
   color: var(--color-white);
 }
 

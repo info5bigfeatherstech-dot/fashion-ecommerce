@@ -131,7 +131,7 @@ function ProductCardBodyAdd({
       className="product-card__body-add"
       onClick={onQuickAdd}
     >
-      Add
+      Quick Add
     </button>
   )
 }
