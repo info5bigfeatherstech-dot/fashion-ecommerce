@@ -336,33 +336,9 @@ export function ProductCard({ product, compact = false }) {
       </div>
       <div className="product-card__body">
         <h3 className="product-card__name">{product.name}</h3>
-        {(product.productCode || product.sku) ? (
-          <p className="product-card__code">{product.productCode || product.sku}</p>
-        ) : null}
-        <div className="product-card__colors-row">
-          {colorSwatches.visible.length > 0 ? (
-            <div
-              className="product-card__colors"
-              aria-label={`${colorSwatches.visible.length + colorSwatches.extra} color options`}
-            >
-              <div className="product-card__colors-stack" aria-hidden="true">
-                {colorSwatches.visible.map((swatchColor, index) => (
-                  <span
-                    key={`${swatchColor}-${index}`}
-                    className="product-card__swatch"
-                    title={swatchColor}
-                    style={{
-                      backgroundColor: resolveSwatchColor(swatchColor),
-                    }}
-                  />
-                ))}
-              </div>
-              {colorSwatches.extra > 0 ? (
-                <span className="product-card__swatch-more">
-                  + {colorSwatches.extra} more
-                </span>
-              ) : null}
-            </div>
+        <div className="product-card__code-row">
+          {(product.productCode || product.sku) ? (
+            <p className="product-card__code">{product.productCode || product.sku}</p>
           ) : null}
           <div
             className="product-card__rating"
@@ -374,6 +350,30 @@ export function ProductCard({ product, compact = false }) {
             <span>({ratingDisplay.count})</span>
           </div>
         </div>
+        {colorSwatches.visible.length > 0 ? (
+          <div
+            className="product-card__colors"
+            aria-label={`${colorSwatches.visible.length + colorSwatches.extra} color options`}
+          >
+            <div className="product-card__colors-stack" aria-hidden="true">
+              {colorSwatches.visible.map((swatchColor, index) => (
+                <span
+                  key={`${swatchColor}-${index}`}
+                  className="product-card__swatch"
+                  title={swatchColor}
+                  style={{
+                    backgroundColor: resolveSwatchColor(swatchColor),
+                  }}
+                />
+              ))}
+            </div>
+            {colorSwatches.extra > 0 ? (
+              <span className="product-card__swatch-more">
+                + {colorSwatches.extra} more
+              </span>
+            ) : null}
+          </div>
+        ) : null}
         <div className="product-card__price-row">
           <span className="product-card__price">{formatPrice(product.price)}</span>
           {product.originalPrice && (

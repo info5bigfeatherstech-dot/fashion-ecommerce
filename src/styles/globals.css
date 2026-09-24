@@ -3501,9 +3501,21 @@ div.auth-google-btn {
   color: var(--color-muted);
   letter-spacing: 0.04em;
   line-height: 1.3;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* Colors + rating on one row — rating stays readable on the right */
+.product-card__code-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  width: 100%;
+}
+
+/* Colors row (swatches only — rating sits after product code) */
 .product-card__colors-row {
   display: flex;
   align-items: center;
@@ -3649,10 +3661,9 @@ div.auth-google-btn {
 }
 
 .product-card__rating {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 3px;
-  margin-left: auto;
   flex-shrink: 0;
   font-size: var(--text-xs);
   color: var(--color-muted);
