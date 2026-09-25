@@ -52,6 +52,17 @@ export function mapCheckoutQuote(payload) {
     quoteExpiresAt: raw?.quoteExpiresAt || null,
     cartFingerprint: raw?.cartFingerprint || null,
     demoMockShipping: Boolean(raw?.demoMockShipping),
+    loyaltyDiscount: toNumber(raw?.loyaltyDiscount, 0),
+    loyaltyPointsRedeemed: Math.max(0, Math.floor(toNumber(raw?.loyaltyPointsRedeemed, 0))),
+    loyaltyPointsRequested: Math.max(0, Math.floor(toNumber(raw?.loyaltyPointsRequested, 0))),
+    loyaltyMaxRedeemable: Math.max(0, Math.floor(toNumber(raw?.loyaltyMaxRedeemable, 0))),
+    loyaltyBalance: Math.max(0, Math.floor(toNumber(raw?.loyaltyBalance, 0))),
+    loyaltyEnabled: Boolean(raw?.loyaltyEnabled),
+    loyaltyRedeemReason: raw?.loyaltyRedeemReason || null,
+    redeemRupeePerPoint: Math.max(0, toNumber(raw?.redeemRupeePerPoint, 0)),
+    earnPointsPerRupee: Math.max(0, toNumber(raw?.earnPointsPerRupee, 0)),
+    preLoyaltyAmount:
+      raw?.preLoyaltyAmount != null ? toNumber(raw.preLoyaltyAmount, 0) : null,
     success: raw?.success !== false,
   }
 }
@@ -86,6 +97,8 @@ export function mapCheckoutConfirm(payload) {
       originalCodFeeInr: toNumber(totalsRaw.originalCodFeeInr, 0),
       taxes: toNumber(totalsRaw.taxes, 0),
       amountPayable: toNumber(totalsRaw.amountPayable, 0),
+      loyaltyDiscount: toNumber(totalsRaw.loyaltyDiscount, 0),
+      loyaltyPointsRedeemed: Math.max(0, Math.floor(toNumber(totalsRaw.loyaltyPointsRedeemed, 0))),
     },
     next: next
       ? {
@@ -174,6 +187,21 @@ export function buildPlaceOrderPayload({
   return payload
 }
 
+function mapOrderLoyaltyPoints(lp) {
+  if (!lp || typeof lp !== 'object') return null
+  const redeemed = Math.max(0, Math.floor(toNumber(lp.redeemed, 0)))
+  const earned = Math.max(0, Math.floor(toNumber(lp.earned, 0)))
+  const estimatedEarn = Math.max(0, Math.floor(toNumber(lp.estimatedEarn ?? lp.earned, 0)))
+  return {
+    redeemed,
+    discountInr: toNumber(lp.discountInr, 0),
+    redeemStatus: lp.redeemStatus || (redeemed > 0 ? 'debited' : 'none'),
+    earned,
+    earnStatus: lp.earnStatus || 'pending',
+    estimatedEarn,
+  }
+}
+
 function mapPlacedOrderSummary(order) {
   if (!order || typeof order !== 'object') return null
 
@@ -188,6 +216,7 @@ function mapPlacedOrderSummary(order) {
     balanceDueInr: toNumber(order.balanceDueInr, 0),
     onlinePaymentMode: order.onlinePaymentMode || null,
     paymentAdvancePercent: order.paymentAdvancePercent ?? null,
+    loyaltyPoints: mapOrderLoyaltyPoints(order.loyaltyPoints),
   }
 }
 

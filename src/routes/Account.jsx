@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { NavLink, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { ChevronRight, Heart, LogOut, MapPin, Package, ShoppingBag, UserRound } from 'lucide-react'
+import { ChevronRight, Coins, Heart, LogOut, MapPin, Package, ShoppingBag, UserRound } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Input, InputGroup } from '@/components/ui/Input'
@@ -10,12 +10,14 @@ import { normalizePersonName, personNameSchema } from '@/lib/personName'
 import { Separator } from '@/components/ui/Separator'
 import { useAppStore } from '@/store'
 import { useCartCount, useWishlistCount } from '@/store/selectors'
+import { useMyLoyaltyPoints } from '@/features/loyaltyPoints/hooks'
 import { AccountAddressesTab } from '@/routes/account/AccountAddressesTab'
 import { AccountCartTab } from '@/routes/account/AccountCartTab'
+import { AccountLoyaltyPointsTab } from '@/routes/account/AccountLoyaltyPointsTab'
 import { AccountOrdersTab } from '@/routes/account/AccountOrdersTab'
 import { AccountWishlistTab } from '@/routes/account/AccountWishlistTab'
 
-const ACCOUNT_SECTIONS = new Set(['orders', 'wishlist', 'cart', 'profile', 'addresses'])
+const ACCOUNT_SECTIONS = new Set(['orders', 'wishlist', 'cart', 'profile', 'addresses', 'points'])
 
 const ACCOUNT_QUICK_LINKS = [
   { id: 'orders', label: 'Orders', icon: Package, to: '/account/orders' },
@@ -26,6 +28,7 @@ const ACCOUNT_QUICK_LINKS = [
 const ACCOUNT_MENU_LINKS = [
   { id: 'profile', label: 'Profile information', icon: UserRound, to: '/account/profile' },
   { id: 'addresses', label: 'Saved addresses', icon: MapPin, to: '/account/addresses' },
+  { id: 'points', label: 'Loyalty points', icon: Coins, to: '/account/points' },
 ]
 
 function getAccountDisplayName(user) {
@@ -45,6 +48,9 @@ export default function Account() {
   const navigate = useNavigate()
   const [profileName, setProfileName] = useState('')
   const [profileSaving, setProfileSaving] = useState(false)
+  const { data: loyaltyPointsData } = useMyLoyaltyPoints()
+  const pointsBalance = Math.max(0, Math.floor(Number(loyaltyPointsData?.points?.balance) || 0))
+  const pointsEnabled = Boolean(loyaltyPointsData?.points?.settings?.enabled)
 
   const activeTab = ACCOUNT_SECTIONS.has(section) ? section : null
   const savedProfileName = normalizePersonName(getAccountDisplayName(user))
@@ -261,6 +267,18 @@ export default function Account() {
                     {Number(user.loyalty.lifetimeOrderCount || 0) === 1 ? '' : 's'}
                   </p>
                 ) : null}
+                {pointsEnabled ? (
+                  <div className="account-loyalty-points-card">
+                    <p className="account-loyalty-points-card__eyebrow">Loyalty points</p>
+                    <p className="account-loyalty-points-card__value">
+                      {pointsBalance}
+                      <span>available</span>
+                    </p>
+                    <NavLink to="/account/points" className="account-loyalty-points-card__link">
+                      View history
+                    </NavLink>
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -319,6 +337,17 @@ export default function Account() {
         {activeTab === 'cart' && <AccountCartTab />}
         {activeTab === 'wishlist' && <AccountWishlistTab />}
         {activeTab === 'addresses' && <AccountAddressesTab />}
+        {activeTab === 'points' && (
+          <div className="account-section">
+            <div className="account-section__header">
+              <div>
+                <p className="heading-sm text-accent">Loyalty</p>
+                <h2 className="display-md">Your Points</h2>
+              </div>
+            </div>
+            <AccountLoyaltyPointsTab />
+          </div>
+        )}
       </div>
     </div>
   )

@@ -55,6 +55,11 @@ export const API_ENDPOINTS = {
     quote: '/checkout/quote',
     confirm: '/checkout/confirm',
   },
+  loyaltyPoints: {
+    me: '/loyalty-points/me',
+    ledger: '/loyalty-points/me/ledger',
+    settings: '/loyalty-points/settings',
+  },
   public: {
     razorpayKey: '/public/razorpay-key',
   },
@@ -181,6 +186,12 @@ export const API_ENDPOINTS = {
     loyaltyRecompute: '/admin/loyalty-badges/recompute',
     loyaltyRecomputeUser: (userId) =>
       `/admin/loyalty-badges/recompute/${encodeURIComponent(String(userId))}`,
+    loyaltyPointsSettings: '/admin/loyalty-points/settings',
+    loyaltyPointsRules: '/admin/loyalty-points/rules',
+    loyaltyPointsRuleById: (id) => `/admin/loyalty-points/rules/${encodeURIComponent(String(id))}`,
+    loyaltyPointsAdjust: '/admin/loyalty-points/adjust',
+    loyaltyPointsUser: (userId) =>
+      `/admin/loyalty-points/users/${encodeURIComponent(String(userId))}`,
     freeShippingOffers: '/admin/free-shipping-offers',
     freeShippingOfferById: (id) => `/admin/free-shipping-offers/${encodeURIComponent(String(id))}`,
     freeShippingOfferToggle: (id) => `/admin/free-shipping-offers/${encodeURIComponent(String(id))}/toggle`,

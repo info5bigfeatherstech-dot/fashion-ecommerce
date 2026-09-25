@@ -25,6 +25,7 @@ export function prefetchCheckoutForAddress(
     couponCode = '',
     cartKey,
     paymentMethod = 'prepaid',
+    loyaltyPointsToRedeem = 0,
   } = {}
 ) {
   const { isAuthenticated, accessToken, cartItems } = useAppStore.getState()
@@ -36,6 +37,7 @@ export function prefetchCheckoutForAddress(
   const resolvedCartKey = cartKey ?? buildCheckoutCartKey(cartItems)
   const quoteParams = quoteParamsForPaymentMethod(paymentMethod)
   const paymentKey = `${quoteParams.paymentMethodHint}:${quoteParams.paymentPlan}:${quoteParams.balanceCollection}`
+  const pts = Math.max(0, Math.floor(Number(loyaltyPointsToRedeem) || 0))
 
   void queryClient.prefetchQuery({
     queryKey: checkoutKeys.settings(),
@@ -44,11 +46,12 @@ export function prefetchCheckoutForAddress(
   })
 
   void queryClient.prefetchQuery({
-    queryKey: checkoutKeys.quote(id, couponCode, resolvedCartKey, paymentKey),
+    queryKey: checkoutKeys.quote(id, couponCode, resolvedCartKey, paymentKey, pts),
     queryFn: ({ signal }) => createCheckoutQuote({
       addressId: id,
       couponCode,
       ...quoteParams,
+      loyaltyPointsToRedeem: pts,
       signal,
     }),
     staleTime: CHECKOUT_QUOTE_STALE_MS,
@@ -70,6 +73,7 @@ export async function fetchFreshCheckoutQuote({
   addressId,
   couponCode,
   paymentMethod = 'prepaid',
+  loyaltyPointsToRedeem = 0,
   replaceCartFromApi,
 } = {}) {
   if (replaceCartFromApi) {
@@ -85,7 +89,8 @@ export async function fetchFreshCheckoutQuote({
   const cartKey = buildCheckoutCartKey(useAppStore.getState().cartItems)
   const quoteParams = quoteParamsForPaymentMethod(paymentMethod)
   const paymentKey = `${quoteParams.paymentMethodHint}:${quoteParams.paymentPlan}:${quoteParams.balanceCollection}`
-  const queryKey = checkoutKeys.quote(id, couponCode, cartKey, paymentKey)
+  const pts = Math.max(0, Math.floor(Number(loyaltyPointsToRedeem) || 0))
+  const queryKey = checkoutKeys.quote(id, couponCode, cartKey, paymentKey, pts)
 
   // Cancel in-flight quote fetches (removeQueries would trigger useCheckoutQuote to create a second quote).
   await queryClient.cancelQueries({ queryKey: checkoutKeys.all })
@@ -94,6 +99,7 @@ export async function fetchFreshCheckoutQuote({
     addressId: id,
     couponCode,
     ...quoteParams,
+    loyaltyPointsToRedeem: pts,
   })
 
   queryClient.setQueryData(queryKey, quote)
@@ -121,6 +127,7 @@ export function   useCheckoutQuote({
   couponCode,
   cartKey,
   paymentMethod = 'prepaid',
+  loyaltyPointsToRedeem = 0,
   enabled = true,
 } = {}) {
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
@@ -128,13 +135,15 @@ export function   useCheckoutQuote({
   const id = String(addressId || '').trim()
   const quoteParams = quoteParamsForPaymentMethod(paymentMethod)
   const paymentKey = `${quoteParams.paymentMethodHint}:${quoteParams.paymentPlan}:${quoteParams.balanceCollection}`
+  const pts = Math.max(0, Math.floor(Number(loyaltyPointsToRedeem) || 0))
 
   return useQuery({
-    queryKey: checkoutKeys.quote(id, couponCode, cartKey, paymentKey),
+    queryKey: checkoutKeys.quote(id, couponCode, cartKey, paymentKey, pts),
     queryFn: ({ signal }) => createCheckoutQuote({
       addressId: id,
       couponCode,
       ...quoteParams,
+      loyaltyPointsToRedeem: pts,
       signal,
     }),
     enabled: enabled && isAuthenticated && Boolean(accessToken) && Boolean(id),
@@ -171,6 +180,7 @@ export function useCreateOrderFromConfirm() {
       if (isCodPlacedOrder(result)) {
         queryClient.invalidateQueries({ queryKey: checkoutKeys.all })
         queryClient.invalidateQueries({ queryKey: ['cart'] })
+        queryClient.invalidateQueries({ queryKey: ['loyalty-points'] })
       }
     },
   })
@@ -185,6 +195,7 @@ export function useVerifyRazorpayPayment() {
       queryClient.invalidateQueries({ queryKey: checkoutKeys.all })
       queryClient.invalidateQueries({ queryKey: ['cart'] })
       queryClient.invalidateQueries({ queryKey: ['orders'] })
+      queryClient.invalidateQueries({ queryKey: ['loyalty-points'] })
     },
   })
 }

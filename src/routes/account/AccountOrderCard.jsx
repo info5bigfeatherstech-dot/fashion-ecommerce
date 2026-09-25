@@ -231,6 +231,15 @@ export function AccountOrderCard({ order, onSelect, isHydrating = false }) {
           >
             <OrderStatusBadge status={order.orderStatus} />
             <p className="account-order-card__price">{formatPrice(order.totalAmount ?? 0)}</p>
+            {Number(order.loyaltyPoints?.earned) > 0 ? (
+              <p className="account-order-card__hint" style={{ color: '#1a7a40' }}>
+                +{Math.floor(Number(order.loyaltyPoints.earned))} pts
+              </p>
+            ) : Number(order.loyaltyPoints?.estimatedEarn) > 0 ? (
+              <p className="account-order-card__hint">
+                ~{Math.floor(Number(order.loyaltyPoints.estimatedEarn))} pts
+              </p>
+            ) : null}
           </button>
         </div>
 

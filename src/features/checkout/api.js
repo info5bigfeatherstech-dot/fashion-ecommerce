@@ -25,6 +25,7 @@ export async function createCheckoutQuote({
   paymentMethodHint,
   paymentPlan = 'full',
   balanceCollection = 'online',
+  loyaltyPointsToRedeem = 0,
   signal,
 } = {}) {
   const body = {
@@ -35,6 +36,8 @@ export async function createCheckoutQuote({
   const code = String(couponCode || '').trim()
   if (code) body.couponCode = code
   if (paymentMethodHint) body.paymentMethodHint = paymentMethodHint
+  const pts = Math.max(0, Math.floor(Number(loyaltyPointsToRedeem) || 0))
+  if (pts > 0) body.loyaltyPointsToRedeem = pts
 
   const payload = await http.post(API_ENDPOINTS.checkout.quote, body, { signal })
   return mapCheckoutQuote(payload)

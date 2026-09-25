@@ -20,6 +20,7 @@ import {
   Trash2,
   Truck,
   Wallet,
+  Coins,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input, InputGroup } from '@/components/ui/Input'
@@ -120,6 +121,7 @@ export default function Checkout() {
   const clearCheckoutAddress = useAppStore((s) => s.clearCheckoutAddress)
   const [orderPlaced, setOrderPlaced] = useState(false)
   const [successOrderId, setSuccessOrderId] = useState(null)
+  const [successLoyaltyPoints, setSuccessLoyaltyPoints] = useState(null)
   const [cartMutatingId, setCartMutatingId] = useState(null)
   const [checkoutStep, setCheckoutStep] = useState(() => {
     if (stepParam === 'payment') return CHECKOUT_STEP.PAYMENT
@@ -129,6 +131,8 @@ export default function Checkout() {
   const [addressModalOpen, setAddressModalOpen] = useState(false)
   const [couponInput, setCouponInput] = useState(() => appliedCoupon?.code || '')
   const [appliedCouponCode, setAppliedCouponCode] = useState(() => appliedCoupon?.code || '')
+  const [loyaltyPointsToRedeem, setLoyaltyPointsToRedeem] = useState(0)
+  const [loyaltyPointsInput, setLoyaltyPointsInput] = useState('')
   const [placedOrder, setPlacedOrder] = useState(null)
 
   useEffect(() => {
@@ -247,6 +251,7 @@ export default function Checkout() {
     couponCode: appliedCouponCode,
     cartKey,
     paymentMethod,
+    loyaltyPointsToRedeem,
     enabled:
       isAuthenticated
       && checkoutStep >= CHECKOUT_STEP.DELIVERY
@@ -255,14 +260,17 @@ export default function Checkout() {
       && !isRecoveringCheckout,
   })
 
-  /** Ignore cached quotes that still carry a coupon after the user removed it. */
+  /** Ignore cached quotes that still carry a coupon/points after the user removed them. */
   const activeQuote = useMemo(() => {
     if (!quote) return null
     const quoteCoupon = normalizeCouponCode(quote.couponApplied)
     const desiredCoupon = normalizeCouponCode(appliedCouponCode)
     if (quoteCoupon !== desiredCoupon) return null
+    const quotePts = Math.max(0, Math.floor(Number(quote.loyaltyPointsRequested) || 0))
+    const desiredPts = Math.max(0, Math.floor(Number(loyaltyPointsToRedeem) || 0))
+    if (quotePts !== desiredPts) return null
     return quote
-  }, [quote, appliedCouponCode])
+  }, [quote, appliedCouponCode, loyaltyPointsToRedeem])
 
   const confirmCheckout = useConfirmCheckout()
   const createOrder = useCreateOrderFromConfirm()
@@ -289,6 +297,25 @@ export default function Checkout() {
 
   const itemsSubtotal = activeQuote ? activeQuote.itemsSubtotal : cartSubtotal
   const promotionDiscount = activeQuote ? activeQuote.promotionDiscount : couponTotalDiscount
+  const loyaltyDiscount = activeQuote ? Number(activeQuote.loyaltyDiscount) || 0 : 0
+  const loyaltyPointsRedeemed = activeQuote
+    ? Math.max(0, Math.floor(Number(activeQuote.loyaltyPointsRedeemed) || 0))
+    : 0
+  const loyaltyQuote = activeQuote || quote
+  const loyaltyBalancePts = Math.max(0, Math.floor(Number(loyaltyQuote?.loyaltyBalance) || 0))
+  const loyaltyMaxPts = Math.max(
+    0,
+    Math.floor(
+      Number(loyaltyQuote?.loyaltyMaxRedeemable ?? loyaltyQuote?.loyaltyBalance) || 0
+    )
+  )
+  const redeemRupeePerPoint = Math.max(0, Number(loyaltyQuote?.redeemRupeePerPoint) || 0)
+  const loyaltyMaxInr =
+    redeemRupeePerPoint > 0 ? Math.floor(loyaltyMaxPts * redeemRupeePerPoint * 100) / 100 : 0
+  const showLoyaltyRedeem =
+    Boolean(loyaltyQuote?.loyaltyEnabled)
+    && loyaltyBalancePts > 0
+    && checkoutStep >= CHECKOUT_STEP.DELIVERY
   const deliveryCharges = activeQuote ? activeQuote.deliveryCharges : null
   const taxes = activeQuote ? activeQuote.taxes : 0
   const total = activeQuote ? activeQuote.amountPayable : Math.max(0, itemsSubtotal - promotionDiscount)
@@ -317,6 +344,7 @@ export default function Checkout() {
       addressId: checkoutAddress.id,
       couponCode: appliedCouponCode,
       cartKey,
+      loyaltyPointsToRedeem,
     })
   }, [
     queryClient,
@@ -324,6 +352,7 @@ export default function Checkout() {
     checkoutAddress?.id,
     appliedCouponCode,
     cartKey,
+    loyaltyPointsToRedeem,
     hasPendingOnlineOrder,
   ])
 
@@ -435,13 +464,18 @@ export default function Checkout() {
     }
   }, [abandonCheckout, placedOrder, queryClient, replaceCartFromApi])
 
-  const finishOrderSuccess = useCallback((isOnline = false, resolvedOrderId = null) => {
+  const finishOrderSuccess = useCallback((isOnline = false, resolvedOrderId = null, loyaltySnapshot = null) => {
     checkoutAttemptKeyRef.current = null
     // Capture the orderId before clearing placedOrder so Track Order can deep-link
     const orderId =
       resolvedOrderId
       || placedOrder?.order?.orderId
       || placedOrder?.order?.id
+      || null
+
+    const lp =
+      loyaltySnapshot
+      || placedOrder?.order?.loyaltyPoints
       || null
 
     // Always strip Razorpay overlay before toast / success UI (prevents stuck QR).
@@ -453,6 +487,9 @@ export default function Checkout() {
     void forceCloseRazorpayUi()
 
     setSuccessOrderId(orderId)
+    setSuccessLoyaltyPoints(lp)
+    setLoyaltyPointsToRedeem(0)
+    setLoyaltyPointsInput('')
     clearCart()
     clearCheckoutAddress()
     setPlacedOrder(null)
@@ -472,7 +509,7 @@ export default function Checkout() {
         || response?.notes?.orderId
       if (!currentOrderId) throw new Error('Order ID not found. Please contact support.')
 
-      await verifyPayment.mutateAsync({
+      const verified = await verifyPayment.mutateAsync({
         razorpay_order_id: response.razorpay_order_id,
         razorpay_payment_id: response.razorpay_payment_id,
         razorpay_signature: response.razorpay_signature,
@@ -480,7 +517,11 @@ export default function Checkout() {
       })
 
       setRazorpayPaymentState(PAYMENT_STATE.VERIFIED)
-      finishOrderSuccess(true, currentOrderId)
+      finishOrderSuccess(
+        true,
+        currentOrderId,
+        verified?.order?.loyaltyPoints || placedOrder?.order?.loyaltyPoints || null
+      )
     } catch (err) {
       try {
         destroyRazorpayCheckoutSession()
@@ -619,6 +660,18 @@ export default function Checkout() {
   }
 
   if (orderPlaced) {
+    const redeemed = Math.max(0, Math.floor(Number(successLoyaltyPoints?.redeemed) || 0))
+    const discountInr = Number(successLoyaltyPoints?.discountInr) || 0
+    const estimatedEarn = Math.max(
+      0,
+      Math.floor(
+        Number(successLoyaltyPoints?.estimatedEarn ?? successLoyaltyPoints?.earned) || 0
+      )
+    )
+    const earned = Math.max(0, Math.floor(Number(successLoyaltyPoints?.earned) || 0))
+    const showEarn = earned > 0 || estimatedEarn > 0
+    const earnLabel = earned > 0 ? earned : estimatedEarn
+
     return (
       <div className="container checkout-success">
         <div className="checkout-success__card">
@@ -630,6 +683,31 @@ export default function Checkout() {
           <p className="body-lg text-muted">
             A confirmation email is on its way. We’ll notify you when your pieces leave the atelier.
           </p>
+          {(redeemed > 0 || showEarn) ? (
+            <div className="checkout-success__points">
+              {redeemed > 0 ? (
+                <p className="checkout-success__points-row">
+                  <Coins size={15} aria-hidden />
+                  <span>
+                    Used {redeemed} points
+                    {discountInr > 0 ? ` (−${formatPrice(discountInr)})` : ''}
+                  </span>
+                </p>
+              ) : null}
+              {showEarn ? (
+                <p className="checkout-success__points-row checkout-success__points-row--earn">
+                  <Coins size={15} aria-hidden />
+                  <span>
+                    {earned > 0 ? `Earned ${earnLabel} points` : `You’ll get ~${earnLabel} points`}
+                    {earned === 0 ? ' after payment confirms' : ''}
+                  </span>
+                </p>
+              ) : null}
+              <Link to="/account/points" className="checkout-success__points-link">
+                View points balance
+              </Link>
+            </div>
+          ) : null}
           <div className="checkout-success__actions">
             <Link to="/">
               <Button variant="primary">Back to Home</Button>
@@ -714,7 +792,7 @@ export default function Checkout() {
 
       if (isCodPlacedOrder(orderResult)) {
         toast.success(orderResult.message || 'Order placed successfully')
-        finishOrderSuccess(false)
+        finishOrderSuccess(false, orderResult?.order?.orderId, orderResult?.order?.loyaltyPoints)
         return
       }
 
@@ -746,6 +824,7 @@ export default function Checkout() {
         addressId: checkoutAddress.id,
         couponCode: appliedCouponCode,
         paymentMethod: formData.paymentMethod,
+        loyaltyPointsToRedeem,
         replaceCartFromApi,
       })
 
@@ -761,6 +840,7 @@ export default function Checkout() {
           addressId: checkoutAddress.id,
           couponCode: appliedCouponCode,
           paymentMethod: formData.paymentMethod,
+          loyaltyPointsToRedeem,
           replaceCartFromApi,
         })
         await runCheckout(activeQuote)
@@ -860,6 +940,26 @@ export default function Checkout() {
       refetchQuote()
     }
     toast.success('Coupon removed')
+  }
+
+  const handleApplyLoyaltyPoints = () => {
+    if (loyaltyMaxPts <= 0) {
+      toast.error('Points cannot be used on this order')
+      return
+    }
+    setLoyaltyPointsToRedeem(loyaltyMaxPts)
+    setLoyaltyPointsInput(String(loyaltyMaxPts))
+    toast.success(
+      loyaltyMaxInr > 0
+        ? `Points applied · you save about ${formatPrice(loyaltyMaxInr)}`
+        : 'Points applied'
+    )
+  }
+
+  const handleRemoveLoyaltyPoints = () => {
+    setLoyaltyPointsToRedeem(0)
+    setLoyaltyPointsInput('')
+    toast.success('Points removed')
   }
 
   const goToDeliveryStep = (replace = false) => {
@@ -1411,6 +1511,55 @@ export default function Checkout() {
                 </p>
               )}
 
+              {showLoyaltyRedeem && loyaltyMaxPts > 0 ? (
+                <div className="checkout-loyalty" style={{ marginBottom: 12 }}>
+                  {loyaltyPointsToRedeem > 0 && (loyaltyDiscount > 0 || loyaltyPointsRedeemed > 0) ? (
+                    <div className="checkout-loyalty__simple">
+                      <div className="checkout-loyalty__simple-copy">
+                        <p className="checkout-loyalty__applied" style={{ margin: 0 }}>
+                          <Check size={14} />
+                          {loyaltyDiscount > 0
+                            ? `${formatPrice(loyaltyDiscount)} off with points`
+                            : 'Points applied'}
+                        </p>
+                        <p className="checkout-loyalty__simple-sub">
+                          {(loyaltyPointsRedeemed || loyaltyPointsToRedeem).toLocaleString('en-IN')} pts used
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className="checkout-loyalty__remove"
+                        onClick={handleRemoveLoyaltyPoints}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="checkout-loyalty__simple">
+                      <div className="checkout-loyalty__simple-copy">
+                        <p className="checkout-loyalty__simple-title">
+                          {loyaltyMaxInr > 0
+                            ? `Save ${formatPrice(loyaltyMaxInr)} with points`
+                            : 'Use points for discount'}
+                        </p>
+                        <p className="checkout-loyalty__simple-sub">
+                          {loyaltyBalancePts.toLocaleString('en-IN')} pts available
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleApplyLoyaltyPoints}
+                        disabled={quoteLoading}
+                      >
+                        {quoteLoading ? '…' : 'Apply'}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
               <div className="checkout-summary__row">
                 <span>Total Cart Value</span>
                 <span>{formatPrice(itemsSubtotal)}</span>
@@ -1419,6 +1568,17 @@ export default function Checkout() {
                 <div className="checkout-summary__row">
                   <span>Discount</span>
                   <span style={{ color: '#1a7a40' }}>−{formatPrice(promotionDiscount)}</span>
+                </div>
+              )}
+              {loyaltyDiscount > 0 && (
+                <div className="checkout-summary__row">
+                  <span>
+                    Points discount
+                    {loyaltyPointsRedeemed
+                      ? ` (${loyaltyPointsRedeemed.toLocaleString('en-IN')} pts)`
+                      : ''}
+                  </span>
+                  <span style={{ color: '#1a7a40' }}>−{formatPrice(loyaltyDiscount)}</span>
                 </div>
               )}
               <div className="checkout-summary__row">

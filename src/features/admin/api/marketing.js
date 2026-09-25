@@ -56,6 +56,29 @@ export async function toggleAdminLoyaltyBadge(id) {
   return unwrapAdmin(payload)
 }
 
+export async function getAdminLoyaltyPointsSettings({ signal, storefront = 'ecomm' } = {}) {
+  const payload = await adminGet(API_ENDPOINTS.admin.loyaltyPointsSettings, {
+    signal,
+    params: { storefront },
+  })
+  return payload
+}
+
+export async function updateAdminLoyaltyPointsSettings(body) {
+  const payload = await adminPut(API_ENDPOINTS.admin.loyaltyPointsSettings, body)
+  return unwrapAdmin(payload) || payload
+}
+
+export async function adjustAdminLoyaltyPoints(body) {
+  const payload = await adminPost(API_ENDPOINTS.admin.loyaltyPointsAdjust, body)
+  if (payload?.success === false) {
+    const err = new Error(payload?.message || 'Adjust failed')
+    err.code = payload?.code
+    throw err
+  }
+  return payload
+}
+
 export async function getAdminLoyaltyBadgeMembers(
   id,
   { signal, page = 1, limit = 20, search = '' } = {}

@@ -404,6 +404,17 @@ export function AccountOrderDetail({ orderId, onBack }) {
                 <p className="body-sm text-accent">-{formatPrice(order.discount)}</p>
               </div>
             )}
+            {Number(order.loyaltyPoints?.discountInr) > 0 && (
+              <div>
+                <p className="account-order-detail__label">
+                  Points used
+                  {Number(order.loyaltyPoints?.redeemed) > 0
+                    ? ` (${Math.floor(Number(order.loyaltyPoints.redeemed))})`
+                    : ''}
+                </p>
+                <p className="body-sm text-accent">-{formatPrice(order.loyaltyPoints.discountInr)}</p>
+              </div>
+            )}
             <div>
               <p className="account-order-detail__label">Total</p>
               <p className="heading-sm">
@@ -418,6 +429,33 @@ export function AccountOrderDetail({ orderId, onBack }) {
               </p>
             </div>
           </div>
+
+          {(Number(order.loyaltyPoints?.earned) > 0
+            || Number(order.loyaltyPoints?.estimatedEarn) > 0
+            || Number(order.loyaltyPoints?.redeemed) > 0) && (
+            <div className="account-order-detail__meta">
+              {Number(order.loyaltyPoints?.redeemed) > 0 ? (
+                <p className="body-sm">
+                  Points used: <strong>{Math.floor(Number(order.loyaltyPoints.redeemed))}</strong>
+                  {Number(order.loyaltyPoints?.discountInr) > 0
+                    ? ` (−${formatPrice(order.loyaltyPoints.discountInr)})`
+                    : ''}
+                </p>
+              ) : null}
+              {Number(order.loyaltyPoints?.earned) > 0 ? (
+                <p className="body-sm">
+                  Points earned: <strong>{Math.floor(Number(order.loyaltyPoints.earned))}</strong>
+                </p>
+              ) : Number(order.loyaltyPoints?.estimatedEarn) > 0 ? (
+                <p className="body-sm text-muted">
+                  Points you’ll get: ~{Math.floor(Number(order.loyaltyPoints.estimatedEarn))}
+                  {String(order.paymentStatus || '').toLowerCase() === 'paid'
+                    ? ''
+                    : ' (after payment confirms)'}
+                </p>
+              ) : null}
+            </div>
+          )}
 
           <div className="account-order-detail__meta">
             <p className="body-sm">
