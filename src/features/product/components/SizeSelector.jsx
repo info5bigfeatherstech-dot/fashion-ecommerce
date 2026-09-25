@@ -45,6 +45,31 @@ const COLOR_SWATCH = {
   Cream: '#F2EDE3',
   'Light Wash': '#B7C4D4',
   'Dark Wash': '#2C3A4F',
+  // Main Jewelry Colors & Multitone
+  'Ruby Red': '#9B2335',
+  'Emerald Green': '#137547',
+  'Sapphire Blue': '#0F52BA',
+  'Mint Green': '#8FE3C0',
+  'Baby Pink': '#F7C6D0',
+  'Clear White / Diamond': 'linear-gradient(135deg, #EBF4FF 0%, #FFFFFF 50%, #E2E8F0 100%)',
+  Diamond: 'linear-gradient(135deg, #EBF4FF 0%, #FFFFFF 50%, #E2E8F0 100%)',
+  'Clear White': '#FFFFFF',
+  'Antique Silver': '#949599',
+  'Oxidized Silver': '#4A4A4A',
+  Rhodium: '#D1D5DB',
+}
+
+/** Vibrant 360-degree conic spectrum so every color is fully visible in the circular swatch. */
+export const MULTI_COLOR_GRADIENT =
+  'conic-gradient(from -45deg, #FF1E56 0deg, #FF7700 45deg, #FFD000 90deg, #00C853 145deg, #00B0FF 200deg, #651FFF 260deg, #F50057 315deg, #FF1E56 360deg)'
+
+const MULTI_COLOR_REGEX =
+  /^(multi([\s-]?(colou?red?|ply|ple|variant|colors?))?|rainbow|assorted|mixed|various|all[\s-]?colou?rs?)$/i
+
+export function isMultiColor(name) {
+  if (!name) return false
+  const raw = String(name).trim()
+  return MULTI_COLOR_REGEX.test(raw)
 }
 
 const CSS_NAMED = new Set([
@@ -84,8 +109,7 @@ function hashToColor(name) {
   return `hsl(${hue} ${sat}% ${light}%)`
 }
 
-/** Shared by PDP ColorSelector and listing ProductCard swatches. */
-export function resolveSwatchColor(name) {
+function resolveSingleColor(name) {
   if (!name) return '#888888'
   const raw = String(name).trim()
   if (!raw) return '#888888'
@@ -98,6 +122,45 @@ export function resolveSwatchColor(name) {
   if (CSS_NAMED.has(raw.toLowerCase())) return raw.toLowerCase()
   return hashToColor(raw)
 }
+
+export function resolveMultiSplitColors(raw) {
+  if (!raw || typeof raw !== 'string') return null
+  if (!/[/&+,]/.test(raw)) return null
+
+  const parts = raw.split(/[/&+,]/).map((p) => p.trim()).filter(Boolean)
+  if (parts.length < 2) return null
+
+  if (parts.some((p) => isMultiColor(p))) {
+    return MULTI_COLOR_GRADIENT
+  }
+
+  const resolved = parts.map((p) => resolveSingleColor(p))
+  if (resolved.length >= 2) {
+    return `linear-gradient(135deg, ${resolved.join(', ')})`
+  }
+  return null
+}
+
+/** Shared by PDP ColorSelector and listing ProductCard swatches. Supports colors & CSS gradients. */
+export function resolveSwatchBackground(name) {
+  if (!name) return '#888888'
+  const raw = String(name).trim()
+  if (!raw) return '#888888'
+
+  if (isMultiColor(raw)) {
+    return MULTI_COLOR_GRADIENT
+  }
+
+  const splitGradient = resolveMultiSplitColors(raw)
+  if (splitGradient) {
+    return splitGradient
+  }
+
+  return resolveSingleColor(raw)
+}
+
+/** Backwards-compatible alias for resolveSwatchBackground */
+export const resolveSwatchColor = resolveSwatchBackground
 
 function asUnavailableSet(values) {
   if (!values) return new Set()
@@ -177,6 +240,7 @@ export function ColorSelector({
       <div className="color-selector">
         {colors.map((color) => {
           const isOos = unavailable.has(color)
+          const isMulti = isMultiColor(color)
           return (
             <button
               key={color}
@@ -185,8 +249,9 @@ export function ColorSelector({
                 'color-selector__swatch',
                 selected === color ? 'color-selector__swatch--active' : '',
                 isOos ? 'color-selector__swatch--oos' : '',
+                isMulti ? 'color-selector__swatch--multi' : '',
               ].filter(Boolean).join(' ')}
-              style={{ backgroundColor: resolveSwatchColor(color) }}
+              style={{ background: resolveSwatchBackground(color) }}
               onClick={() => onSelect(color)}
               aria-pressed={selected === color}
               aria-label={isOos ? `${color}, not available` : color}

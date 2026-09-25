@@ -9800,6 +9800,14 @@ a.cart-item__name:hover {
   box-shadow: 0 0 0 2px var(--color-paper), 0 0 0 3px var(--color-ink);
 }
 
+.color-selector__swatch--multi {
+  box-shadow: inset 0 0 0 1px rgba(20, 18, 15, 0.12);
+}
+
+.color-selector__swatch--multi.color-selector__swatch--active {
+  box-shadow: 0 0 0 2px var(--color-paper), 0 0 0 3px var(--color-ink), inset 0 0 0 1px rgba(20, 18, 15, 0.14);
+}
+
 .color-selector__swatch--oos {
   opacity: 0.55;
 }

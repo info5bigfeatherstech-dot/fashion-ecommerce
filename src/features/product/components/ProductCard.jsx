@@ -10,7 +10,7 @@ import { getProductRatingDisplay } from '@/lib/productRatingDisplay'
 import { FEATURE_FLAGS } from '@/config/site'
 import { showAddedToCartToast } from '@/lib/cart-toast'
 import { resolveVariantId } from '@/features/product/mappers'
-import { resolveSwatchColor } from '@/features/product/components/SizeSelector'
+import { resolveSwatchBackground, isMultiColor } from '@/features/product/components/SizeSelector'
 
 const MAX_QUICK_QTY = 8
 const MAX_CARD_COLOR_SWATCHES = 3
@@ -359,10 +359,13 @@ export function ProductCard({ product, compact = false }) {
               {colorSwatches.visible.map((swatchColor, index) => (
                 <span
                   key={`${swatchColor}-${index}`}
-                  className="product-card__swatch"
+                  className={[
+                    'product-card__swatch',
+                    isMultiColor(swatchColor) ? 'product-card__swatch--multi' : '',
+                  ].filter(Boolean).join(' ')}
                   title={swatchColor}
                   style={{
-                    backgroundColor: resolveSwatchColor(swatchColor),
+                    background: resolveSwatchBackground(swatchColor),
                   }}
                 />
               ))}
