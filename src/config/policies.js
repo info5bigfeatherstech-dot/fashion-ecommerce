@@ -14,12 +14,12 @@ export const policiesData = [
       {
         heading: "Return Request Window & Mandatory Proofs",
         content:
-          "Return requests must be raised within 24 hours from the date and time of delivery. Requests raised after this period may be rejected.\n\nTo process a return, the customer must submit all required evidence:\n• 1 video proof (mandatory)\n• 1 to 3 image proofs (mandatory)\n• A brief message describing the issue\n\nIf sufficient proof is not provided, the request may be rejected.",
+          "Return requests must be raised within 24 hours from the date and time of delivery. Requests raised after this period may be rejected.\n\nRequired evidence:\n\n• Unboxing video (mandatory):\nrequired for every return request\n• Start with the sealed / packed parcel as received\n• Record continuously start → end (no cuts or edits)\n• Clearly show the damaged or wrong item\n• Random, edited, partial, or unrelated videos are not accepted\n• Image proofs (mandatory): 1 to 3 clear photos of the issue\n• Issue message: briefly describe what is damaged or wrong\n\nIf sufficient or valid proof is not provided, the request may be rejected.",
       },
       {
         heading: "Review Process & Reverse Pickup",
         content:
-          "Every return request is reviewed by our support/admin team. After review, the request will be either approved or rejected (with a rejection reason). FABUNIQO reserves the right to request additional information before a final decision.\n\nOnce approved, a reverse pickup is initiated through our logistics partner (Shiprocket and its courier network). Customer must ensure the product is packed securely and ready for pickup. Pickup timelines depend on courier serviceability and local operations.",
+          "Every return request is reviewed by our support/admin team. After review, the request will be either approved or rejected (with a rejection reason). FABUNIQO reserves the right to request additional information before a final decision.\n\nOnce approved, a reverse pickup is initiated through our courier partner. Customer must ensure the product is packed securely and ready for pickup. Pickup timelines depend on courier serviceability and local operations.",
       },
       {
         heading: "Refund Eligibility & Processing",
@@ -34,7 +34,7 @@ export const policiesData = [
       {
         heading: "Non-Returnable / Rejection Conditions",
         content:
-          "Return request may be rejected in cases including but not limited to:\n• Incorrect or insufficient proof\n• Request outside allowed return window (24 hours from delivery)\n• Product tampered/misused after delivery\n• Reason not covered under eligible return reasons\n• Item not matching the originally delivered product\n\nFor approved damaged/wrong-item cases, reverse pickup is arranged by FABUNIQO. Any exceptional charges (if applicable) will be communicated at the time of resolution.\n\nFailed delivery / RTO cases are not processed under the customer return flow and are handled as per the RTO / Failed Delivery section above.",
+          "Return request may be rejected in cases including but not limited to:\n• Incorrect or insufficient proof\n• Incomplete unboxing video\n• Damage or wrong item not clearly visible in the video/photos\n• Random, edited, partial, or unrelated video\n• Request outside allowed return window (24 hours from delivery)\n• Product tampered/misused after delivery\n• Reason not covered under eligible return reasons\n• Item not matching the originally delivered product\n\nFor approved damaged/wrong-item cases, reverse pickup is arranged by FABUNIQO. Any exceptional charges (if applicable) will be communicated at the time of resolution.\n\nFailed delivery / RTO cases are not processed under the customer return flow and are handled as per the RTO / Failed Delivery section above.",
       },
       {
         heading: "Cancellation vs Return vs RTO & Policy Updates",
@@ -232,7 +232,7 @@ export const policiesData = [
       {
         heading: "1) Order Processing",
         content:
-          "Orders are processed after successful order confirmation.\n\nDepending on selected payment mode, confirmation may happen:\n• Immediately (e.g., eligible COD flow), or\n• After payment verification (online/advance payment flows).\n\nOnce confirmed, shipment is initiated through our logistics integration (Shiprocket and partner couriers), subject to serviceability and operational checks.",
+          "Orders are processed after successful order confirmation.\n\nDepending on selected payment mode, confirmation may happen:\n• Immediately (e.g., eligible COD flow), or\n• After payment verification (online/advance payment flows).\n\nOnce confirmed, shipment is initiated through our courier partner network, subject to serviceability and operational checks.",
       },
       {
         heading: "2) Shipping Coverage & Serviceability",

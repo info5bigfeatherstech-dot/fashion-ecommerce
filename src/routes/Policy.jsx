@@ -46,6 +46,13 @@ function renderBulletLabel(raw) {
   return raw
 }
 
+function looksLikeTopLevelPolicyBullet(raw) {
+  const t = String(raw || '').trim()
+  if (/\(mandatory\)/i.test(t)) return true
+  if (/^(Image proofs|Issue message|Unboxing video)\b/i.test(t)) return true
+  return false
+}
+
 function parseBulletSection(lines, startIdx) {
   const items = []
   let i = startIdx
@@ -68,7 +75,10 @@ function parseBulletSection(lines, startIdx) {
       if (isNested) {
         nestedBullets = []
         while (i < lines.length && lines[i].startsWith('•')) {
-          nestedBullets.push(lines[i].replace(/^•\s*/, ''))
+          const nextRaw = lines[i].replace(/^•\s*/, '')
+          // Stop nesting when the next bullet is clearly a sibling top-level item.
+          if (nestedBullets.length > 0 && looksLikeTopLevelPolicyBullet(nextRaw)) break
+          nestedBullets.push(nextRaw)
           i++
         }
       }
@@ -90,7 +100,7 @@ function parseBulletSection(lines, startIdx) {
           {item.nestedBullets?.length > 0 && (
             <ul className="policy-page__bullets policy-page__bullets--nested">
               {item.nestedBullets.map((nb, ni) => (
-                <li key={ni}>{nb}</li>
+                <li key={ni} className="policy-page__nested-bullet">{nb}</li>
               ))}
             </ul>
           )}

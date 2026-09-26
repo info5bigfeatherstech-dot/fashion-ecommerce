@@ -200,19 +200,32 @@ export function OrderReturnModal({ open, onClose, order }) {
 
         {activeTab === 'request' && (
           <form onSubmit={handleReturnSubmit} className="order-return-form">
-            <div className="order-return-banner">
-              <PackageX size={18} />
-              <div>
-                <p className="body-sm font-semibold">
-                  {hasExistingReturn ? 'Return Request Active' : 'Initiate Customer Return'}
+            {!hasExistingReturn ? (
+              <div className="order-return-callout" role="note">
+                <p className="order-return-callout__title">
+                  Before you raise a return — mandatory unboxing video
                 </p>
-                <p className="body-xs text-muted">
-                  {hasExistingReturn
-                    ? 'Your return request has been recorded. Our team will review your proofs and initiate reverse pickup.'
-                    : 'Return requests are accepted for damaged products or wrong items delivered. Please upload 1 unboxing/defect video and 1–3 clear photos.'}
+                <ul className="order-return-callout__list">
+                  <li>Start with the sealed / packed parcel as received</li>
+                  <li>Record continuously start → end (no cuts or edits)</li>
+                  <li>Clearly show the damaged or wrong item</li>
+                  <li>Keep 1–3 clear proof photos ready</li>
+                </ul>
+                <p className="order-return-callout__footer">
+                  Random or edited videos may be rejected. Returns are only for damaged or wrong items — not change of mind.
                 </p>
               </div>
-            </div>
+            ) : (
+              <div className="order-return-banner">
+                <PackageX size={18} />
+                <div>
+                  <p className="body-sm font-semibold">Return Request Active</p>
+                  <p className="body-xs text-muted">
+                    Your return request has been recorded. Our team will review your proofs and initiate reverse pickup with the courier partner.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {hasExistingReturn && (
               <div
@@ -269,7 +282,7 @@ export function OrderReturnModal({ open, onClose, order }) {
                 maxLength={500}
                 value={returnInfo.reasonMessage || reasonMessage}
                 onChange={(e) => setReasonMessage(e.target.value)}
-                placeholder="Explain the damage or mismatch in detail (maximum 500 characters)..."
+                placeholder="Briefly describe what is damaged or wrong…"
                 className="order-change-textarea"
                 required
                 disabled={hasExistingReturn}
@@ -279,10 +292,7 @@ export function OrderReturnModal({ open, onClose, order }) {
             {!hasExistingReturn ? (
               <>
                 <div className="order-change-form__field">
-                  <label className="body-sm font-semibold" style={{ display: 'block', marginBottom: '6px' }}>
-                    Proof Video * (1 video: mp4/mov/mkv/webm, max 60MB)
-                  </label>
-                  <div className="order-upload-box">
+                  <div className="order-upload-card">
                     <input
                       type="file"
                       accept="video/mp4,video/quicktime,video/webm,video/x-matroska,video/*"
@@ -290,21 +300,28 @@ export function OrderReturnModal({ open, onClose, order }) {
                       id="proofVideoInput"
                       className="order-upload-input"
                     />
-                    <label htmlFor="proofVideoInput" className="order-upload-label">
-                      <FileVideo size={18} />
-                      <span>{proofVideo ? proofVideo.name : 'Choose unboxing / defect video *'}</span>
+                    <label htmlFor="proofVideoInput" className="order-upload-card__body">
+                      <span className="order-upload-card__icon" aria-hidden>
+                        <FileVideo size={20} />
+                      </span>
+                      <span className="order-upload-card__copy">
+                        <span className="order-upload-card__title">
+                          Unboxing video <span className="order-upload-card__req">Required</span>
+                        </span>
+                        <span className="order-upload-card__hint">
+                          Tap to upload · sealed pack → full open, continuous, no edits (max {MAX_VIDEO_SIZE_MB}MB)
+                        </span>
+                        <span className="order-upload-card__file">
+                          {proofVideo ? proofVideo.name : 'No video selected'}
+                        </span>
+                      </span>
+                      <Upload size={16} className="order-upload-card__chevron" aria-hidden />
                     </label>
                   </div>
                 </div>
 
                 <div className="order-change-form__field">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                    <label className="body-sm font-semibold">
-                      Proof Photos * (1 to {MAX_PROOF_IMAGES} images: JPG/PNG/WebP)
-                    </label>
-                    <span className="body-xs text-muted">{proofImages.length}/{MAX_PROOF_IMAGES}</span>
-                  </div>
-                  <div className="order-upload-box">
+                  <div className="order-upload-card">
                     <input
                       type="file"
                       accept="image/jpeg,image/png,image/webp,image/*"
@@ -314,16 +331,34 @@ export function OrderReturnModal({ open, onClose, order }) {
                       className="order-upload-input"
                       disabled={proofImages.length >= MAX_PROOF_IMAGES}
                     />
-                    <label htmlFor="proofImagesInput" className="order-upload-label">
-                      <ImageIcon size={18} />
-                      <span>Upload photos of the product & packaging (Max {MAX_PROOF_IMAGES})</span>
+                    <label htmlFor="proofImagesInput" className="order-upload-card__body">
+                      <span className="order-upload-card__icon" aria-hidden>
+                        <ImageIcon size={20} />
+                      </span>
+                      <span className="order-upload-card__copy">
+                        <span className="order-upload-card__title">
+                          Proof images (1–{MAX_PROOF_IMAGES}){' '}
+                          <span className="order-upload-card__req">Required</span>
+                        </span>
+                        <span className="order-upload-card__hint">
+                          Tap to upload clear photos of the issue
+                        </span>
+                        <span className="order-upload-card__file">
+                          {proofImages.length > 0
+                            ? `${proofImages.length}/${MAX_PROOF_IMAGES} selected${
+                                proofImages[0]?.name ? ` · ${proofImages[0].name}` : ''
+                              }${proofImages.length > 1 ? ` +${proofImages.length - 1}` : ''}`
+                            : 'No photos selected'}
+                        </span>
+                      </span>
+                      <Upload size={16} className="order-upload-card__chevron" aria-hidden />
                     </label>
                   </div>
 
                   {proofImages.length > 0 && (
                     <div className="order-proof-previews">
                       {proofImages.map((file, idx) => (
-                        <div key={idx} className="order-proof-thumb">
+                        <div key={`${file.name}-${idx}`} className="order-proof-thumb">
                           <img src={URL.createObjectURL(file)} alt={`Proof ${idx + 1}`} />
                           <button
                             type="button"

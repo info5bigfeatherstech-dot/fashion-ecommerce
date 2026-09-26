@@ -306,6 +306,34 @@ export function AccountOrderDetail({ orderId, onBack }) {
           </div>
         )}
 
+        {/* Product return (after delivery) */}
+        {returnEligible && (
+          <div className="order-detail-return-ready">
+            <div className="order-return-callout" role="note">
+              <p className="order-return-callout__title">
+                Before you raise a return — mandatory unboxing video
+              </p>
+              <ul className="order-return-callout__list">
+                <li>Start with the sealed / packed parcel as received</li>
+                <li>Record continuously start → end (no cuts or edits)</li>
+                <li>Clearly show the damaged or wrong item</li>
+                <li>Keep 1–3 clear proof photos ready</li>
+              </ul>
+              <p className="order-return-callout__footer">
+                Random or edited videos may be rejected. Returns are only for damaged or wrong items — not change of mind.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowReturnModal(true)}
+            >
+              <PackageX size={14} /> Raise Return Request
+            </Button>
+          </div>
+        )}
+
         {/* Return Active Banner */}
         {returnActive && (
           <div className="order-detail-return-banner">
@@ -358,17 +386,6 @@ export function AccountOrderDetail({ orderId, onBack }) {
                   onClick={() => setShow24hModal(true)}
                 >
                   <Clock size={14} /> Return / Refund (24h)
-                </Button>
-              )}
-
-              {returnEligible && (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setShowReturnModal(true)}
-                >
-                  <PackageX size={14} /> Request Return
                 </Button>
               )}
             </div>
