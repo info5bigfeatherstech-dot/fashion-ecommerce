@@ -2,6 +2,7 @@ import { lazy } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { Layout } from '@/components/layout/Layout'
 import { RouteErrorBoundary } from '@/components/routing/RouteErrorBoundary'
+import { lazyWithRetry } from '@/lib/lazyWithRetry'
 import Home from './Home'
 import ProductListing from './ProductListing'
 import ProductDetail from './ProductDetail'
@@ -13,11 +14,11 @@ import NotFound from './NotFound'
 import Gifting from './Gifting'
 import ProductAll from './ProductAll'
 
-const Account = lazy(() => import('./Account'))
-const Wholesale = lazy(() => import('./Wholesale'))
-const ContactUs = lazy(() => import('./ContactUs'))
-const Policy = lazy(() => import('./Policy'))
-const JewellerySpotted = lazy(() => import('./JewellerySpotted'))
+const Account = lazyWithRetry(() => import('./Account'))
+const Wholesale = lazyWithRetry(() => import('./Wholesale'))
+const ContactUs = lazyWithRetry(() => import('./ContactUs'))
+const Policy = lazyWithRetry(() => import('./Policy'))
+const JewellerySpotted = lazyWithRetry(() => import('./JewellerySpotted'))
 const AdminLogin = lazy(() => import('./admin/AdminLogin'))
 const AdminDashboardPage = lazy(() => import('./admin/AdminDashboardPage'))
 const AdminOrdersPage = lazy(() => import('./admin/AdminOrdersPage'))

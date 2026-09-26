@@ -3,19 +3,12 @@ import braceletsImage from '../assets/(6) Bracelets & Bangles.png';
 import chokerNecklaceImage from '../assets/(2) Green Beads Stone Choker Necklace with Earrings Set for Party Wedding Jewellery (1).png';
 import heartPendantNecklaceImage from '../assets/C6-009-1 Best Friend Heart Pendant Necklace Set Matching Friendship Chain for Girls  (2).png';
 import giftBoxImage from '../assets/(10) Build A Gift Box.png';
+import { SITE_CONTACT as CONTACT } from './contact'
 
 export const SITE_NAME = 'FABUNIQO'
 export const SITE_TAGLINE = 'Artificial jewelry for everyday shine.'
 
-export const SITE_CONTACT = {
-  email: 'support.fabuniqo@gmail.com',
-  phone: '+91 98765 43210',
-  phoneHref: 'tel:+919876543210',
-  emailHref: 'mailto:support.fabuniqo@gmail.com',
-  /** Form submissions (wholesale + contact) — must be activated on FormSubmit */
-  wholesaleEmail: 'fabuniqo@gmail.com',
-  contactEmail: 'fabuniqo@gmail.com',
-}
+export const SITE_CONTACT = CONTACT
 
 export const TOP_BANNER = {
   headline: 'Get Every Gift with Every Purchase',

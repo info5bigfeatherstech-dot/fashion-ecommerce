@@ -16,9 +16,10 @@ export default defineConfig({
       srcDir: 'src',
       filename: 'sw.js',
       registerType: 'autoUpdate',
+      // Keep SW off in dev — it intercepts Vite module requests and causes
+      // "Failed to fetch dynamically imported module" on lazy routes.
       devOptions: {
-        enabled: true,
-        type: 'module',
+        enabled: false,
       },
       includeAssets: ['favicon.svg', 'favicon-192.png', 'favicon-512.png', 'apple-touch-icon.png'],
       manifest: {

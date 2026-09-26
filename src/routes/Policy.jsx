@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { policiesData, getPolicyBySlug } from '@/config/policies'
-import { SITE_CONTACT } from '@/config/site'
+import { SITE_CONTACT } from '@/config/contact'
 import { Button } from '@/components/ui/Button'
 
 function formatInlineImportant(text) {
