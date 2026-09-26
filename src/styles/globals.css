@@ -17778,15 +17778,22 @@ a.cart-item__name:hover {
   gap: var(--space-3);
 }
 
+.policy-page__bullets > li {
+  padding-left: 0.15rem;
+}
+
 .policy-page__bullets--nested {
-  margin-top: var(--space-2);
-  gap: var(--space-2);
+  margin-top: 0.45rem;
+  margin-left: 0.15rem;
+  padding-left: 1.15rem;
+  gap: var(--space-3);
 }
 
 .policy-page__nested-bullet {
-  color: var(--color-ink);
-  font-size: var(--text-sm);
-  line-height: 1.55;
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  line-height: 1.85;
+  color: color-mix(in srgb, var(--color-ink) 82%, transparent);
 }
 
 .policy-page__bullets li::marker {
@@ -17794,7 +17801,11 @@ a.cart-item__name:hover {
 }
 
 .policy-page__nested-p {
-  margin: 0.4rem 0 0;
+  margin: 0.35rem 0 0;
+  padding-left: 0;
+  max-width: 100%;
+  font-size: inherit;
+  line-height: inherit;
 }
 
 .policy-page__nested-p--gap {

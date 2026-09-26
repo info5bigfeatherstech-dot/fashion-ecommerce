@@ -4,16 +4,23 @@ import { policiesData, getPolicyBySlug } from '@/config/policies'
 import { SITE_CONTACT } from '@/config/contact'
 import { Button } from '@/components/ui/Button'
 
+/** Capitalize the first letter of a line / clause (keeps leading whitespace). */
+function capitalizeLead(text) {
+  const t = String(text ?? '')
+  return t.replace(/^(\s*)(\p{L})/u, (_, ws, ch) => ws + ch.toUpperCase())
+}
+
 function formatInlineImportant(text) {
-  if (text.startsWith('Important:')) {
+  const normalized = capitalizeLead(text)
+  if (normalized.startsWith('Important:')) {
     return (
       <>
         <strong>Important:</strong>
-        {text.slice('Important:'.length)}
+        {capitalizeLead(normalized.slice('Important:'.length))}
       </>
     )
   }
-  return text
+  return normalized
 }
 
 function isStandaloneSubheading(line, nextLine) {
@@ -39,17 +46,27 @@ function renderBulletLabel(raw) {
     return (
       <>
         <strong>{raw.slice(0, colonIdx + 1)}</strong>
-        {raw.slice(colonIdx + 1)}
+        {' '}
+        {capitalizeLead(raw.slice(colonIdx + 1).trimStart())}
       </>
     )
   }
-  return raw
+  return capitalizeLead(raw)
 }
 
 function looksLikeTopLevelPolicyBullet(raw) {
   const t = String(raw || '').trim()
   if (/\(mandatory\)/i.test(t)) return true
   if (/^(Image proofs|Issue message|Unboxing video)\b/i.test(t)) return true
+  return false
+}
+
+/** Parent bullets that may own nested tip lines (even when text follows the colon). */
+function canOwnNestedBullets(raw, lastBody, nextRaw) {
+  if (looksLikeTopLevelPolicyBullet(nextRaw)) return false
+  if (raw.endsWith(':') || lastBody.endsWith(':')) return true
+  // e.g. "Unboxing video (mandatory): Required for every return request"
+  if (/^Unboxing video \(mandatory\)\s*:/i.test(raw)) return true
   return false
 }
 
@@ -70,14 +87,13 @@ function parseBulletSection(lines, startIdx) {
     let nestedBullets = null
     if (i < lines.length && lines[i].startsWith('•')) {
       const lastBody = bodyParagraphs[bodyParagraphs.length - 1] || ''
-      const isNested = raw.endsWith(':') || lastBody.endsWith(':')
+      const peekRaw = lines[i].replace(/^•\s*/, '')
 
-      if (isNested) {
+      if (canOwnNestedBullets(raw, lastBody, peekRaw)) {
         nestedBullets = []
         while (i < lines.length && lines[i].startsWith('•')) {
           const nextRaw = lines[i].replace(/^•\s*/, '')
-          // Stop nesting when the next bullet is clearly a sibling top-level item.
-          if (nestedBullets.length > 0 && looksLikeTopLevelPolicyBullet(nextRaw)) break
+          if (looksLikeTopLevelPolicyBullet(nextRaw)) break
           nestedBullets.push(nextRaw)
           i++
         }
@@ -100,7 +116,7 @@ function parseBulletSection(lines, startIdx) {
           {item.nestedBullets?.length > 0 && (
             <ul className="policy-page__bullets policy-page__bullets--nested">
               {item.nestedBullets.map((nb, ni) => (
-                <li key={ni} className="policy-page__nested-bullet">{nb}</li>
+                <li key={ni} className="policy-page__nested-bullet">{capitalizeLead(nb)}</li>
               ))}
             </ul>
           )}

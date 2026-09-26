@@ -14,7 +14,7 @@ export const policiesData = [
       {
         heading: "Return Request Window & Mandatory Proofs",
         content:
-          "Return requests must be raised within 24 hours from the date and time of delivery. Requests raised after this period may be rejected.\n\nRequired evidence:\n\n• Unboxing video (mandatory):\nrequired for every return request\n• Start with the sealed / packed parcel as received\n• Record continuously start → end (no cuts or edits)\n• Clearly show the damaged or wrong item\n• Random, edited, partial, or unrelated videos are not accepted\n• Image proofs (mandatory): 1 to 3 clear photos of the issue\n• Issue message: briefly describe what is damaged or wrong\n\nIf sufficient or valid proof is not provided, the request may be rejected.",
+          "Return requests must be raised within 24 hours from the date and time of delivery. Requests raised after this period may be rejected.\n\nRequired evidence:\n\n• Unboxing video (mandatory): Required for every return request\n• Start with the sealed / packed parcel as received\n• Record continuously start → end (no cuts or edits)\n• Clearly show the damaged or wrong item\n• Random, edited, partial, or unrelated videos are not accepted\n• Image proofs (mandatory): 1 to 3 clear photos of the issue\n• Issue message: Briefly describe what is damaged or wrong\n\nIf sufficient or valid proof is not provided, the request may be rejected.",
       },
       {
         heading: "Review Process & Reverse Pickup",
