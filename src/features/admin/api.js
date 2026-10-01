@@ -237,6 +237,8 @@ export {
 export {
   getAdminCheckoutSettings,
   updateAdminCheckoutSettings,
+  getAdminProductCodePrefixSettings,
+  updateAdminProductCodePrefixSettings,
   getAdminShippingSettings,
   updateAdminShippingSettings,
   testAdminShippingConnection,

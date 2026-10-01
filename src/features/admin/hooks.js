@@ -40,6 +40,7 @@ import {
   getAdminAbandonedCarts,
   getAdminFreeShippingOffers,
   getAdminCheckoutSettings,
+  getAdminProductCodePrefixSettings,
   getAdminCoupons,
   getAdminCarts,
   getAdminCartById,
@@ -97,6 +98,7 @@ import {
   toggleAdminCoupon,
   toggleAdminFreeShippingOffer,
   updateAdminCheckoutSettings,
+  updateAdminProductCodePrefixSettings,
   updateAdminCoupon,
   updateAdminFreeShippingOffer,
   updateAdminOosInquiryStatus,
@@ -166,6 +168,25 @@ export function useUpdateAdminCheckoutSettings() {
   return useMutation({
     mutationFn: updateAdminCheckoutSettings,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: adminKeys.checkoutSettings() }),
+  })
+}
+
+export function useAdminProductCodePrefixSettings({ enabled = true } = {}) {
+  const queryEnabled = useAdminQueryEnabled(enabled)
+  return useQuery({
+    queryKey: adminKeys.productCodePrefixSettings(),
+    queryFn: ({ signal }) => getAdminProductCodePrefixSettings({ signal }),
+    enabled: queryEnabled,
+    staleTime: 1000 * 30,
+  })
+}
+
+export function useUpdateAdminProductCodePrefixSettings() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: updateAdminProductCodePrefixSettings,
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: adminKeys.productCodePrefixSettings() }),
   })
 }
 

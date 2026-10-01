@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { ADMIN_PRODUCT_MARKETING_TAGS } from '@/features/admin/constants/productMarketingTags'
+import { useAdminProductCodePrefixSettings } from '@/features/admin/hooks'
 import { parseQuantityInput, quantityFieldValue, MAX_VARIANT_IMAGES } from './utils'
 
 const MARKETING_TOGGLE_CLASS = {
@@ -39,6 +41,8 @@ export default function ProductFormBody({
   actionError = null,
 }) {
   const isEditMode = !!productSlug;
+  const { data: prefixSettings } = useAdminProductCodePrefixSettings({ enabled: !isEditMode })
+  const listingPrefix = prefixSettings?.configured ? String(prefixSettings.prefix || '').toUpperCase() : ''
   const [draggedIdx, setDraggedIdx] = useState(null);
   const [isDraggingZone, setIsDraggingZone] = useState(false);
 
@@ -497,7 +501,38 @@ export default function ProductFormBody({
             <div className="pf-card__body">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Product Code <span className="text-red-400">*</span></label>
-                <input type="text" value={formData.ProductCode || ""} onChange={(e) => setFormData((p) => ({ ...p, ProductCode: e.target.value }))} className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 font-mono" placeholder="e.g., 1234567890128" maxLength={20} />
+                <div className="flex items-stretch gap-0">
+                  {listingPrefix ? (
+                    <span
+                      className="inline-flex items-center px-3 py-2 bg-gray-100 border border-r-0 border-gray-200 rounded-l-lg font-mono text-sm text-gray-700 select-none"
+                      title="Configured listing prefix"
+                    >
+                      {listingPrefix}
+                    </span>
+                  ) : null}
+                  <input
+                    type="text"
+                    value={formData.ProductCode || ""}
+                    onChange={(e) => setFormData((p) => ({ ...p, ProductCode: e.target.value }))}
+                    className={`w-full px-4 py-2 bg-gray-50 border border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500 font-mono ${listingPrefix ? 'rounded-r-lg' : 'rounded-lg'}`}
+                    placeholder={listingPrefix ? 'e.g. 788-1' : 'e.g. 788-1'}
+                    maxLength={20}
+                  />
+                </div>
+                {listingPrefix ? (
+                  <p className="mt-1.5 text-xs text-gray-500">
+                    Saved as <span className="font-mono">{listingPrefix}{String(formData.ProductCode || '').trim() || '…'}</span>.
+                    If you already type the prefix, it won&apos;t be doubled.
+                  </p>
+                ) : (
+                  <p className="mt-1.5 text-xs text-amber-700">
+                    Set a product code prefix in{' '}
+                    <Link to="/admin/settings/product-code-prefix" className="underline font-medium">
+                      Settings → Product code prefix
+                    </Link>{' '}
+                    before listing (required).
+                  </p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

@@ -101,3 +101,20 @@ export async function deleteAdminShipmozoLabelLogo() {
   }
   return unwrapAdmin(payload)
 }
+
+export async function getAdminProductCodePrefixSettings({ signal } = {}) {
+  const payload = await adminGet(API_ENDPOINTS.admin.productCodePrefixSettings, {
+    signal,
+    headers: storefrontHeaders,
+  })
+  return unwrapAdmin(payload)
+}
+
+export async function updateAdminProductCodePrefixSettings(body) {
+  const payload = await adminPut(
+    API_ENDPOINTS.admin.productCodePrefixSettings,
+    body,
+    { headers: storefrontHeaders }
+  )
+  return unwrapAdmin(payload)
+}

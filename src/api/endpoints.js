@@ -227,6 +227,7 @@ export const API_ENDPOINTS = {
     shipmozoLabelSettings: '/shipping-provider/admin/shipmozo-label-settings',
     shipmozoLabelSettingsPreview: '/shipping-provider/admin/shipmozo-label-settings/preview',
     shipmozoLabelSettingsLogo: '/shipping-provider/admin/shipmozo-label-settings/logo',
+    productCodePrefixSettings: '/admin/product-code-prefix/settings',
   },
   delivery: {
     check: '/delivery/check-delivery',

@@ -508,7 +508,8 @@ export function AdminBulkUploadModal({ open, onOpenChange, onComplete }) {
                 <strong className="bulk-upload-mode-card__title">Upload images separately</strong>
                 <p className="bulk-upload-mode-card__desc">
                   Images are in a ZIP file. Each folder inside the ZIP is named after the product&apos;s{' '}
-                  <strong>Product Code number</strong>. Drop the images inside their Product Code folder.
+                  <strong>Product Code number</strong> (as in the CSV, e.g. <code>789-1</code> — the configured
+                  prefix is applied automatically on import). Drop the images inside their Product Code folder.
                 </p>
                 <span className="bulk-upload-mode-card__cta bulk-upload-mode-card__cta--zip">Excel + ZIP →</span>
               </button>
@@ -693,7 +694,9 @@ export function AdminBulkUploadModal({ open, onOpenChange, onComplete }) {
             <p className="bulk-upload-mode-hint bulk-upload-mode-hint--zip">
               <Archive size={14} aria-hidden />
               <span>
-                <strong>Upload your images ZIP</strong> — Folders must match Product Code numbers from your Excel.
+                <strong>Upload your images ZIP</strong> — Folders must match Product Code numbers from your Excel
+                (e.g. <code>789-1</code>). The admin product-code prefix is applied automatically when saving;
+                folder names can stay without the prefix.
               </span>
             </p>
             <DropZone

@@ -7,6 +7,7 @@ export const SETTINGS_NAV_ITEMS = [
   { id: 'settings-profile', label: 'Profile', path: '/admin/settings/profile', group: 'Store' },
   { id: 'settings-controls', label: 'Controls', path: '/admin/settings/controls', group: 'Store' },
   { id: 'settings-product-display', label: 'Product display', path: '/admin/settings/product-display', group: 'Website' },
+  { id: 'settings-product-code-prefix', label: 'Product code prefix', path: '/admin/settings/product-code-prefix', group: 'Website' },
   { id: 'settings-delivery', label: 'Delivery', path: '/admin/settings/delivery', group: 'E-Commerce' },
   { id: 'settings-label', label: 'Label settings', path: '/admin/settings/label', group: 'E-Commerce' },
   { id: 'settings-payment', label: 'Payments', path: '/admin/settings/payment', group: 'E-Commerce' },

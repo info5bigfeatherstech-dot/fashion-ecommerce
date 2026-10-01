@@ -2,6 +2,7 @@ export const adminKeys = {
   all: ['admin'],
   me: () => [...adminKeys.all, 'me'],
   checkoutSettings: () => [...adminKeys.all, 'checkout-settings'],
+  productCodePrefixSettings: () => [...adminKeys.all, 'product-code-prefix-settings'],
   shippingSettings: () => [...adminKeys.all, 'shipping-settings'],
   dashboardSummary: () => [...adminKeys.all, 'dashboard-summary'],
   ordersSummary: (rangeKey = 'all') => [...adminKeys.all, 'orders-summary', rangeKey],

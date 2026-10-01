@@ -38,6 +38,7 @@ const AdminLoyaltyPointsPage = lazy(() => import('./admin/AdminLoyaltyPointsPage
 const AdminOffersPage = lazy(() => import('./admin/AdminOffersPage'))
 const AdminStaffPage = lazy(() => import('./admin/AdminStaffPage'))
 const AdminPaymentSettingsPage = lazy(() => import('./admin/AdminPaymentSettingsPage'))
+const AdminProductCodePrefixSettingsPage = lazy(() => import('./admin/AdminProductCodePrefixSettingsPage'))
 const AdminDeliverySettingsPage = lazy(() => import('./admin/AdminDeliverySettingsPage'))
 const AdminUtilitiesPage = lazy(() => import('./admin/AdminUtilitiesPage'))
 const AdminEcommercePage = lazy(() => import('./admin/AdminEcommercePage'))
@@ -125,6 +126,7 @@ export const router = createBrowserRouter([
       { path: 'settings/profile', element: <AdminSettingsSectionPage section="profile" /> },
       { path: 'settings/controls', element: <AdminSettingsSectionPage section="controls" /> },
       { path: 'settings/product-display', element: <AdminSettingsSectionPage section="product-display" /> },
+      { path: 'settings/product-code-prefix', element: <AdminProductCodePrefixSettingsPage /> },
       { path: 'settings/delivery', element: <AdminDeliverySettingsPage /> },
       { path: 'settings/label', element: <AdminSettingsSectionPage section="label" /> },
       { path: 'settings/payment', element: <AdminPaymentSettingsPage /> },
