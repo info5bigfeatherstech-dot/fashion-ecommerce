@@ -22,10 +22,19 @@ export async function getAdminProductReviews({
   page = 1,
   limit = 20,
   source = 'admin',
+  isActive,
+  productId,
 } = {}) {
+  const params = { page, limit, source }
+  if (isActive !== undefined && isActive !== null && isActive !== '') {
+    params.isActive = String(isActive)
+  }
+  if (productId) {
+    params.productId = productId
+  }
   const payload = await adminGet(API_ENDPOINTS.admin.productReviews, {
     signal,
-    params: { page, limit, source },
+    params,
   })
   return normalizeReviewsPayload(payload)
 }

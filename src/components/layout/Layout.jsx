@@ -61,6 +61,7 @@ function getVisibleSectionId() {
 
 function recordCurrentScroll(key, pathnameWithSearch, extra = {}) {
   if (isScrollRecordingSuppressed()) return
+  if (!pathnameWithSearch) return
   const y = extra.y !== undefined ? extra.y : (window.scrollY || document.documentElement.scrollTop || 0)
   const sectionId = extra.sectionId || getVisibleSectionId() || undefined
   const data = { y, sectionId }
@@ -79,7 +80,7 @@ function recordCurrentScroll(key, pathnameWithSearch, extra = {}) {
   }
 }
 
-function readSavedScroll(location) {
+export function readSavedScroll(location) {
   let data = scrollPositions.get(location.key)
   if (!data) {
     data = scrollPositions.get(location.pathname + location.search)
@@ -207,7 +208,7 @@ function ScrollToTop() {
       return
     }
 
-    // Normal forward navigation (PUSH / REPLACE) -> reset to top
+    // Normal forward navigation (PUSH / REPLACE) -> always reset to top
     scrollToPosition(0)
     const id = requestAnimationFrame(() => {
       scrollToPosition(0)

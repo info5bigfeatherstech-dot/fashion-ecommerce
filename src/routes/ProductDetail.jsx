@@ -1,5 +1,5 @@
 import { useLayoutEffect, useEffect, useMemo, useRef, useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link, useNavigate, useNavigationType, useLocation } from 'react-router-dom'
 import { Heart, Minus, Plus } from 'lucide-react'
 import { ProductGallery } from '@/features/product/components/ProductGallery'
 import { PriceBlock } from '@/features/product/components/PriceBlock'
@@ -24,7 +24,7 @@ import { useAppliedCoupon } from '@/store/selectors'
 import { ProductCouponSection } from '@/features/coupon/components/ProductCouponSection'
 import { isItemEligibleForCoupon } from '@/features/coupon/utils'
 import { showAddedToCartToast } from '@/lib/cart-toast'
-import { scrollToTop } from '@/lib/lenis'
+import { scrollToTop, restoreScrollPositionSoon } from '@/lib/lenis'
 import { formatPrice } from '@/lib/utils'
 
 function formatLabel(value) {
@@ -76,25 +76,38 @@ function ProductDetailPage() {
     s.isAuthenticated && product ? s.isInWishlist(product.id) : false
   ))
   const navigate = useNavigate()
+  const navType = useNavigationType()
+  const location = useLocation()
+
+  const scrolledOnLoadRef = useRef(false)
 
   useLayoutEffect(() => {
-    // Instant top on every product open, including Product A → B (slug change).
-    scrollToTop()
     setSelectedAttrs({})
     setShowStickyBar(false)
     setReviewFilterStar(null)
 
-    const id1 = requestAnimationFrame(scrollToTop)
-    const id2 = setTimeout(scrollToTop, 60)
-    return () => {
-      cancelAnimationFrame(id1)
-      clearTimeout(id2)
+    // Instant top on product open only for forward navigation (PUSH / REPLACE), never on back navigation (POP).
+    if (navType !== 'POP') {
+      scrollToTop()
+      const id1 = requestAnimationFrame(scrollToTop)
+      const id2 = setTimeout(scrollToTop, 60)
+      return () => {
+        cancelAnimationFrame(id1)
+        clearTimeout(id2)
+      }
     }
-  }, [slug])
+  }, [slug, navType])
 
   useLayoutEffect(() => {
-    if (!product) return
-    // When product finishes loading and replaces the skeleton, lock scroll to top
+    if (!product || scrolledOnLoadRef.current) return
+    scrolledOnLoadRef.current = true
+
+    // On POP navigation, preserve user scroll restoration point.
+    if (navType === 'POP') return
+
+    const currentY = window.scrollY || document.documentElement?.scrollTop || 0
+    if (currentY > 60) return
+
     scrollToTop()
     const id1 = requestAnimationFrame(scrollToTop)
     const id2 = setTimeout(scrollToTop, 60)
@@ -102,7 +115,7 @@ function ProductDetailPage() {
       cancelAnimationFrame(id1)
       clearTimeout(id2)
     }
-  }, [product?.id])
+  }, [product?.id, navType])
 
   useEffect(() => {
     if (!product) return
@@ -224,6 +237,47 @@ function ProductDetailPage() {
       }) || null
     )
   }, [isAuthenticated, product, cartItems, selectedVariant?.id, selectedAttrs])
+
+  const related = useMemo(() => {
+    return (relatedProducts || [])
+      .filter((p) => {
+        if (!p) return false
+        if (product?.id != null && p.id != null && String(p.id) === String(product.id)) return false
+        if (product?.slug && p.slug && String(p.slug) === String(product.slug)) return false
+        return true
+      })
+      .slice(0, 8)
+  }, [relatedProducts, product?.id, product?.slug])
+
+  useEffect(() => {
+    if (navType !== 'POP' || !related.length) return
+    let isRelatedTarget = false
+    try {
+      const sp =
+        sessionStorage.getItem(`sp_${location.key}`) ||
+        sessionStorage.getItem(`sp_${location.pathname}${location.search}`)
+      if (sp) {
+        const parsed = JSON.parse(sp)
+        if (parsed?.sectionId === 'pdp-related') isRelatedTarget = true
+      }
+    } catch (_) { }
+
+    if (!isRelatedTarget) {
+      try {
+        const keys = Object.keys(sessionStorage).filter((k) => k.startsWith('return_to_section_'))
+        for (const k of keys) {
+          if (sessionStorage.getItem(k) === 'pdp-related') {
+            isRelatedTarget = true
+            break
+          }
+        }
+      } catch (_) { }
+    }
+
+    if (isRelatedTarget) {
+      restoreScrollPositionSoon('#pdp-related')
+    }
+  }, [related.length, navType, location.key, location.pathname, location.search])
 
   const inCartQty = currentCartLine?.quantity || 0
 
@@ -348,14 +402,7 @@ function ProductDetailPage() {
     navigate('/checkout')
   }
 
-  const related = relatedProducts
-    .filter((p) => {
-      if (!p) return false
-      if (product.id != null && p.id != null && String(p.id) === String(product.id)) return false
-      if (product.slug && p.slug && String(p.slug) === String(product.slug)) return false
-      return true
-    })
-    .slice(0, 8)
+
   const optionGroups = product.optionGroups?.length
     ? product.optionGroups
     : [
@@ -437,7 +484,7 @@ function ProductDetailPage() {
         <span>{displayTitle}</span>
       </nav>
 
-      <div className="pdp">
+      <section id="pdp-main" className="pdp">
         <div className="pdp-media">
           <div ref={gallerySentinelRef}>
             <ProductGallery images={displayImages} name={displayTitle} />
@@ -628,10 +675,10 @@ function ProductDetailPage() {
             onFilterStarChange={setReviewFilterStar}
           />
         </div>
-      </div>
+      </section>
 
       {related.length > 0 && (
-        <section className="pdp-related">
+        <section id="pdp-related" className="pdp-related">
           <div className="section-header">
             <div>
               <p className="heading-sm">Complete the look</p>

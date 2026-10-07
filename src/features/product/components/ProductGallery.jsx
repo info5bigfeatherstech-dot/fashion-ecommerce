@@ -65,7 +65,26 @@ export function ProductGallery({ images = [], name }) {
     setActiveIndex(index)
   }
 
-  // Auto rotate image to show next image every 3.5 seconds
+  const galleryRef = useRef(null)
+  const thumbsContainerRef = useRef(null)
+  const isVisibleRef = useRef(true)
+
+  // Pause gallery auto-rotate when scrolled off screen
+  useEffect(() => {
+    const target = galleryRef.current
+    if (!target || typeof IntersectionObserver === 'undefined') return undefined
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isVisibleRef.current = entry.isIntersecting
+      },
+      { threshold: 0.05 }
+    )
+    observer.observe(target)
+    return () => observer.disconnect()
+  }, [])
+
+  // Auto rotate image to show next image every 3.5 seconds (only when visible)
   useEffect(() => {
     if (photos.length <= 1) return undefined
 
@@ -73,18 +92,35 @@ export function ProductGallery({ images = [], name }) {
     if (media.matches) return undefined
 
     const interval = setInterval(() => {
-      if (pauseRef.current || isZooming) return
+      if (!isVisibleRef.current || pauseRef.current || isZooming) return
       setActiveIndex((prev) => (prev + 1) % photos.length)
     }, 3500)
 
     return () => clearInterval(interval)
   }, [photos.length, isZooming])
 
-  // Ensure active thumbnail scrolls into view
+  // Ensure active thumbnail is scrolled into view within the thumbnails container only.
+  // NEVER call el.scrollIntoView() which scrolls the whole window / page back to the top.
   useEffect(() => {
+    const container = thumbsContainerRef.current
     const el = thumbRefs.current[safeIndex]
-    if (el?.scrollIntoView) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+    if (!container || !el) return
+
+    const containerRect = container.getBoundingClientRect()
+    const elRect = el.getBoundingClientRect()
+
+    // Vertical scrolling (desktop thumbnail sidebar)
+    if (elRect.top < containerRect.top) {
+      container.scrollTop += elRect.top - containerRect.top
+    } else if (elRect.bottom > containerRect.bottom) {
+      container.scrollTop += elRect.bottom - containerRect.bottom
+    }
+
+    // Horizontal scrolling (mobile thumbnail strip)
+    if (elRect.left < containerRect.left) {
+      container.scrollLeft += elRect.left - containerRect.left
+    } else if (elRect.right > containerRect.right) {
+      container.scrollLeft += elRect.right - containerRect.right
     }
   }, [safeIndex])
 
@@ -149,6 +185,7 @@ export function ProductGallery({ images = [], name }) {
 
   return (
     <div
+      ref={galleryRef}
       className="pdp-gallery"
       onMouseEnter={() => {
         pauseRef.current = true
@@ -159,7 +196,7 @@ export function ProductGallery({ images = [], name }) {
       }}
     >
       {photos.length > 1 && (
-        <div className="pdp-gallery__thumbs" role="tablist" aria-label="Product images">
+        <div ref={thumbsContainerRef} className="pdp-gallery__thumbs" role="tablist" aria-label="Product images">
           {photos.map((img, i) => (
             <button
               key={`${img}-${i}`}

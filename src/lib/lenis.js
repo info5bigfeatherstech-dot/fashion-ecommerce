@@ -84,20 +84,23 @@ export function resolveScrollTarget(yOrSelector = 0) {
  */
 export function restoreScrollPositionSoon(
   target = 0,
-  delays = [0, 25, 60, 120, 220, 380, 550, 800, 1200]
+  delays = [0, 25, 60, 120, 220, 380, 550, 800, 1200, 1800, 2500]
 ) {
   let cancelled = false
-
-  const cancel = () => {
-    cancelled = true
-    cleanupListeners()
-  }
 
   const cleanupListeners = () => {
     window.removeEventListener('wheel', cancel)
     window.removeEventListener('touchmove', cancel)
     window.removeEventListener('pointerdown', cancel)
     window.removeEventListener('keydown', cancel)
+    try {
+      observer?.disconnect()
+    } catch (_) { }
+  }
+
+  const cancel = () => {
+    cancelled = true
+    cleanupListeners()
   }
 
   window.addEventListener('wheel', cancel, { passive: true })
@@ -105,21 +108,21 @@ export function restoreScrollPositionSoon(
   window.addEventListener('pointerdown', cancel, { passive: true })
   window.addEventListener('keydown', cancel, { passive: true })
 
-  const resolveTargetY = () => {
-    let selector = null
-    let fallbackY = 0
+  let selector = null
+  let fallbackY = 0
 
-    if (typeof target === 'string') {
-      selector = target.startsWith('#') ? target : `#${target}`
-    } else if (target && typeof target === 'object') {
-      if (target.sectionId) {
-        selector = target.sectionId.startsWith('#') ? target.sectionId : `#${target.sectionId}`
-      }
-      fallbackY = Math.max(0, Number(target.y) || 0)
-    } else {
-      fallbackY = Math.max(0, Number(target) || 0)
+  if (typeof target === 'string') {
+    selector = target.startsWith('#') ? target : `#${target}`
+  } else if (target && typeof target === 'object') {
+    if (target.sectionId) {
+      selector = target.sectionId.startsWith('#') ? target.sectionId : `#${target.sectionId}`
     }
+    fallbackY = Math.max(0, Number(target.y) || 0)
+  } else {
+    fallbackY = Math.max(0, Number(target) || 0)
+  }
 
+  const resolveTargetY = () => {
     if (selector) {
       try {
         const el = document.querySelector(selector)
@@ -128,6 +131,17 @@ export function restoreScrollPositionSoon(
           return Math.max(0, rect.top + window.scrollY - 80)
         }
       } catch (_) { }
+
+      // When a specific section selector is requested, do NOT jump blindly
+      // to a high fallbackY if the page has not loaded enough height yet (prevents footer jumps)
+      const maxScroll = Math.max(
+        0,
+        (document.documentElement?.scrollHeight || 0) - window.innerHeight
+      )
+      if (fallbackY > 0 && maxScroll >= fallbackY) {
+        return fallbackY
+      }
+      return null
     }
 
     return fallbackY
@@ -136,6 +150,8 @@ export function restoreScrollPositionSoon(
   const applyScroll = () => {
     if (cancelled) return
     const targetY = resolveTargetY()
+    if (targetY === null) return
+
     suppressScrollRecording = true
     scrollToPosition(targetY)
     requestAnimationFrame(() => {
@@ -143,6 +159,23 @@ export function restoreScrollPositionSoon(
         suppressScrollRecording = false
       })
     })
+  }
+
+  let observer = null
+  if (selector && typeof MutationObserver !== 'undefined' && typeof document !== 'undefined') {
+    try {
+      observer = new MutationObserver(() => {
+        if (cancelled) return
+        try {
+          if (document.querySelector(selector)) {
+            applyScroll()
+          }
+        } catch (_) { }
+      })
+      if (document.body) {
+        observer.observe(document.body, { childList: true, subtree: true })
+      }
+    } catch (_) { }
   }
 
   applyScroll()
