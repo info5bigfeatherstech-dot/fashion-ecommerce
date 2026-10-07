@@ -187,7 +187,7 @@ export async function getGiftIntentOptions({ signal } = {}) {
       maxLengths: {
         recipientName: Number(data?.maxLengths?.recipientName) || 60,
         senderName: Number(data?.maxLengths?.senderName) || 60,
-        message: Number(data?.maxLengths?.message) || 250,
+        message: Number(data?.maxLengths?.message) || 1000,
       },
     }
   } catch (err) {
@@ -201,7 +201,7 @@ export async function getGiftIntentOptions({ signal } = {}) {
       maxLengths: {
         recipientName: 60,
         senderName: 60,
-        message: 250,
+        message: 1000,
       },
     }
   }

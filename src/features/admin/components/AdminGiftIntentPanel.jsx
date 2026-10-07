@@ -368,11 +368,11 @@ export function AdminGiftIntentPanel({ order, orderId, onUpdated }) {
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
                     <span className="od-field-label" style={{ margin: 0 }}>Gift Card Message</span>
-                    <span style={{ fontSize: '10px', color: '#94a3b8' }}>{message.length}/300</span>
+                    <span style={{ fontSize: '10px', color: '#94a3b8' }}>{message.length}/1000</span>
                   </div>
                   <textarea
                     rows={2}
-                    maxLength={300}
+                    maxLength={1000}
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder="Message to be printed on card…"

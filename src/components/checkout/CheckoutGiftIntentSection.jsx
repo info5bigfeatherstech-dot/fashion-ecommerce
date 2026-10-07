@@ -24,8 +24,8 @@ export function CheckoutGiftIntentSection({ value, onChange, disabled = false })
     recipientName: 80,
     senderName: 80,
     occasion: 80,
-    message: 300,
     ...(optionsData?.maxLengths || {}),
+    message: 1000,
   }
 
   const occasionsList = Array.isArray(optionsData?.occasions) && optionsData.occasions.length > 0
