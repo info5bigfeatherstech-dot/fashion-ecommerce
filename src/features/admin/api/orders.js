@@ -1,5 +1,5 @@
 import { API_ENDPOINTS } from '@/api/endpoints'
-import { adminGet, adminPost, adminPostBlob, downloadBlob, unwrapAdmin } from './client'
+import { adminGet, adminPost, adminPut, adminDelete, adminPostBlob, downloadBlob, unwrapAdmin } from './client'
 
 /** Maps UI tab labels → backend `bucket` query param (same as fabFE). */
 export const ORDER_TAB_LABEL_TO_BUCKET = Object.freeze({
@@ -401,4 +401,51 @@ export async function downloadAdminOrderManifestFile(orderId) {
     if (m?.[1]) filename = decodeURIComponent(m[1].replace(/"/g, '').trim())
   }
   downloadBlob(new Blob([response.data], { type: ct.split(';')[0].trim() || 'application/pdf' }), filename)
+}
+
+/**
+ * Admin read gift intent snapshot
+ * GET /orders/admin/items/:orderId/gift-intent
+ */
+export async function getAdminOrderGiftIntent(orderId, { signal } = {}) {
+  const id = String(orderId || '').trim()
+  if (!id) throw new Error('Order ID is required')
+  const payload = await adminGet(API_ENDPOINTS.admin.orderGiftIntent(id), { signal })
+  return unwrapAdmin(payload)
+}
+
+/**
+ * Admin update gift intent
+ * PUT /orders/admin/items/:orderId/gift-intent
+ * Roles: admin, order_manager
+ * Allowed status: pending | confirmed | processing
+ */
+export async function updateAdminOrderGiftIntent(orderId, orderIntent) {
+  const id = String(orderId || '').trim()
+  if (!id) throw new Error('Order ID is required')
+  const raw = orderIntent?.orderIntent || orderIntent || {}
+  const type = raw.type || 'gift_other'
+  const giftDetails = raw.giftDetails || {}
+  const body = {
+    orderIntent: {
+      type,
+      giftDetails,
+    },
+    type,
+    giftDetails,
+  }
+  const payload = await adminPut(API_ENDPOINTS.admin.orderGiftIntent(id), body)
+  return unwrapAdmin(payload)
+}
+
+/**
+ * Admin delete/clear gift intent -> reverts to my_order
+ * DELETE /orders/admin/items/:orderId/gift-intent
+ * Allowed status: pending | confirmed | processing
+ */
+export async function deleteAdminOrderGiftIntent(orderId) {
+  const id = String(orderId || '').trim()
+  if (!id) throw new Error('Order ID is required')
+  const payload = await adminDelete(API_ENDPOINTS.admin.orderGiftIntent(id))
+  return unwrapAdmin(payload)
 }

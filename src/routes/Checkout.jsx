@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/Button'
 import { Input, InputGroup } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { CheckoutAddressModal } from '@/components/checkout/CheckoutAddressModal'
+import { CheckoutGiftIntentSection } from '@/components/checkout/CheckoutGiftIntentSection'
 import {
   useAbandonOnlineCheckout,
   useCheckoutQuote,
@@ -134,6 +135,15 @@ export default function Checkout() {
   const [loyaltyPointsToRedeem, setLoyaltyPointsToRedeem] = useState(0)
   const [loyaltyPointsInput, setLoyaltyPointsInput] = useState('')
   const [placedOrder, setPlacedOrder] = useState(null)
+  const [orderIntent, setOrderIntent] = useState({
+    type: 'my_order',
+    giftDetails: {
+      recipientName: '',
+      senderName: '',
+      message: '',
+      occasion: '',
+    },
+  })
 
   useEffect(() => {
     if (appliedCoupon?.code && appliedCoupon.code !== appliedCouponCode) {
@@ -775,6 +785,19 @@ export default function Checkout() {
         })
       }
 
+      const resolvedOrderIntent =
+        orderIntent?.type === 'gift_other'
+          ? {
+              type: 'gift_other',
+              giftDetails: {
+                recipientName: String(orderIntent.giftDetails?.recipientName || '').trim(),
+                senderName: String(orderIntent.giftDetails?.senderName || '').trim(),
+                message: String(orderIntent.giftDetails?.message || '').trim(),
+                occasion: String(orderIntent.giftDetails?.occasion || '').trim(),
+              },
+            }
+          : undefined
+
       const orderResult = await createOrder.mutateAsync({
         idempotencyKey,
         addressId: checkoutAddress.id,
@@ -782,6 +805,7 @@ export default function Checkout() {
         confirmed,
         activeQuote,
         couponCode: appliedCouponCode,
+        orderIntent: resolvedOrderIntent,
       })
 
       setPlacedOrder(orderResult)
@@ -1371,6 +1395,11 @@ export default function Checkout() {
                   </p>
                 )}
 
+                <CheckoutGiftIntentSection
+                  value={orderIntent}
+                  onChange={setOrderIntent}
+                  disabled={confirmCheckout.isPending || createOrder.isPending}
+                />
               </section>
             )}
 
@@ -1392,6 +1421,30 @@ export default function Checkout() {
                       Encrypted
                     </span> */}
                   </div>
+
+                  {orderIntent?.type === 'gift_other' && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        background: '#fdf2f8',
+                        border: '1px solid #fbcfe8',
+                        color: '#9d174d',
+                        fontSize: '0.8125rem',
+                        marginBottom: '1rem',
+                      }}
+                    >
+                      <span style={{ fontSize: '1rem' }}>🎁</span>
+                      <span>
+                        This order will be delivered as a gift
+                        {orderIntent.giftDetails?.recipientName ? ` to ${orderIntent.giftDetails.recipientName}` : ''}
+                        {orderIntent.giftDetails?.occasion ? ` (${orderIntent.giftDetails.occasion})` : ''}.
+                      </span>
+                    </div>
+                  )}
 
                   <input type="hidden" {...register('paymentMethod')} />
 

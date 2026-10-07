@@ -78,6 +78,7 @@ export async function createOrder({
   confirmed,
   activeQuote,
   couponCode,
+  orderIntent,
 } = {}) {
   const resolvedPayload = buildPlaceOrderPayload({
     addressId,
@@ -85,6 +86,7 @@ export async function createOrder({
     confirmed,
     activeQuote,
     couponCode,
+    orderIntent,
   })
   if (!resolvedPayload) {
     throw new Error('Missing create-order payload')

@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { AdminError, AdminLoading } from '@/features/admin/components/AdminUi'
 import { AdminPendingAddressPanel } from '@/features/admin/components/AdminPendingAddressPanel'
+import { AdminGiftIntentPanel } from '@/features/admin/components/AdminGiftIntentPanel'
 import { AdminPendingOrderEditPanel } from '@/features/admin/components/AdminPendingOrderEditPanel'
 import { OrderPaymentSummaryCard } from '@/features/admin/components/OrderPaymentSummaryCard'
 import { OrderShipmentTrackingPanel } from '@/features/admin/components/OrderShipmentTrackingPanel'
@@ -578,7 +579,16 @@ export function AdminOrderDetailView({
       <section className="od-header-card">
         <div className="od-header-card__left">
           <p className="od-header-card__eyebrow">Order</p>
-          <h1 className="od-header-card__title">#{displayId}</h1>
+          <h1 className="od-header-card__title" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+            #{displayId}
+            {(order?.isGiftOrder ||
+              order?.orderIntentType === 'gift_other' ||
+              order?.orderIntent?.type === 'gift_other') && (
+              <span className="admin-badge admin-badge--gift" style={{ fontSize: '0.75rem', verticalAlign: 'middle' }}>
+                🎁 Gift Order
+              </span>
+            )}
+          </h1>
           <div className="od-header-card__meta">
             <span className={`od-provider od-provider--${shippingProviderKey}`}>
               {providerName}
@@ -929,6 +939,12 @@ export function AdminOrderDetailView({
         </div>
 
         <aside className="od-grid__side">
+          <AdminGiftIntentPanel
+            order={order}
+            orderId={orderId}
+            onUpdated={refreshOrder}
+          />
+
           <AdminPendingAddressPanel
             order={order}
             orderId={orderId}

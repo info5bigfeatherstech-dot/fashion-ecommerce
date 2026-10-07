@@ -165,3 +165,57 @@ export async function payOrderBalance(orderId) {
   }
   return payload
 }
+
+/**
+ * 8) Gift intent options catalog (checkout UI)
+ * GET /orders/gift-intent/options
+ */
+export async function getGiftIntentOptions({ signal } = {}) {
+  try {
+    const payload = await http.get(API_ENDPOINTS.orders.giftIntentOptions, { signal })
+    const data = payload?.data || payload
+    return {
+      types: Array.isArray(data?.types)
+        ? data.types
+        : [
+            { id: 'my_order', label: 'For Myself' },
+            { id: 'gift_other', label: 'Send as a Gift' },
+          ],
+      occasions: Array.isArray(data?.occasions)
+        ? data.occasions
+        : ['birthday', 'anniversary', 'festival', 'other'],
+      maxLengths: {
+        recipientName: Number(data?.maxLengths?.recipientName) || 60,
+        senderName: Number(data?.maxLengths?.senderName) || 60,
+        message: Number(data?.maxLengths?.message) || 250,
+      },
+    }
+  } catch (err) {
+    // Graceful fallback defaults if network or offline
+    return {
+      types: [
+        { id: 'my_order', label: 'For Myself' },
+        { id: 'gift_other', label: 'Send as a Gift' },
+      ],
+      occasions: ['birthday', 'anniversary', 'festival', 'other'],
+      maxLengths: {
+        recipientName: 60,
+        senderName: 60,
+        message: 250,
+      },
+    }
+  }
+}
+
+/**
+ * 9) Order gift intent snapshot
+ * GET /orders/items/:orderId/gift-intent
+ */
+export async function getOrderGiftIntent(orderId, { signal } = {}) {
+  const id = String(orderId || '').trim()
+  if (!id) throw new Error('Order ID is required')
+
+  const payload = await http.get(API_ENDPOINTS.orders.giftIntent(id), { signal })
+  return payload?.data || payload?.giftIntent || payload?.orderIntent || payload
+}
+

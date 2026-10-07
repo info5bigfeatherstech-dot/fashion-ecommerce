@@ -158,6 +158,7 @@ export function buildPlaceOrderPayload({
   confirmed,
   activeQuote,
   couponCode,
+  orderIntent,
 } = {}) {
   // Must match the quoteId sent to POST /checkout/confirm (fabFE: confirmResult.quoteId || quoteId).
   const quoteId = confirmed?.quoteId || confirmBody?.quoteId || activeQuote?.quoteId
@@ -181,6 +182,23 @@ export function buildPlaceOrderPayload({
       && confirmBody.paymentPlan !== 'full'
     ) {
       payload.paymentAdvancePercent = confirmBody.paymentAdvancePercent
+    }
+  }
+
+  if (orderIntent && typeof orderIntent === 'object') {
+    if (orderIntent.type === 'gift_other') {
+      const details = orderIntent.giftDetails || {}
+      payload.orderIntent = {
+        type: 'gift_other',
+        giftDetails: {
+          ...(details.recipientName ? { recipientName: String(details.recipientName).trim() } : {}),
+          ...(details.senderName ? { senderName: String(details.senderName).trim() } : {}),
+          ...(details.message ? { message: String(details.message).trim() } : {}),
+          ...(details.occasion ? { occasion: String(details.occasion).trim() } : {}),
+        },
+      }
+    } else if (orderIntent.type === 'my_order') {
+      payload.orderIntent = { type: 'my_order' }
     }
   }
 
@@ -217,6 +235,8 @@ function mapPlacedOrderSummary(order) {
     onlinePaymentMode: order.onlinePaymentMode || null,
     paymentAdvancePercent: order.paymentAdvancePercent ?? null,
     loyaltyPoints: mapOrderLoyaltyPoints(order.loyaltyPoints),
+    orderIntent: order.orderIntent || null,
+    isGiftOrder: Boolean(order.isGiftOrder || order.orderIntent?.type === 'gift_other'),
   }
 }
 

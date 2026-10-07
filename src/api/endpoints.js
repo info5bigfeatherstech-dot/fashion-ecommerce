@@ -65,7 +65,10 @@ export const API_ENDPOINTS = {
   },
   orders: {
     items: '/orders/items',
+    giftIntentOptions: '/orders/gift-intent/options',
     byId: (orderId) => `/orders/items/${encodeURIComponent(String(orderId))}`,
+    giftIntent: (orderId) =>
+      `/orders/items/${encodeURIComponent(String(orderId))}/gift-intent`,
     track: (orderId) => `/orders/items/${encodeURIComponent(String(orderId))}/track`,
     invoice: (orderId) => `/orders/items/${encodeURIComponent(String(orderId))}/invoice`,
     returnRequest: (orderId) =>
@@ -84,6 +87,8 @@ export const API_ENDPOINTS = {
     ordersSummary: '/admin/orders/summary',
     orders: '/admin/orders',
     ordersAutoSync: '/admin/orders/auto-sync-statuses',
+    orderGiftIntent: (orderId) =>
+      `/orders/admin/items/${encodeURIComponent(String(orderId))}/gift-intent`,
     bulkConfirm: '/orders/admin/items/bulk-approval/confirm',
     bulkCancel: '/orders/admin/items/bulk-approval/cancel',
     bulkShipNow: '/orders/admin/items/bulk-fulfillment/ship-now',

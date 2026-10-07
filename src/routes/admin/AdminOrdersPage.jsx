@@ -386,15 +386,16 @@ export default function AdminOrdersPage() {
       status: o.fulfillmentLabel || o.orderStatus || '',
       items: o.itemCount ?? '',
       payment: o.paymentLabel || '',
+      gift: (o.isGiftOrder || o.orderIntentType === 'gift_other' || o.orderIntent?.type === 'gift_other') ? 'Yes' : 'No',
     }))
-    const header = 'Order ID,Contact,Date,Amount,Status,Items,Payment'
+    const header = 'Order ID,Contact,Date,Amount,Status,Items,Payment,Gift'
     const csv =
       'data:text/csv;charset=utf-8,' +
       header +
       '\n' +
       rows
         .map((o) =>
-          [o.id, o.contact, o.date, o.amount, o.status, o.items, o.payment]
+          [o.id, o.contact, o.date, o.amount, o.status, o.items, o.payment, o.gift]
             .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
             .join(',')
         )
@@ -902,17 +903,44 @@ export default function AdminOrdersPage() {
                         <td>
                           <div className="admin-order-id">
                             <strong>{order.orderIdDisplay || id}</strong>
-                            {provider && (
-                              <span
-                                className={`admin-provider-badge${
-                                  String(order.shippingProvider).toLowerCase() === 'shipmozo'
-                                    ? ' admin-provider-badge--shipmozo'
-                                    : ''
-                                }`}
-                              >
-                                {provider}
-                              </span>
-                            )}
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                flexWrap: 'wrap',
+                              }}
+                            >
+                              {provider && (
+                                <span
+                                  className={`admin-provider-badge${
+                                    String(order.shippingProvider).toLowerCase() === 'shipmozo'
+                                      ? ' admin-provider-badge--shipmozo'
+                                      : ''
+                                  }`}
+                                >
+                                  {provider}
+                                </span>
+                              )}
+                              {(order.isGiftOrder ||
+                                order.orderIntentType === 'gift_other' ||
+                                order.orderIntent?.type === 'gift_other') && (
+                                <span
+                                  className="admin-badge admin-badge--gift"
+                                  title="Gift Order"
+                                  style={{
+                                    padding: '1px 6px',
+                                    fontSize: '10px',
+                                    lineHeight: '1.2',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                  }}
+                                >
+                                  🎁 Gift
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </td>
                         <td>{order.contactPhone || order.phone || '—'}</td>

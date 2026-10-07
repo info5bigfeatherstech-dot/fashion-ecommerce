@@ -2,7 +2,9 @@ import { useMemo } from 'react'
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   createReturnRequest,
+  getGiftIntentOptions,
   getOrderById,
+  getOrderGiftIntent,
   getOrderInvoice,
   getOrderTracking,
   getReturnChat,
@@ -11,6 +13,11 @@ import {
   payOrderBalance,
   sendReturnChatMessage,
 } from './api'
+import {
+  getAdminOrderGiftIntent,
+  updateAdminOrderGiftIntent,
+  deleteAdminOrderGiftIntent,
+} from '@/features/admin/api/orders'
 import { orderKeys } from './queryKeys'
 import { getOrderItems, mergeOrderWithDetail } from './utils'
 import { useAppStore } from '@/store'
@@ -169,4 +176,67 @@ export function useOrdersWithDetails(orders = [], { enabled = true } = {}) {
   )
 
   return { orders: enrichedOrders, isHydrating }
+}
+
+/** 1) Checkout gift options catalog hook */
+export function useGiftIntentOptions({ enabled = true } = {}) {
+  return useQuery({
+    queryKey: orderKeys.giftOptions(),
+    queryFn: ({ signal }) => getGiftIntentOptions({ signal }),
+    enabled,
+    staleTime: 1000 * 60 * 10, // 10 minutes catalog cache
+  })
+}
+
+/** 2) Read-only gift intent snapshot for customer */
+export function useOrderGiftIntent(orderId, { enabled = true } = {}) {
+  const id = String(orderId || '').trim()
+  const isAuthenticated = useAppStore((s) => s.isAuthenticated)
+
+  return useQuery({
+    queryKey: orderKeys.giftIntent(id),
+    queryFn: ({ signal }) => getOrderGiftIntent(id, { signal }),
+    enabled: enabled && isAuthenticated && Boolean(id),
+    staleTime: 1000 * 30,
+  })
+}
+
+/** 3) Read gift intent snapshot for admin */
+export function useAdminOrderGiftIntent(orderId, { enabled = true } = {}) {
+  const id = String(orderId || '').trim()
+
+  return useQuery({
+    queryKey: orderKeys.adminGiftIntent(id),
+    queryFn: ({ signal }) => getAdminOrderGiftIntent(id, { signal }),
+    enabled: enabled && Boolean(id),
+    staleTime: 1000 * 15,
+  })
+}
+
+/** 4) Update gift intent mutation for admin */
+export function useUpdateAdminOrderGiftIntent() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ orderId, orderIntent }) => updateAdminOrderGiftIntent(orderId, orderIntent),
+    onSuccess: (_, { orderId }) => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.adminGiftIntent(orderId) })
+      queryClient.invalidateQueries({ queryKey: orderKeys.detail(orderId) })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] })
+    },
+  })
+}
+
+/** 5) Delete / clear gift intent mutation for admin (reverts to my_order) */
+export function useDeleteAdminOrderGiftIntent() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (orderId) => deleteAdminOrderGiftIntent(orderId),
+    onSuccess: (_, orderId) => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.adminGiftIntent(orderId) })
+      queryClient.invalidateQueries({ queryKey: orderKeys.detail(orderId) })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] })
+    },
+  })
 }

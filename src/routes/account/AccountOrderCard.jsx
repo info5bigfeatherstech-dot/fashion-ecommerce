@@ -218,6 +218,27 @@ export function AccountOrderCard({ order, onSelect, isHydrating = false }) {
               <p className="account-order-card__variant">{primaryVariant}</p>
             ) : null}
 
+            {(order.isGiftOrder || order.orderIntent?.type === 'gift_other' || order.orderIntentType === 'gift_other') && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  color: '#be185d',
+                  background: '#fdf2f8',
+                  border: '1px solid #fbcfe8',
+                  padding: '1px 7px',
+                  borderRadius: '12px',
+                  marginTop: '4px',
+                  width: 'fit-content',
+                }}
+              >
+                🎁 Gift Order
+              </span>
+            )}
+
             {canResumeOnlinePayment(order) && (
               <p className="account-order-card__hint">Payment pending</p>
             )}
