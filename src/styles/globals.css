@@ -37299,3 +37299,579 @@ button.admin-stats-chip:hover {
     grid-template-columns: 1fr;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   GIFT INTENT & GIFTING FEATURES RESPONSIVE SYSTEM
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Checkout Gift Intent Section ── */
+.checkout-gift-section {
+  margin-top: 1.25rem;
+  width: 100%;
+}
+
+.checkout-gift-section__header {
+  margin-bottom: 0.75rem;
+}
+
+.checkout-gift-section__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 600;
+  color: var(--color-ink, #1f2937);
+}
+
+.checkout-gift-section__subtitle {
+  margin: 2px 0 0 0;
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--color-muted, #6b7280);
+  line-height: 1.4;
+}
+
+/* Radio Choice Selector */
+.checkout-gift-radiogroup {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+
+.checkout-gift-choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  background: var(--bg-surface, #ffffff);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+  min-height: 60px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.checkout-gift-choice:hover:not(:disabled) {
+  border-color: #cbd5e1;
+  background: #fafafa;
+}
+
+.checkout-gift-choice:focus-visible {
+  outline: 2px solid #db2777;
+  outline-offset: 2px;
+}
+
+.checkout-gift-choice:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.checkout-gift-choice--self.checkout-gift-choice--active {
+  border: 2px solid #e8a020;
+  background: rgba(232, 160, 32, 0.06);
+  box-shadow: 0 1px 3px rgba(232, 160, 32, 0.1);
+}
+
+.checkout-gift-choice--gift.checkout-gift-choice--active {
+  border: 2px solid #db2777;
+  background: rgba(219, 39, 119, 0.06);
+  box-shadow: 0 1px 3px rgba(219, 39, 119, 0.12);
+}
+
+.checkout-gift-choice__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.checkout-gift-choice--self .checkout-gift-choice__icon {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--color-ink, #374151);
+}
+
+.checkout-gift-choice--self.checkout-gift-choice--active .checkout-gift-choice__icon {
+  background: #e8a020;
+  color: #ffffff;
+}
+
+.checkout-gift-choice--gift .checkout-gift-choice__icon {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--color-ink, #374151);
+}
+
+.checkout-gift-choice--gift.checkout-gift-choice--active .checkout-gift-choice__icon {
+  background: #db2777;
+  color: #ffffff;
+}
+
+.checkout-gift-choice__content {
+  min-width: 0;
+  flex: 1;
+}
+
+.checkout-gift-choice__title {
+  margin: 0;
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 600;
+  color: var(--color-ink, #1f2937);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.checkout-gift-choice__desc {
+  margin: 2px 0 0 0;
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--color-muted, #6b7280);
+  line-height: 1.3;
+}
+
+/* Expanded Gift Form */
+.checkout-gift-form {
+  margin-top: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(253, 242, 248, 0.8) 0%, rgba(254, 243, 199, 0.35) 100%);
+  border: 1px solid #fbcfe8;
+  box-sizing: border-box;
+  animation: giftFormFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes giftFormFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.checkout-gift-form__banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.checkout-gift-form__badge-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #be185d;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.checkout-gift-form__badge-pill {
+  font-size: 0.72rem;
+  color: #15803d;
+  background: #dcfce7;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid rgba(21, 128, 61, 0.15);
+}
+
+.checkout-gift-form__row-2col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.checkout-gift-form__field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.checkout-gift-form__label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+  gap: 8px;
+}
+
+.checkout-gift-form__label {
+  display: block;
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: 600;
+  color: #374151;
+  margin: 0;
+}
+
+.checkout-gift-form__counter {
+  font-size: 0.72rem;
+  color: var(--color-muted, #6b7280);
+  flex-shrink: 0;
+}
+
+.checkout-gift-form__input,
+.checkout-gift-form__select,
+.checkout-gift-form__textarea {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid #f9a8d4;
+  background: #ffffff;
+  font-size: 0.875rem;
+  color: #1f2937;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  font-family: inherit;
+}
+
+.checkout-gift-form__input:focus,
+.checkout-gift-form__select:focus,
+.checkout-gift-form__textarea:focus {
+  border-color: #db2777;
+  box-shadow: 0 0 0 3px rgba(219, 39, 119, 0.18);
+}
+
+.checkout-gift-form__input::placeholder,
+.checkout-gift-form__textarea::placeholder {
+  color: #9ca3af;
+}
+
+.checkout-gift-form__select {
+  cursor: pointer;
+}
+
+/* Custom Occasion Select Dropdown */
+.checkout-gift-select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.checkout-gift-select-trigger {
+  width: 100%;
+  padding: 10px 13px;
+  border-radius: 8px;
+  border: 1px solid #f9a8d4;
+  background: #ffffff;
+  font-size: 0.875rem;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  text-align: left;
+  outline: none;
+  box-sizing: border-box;
+  transition: all 0.18s ease;
+  font-family: inherit;
+  user-select: none;
+}
+
+.checkout-gift-select-trigger:hover:not(:disabled) {
+  border-color: #f472b6;
+  background: #fffdfd;
+}
+
+.checkout-gift-select-trigger:focus-visible,
+.checkout-gift-select-trigger--open {
+  border-color: #db2777 !important;
+  box-shadow: 0 0 0 3px rgba(219, 39, 119, 0.18);
+}
+
+.checkout-gift-select-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.checkout-gift-select-trigger__text {
+  color: #1f2937;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.checkout-gift-select-trigger__placeholder {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+.checkout-gift-select-trigger__chevron {
+  color: #9ca3af;
+  flex-shrink: 0;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s ease;
+}
+
+.checkout-gift-select-trigger--open .checkout-gift-select-trigger__chevron {
+  transform: rotate(180deg);
+  color: #db2777;
+}
+
+.checkout-gift-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: 100%;
+  background: #ffffff;
+  border: 1px solid #fbcfe8;
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: 0 10px 25px -5px rgba(219, 39, 119, 0.15), 0 8px 16px -4px rgba(0, 0, 0, 0.08);
+  z-index: 60;
+  box-sizing: border-box;
+  animation: giftDropdownFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+@keyframes giftDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.checkout-gift-dropdown-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #374151;
+  font-size: 0.845rem;
+  font-weight: 450;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.checkout-gift-dropdown-item:hover {
+  background: #fdf2f8;
+  color: #db2777;
+}
+
+.checkout-gift-dropdown-item--selected {
+  background: rgba(219, 39, 119, 0.08);
+  color: #db2777;
+  font-weight: 600;
+}
+
+.checkout-gift-dropdown-item__check {
+  color: #db2777;
+  flex-shrink: 0;
+}
+
+.checkout-gift-dropdown-divider {
+  height: 1px;
+  background: #fce7f3;
+  margin: 4px 0;
+}
+
+.checkout-gift-form__occasion-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.checkout-gift-form__textarea {
+  resize: vertical;
+  min-height: 72px;
+  line-height: 1.45;
+}
+
+/* Breakpoints for Checkout Gift Form */
+@media (max-width: 580px) {
+  .checkout-gift-radiogroup {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .checkout-gift-choice {
+    padding: 10px 12px;
+    min-height: 54px;
+  }
+
+  .checkout-gift-form {
+    padding: 12px;
+  }
+
+  .checkout-gift-form__row-2col {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .checkout-gift-form__occasion-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .checkout-gift-form__banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+}
+
+/* ── Checkout Payment Summary Gift Banner ── */
+.checkout-gift-summary-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fdf2f8;
+  border: 1px solid #fbcfe8;
+  color: #9d174d;
+  font-size: 0.8125rem;
+  margin-bottom: 1rem;
+  box-sizing: border-box;
+  line-height: 1.45;
+}
+
+.checkout-gift-summary-banner__icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.checkout-gift-summary-banner__text {
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* ── Account Order Detail Gift Card ── */
+.account-order-gift-card {
+  border: 1px solid #fbcfe8 !important;
+  background: linear-gradient(135deg, rgba(253, 242, 248, 0.7) 0%, #ffffff 100%) !important;
+  box-sizing: border-box;
+}
+
+.account-order-gift-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.account-order-gift-card__title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.account-order-gift-card__icon {
+  font-size: 1.35rem;
+  flex-shrink: 0;
+}
+
+.account-order-gift-card__occasion-pill {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #9d174d;
+  background: #fce7f3;
+  padding: 3px 10px;
+  border-radius: 999px;
+  text-transform: capitalize;
+  white-space: nowrap;
+  border: 1px solid rgba(157, 23, 77, 0.15);
+}
+
+.account-order-gift-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px 18px;
+  margin-top: 14px;
+}
+
+.account-order-gift-grid__item {
+  min-width: 0;
+}
+
+.account-order-gift-grid__val {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.account-order-gift-message {
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: #fdf2f8;
+  border-radius: 10px;
+  border-left: 4px solid #db2777;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+  .account-order-gift-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .account-order-gift-message {
+    padding: 10px 12px;
+  }
+}
+
+/* ── Admin Gift Intent Panel Responsive ── */
+.admin-gift-intent-panel .od-card__head {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-gift-intent-form__row-2col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-gift-intent-form__occasion-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (max-width: 520px) {
+  .admin-gift-intent-form__row-2col {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .admin-gift-intent-form__occasion-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}

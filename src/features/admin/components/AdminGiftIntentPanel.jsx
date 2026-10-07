@@ -54,6 +54,7 @@ export function AdminGiftIntentPanel({ order, orderId, onUpdated }) {
   const [senderName, setSenderName] = useState(details.senderName || '')
   const [occasion, setOccasion] = useState(details.occasion || '')
   const [message, setMessage] = useState(details.message || '')
+  const [isCustomOccasionSelected, setIsCustomOccasionSelected] = useState(false)
 
   const startEdit = () => {
     setFormType(isGift ? 'gift_other' : 'gift_other')
@@ -61,6 +62,10 @@ export function AdminGiftIntentPanel({ order, orderId, onUpdated }) {
     setSenderName(details.senderName || '')
     setOccasion(details.occasion || '')
     setMessage(details.message || '')
+    const isExistingPreset = occasionsList.some(
+      (o) => (o.id || '').toLowerCase() === (details.occasion || '').toLowerCase()
+    )
+    setIsCustomOccasionSelected(!isExistingPreset && Boolean(details.occasion))
     setIsEditing(true)
   }
 
@@ -249,7 +254,7 @@ export function AdminGiftIntentPanel({ order, orderId, onUpdated }) {
 
             {formType === 'gift_other' ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div className="admin-gift-intent-form__row-2col">
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
                       <span className="od-field-label" style={{ margin: 0 }}>Recipient</span>
@@ -267,6 +272,7 @@ export function AdminGiftIntentPanel({ order, orderId, onUpdated }) {
                         borderRadius: '6px',
                         border: '1px solid #cbd5e1',
                         fontSize: '12px',
+                        boxSizing: 'border-box',
                       }}
                     />
                   </div>
@@ -288,6 +294,7 @@ export function AdminGiftIntentPanel({ order, orderId, onUpdated }) {
                         borderRadius: '6px',
                         border: '1px solid #cbd5e1',
                         fontSize: '12px',
+                        boxSizing: 'border-box',
                       }}
                     />
                   </div>
@@ -298,18 +305,22 @@ export function AdminGiftIntentPanel({ order, orderId, onUpdated }) {
                     <span className="od-field-label" style={{ margin: 0 }}>Occasion</span>
                     <span style={{ fontSize: '10px', color: '#94a3b8' }}>{occasion.length}/80</span>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <div>
                     <select
                       value={
-                        occasionsList.some((o) => o.id.toLowerCase() === occasion.toLowerCase())
-                          ? occasion.toLowerCase()
-                          : occasion
+                        (isCustomOccasionSelected || (!occasionsList.some((o) => (o.id || '').toLowerCase() === (occasion || '').toLowerCase()) && Boolean(occasion)))
                           ? 'custom'
+                          : occasionsList.some((o) => (o.id || '').toLowerCase() === (occasion || '').toLowerCase())
+                          ? (occasion || '').toLowerCase()
                           : ''
                       }
                       onChange={(e) => {
                         const val = e.target.value
-                        if (val !== 'custom') {
+                        if (val === 'custom') {
+                          setIsCustomOccasionSelected(true)
+                          setOccasion('')
+                        } else {
+                          setIsCustomOccasionSelected(false)
                           setOccasion(val)
                         }
                       }}
@@ -320,6 +331,7 @@ export function AdminGiftIntentPanel({ order, orderId, onUpdated }) {
                         border: '1px solid #cbd5e1',
                         fontSize: '12px',
                         background: '#fff',
+                        boxSizing: 'border-box',
                       }}
                     >
                       <option value="">Select preset…</option>
@@ -331,20 +343,25 @@ export function AdminGiftIntentPanel({ order, orderId, onUpdated }) {
                       <option value="custom">Custom…</option>
                     </select>
 
-                    <input
-                      type="text"
-                      maxLength={80}
-                      value={occasion}
-                      onChange={(e) => setOccasion(e.target.value)}
-                      placeholder="Or custom (e.g. Diwali)"
-                      style={{
-                        width: '100%',
-                        padding: '6px 9px',
-                        borderRadius: '6px',
-                        border: '1px solid #cbd5e1',
-                        fontSize: '12px',
-                      }}
-                    />
+                    {(isCustomOccasionSelected || (!occasionsList.some((o) => (o.id || '').toLowerCase() === (occasion || '').toLowerCase()) && Boolean(occasion))) && (
+                      <input
+                        type="text"
+                        maxLength={80}
+                        value={occasion}
+                        onChange={(e) => setOccasion(e.target.value)}
+                        placeholder="Or custom (e.g. Diwali)"
+                        style={{
+                          width: '100%',
+                          padding: '6px 9px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '12px',
+                          boxSizing: 'border-box',
+                          marginTop: '6px',
+                        }}
+                        autoFocus
+                      />
+                    )}
                   </div>
                 </div>
 
@@ -366,13 +383,14 @@ export function AdminGiftIntentPanel({ order, orderId, onUpdated }) {
                       border: '1px solid #cbd5e1',
                       fontSize: '12px',
                       resize: 'vertical',
+                      boxSizing: 'border-box',
                     }}
                   />
                 </div>
               </div>
             ) : null}
 
-            <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
               <button
                 type="submit"
                 disabled={updateMutation.isPending}

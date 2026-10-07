@@ -1,5 +1,5 @@
-import { useId } from 'react'
-import { Gift, User, Sparkles } from 'lucide-react'
+import { useId, useState, useRef, useEffect } from 'react'
+import { Gift, User, Sparkles, ChevronDown, Check } from 'lucide-react'
 import { useGiftIntentOptions } from '@/features/orders/hooks'
 
 const DEFAULT_OCCASIONS = [
@@ -39,6 +39,52 @@ export function CheckoutGiftIntentSection({ value, onChange, disabled = false })
       })
     : DEFAULT_OCCASIONS
 
+  const isPresetOccasion = occasionsList.some(
+    (occ) => (occ.id || '').toLowerCase() === (details.occasion || '').toLowerCase()
+  )
+
+  const [isCustomSelected, setIsCustomSelected] = useState(
+    () => !isPresetOccasion && Boolean(details.occasion)
+  )
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsOpen(false)
+      }
+    }
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('touchstart', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('touchstart', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isOpen])
+
+  const isCustom = isCustomSelected || (!isPresetOccasion && Boolean(details.occasion))
+
+  const currentPresetMatch = occasionsList.find(
+    (occ) => (occ.id || '').toLowerCase() === (details.occasion || '').toLowerCase()
+  )
+
+  const selectedDisplayLabel = isCustom
+    ? details.occasion
+      ? `${details.occasion} (Custom)`
+      : 'Custom Occasion…'
+    : currentPresetMatch
+    ? currentPresetMatch.label
+    : null
+
   const handleTypeChange = (nextType) => {
     if (disabled) return
     onChange?.({
@@ -61,13 +107,13 @@ export function CheckoutGiftIntentSection({ value, onChange, disabled = false })
   const messageLength = (details.message || '').length
 
   return (
-    <div className="checkout-gift-section" style={{ marginTop: '1.25rem' }}>
-      <div className="checkout-gift-section__header" style={{ marginBottom: '0.75rem' }}>
-        <p className="body-sm font-semibold" style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
-          {/* <Sparkles size={16} style={{ color: '#db2777' }} /> */}
+    <div className="checkout-gift-section">
+      <div className="checkout-gift-section__header">
+        <p className="checkout-gift-section__title">
+          <Sparkles size={15} style={{ color: '#db2777' }} />
           Who is this order for?
         </p>
-        <p className="body-xs text-muted" style={{ margin: '2px 0 0 0' }}>
+        <p className="checkout-gift-section__subtitle">
           Choose whether this package is for you or being sent directly as a special surprise gift.
         </p>
       </div>
@@ -76,11 +122,7 @@ export function CheckoutGiftIntentSection({ value, onChange, disabled = false })
       <div
         role="radiogroup"
         aria-label="Order intent type"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: '10px',
-        }}
+        className="checkout-gift-radiogroup"
       >
         <button
           type="button"
@@ -88,38 +130,14 @@ export function CheckoutGiftIntentSection({ value, onChange, disabled = false })
           aria-checked={!isGift}
           disabled={disabled}
           onClick={() => handleTypeChange('my_order')}
-          className={`checkout-gift-choice${!isGift ? ' checkout-gift-choice--active' : ''}`}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            padding: '12px 14px',
-            borderRadius: '10px',
-            border: !isGift ? '2px solid #e8a020' : '1px solid var(--border-color, #e5e7eb)',
-            background: !isGift ? 'rgba(232, 160, 32, 0.05)' : 'var(--bg-surface, #fff)',
-            cursor: disabled ? 'not-allowed' : 'pointer',
-            textAlign: 'left',
-            transition: 'all 0.15s ease',
-          }}
+          className={`checkout-gift-choice checkout-gift-choice--self${!isGift ? ' checkout-gift-choice--active' : ''}`}
         >
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: '50%',
-              background: !isGift ? '#e8a020' : 'rgba(0,0,0,0.06)',
-              color: !isGift ? '#fff' : 'inherit',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
+          <div className="checkout-gift-choice__icon">
             <User size={16} />
           </div>
-          <div>
-            <p className="body-sm font-semibold" style={{ margin: 0 }}>For Myself</p>
-            <p className="body-xs text-muted" style={{ margin: 0 }}>Standard order</p>
+          <div className="checkout-gift-choice__content">
+            <p className="checkout-gift-choice__title">For Myself</p>
+            <p className="checkout-gift-choice__desc">Standard order</p>
           </div>
         </button>
 
@@ -129,96 +147,38 @@ export function CheckoutGiftIntentSection({ value, onChange, disabled = false })
           aria-checked={isGift}
           disabled={disabled}
           onClick={() => handleTypeChange('gift_other')}
-          className={`checkout-gift-choice${isGift ? ' checkout-gift-choice--active' : ''}`}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            padding: '12px 14px',
-            borderRadius: '10px',
-            border: isGift ? '2px solid #db2777' : '1px solid var(--border-color, #e5e7eb)',
-            background: isGift ? 'rgba(219, 39, 119, 0.05)' : 'var(--bg-surface, #fff)',
-            cursor: disabled ? 'not-allowed' : 'pointer',
-            textAlign: 'left',
-            transition: 'all 0.15s ease',
-          }}
+          className={`checkout-gift-choice checkout-gift-choice--gift${isGift ? ' checkout-gift-choice--active' : ''}`}
         >
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: '50%',
-              background: isGift ? '#db2777' : 'rgba(0,0,0,0.06)',
-              color: isGift ? '#fff' : 'inherit',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
+          <div className="checkout-gift-choice__icon">
             <Gift size={16} />
           </div>
-          <div>
-            <p className="body-sm font-semibold" style={{ margin: 0 }}>Send as a Gift 🎁</p>
-            <p className="body-xs text-muted" style={{ margin: 0 }}>Add card & message</p>
+          <div className="checkout-gift-choice__content">
+            <p className="checkout-gift-choice__title">Send as a Gift 🎁</p>
+            <p className="checkout-gift-choice__desc">Add card & message</p>
           </div>
         </button>
       </div>
 
       {/* Expanded Gift Form */}
       {isGift && (
-        <div
-          className="checkout-gift-form"
-          style={{
-            marginTop: '12px',
-            padding: '16px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, rgba(253, 242, 248, 0.7) 0%, rgba(254, 243, 199, 0.3) 100%)',
-            border: '1px solid #fbcfe8',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <span
-              style={{
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                color: '#be185d',
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-              }}
-            >
+        <div className="checkout-gift-form">
+          <div className="checkout-gift-form__banner">
+            <span className="checkout-gift-form__badge-label">
               <Gift size={13} /> Gift Details (All optional)
             </span>
-            <span
-              style={{
-                fontSize: '0.72rem',
-                color: '#15803d',
-                background: '#dcfce7',
-                padding: '2px 8px',
-                borderRadius: '10px',
-                fontWeight: 500,
-              }}
-            >
+            <span className="checkout-gift-form__badge-pill">
               Free gift message card included
             </span>
           </div>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: '12px',
-              marginBottom: '12px',
-            }}
-          >
+          <div className="checkout-gift-form__row-2col">
             {/* Recipient Name */}
-            <div>
-              <label htmlFor={recipientId} className="body-xs font-semibold" style={{ display: 'block', marginBottom: '4px' }}>
-                Recipient Name (Receiver)
-              </label>
+            <div className="checkout-gift-form__field">
+              <div className="checkout-gift-form__label-row">
+                <label htmlFor={recipientId} className="checkout-gift-form__label">
+                  Recipient Name (Receiver)
+                </label>
+              </div>
               <input
                 id={recipientId}
                 type="text"
@@ -227,23 +187,17 @@ export function CheckoutGiftIntentSection({ value, onChange, disabled = false })
                 value={details.recipientName || ''}
                 onChange={(e) => handleDetailChange('recipientName', e.target.value)}
                 placeholder="e.g., Riya"
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid #f9a8d4',
-                  background: '#fff',
-                  fontSize: '0.875rem',
-                  outline: 'none',
-                }}
+                className="checkout-gift-form__input"
               />
             </div>
 
             {/* Sender Name */}
-            <div>
-              <label htmlFor={senderId} className="body-xs font-semibold" style={{ display: 'block', marginBottom: '4px' }}>
-                From / Sender Name (on receipt)
-              </label>
+            <div className="checkout-gift-form__field">
+              <div className="checkout-gift-form__label-row">
+                <label htmlFor={senderId} className="checkout-gift-form__label">
+                  From / Sender Name (on receipt)
+                </label>
+              </div>
               <input
                 id={senderId}
                 type="text"
@@ -252,66 +206,114 @@ export function CheckoutGiftIntentSection({ value, onChange, disabled = false })
                 value={details.senderName || ''}
                 onChange={(e) => handleDetailChange('senderName', e.target.value)}
                 placeholder="e.g., Aman"
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid #f9a8d4',
-                  background: '#fff',
-                  fontSize: '0.875rem',
-                  outline: 'none',
-                }}
+                className="checkout-gift-form__input"
               />
             </div>
           </div>
 
-          {/* Occasion dropdown & free text */}
-          <div style={{ marginBottom: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <label htmlFor={occasionId} className="body-xs font-semibold">
-                Occasion (Preset or Free Text)
+          {/* Occasion dropdown & optional custom text input */}
+          <div className="checkout-gift-form__field" style={{ marginBottom: '12px' }}>
+            <div className="checkout-gift-form__label-row">
+              <label id={`${occasionId}-label`} className="checkout-gift-form__label">
+                Occasion (Preset or Custom)
               </label>
-              <span className="body-xs text-muted" style={{ fontSize: '0.72rem' }}>
+              <span className="checkout-gift-form__counter">
                 {(details.occasion || '').length}/{maxLengths.occasion || 80}
               </span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px' }}>
-              <select
+
+            <div className="checkout-gift-select-wrapper" ref={dropdownRef}>
+              <button
+                type="button"
                 id={occasionId}
                 disabled={disabled}
-                value={
-                  occasionsList.some((occ) => occ.id.toLowerCase() === (details.occasion || '').toLowerCase())
-                    ? (details.occasion || '').toLowerCase()
-                    : details.occasion
-                    ? 'custom'
-                    : ''
-                }
-                onChange={(e) => {
-                  const val = e.target.value
-                  if (val !== 'custom') {
-                    handleDetailChange('occasion', val)
-                  }
-                }}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid #f9a8d4',
-                  background: '#fff',
-                  fontSize: '0.875rem',
-                  outline: 'none',
-                  cursor: 'pointer',
-                }}
+                onClick={() => setIsOpen((prev) => !prev)}
+                className={`checkout-gift-select-trigger ${isOpen ? 'checkout-gift-select-trigger--open' : ''}`}
+                aria-haspopup="listbox"
+                aria-expanded={isOpen}
+                aria-labelledby={`${occasionId}-label`}
               >
-                <option value="">Select preset occasion</option>
-                {occasionsList.map((occ) => (
-                  <option key={occ.id} value={occ.id}>
-                    {occ.label}
-                  </option>
-                ))}
-                <option value="custom">Custom Occasion…</option>
-              </select>
+                <span className={selectedDisplayLabel ? 'checkout-gift-select-trigger__text' : 'checkout-gift-select-trigger__placeholder'}>
+                  {selectedDisplayLabel || 'Select occasion (optional)'}
+                </span>
+                <ChevronDown
+                  size={16}
+                  className="checkout-gift-select-trigger__chevron"
+                />
+              </button>
 
+              {isOpen && (
+                <div role="listbox" className="checkout-gift-dropdown-menu">
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={!isCustom && !details.occasion}
+                    onClick={() => {
+                      setIsCustomSelected(false)
+                      handleDetailChange('occasion', '')
+                      setIsOpen(false)
+                    }}
+                    className={`checkout-gift-dropdown-item ${!isCustom && !details.occasion ? 'checkout-gift-dropdown-item--selected' : ''}`}
+                  >
+                    <span style={{ color: '#9ca3af' }}>Select occasion (none)</span>
+                    {!isCustom && !details.occasion && (
+                      <Check size={14} className="checkout-gift-dropdown-item__check" />
+                    )}
+                  </button>
+
+                  {occasionsList.map((occ) => {
+                    const isSelected =
+                      !isCustom &&
+                      (details.occasion || '').toLowerCase() === (occ.id || '').toLowerCase()
+                    return (
+                      <button
+                        key={occ.id}
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
+                        onClick={() => {
+                          setIsCustomSelected(false)
+                          handleDetailChange('occasion', occ.id)
+                          setIsOpen(false)
+                        }}
+                        className={`checkout-gift-dropdown-item ${isSelected ? 'checkout-gift-dropdown-item--selected' : ''}`}
+                      >
+                        <span>{occ.label}</span>
+                        {isSelected && (
+                          <Check size={14} className="checkout-gift-dropdown-item__check" />
+                        )}
+                      </button>
+                    )
+                  })}
+
+                  <div className="checkout-gift-dropdown-divider" />
+
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={isCustom}
+                    onClick={() => {
+                      setIsCustomSelected(true)
+                      if (isPresetOccasion) {
+                        handleDetailChange('occasion', '')
+                      }
+                      setIsOpen(false)
+                    }}
+                    className={`checkout-gift-dropdown-item ${isCustom ? 'checkout-gift-dropdown-item--selected' : ''}`}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Sparkles size={14} style={{ color: '#db2777' }} />
+                      Custom Occasion…
+                    </span>
+                    {isCustom && (
+                      <Check size={14} className="checkout-gift-dropdown-item__check" />
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {isCustom && (
               <input
                 type="text"
                 disabled={disabled}
@@ -319,26 +321,20 @@ export function CheckoutGiftIntentSection({ value, onChange, disabled = false })
                 value={details.occasion || ''}
                 onChange={(e) => handleDetailChange('occasion', e.target.value)}
                 placeholder="Or type custom (e.g., Diwali)"
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid #f9a8d4',
-                  background: '#fff',
-                  fontSize: '0.875rem',
-                  outline: 'none',
-                }}
+                className="checkout-gift-form__input"
+                style={{ marginTop: '8px' }}
+                autoFocus
               />
-            </div>
+            )}
           </div>
 
           {/* Message */}
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <label htmlFor={messageId} className="body-xs font-semibold">
+          <div className="checkout-gift-form__field">
+            <div className="checkout-gift-form__label-row">
+              <label htmlFor={messageId} className="checkout-gift-form__label">
                 Gift Message
               </label>
-              <span className="body-xs text-muted" style={{ fontSize: '0.72rem' }}>
+              <span className="checkout-gift-form__counter">
                 {messageLength}/{maxLengths.message}
               </span>
             </div>
@@ -350,17 +346,7 @@ export function CheckoutGiftIntentSection({ value, onChange, disabled = false })
               value={details.message || ''}
               onChange={(e) => handleDetailChange('message', e.target.value)}
               placeholder="Write a sweet message to be printed with your gift… e.g. Happy birthday! Wishing you lots of love!"
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                borderRadius: '8px',
-                border: '1px solid #f9a8d4',
-                background: '#fff',
-                fontSize: '0.875rem',
-                outline: 'none',
-                resize: 'vertical',
-                minHeight: '70px',
-              }}
+              className="checkout-gift-form__textarea"
             />
           </div>
         </div>

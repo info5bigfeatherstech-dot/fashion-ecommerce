@@ -80,19 +80,19 @@ export default function Gifting() {
         }
         
         .gifting-categories {
-          padding: 6rem 2rem;
+          padding: clamp(2.5rem, 6vw, 6rem) clamp(1rem, 3vw, 2rem);
           background: #fafafa;
         }
         .gifting-section-title {
           text-align: center;
-          font-size: 2.5rem;
+          font-size: clamp(1.75rem, 4vw, 2.5rem);
           font-weight: 300;
-          margin-bottom: 3rem;
+          margin-bottom: clamp(1.5rem, 4vw, 3rem);
         }
         .gifting-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          gap: 2rem;
+          grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+          gap: clamp(1rem, 2.5vw, 2rem);
           max-width: 1200px;
           margin: 0 auto;
         }
@@ -123,12 +123,12 @@ export default function Gifting() {
           bottom: 0;
           left: 0;
           right: 0;
-          padding: 2rem;
+          padding: clamp(1.25rem, 3vw, 2rem);
           z-index: 1;
           color: #fff;
         }
         .gifting-card__title {
-          font-size: 1.5rem;
+          font-size: clamp(1.2rem, 2.5vw, 1.5rem);
           font-weight: 400;
           margin-bottom: 0.5rem;
         }
@@ -142,7 +142,7 @@ export default function Gifting() {
         }
         
         .gifting-curated {
-          padding: 6rem 2rem;
+          padding: clamp(2.5rem, 6vw, 6rem) clamp(1rem, 3vw, 2rem);
           background: #fff;
           text-align: center;
         }
@@ -151,8 +151,8 @@ export default function Gifting() {
           margin: 0 auto;
         }
         .gifting-curated p {
-          font-size: 1.25rem;
-          line-height: 1.8;
+          font-size: clamp(0.95rem, 2vw, 1.25rem);
+          line-height: 1.7;
           color: #555;
           margin-bottom: 2rem;
         }

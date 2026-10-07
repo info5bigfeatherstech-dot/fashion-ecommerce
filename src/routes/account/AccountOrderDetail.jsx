@@ -640,64 +640,41 @@ export function AccountOrderDetail({ orderId, onBack }) {
 
         {/* Gift Details (if placed as a gift) */}
         {(order.isGiftOrder || order.orderIntent?.type === 'gift_other' || order.orderIntentType === 'gift_other') && (
-          <div
-            className="account-panel"
-            style={{
-              border: '1px solid #fbcfe8',
-              background: 'linear-gradient(135deg, rgba(253, 242, 248, 0.7) 0%, #ffffff 100%)',
-            }}
-          >
-            <div className="account-panel__header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '1.25rem' }}>🎁</span>
+          <div className="account-panel account-order-gift-card">
+            <div className="account-panel__header account-order-gift-card__header">
+              <div className="account-order-gift-card__title-group">
+                <span className="account-order-gift-card__icon">🎁</span>
                 <div>
                   <p className="heading-sm" style={{ color: '#db2777' }}>Special Package</p>
                   <h3 className="display-md">Gift Details</h3>
                 </div>
               </div>
               {order.orderIntent?.giftDetails?.occasion && (
-                <span
-                  style={{
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    color: '#9d174d',
-                    background: '#fce7f3',
-                    padding: '3px 10px',
-                    borderRadius: '12px',
-                    textTransform: 'capitalize',
-                  }}
-                >
+                <span className="account-order-gift-card__occasion-pill">
                   {order.orderIntent.giftDetails.occasion}
                 </span>
               )}
             </div>
 
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '16px',
-                marginTop: '12px',
-              }}
-            >
-              <div>
+            <div className="account-order-gift-grid">
+              <div className="account-order-gift-grid__item">
                 <p className="body-xs text-muted" style={{ marginBottom: '2px' }}>Recipient (Receiver)</p>
-                <p className="body-sm font-semibold">
+                <p className="body-sm font-semibold account-order-gift-grid__val">
                   {order.orderIntent?.giftDetails?.recipientName || address?.fullName || address?.name || '—'}
                 </p>
               </div>
 
-              <div>
+              <div className="account-order-gift-grid__item">
                 <p className="body-xs text-muted" style={{ marginBottom: '2px' }}>From / Sender Name</p>
-                <p className="body-sm font-semibold">
+                <p className="body-sm font-semibold account-order-gift-grid__val">
                   {order.orderIntent?.giftDetails?.senderName || user?.name || '—'}
                 </p>
               </div>
 
               {order.orderIntent?.giftDetails?.occasion && (
-                <div>
+                <div className="account-order-gift-grid__item">
                   <p className="body-xs text-muted" style={{ marginBottom: '2px' }}>Occasion</p>
-                  <p className="body-sm font-semibold" style={{ textTransform: 'capitalize' }}>
+                  <p className="body-sm font-semibold account-order-gift-grid__val" style={{ textTransform: 'capitalize' }}>
                     {order.orderIntent.giftDetails.occasion}
                   </p>
                 </div>
@@ -705,19 +682,11 @@ export function AccountOrderDetail({ orderId, onBack }) {
             </div>
 
             {order.orderIntent?.giftDetails?.message && (
-              <div
-                style={{
-                  marginTop: '16px',
-                  padding: '12px 16px',
-                  background: '#fdf2f8',
-                  borderRadius: '8px',
-                  borderLeft: '4px solid #db2777',
-                }}
-              >
+              <div className="account-order-gift-message">
                 <p className="body-xs font-semibold" style={{ color: '#be185d', marginBottom: '4px' }}>
                   Gift Message
                 </p>
-                <p className="body-sm" style={{ fontStyle: 'italic', color: '#831843', margin: 0 }}>
+                <p className="body-sm" style={{ fontStyle: 'italic', color: '#831843', margin: 0, wordBreak: 'break-word' }}>
                   “{order.orderIntent.giftDetails.message}”
                 </p>
               </div>

@@ -1423,22 +1423,9 @@ export default function Checkout() {
                   </div>
 
                   {orderIntent?.type === 'gift_other' && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '10px 14px',
-                        borderRadius: '8px',
-                        background: '#fdf2f8',
-                        border: '1px solid #fbcfe8',
-                        color: '#9d174d',
-                        fontSize: '0.8125rem',
-                        marginBottom: '1rem',
-                      }}
-                    >
-                      <span style={{ fontSize: '1rem' }}>🎁</span>
-                      <span>
+                    <div className="checkout-gift-summary-banner">
+                      <span className="checkout-gift-summary-banner__icon">🎁</span>
+                      <span className="checkout-gift-summary-banner__text">
                         This order will be delivered as a gift
                         {orderIntent.giftDetails?.recipientName ? ` to ${orderIntent.giftDetails.recipientName}` : ''}
                         {orderIntent.giftDetails?.occasion ? ` (${orderIntent.giftDetails.occasion})` : ''}.
