@@ -10,7 +10,6 @@ import { formatPrice } from '@/lib/utils'
 import { useCart } from '@/features/cart/hooks'
 import { prefetchCheckoutRoute } from '@/features/checkout/prefetchRoute'
 import { CartItem } from './CartItem'
-import { CouponInput } from '@/features/coupon/components/CouponInput'
 import { CheckoutAddressModal } from '@/components/checkout/CheckoutAddressModal'
 import { startLenis, stopLenis } from '@/lib/lenis'
 
@@ -116,8 +115,6 @@ export function CartDrawer() {
             </div>
             {isAuthenticated && cartItems.length > 0 && (
               <div className="drawer__footer">
-                <CouponInput compact className="drawer__coupon" />
-
                 <div className="drawer__summary-card">
                   <div className="checkout-summary__row">
                     <span>Subtotal</span>
