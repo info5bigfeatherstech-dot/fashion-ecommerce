@@ -1,6 +1,5 @@
-import { Printer, Loader2, FileText, AlertCircle } from 'lucide-react'
+import { Loader2, FileText, AlertCircle } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
-import { Button } from '@/components/ui/Button'
 import { useOrderInvoice } from '../hooks'
 import { formatOrderDate } from '../utils'
 import { formatPrice } from '@/lib/utils'
@@ -13,15 +12,11 @@ export function OrderInvoiceModal({ open, onClose, orderId }) {
   const invoice = data?.invoice
   const gstInvoice = data?.gstInvoice
 
-  const handlePrint = () => {
-    window.print()
-  }
-
   return (
     <Modal
       open={open}
       onOpenChange={(isOpen) => !isOpen && onClose()}
-      title="Tax Invoice"
+      title="Invoice"
       subtitle={invoice?.invoiceNumber ? `Invoice #${invoice.invoiceNumber}` : `Order #${orderId || ''}`}
       className="order-invoice-modal"
     >
@@ -53,7 +48,7 @@ export function OrderInvoiceModal({ open, onClose, orderId }) {
               </div>
 
               <div className="order-invoice-meta">
-                <span className="order-invoice-badge">TAX INVOICE</span>
+                <span className="order-invoice-badge">INVOICE</span>
                 <p className="body-sm">
                   <strong>Invoice:</strong> {invoice.invoiceNumber || `INV-${orderId}`}
                 </p>
@@ -167,12 +162,6 @@ export function OrderInvoiceModal({ open, onClose, orderId }) {
                 <span>Grand Total:</span>
                 <span>{formatPrice(invoice.total || 0)}</span>
               </div>
-            </div>
-
-            <div className="order-invoice-sheet__footer no-print">
-              <Button type="button" variant="primary" size="sm" onClick={handlePrint}>
-                <Printer size={15} /> Print / Save as PDF
-              </Button>
             </div>
           </div>
         )}

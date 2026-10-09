@@ -47,6 +47,7 @@ export default function Account() {
   const wishlistCount = useWishlistCount()
   const navigate = useNavigate()
   const [profileName, setProfileName] = useState('')
+  const [profileEmail, setProfileEmail] = useState('')
   const [profileSaving, setProfileSaving] = useState(false)
   const { data: loyaltyPointsData } = useMyLoyaltyPoints()
   const pointsBalance = Math.max(0, Math.floor(Number(loyaltyPointsData?.points?.balance) || 0))
@@ -54,20 +55,28 @@ export default function Account() {
 
   const activeTab = ACCOUNT_SECTIONS.has(section) ? section : null
   const savedProfileName = normalizePersonName(getAccountDisplayName(user))
+  const savedProfileEmail = String(user?.email || '').trim()
+  const canAddEmail = !savedProfileEmail
 
   useEffect(() => {
     if (activeTab === 'profile' && user) {
       setProfileName(getAccountDisplayName(user))
+      setProfileEmail(savedProfileEmail)
     }
-  }, [activeTab, user])
+  }, [activeTab, user, savedProfileEmail])
 
   const profileNameDirty =
     activeTab === 'profile' &&
     normalizePersonName(profileName) !== savedProfileName
+  const profileEmailDirty =
+    activeTab === 'profile' &&
+    canAddEmail &&
+    String(profileEmail || '').trim().toLowerCase() !== savedProfileEmail.toLowerCase()
+  const profileDirty = profileNameDirty || profileEmailDirty
 
   const handleSaveProfile = async (event) => {
     event.preventDefault()
-    if (profileSaving || !profileNameDirty) return
+    if (profileSaving || !profileDirty) return
 
     const trimmed = normalizePersonName(profileName)
     const parsed = personNameSchema.safeParse(trimmed)
@@ -76,10 +85,21 @@ export default function Account() {
       return
     }
 
+    const nextEmail = String(profileEmail || '').trim().toLowerCase()
+    if (canAddEmail && profileEmailDirty) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) {
+        toast.error('Enter a valid email address')
+        return
+      }
+    }
+
     setProfileSaving(true)
     try {
-      const result = await updateProfile({ name: parsed.data })
+      const payload = { name: parsed.data }
+      if (canAddEmail && profileEmailDirty) payload.email = nextEmail
+      const result = await updateProfile(payload)
       setProfileName(result.user?.name || parsed.data)
+      setProfileEmail(String(result.user?.email || nextEmail || '').trim())
       toast.success(result.message || 'Profile updated successfully.')
     } catch (error) {
       toast.error(error?.message || 'Failed to update profile. Please try again.')
@@ -302,8 +322,30 @@ export default function Account() {
                       required
                     />
                   </InputGroup>
-                  <InputGroup label="Email">
-                    <Input readOnly value={user.email} tabIndex={-1} aria-readonly="true" />
+                  <InputGroup
+                    label="Email"
+                    htmlFor="account-profile-email"
+                    required={canAddEmail}
+                  >
+                    {canAddEmail ? (
+                      <Input
+                        id="account-profile-email"
+                        type="email"
+                        autoComplete="email"
+                        inputMode="email"
+                        placeholder="Add email for order updates"
+                        value={profileEmail}
+                        onChange={(event) => setProfileEmail(event.target.value)}
+                      />
+                    ) : (
+                      <Input
+                        id="account-profile-email"
+                        readOnly
+                        value={savedProfileEmail}
+                        tabIndex={-1}
+                        aria-readonly="true"
+                      />
+                    )}
                   </InputGroup>
                   <InputGroup label="Phone number">
                     <Input
@@ -322,7 +364,7 @@ export default function Account() {
                   <Button
                     type="submit"
                     variant="primary"
-                    disabled={!profileNameDirty || profileSaving}
+                    disabled={!profileDirty || profileSaving}
                   >
                     {profileSaving ? 'Saving…' : 'Save profile'}
                   </Button>

@@ -77,11 +77,16 @@ export function isFatalAuthRefreshError(error) {
   )
 }
 
-/** PUT /api/auth/profile — update storefront customer profile (name). */
-export async function updateProfile({ name }) {
-  const payload = await http.put(API_ENDPOINTS.auth.profile, {
-    name: String(name || '').trim(),
-  })
+/**
+ * PUT /api/auth/profile — update storefront profile name.
+ * First-time email is allowed when the account has no email yet (legacy phone-only users).
+ */
+export async function updateProfile({ name, email } = {}) {
+  const body = {}
+  if (name != null) body.name = String(name || '').trim()
+  if (email != null) body.email = String(email || '').trim().toLowerCase()
+
+  const payload = await http.put(API_ENDPOINTS.auth.profile, body)
   const user = mapAuthUser(payload?.user)
   if (user) {
     useAppStore.getState().setUser(user)

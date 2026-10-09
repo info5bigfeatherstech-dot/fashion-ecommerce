@@ -55,6 +55,7 @@ import { PaymentLoadingOverlay } from '@/features/checkout/razorpay/PaymentLoadi
 import { getCart } from '@/features/cart/api'
 import { useAvailableCoupons, useValidateCoupon } from '@/features/coupon/hooks'
 import { calculateCartCouponDiscounts } from '@/features/coupon/utils'
+import { updateProfile } from '@/features/auth/api'
 import { useAppStore } from '@/store'
 import { useCartCouponSummary, useCartTotal } from '@/store/selectors'
 import { formatPrice } from '@/lib/utils'
@@ -213,6 +214,8 @@ export default function Checkout() {
     handleSubmit,
     watch,
     setValue,
+    getValues,
+    trigger,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(checkoutSchema),
@@ -231,7 +234,70 @@ export default function Checkout() {
     },
   })
 
+  /** Scroll + focus email on every viewport (mobile sticky CTA / desktop). */
+  const focusCheckoutEmailField = useCallback(() => {
+    const el = typeof document !== 'undefined' ? document.getElementById('email') : null
+    if (!el) return
+    try {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })
+    } catch {
+      el.scrollIntoView()
+    }
+    window.setTimeout(() => {
+      try {
+        el.focus({ preventScroll: true })
+      } catch {
+        el.focus?.()
+      }
+    }, 280)
+  }, [])
+
+  /**
+   * Keep hidden address-derived fields filled so PAY never fails silently
+   * (e.g. single-word fullName → empty lastName).
+   */
+  const syncHiddenCheckoutFieldsFromAddress = useCallback(() => {
+    const addr = checkoutAddress
+    if (!addr) return
+
+    if (!String(getValues('email') || '').trim() && user?.email) {
+      setValue('email', user.email, { shouldValidate: false })
+    }
+
+    const fullName = String(addr.fullName || '').trim()
+    if (fullName) {
+      const [first = '', ...rest] = fullName.split(/\s+/)
+      if (first && !String(getValues('firstName') || '').trim()) {
+        setValue('firstName', first, { shouldValidate: false })
+      }
+      const last = rest.join(' ').trim()
+      if (!String(getValues('lastName') || '').trim()) {
+        // Single-word names: reuse first so zod min(1) does not block Pay with no visible field.
+        setValue('lastName', last || first || 'Customer', { shouldValidate: false })
+      }
+    } else if (!String(getValues('lastName') || '').trim()) {
+      const first = String(getValues('firstName') || user?.firstName || '').trim()
+      if (first) setValue('lastName', first, { shouldValidate: false })
+    }
+
+    if (!String(getValues('address') || '').trim()) {
+      const line = addr.fullAddress || addr.displayLine1 || ''
+      if (line) setValue('address', line, { shouldValidate: false })
+    }
+    if (addr.city && !String(getValues('city') || '').trim()) {
+      setValue('city', addr.city, { shouldValidate: false })
+    }
+    if (addr.state && !String(getValues('state') || '').trim()) {
+      setValue('state', addr.state, { shouldValidate: false })
+    }
+    const zip = addr.postalCode || addr.zip
+    if (zip && !String(getValues('zip') || '').trim()) {
+      setValue('zip', zip, { shouldValidate: false })
+    }
+  }, [checkoutAddress, getValues, setValue, user?.email, user?.firstName])
+
   const paymentMethod = watch('paymentMethod')
+  const emailFieldValue = watch('email')
 
   const needsRazorpayKey = paymentMethod === 'prepaid' || paymentMethod === 'partial'
 
@@ -375,14 +441,25 @@ export default function Checkout() {
   useEffect(() => {
     if (!user && !checkoutAddress) return
 
-    if (user?.email) setValue('email', user.email)
+    const profileEmail = String(user?.email || '').trim()
+    if (profileEmail) {
+      // Prefill from profile whenever the field is empty. Re-run on delivery step
+      // so the value applies after the email input mounts (RHF register timing).
+      const currentEmail = String(getValues('email') || '').trim()
+      if (!currentEmail) {
+        setValue('email', profileEmail, { shouldValidate: false, shouldDirty: false })
+      }
+    }
     if (user?.firstName) setValue('firstName', user.firstName)
     if (user?.lastName) setValue('lastName', user.lastName)
 
     if (checkoutAddress?.fullName && !user?.firstName) {
       const [first = '', ...rest] = checkoutAddress.fullName.trim().split(/\s+/)
       if (first) setValue('firstName', first)
-      if (rest.length) setValue('lastName', rest.join(' '))
+      // Single-word fullName must still satisfy lastName min(1) (hidden field).
+      setValue('lastName', rest.length ? rest.join(' ') : first)
+    } else if (user?.firstName && !user?.lastName) {
+      setValue('lastName', user.firstName)
     }
 
     if (checkoutAddress?.fullAddress || checkoutAddress?.displayLine1) {
@@ -393,7 +470,7 @@ export default function Checkout() {
     if (checkoutAddress?.postalCode || checkoutAddress?.zip) {
       setValue('zip', checkoutAddress.postalCode || checkoutAddress.zip)
     }
-  }, [user, checkoutAddress, setValue])
+  }, [user, checkoutAddress, setValue, getValues, isDeliveryStep])
 
   useEffect(() => {
     if (paymentMethod === 'cod' && !codEnabled) {
@@ -657,12 +734,46 @@ export default function Checkout() {
     }
   }, [cartEditsLocked, removeItem, afterCheckoutCartMutation])
 
+  /** Must stay above empty-cart / success early returns — hooks cannot be conditional. */
+  const onCheckoutInvalid = useCallback(
+    (formErrors) => {
+      syncHiddenCheckoutFieldsFromAddress()
+
+      const order = [
+        'email',
+        'firstName',
+        'lastName',
+        'address',
+        'city',
+        'state',
+        'zip',
+        'paymentMethod',
+      ]
+      const firstKey = order.find((k) => formErrors?.[k]) || Object.keys(formErrors || {})[0]
+      const message =
+        (firstKey && formErrors?.[firstKey]?.message)
+        || 'Please fix the highlighted fields'
+
+      toast.error(message)
+
+      const contactKeys = new Set(['email', 'firstName', 'lastName', 'address', 'city', 'state', 'zip'])
+      if (!firstKey || contactKeys.has(firstKey)) {
+        setShowRazorpay(false)
+        setRazorpayOrderData(null)
+        setCheckoutStep(CHECKOUT_STEP.DELIVERY)
+        setSearchParams({ step: 'delivery' }, { replace: true })
+        window.setTimeout(() => focusCheckoutEmailField(), 320)
+      }
+    },
+    [focusCheckoutEmailField, setSearchParams, syncHiddenCheckoutFieldsFromAddress],
+  )
+
   if (cartItems.length === 0 && !orderPlaced && !placedOrder && !isRecoveringCheckout) {
     return (
       <div className="container empty-state">
         <h1 className="empty-state__title">Nothing to checkout</h1>
         <p className="body-lg text-muted">Your bag is empty. Add something you love first.</p>
-        <Link to="/shop/women">
+        <Link to="/">
           <Button variant="primary">Continue Shopping</Button>
         </Link>
       </div>
@@ -739,6 +850,7 @@ export default function Checkout() {
 
   const onSubmit = async (formData) => {
     if (!isPaymentStep) return
+    syncHiddenCheckoutFieldsFromAddress()
     if (isRecoveringCheckout || gatewayDismissRecoveryInFlight.current) {
       toast.info('Restoring your bag after payment was closed. Please wait.')
       return
@@ -887,6 +999,16 @@ export default function Checkout() {
       } else if (err?.code === 'MISSING_RAZORPAY_ENV') {
         checkoutAttemptKeyRef.current = null
         toast.error('Payment not configured. Please use COD for now.')
+      } else if (
+        err?.response?.status === 401
+        || err?.status === 401
+        || err?.code === 401
+        || /unauthorized|session expired|please log in|jwt expired|token expired/i.test(
+          String(err?.message || err?.code || ''),
+        )
+      ) {
+        checkoutAttemptKeyRef.current = null
+        toast.error('Your session expired. Please sign in again to place the order.')
       } else {
         checkoutAttemptKeyRef.current = null
         toast.error(err?.message || 'Could not place order')
@@ -1004,7 +1126,7 @@ export default function Checkout() {
     setSearchParams({}, { replace })
   }
 
-  const goToPaymentStep = (replace = false) => {
+  const goToPaymentStep = async (replace = false) => {
     if (!checkoutAddress?.id) {
       toast.error('Select a delivery address')
       setAddressModalOpen(true)
@@ -1026,6 +1148,31 @@ export default function Checkout() {
       toast.error('Quote expired — refresh and try again')
       return
     }
+
+    syncHiddenCheckoutFieldsFromAddress()
+    const emailOk = await trigger('email')
+    if (!emailOk) {
+      toast.error('Enter a valid email for order updates')
+      setCheckoutStep(CHECKOUT_STEP.DELIVERY)
+      setSearchParams({ step: 'delivery' }, { replace: true })
+      window.setTimeout(() => focusCheckoutEmailField(), 280)
+      return
+    }
+
+    // Legacy phone-only accounts: save first checkout email onto the profile for next time.
+    const checkoutEmail = String(getValues('email') || '').trim().toLowerCase()
+    if (checkoutEmail && !String(user?.email || '').trim()) {
+      try {
+        await updateProfile({ email: checkoutEmail })
+      } catch (err) {
+        toast.error(err?.message || 'Could not save email to your profile')
+        setCheckoutStep(CHECKOUT_STEP.DELIVERY)
+        setSearchParams({ step: 'delivery' }, { replace: true })
+        window.setTimeout(() => focusCheckoutEmailField(), 280)
+        return
+      }
+    }
+
     setShowRazorpay(false)
     setRazorpayOrderData(null)
     setCheckoutStep(CHECKOUT_STEP.PAYMENT)
@@ -1145,7 +1292,12 @@ export default function Checkout() {
         </nav>
 
         <div className="checkout">
-          <form id="checkout-form" className="checkout-main" onSubmit={handleSubmit(onSubmit)} noValidate>
+          <form
+            id="checkout-form"
+            className="checkout-main"
+            onSubmit={handleSubmit(onSubmit, onCheckoutInvalid)}
+            noValidate
+          >
             {isReviewStep && (
               <section className="checkout-panel">
                 {/* Clickable header toggles the drawer */}
@@ -1330,10 +1482,20 @@ export default function Checkout() {
                   </Button>
                 </div>
                 <InputGroup label="Email" htmlFor="email" required error={errors.email?.message}>
-                  <Input id="email" type="email" error={errors.email} {...register('email')} />
+                  <Input
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    inputMode="email"
+                    error={Boolean(errors.email)}
+                    {...register('email')}
+                    value={emailFieldValue ?? ''}
+                  />
                 </InputGroup>
                 <p className="body-sm text-muted checkout-panel__hint">
-                  Order updates and shipping notifications go here.
+                  {String(user?.email || '').trim()
+                    ? 'Order updates and shipping notifications go here.'
+                    : 'No email on your profile yet — add one here for order updates (saved to your account).'}
                 </p>
 
                 {checkoutAddress ? (
@@ -1758,7 +1920,7 @@ export default function Checkout() {
           razorpayOrder={razorpayOrderData}
           razorpayKey={prefetchedRazorpayKey || razorpayKey}
           orderId={placedOrder?.order?.orderId || placedOrder?.order?.id}
-          userEmail={user?.email}
+          userEmail={String(emailFieldValue || user?.email || '').trim()}
           userName={checkoutUserName}
           userPhone={checkoutAddress?.phone}
           paymentState={razorpayPaymentState}

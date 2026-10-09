@@ -277,7 +277,7 @@ export function AccountOrderDetail({ orderId, onBack }) {
               size="sm"
               onClick={() => setShowInvoiceModal(true)}
             >
-              <FileText size={14} /> Tax Invoice
+              <FileText size={14} /> Invoice
             </Button>
           </div>
         </div>
