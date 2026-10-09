@@ -48,23 +48,33 @@ function formatInr(amount) {
   }).format(n)
 }
 
-/** Confirm-dialog copy only — mirrors admin cancel refund amount rules (no behavior change). */
+/** Confirm-dialog copy only — mirrors admin cancel refund/stock rules (no behavior change). */
 function buildPendingCancelConfirmMessage(order) {
   const pay = String(order?.paymentStatus || '').toLowerCase()
   const hasRzp = Boolean(order?.paymentInfo?.razorpayPaymentId)
   const paidInr = Math.max(0, Number(order?.amountPaidInr) || 0)
   const totalInr = Math.max(0, Number(order?.totalAmount ?? order?.amountInr) || 0)
+  const holdStatus = String(order?.inventoryHold?.status || '').toLowerCase()
+
+  let stockLine = 'Reserved stock will be released if still held.'
+  if (holdStatus === 'committed') {
+    stockLine = 'Stock was already deducted at payment and will NOT be restored.'
+  } else if (holdStatus === 'held') {
+    stockLine = 'Reserved stock will be released.'
+  } else if (holdStatus === 'released' || holdStatus === 'none') {
+    stockLine = 'No reserved stock hold to release.'
+  }
 
   let refundLine = 'No online refund (nothing captured / no Razorpay payment).'
   if (hasRzp && pay === 'partially_paid' && paidInr > 0.01) {
-    refundLine = `Refund of paid advance ${formatInr(paidInr)} will be attempted via Razorpay.`
+    refundLine = `Refund of paid advance ${formatInr(paidInr)} will be attempted via Razorpay (3–5 working days to reflect).`
   } else if (hasRzp && pay === 'paid' && totalInr > 0.01) {
-    refundLine = `Full refund ${formatInr(totalInr)} will be attempted via Razorpay.`
+    refundLine = `Full refund ${formatInr(totalInr)} will be attempted via Razorpay (3–5 working days to reflect).`
   } else if (hasRzp && (pay === 'paid' || pay === 'partially_paid')) {
-    refundLine = 'Online refund will be attempted via Razorpay for the captured amount.'
+    refundLine = 'Online refund will be attempted via Razorpay for the captured amount (3–5 working days to reflect).'
   }
 
-  return `Cancel this pending order?\n\n• Stock will be restored.\n• ${refundLine}`
+  return `Cancel this pending order?\n\n• ${stockLine}\n• ${refundLine}`
 }
 
 function getDeliveryBreakdown(order) {

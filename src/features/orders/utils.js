@@ -119,23 +119,109 @@ export function isOrderTrackable(order) {
   return false
 }
 
+/** Admin cancel stores refund under returnInfo — must not look like a product return. */
+export function isCancellationRefundOnly(order) {
+  if (!order) return false
+  const ctx = String(
+    order.returnInfo?.refundContext || order.returnRequest?.refundContext || ''
+  ).toLowerCase()
+  if (ctx === 'cancellation') return true
+
+  const orderStatus = String(order.orderStatus || '').toLowerCase()
+  const returnStatus = String(
+    order.returnInfo?.status || order.returnRequest?.status || ''
+  ).toLowerCase()
+  // Paid cancel often leaves refund_* on returnInfo without chat — never treat as return UI.
+  if (
+    orderStatus === 'cancelled' &&
+    ['refund_pending', 'refunded', 'refund_failed', 'not_required', 'refund_unavailable'].includes(
+      returnStatus
+    )
+  ) {
+    return true
+  }
+  return false
+}
+
+/**
+ * Raise return request: delivered only, within 24h of delivery (when deliveredAt is known).
+ * Cancellation refunds never qualify.
+ */
 export function canRequestReturn(order) {
   if (!order) return false
+  if (isCancellationRefundOnly(order)) return false
   const status = String(order.orderStatus || '').toLowerCase()
   if (status !== 'delivered') return false
   const returnStatus = String(order.returnInfo?.status || order.returnRequest?.status || '').toLowerCase()
   if (returnStatus && !['rejected', 'closed'].includes(returnStatus)) return false
+  const deliveredAt = order.deliveredAt || order.shipmentInfo?.deliveredAt
+  if (deliveredAt && !isWithin24Hours(deliveredAt)) return false
   return true
 }
 
+/** Product-return / support chat only — never for admin cancellation refunds. */
 export function hasActiveReturn(order) {
   if (!order) return false
+  if (isCancellationRefundOnly(order)) return false
   const status = String(order.orderStatus || '').toLowerCase()
   const returnStatus = String(order.returnInfo?.status || order.returnRequest?.status || '').toLowerCase()
   return Boolean(
     status === 'return_requested' ||
-    (returnStatus && !['rejected', 'closed'].includes(returnStatus))
+    (returnStatus && !['rejected', 'closed', 'not_required', 'refund_unavailable'].includes(returnStatus))
   )
+}
+
+/**
+ * Customer-facing cancel/refund notice (simple copy only).
+ * @returns {{ amount: number, headline: string, body: string } | null}
+ */
+export function getCancellationRefundNotice(order) {
+  if (!order) return null
+  if (String(order.orderStatus || '').toLowerCase() !== 'cancelled') return null
+
+  const pay = String(order.paymentStatus || '').toLowerCase()
+  const returnStatus = String(order.returnInfo?.status || '').toLowerCase()
+  const amount = Math.max(
+    0,
+    Number(order.returnInfo?.refundAmount) ||
+      Number(order.amountPaidInr) ||
+      0
+  )
+
+  const refundDone =
+    pay === 'refunded' ||
+    pay === 'partially_refunded' ||
+    returnStatus === 'refunded'
+  const refundPending =
+    returnStatus === 'refund_pending' ||
+    (amount > 0.01 && (pay === 'paid' || pay === 'partially_paid'))
+
+  if (refundDone && amount > 0.01) {
+    return {
+      amount,
+      headline: 'Order cancelled',
+      body: `Refund of ₹${amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })} has been processed. It will reflect in your account within 3–5 working days.`,
+    }
+  }
+  if (refundPending && amount > 0.01) {
+    return {
+      amount,
+      headline: 'Order cancelled',
+      body: `Refund of ₹${amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })} has been initiated. It will reflect in your account within 3–5 working days.`,
+    }
+  }
+  if (isCancellationRefundOnly(order) || pay === 'failed' || pay === 'pending') {
+    return {
+      amount: 0,
+      headline: 'Order cancelled',
+      body: 'This order has been cancelled.',
+    }
+  }
+  return {
+    amount: 0,
+    headline: 'Order cancelled',
+    body: 'This order has been cancelled.',
+  }
 }
 
 export function isPaymentWindowExpired(order) {

@@ -14079,6 +14079,35 @@ a.cart-item__name:hover {
   color: #b45309;
 }
 
+.order-detail-cancel-refund-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  margin-bottom: var(--space-3, 12px);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.04);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+.order-detail-cancel-refund-banner__content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.order-detail-cancel-refund-banner__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.order-detail-cancel-refund-banner .body-sm {
+  margin: 0;
+  color: #475569;
+}
+
 .order-detail-return-banner {
   display: flex;
   align-items: center;

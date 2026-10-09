@@ -93,13 +93,8 @@ export function AccountOrderCard({ order, onSelect, isHydrating = false }) {
   const orderStatus = String(order.orderStatus || '').toLowerCase()
   const isDelivered = orderStatus === 'delivered' || orderStatus === 'return_requested'
   const isReturnActive = hasActiveReturn(order)
-  const hasReturnRequestStatus = Boolean(
-    orderStatus === 'return_requested' ||
-    Boolean(order.returnInfo?.status) ||
-    Boolean(order.returnRequest?.status)
-  )
-
-  const hasReturnPayload = Boolean(isDelivered && (isReturnActive || hasReturnRequestStatus))
+  // Cancellation refunds reuse returnInfo — never open return chat for those.
+  const hasReturnPayload = Boolean(isDelivered && isReturnActive)
   const shouldFetchChat = Boolean(order.orderId && hasReturnPayload)
 
   const { data: chatData } = useReturnChat(order.orderId, {

@@ -47,6 +47,7 @@ import {
   getOrderStatusClass,
   getOrderStatusLabel,
   getPaymentStatusLabel,
+  getCancellationRefundNotice,
   hasActiveReturn,
   isOrderTrackable,
   isPaymentWindowExpired,
@@ -251,6 +252,7 @@ export function AccountOrderDetail({ orderId, onBack }) {
   const isDelivered = String(order.orderStatus || '').toLowerCase() === 'delivered'
   const returnActive = hasActiveReturn(order)
   const returnEligible = canRequestReturn(order)
+  const cancelRefundNotice = getCancellationRefundNotice(order)
 
   return (
     <>
@@ -282,6 +284,15 @@ export function AccountOrderDetail({ orderId, onBack }) {
           </div>
         </div>
 
+        {cancelRefundNotice && (
+          <div className="order-detail-cancel-refund-banner" role="status">
+            <div className="order-detail-cancel-refund-banner__content">
+              <p className="order-detail-cancel-refund-banner__title">{cancelRefundNotice.headline}</p>
+              <p className="body-sm">{cancelRefundNotice.body}</p>
+            </div>
+          </div>
+        )}
+
         {/* 24-Hour Confirmed Order Return & Refund Notification / Action Banner */}
         {can24h && (
           <div className="order-detail-24h-banner">
@@ -311,7 +322,7 @@ export function AccountOrderDetail({ orderId, onBack }) {
           <div className="order-detail-return-ready">
             <div className="order-return-callout" role="note">
               <p className="order-return-callout__title">
-                Before you raise a return — mandatory unboxing video
+                Before you raise a return — mandatory unboxing video (24 hours after delivery)
               </p>
               <ul className="order-return-callout__list">
                 <li>Start with the sealed / packed parcel as received</li>
