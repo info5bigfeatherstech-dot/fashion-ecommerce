@@ -504,38 +504,77 @@ export function AccountOrderDetail({ orderId, onBack }) {
           )}
 
           <div className="account-order-detail__meta">
-            <p className="body-sm">
-              Payment: <strong>{getPaymentStatusLabel(order.paymentStatus)}</strong>
-              {paymentMethod ? ` · ${paymentMethod.toUpperCase()}` : ''}
-            </p>
-            {(() => {
-              const facing = order?.customerFacing
-              const lockedCollectable =
-                facing?.collectableInr != null
-                  ? Number(facing.collectableInr)
-                  : order?.shipmentInfo?.courierCollectableInr != null
-                    ? Number(order.shipmentInfo.courierCollectableInr)
-                    : null
-              const label =
-                facing?.collectableLabel ||
-                (lockedCollectable != null && lockedCollectable > 0.01
-                  ? 'Pay to courier'
-                  : Number(order.balanceDueInr) > 0.01
-                    ? 'Balance due'
-                    : null)
-              const amount =
-                lockedCollectable != null && lockedCollectable > 0.01
-                  ? lockedCollectable
-                  : Number(order.balanceDueInr) > 0.01
-                    ? Number(order.balanceDueInr)
-                    : 0
-              if (!(amount > 0.01) || !label) return null
-              return (
-                <p className="body-sm text-muted">
-                  {label}: {formatPrice(amount)}
+            {String(order.orderStatus || '').toLowerCase() === 'cancelled' ? (
+              (() => {
+                const orderTotal = Number(
+                  order?.customerFacing?.totalInr != null
+                    ? order.customerFacing.totalInr
+                    : order.totalAmount ?? 0
+                )
+                const paidInr = Math.max(0, Number(order.amountPaidInr) || 0)
+                const refundedInr = Math.max(
+                  0,
+                  Number(order.returnInfo?.refundAmount) ||
+                    (['refunded', 'partially_refunded'].includes(
+                      String(order.paymentStatus || '').toLowerCase()
+                    )
+                      ? paidInr
+                      : 0)
+                )
+                return (
+                  <>
+                    <p className="body-sm">
+                      Payment method:{' '}
+                      <strong>{paymentMethod ? paymentMethod.toUpperCase() : '—'}</strong>
+                    </p>
+                    <p className="body-sm">
+                      Order total: <strong>{formatPrice(orderTotal)}</strong>
+                    </p>
+                    <p className="body-sm">
+                      You paid: <strong>{formatPrice(paidInr)}</strong>
+                    </p>
+                    <p className="body-sm">
+                      Refunded: <strong>{formatPrice(refundedInr)}</strong>
+                    </p>
+                  </>
+                )
+              })()
+            ) : (
+              <>
+                <p className="body-sm">
+                  Payment: <strong>{getPaymentStatusLabel(order.paymentStatus)}</strong>
+                  {paymentMethod ? ` · ${paymentMethod.toUpperCase()}` : ''}
                 </p>
-              )
-            })()}
+                {(() => {
+                  const facing = order?.customerFacing
+                  const lockedCollectable =
+                    facing?.collectableInr != null
+                      ? Number(facing.collectableInr)
+                      : order?.shipmentInfo?.courierCollectableInr != null
+                        ? Number(order.shipmentInfo.courierCollectableInr)
+                        : null
+                  const label =
+                    facing?.collectableLabel ||
+                    (lockedCollectable != null && lockedCollectable > 0.01
+                      ? 'Pay to courier'
+                      : Number(order.balanceDueInr) > 0.01
+                        ? 'Balance due'
+                        : null)
+                  const amount =
+                    lockedCollectable != null && lockedCollectable > 0.01
+                      ? lockedCollectable
+                      : Number(order.balanceDueInr) > 0.01
+                        ? Number(order.balanceDueInr)
+                        : 0
+                  if (!(amount > 0.01) || !label) return null
+                  return (
+                    <p className="body-sm text-muted">
+                      {label}: {formatPrice(amount)}
+                    </p>
+                  )
+                })()}
+              </>
+            )}
             {order.appliedCoupon && (
               <p className="body-sm text-muted">
                 Coupon:{' '}
