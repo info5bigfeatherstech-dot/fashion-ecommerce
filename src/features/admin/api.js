@@ -124,6 +124,7 @@ export {
   getAdminOrderTracking,
   bulkConfirmOrders,
   bulkCancelOrders,
+  retryCancellationRefund,
   bulkShipNowOrders,
   bulkSchedulePickupOrders,
   bulkSyncShiprocketOrders,

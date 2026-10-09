@@ -118,6 +118,16 @@ export async function bulkCancelOrders(orderIds, reason = '') {
   return unwrapAdmin(payload)
 }
 
+/** POST retry Razorpay refund after admin cancel left refund_failed. */
+export async function retryCancellationRefund(orderId, reason = '') {
+  const id = String(orderId || '').trim()
+  if (!id) throw new Error('Order ID is required')
+  const payload = await adminPost(API_ENDPOINTS.admin.retryCancellationRefund(id), {
+    ...(reason ? { reason } : {}),
+  })
+  return unwrapAdmin(payload)
+}
+
 export async function autoSyncOrderStatuses(params = {}) {
   const payload = await adminPost(API_ENDPOINTS.admin.ordersAutoSync, null, { params })
   return unwrapAdmin(payload)

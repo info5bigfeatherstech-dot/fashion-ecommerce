@@ -4,6 +4,7 @@ import {
   adminLogout,
   autoSyncOrderStatuses,
   bulkCancelOrders,
+  retryCancellationRefund,
   bulkConfirmOrders,
   bulkShipNowOrders,
   bulkSchedulePickupOrders,
@@ -321,6 +322,21 @@ export function useBulkCancelOrders() {
       queryClient.invalidateQueries({ queryKey: ['admin', 'orders-list'] })
       const ids = Array.isArray(vars?.orderIds) ? vars.orderIds : []
       for (const id of ids) {
+        queryClient.invalidateQueries({ queryKey: adminKeys.orderDetail(id) })
+      }
+    },
+  })
+}
+
+export function useRetryCancellationRefund() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ orderId, reason } = {}) => retryCancellationRefund(orderId, reason),
+    onSuccess: (_data, vars) => {
+      const id = String(vars?.orderId || '').trim()
+      queryClient.invalidateQueries({ queryKey: adminKeys.ordersSummary() })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'orders-list'] })
+      if (id) {
         queryClient.invalidateQueries({ queryKey: adminKeys.orderDetail(id) })
       }
     },

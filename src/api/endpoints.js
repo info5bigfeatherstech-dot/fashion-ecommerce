@@ -91,6 +91,8 @@ export const API_ENDPOINTS = {
       `/orders/admin/items/${encodeURIComponent(String(orderId))}/gift-intent`,
     bulkConfirm: '/orders/admin/items/bulk-approval/confirm',
     bulkCancel: '/orders/admin/items/bulk-approval/cancel',
+    retryCancellationRefund: (orderId) =>
+      `/orders/admin/items/${encodeURIComponent(String(orderId))}/refund/retry-cancellation`,
     bulkShipNow: '/orders/admin/items/bulk-fulfillment/ship-now',
     bulkSchedulePickup: '/orders/admin/items/bulk-fulfillment/schedule-pickup',
     bulkSyncShiprocket: '/orders/admin/items/bulk-fulfillment/sync-shiprocket',

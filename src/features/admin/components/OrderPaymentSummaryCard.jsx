@@ -1,4 +1,5 @@
 import { formatPrice } from '@/lib/utils'
+import { Button } from '@/components/ui/Button'
 
 const PAYMENT_STATUS_LABELS = {
   pending: 'Pending',
@@ -52,6 +53,8 @@ function readLockedCollectable(orderSafe) {
 export function OrderPaymentSummaryCard({
   order,
   showRazorpayIds = false,
+  onRetryRefund = null,
+  retryRefundPending = false,
 }) {
   const orderSafe = order && typeof order === 'object' ? order : {}
   const pi = orderSafe.paymentInfo && typeof orderSafe.paymentInfo === 'object'
@@ -89,7 +92,21 @@ export function OrderPaymentSummaryCard({
     formatRefundWhen(pi.cancelledAt) ||
     null
   const refundStatus = String(ri.status || '').toLowerCase()
+  const refundContext = String(ri.refundContext || '').toLowerCase()
   const refundFailureReason = String(pi.refundFailureReason || '').trim()
+  const orderStatus = String(orderSafe.orderStatus || '').toLowerCase()
+
+  const canRetryCancellationRefund =
+    typeof onRetryRefund === 'function' &&
+    orderStatus === 'cancelled' &&
+    Boolean(pi.razorpayPaymentId) &&
+    payStatus !== 'refunded' &&
+    (refundContext === 'cancellation' || !refundContext) &&
+    (refundStatus === 'refund_failed' ||
+      (refundStatus === 'refund_pending' && Boolean(refundFailureReason)) ||
+      (Boolean(refundFailureReason) &&
+        ['paid', 'partially_paid', 'partially_refunded'].includes(payStatus)))
+
   const showRefundBlock =
     payStatus === 'refunded' ||
     payStatus === 'partially_refunded' ||
@@ -160,7 +177,9 @@ export function OrderPaymentSummaryCard({
           <div className="admin-payment-grid">
             <div className="admin-payment-row">
               <span>Refund status</span>
-              <strong>{refundStatus ? refundStatus.replace(/_/g, ' ') : labelPaymentStatus(payStatus)}</strong>
+              <strong>
+                {refundStatus ? refundStatus.replace(/_/g, ' ') : labelPaymentStatus(payStatus)}
+              </strong>
             </div>
             {refundAmount > 0.01 ? (
               <div className="admin-payment-row">
@@ -186,6 +205,28 @@ export function OrderPaymentSummaryCard({
               Refund failure reason: {refundFailureReason}
             </p>
           ) : null}
+          {canRetryCancellationRefund ? (
+            <div style={{ marginTop: '0.75rem' }}>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={retryRefundPending}
+                onClick={() => {
+                  if (retryRefundPending) return
+                  const amountLabel =
+                    refundAmount > 0.01 ? formatPrice(refundAmount) : 'the paid amount'
+                  const ok = window.confirm(
+                    `Retry Razorpay refund of ${amountLabel} for this cancelled order?`,
+                  )
+                  if (!ok) return
+                  onRetryRefund()
+                }}
+              >
+                {retryRefundPending ? 'Retrying refund…' : 'Retry refund'}
+              </Button>
+            </div>
+          ) : null}
           {refundHistory.length > 1 ? (
             <div style={{ marginTop: '0.5rem' }}>
               <p className="admin-card__subtitle">Refund history</p>
@@ -193,7 +234,9 @@ export function OrderPaymentSummaryCard({
                 <p key={entry.refundId || idx} className="admin-card__subtitle">
                   {formatPrice(entry.amountInr || 0)}
                   {entry.refundId ? ` · ${entry.refundId}` : ''}
-                  {formatRefundWhen(entry.createdAt) ? ` · ${formatRefundWhen(entry.createdAt)}` : ''}
+                  {formatRefundWhen(entry.createdAt)
+                    ? ` · ${formatRefundWhen(entry.createdAt)}`
+                    : ''}
                   {entry.status ? ` · ${entry.status}` : ''}
                 </p>
               ))}
@@ -202,17 +245,23 @@ export function OrderPaymentSummaryCard({
         </div>
       ) : null}
 
-      {showRazorpayIds && (pi.razorpayOrderId || pi.razorpayPaymentId) && (
+      {showRazorpayIds && (pi.razorpayOrderId || pi.razorpayPaymentId) ? (
         <div className="admin-payment-refs">
           <p className="admin-card__subtitle">Gateway references</p>
-          {pi.razorpayOrderId && (
-            <p><span>Razorpay order</span><code>{pi.razorpayOrderId}</code></p>
-          )}
-          {pi.razorpayPaymentId && (
-            <p><span>Razorpay payment</span><code>{pi.razorpayPaymentId}</code></p>
-          )}
+          {pi.razorpayOrderId ? (
+            <p>
+              <span>Razorpay order</span>
+              <code>{pi.razorpayOrderId}</code>
+            </p>
+          ) : null}
+          {pi.razorpayPaymentId ? (
+            <p>
+              <span>Razorpay payment</span>
+              <code>{pi.razorpayPaymentId}</code>
+            </p>
+          ) : null}
         </div>
-      )}
+      ) : null}
     </div>
   )
 }

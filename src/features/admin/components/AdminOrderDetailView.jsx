@@ -27,6 +27,7 @@ import {
   useAdminPickupCalendar,
   useAssignAdminOrderShip,
   useBulkCancelOrders,
+  useRetryCancellationRefund,
   useBulkConfirmOrders,
   useCancelAdminOrderShipment,
   useDownloadAdminOrderManifest,
@@ -275,6 +276,7 @@ export function AdminOrderDetailView({
 
   const confirmOrders = useBulkConfirmOrders()
   const cancelOrders = useBulkCancelOrders()
+  const retryCancellationRefund = useRetryCancellationRefund()
   const ensureShipment = useEnsureAdminOrderShipment()
   const assignShip = useAssignAdminOrderShip()
   const schedulePickup = useScheduleAdminOrderPickup()
@@ -430,6 +432,24 @@ export function AdminOrderDetailView({
       const text = errText(e, 'Cancel failed.')
       setActionMsg({ type: 'err', text })
       toast.error(text)
+    }
+  }
+
+  const handleRetryCancellationRefund = async () => {
+    setActionMsg(null)
+    try {
+      const data = await retryCancellationRefund.mutateAsync({ orderId })
+      const text = data?.message || 'Refund retry completed.'
+      setActionMsg({ type: 'ok', text })
+      toast.success(text)
+      await refreshOrder()
+    } catch (e) {
+      const reason =
+        String(e?.refundFailureReason || e?.details?.refundFailureReason || '').trim() ||
+        errText(e, 'Refund retry failed.')
+      setActionMsg({ type: 'err', text: reason })
+      toast.error(reason)
+      await refreshOrder()
     }
   }
 
@@ -994,7 +1014,12 @@ export function AdminOrderDetailView({
             onApplied={refreshOrder}
           />
 
-          <OrderPaymentSummaryCard order={order} showRazorpayIds />
+          <OrderPaymentSummaryCard
+            order={order}
+            showRazorpayIds
+            onRetryRefund={handleRetryCancellationRefund}
+            retryRefundPending={retryCancellationRefund.isPending}
+          />
         </aside>
       </div>
     </div>
