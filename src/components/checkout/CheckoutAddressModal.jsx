@@ -54,6 +54,8 @@ function AddressWizardSteps({ currentStep }) {
 export function CheckoutAddressModal({ open, onOpenChange, onProceed }) {
   const queryClient = useQueryClient()
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
+  const authReady = useAppStore((s) => s.authReady)
+  const accessToken = useAppStore((s) => s.accessToken)
   const checkoutAddress = useAppStore((s) => s.checkoutAddress)
   const setCheckoutAddress = useAppStore((s) => s.setCheckoutAddress)
 
@@ -61,6 +63,11 @@ export function CheckoutAddressModal({ open, onOpenChange, onProceed }) {
     enabled: open && isAuthenticated,
   })
   const createAddress = useCreateAddress()
+  const addressesBooting =
+    !authReady ||
+    !accessToken ||
+    isLoading ||
+    (isAuthenticated && !isError && data === undefined)
 
   const addresses = data?.all ?? EMPTY_ADDRESSES
   const [selectedAddressId, setSelectedAddressId] = useState(null)
@@ -202,7 +209,7 @@ export function CheckoutAddressModal({ open, onOpenChange, onProceed }) {
             <div className="address-modal__section">
               <h2 className="address-modal__heading">Choose a saved address</h2>
 
-              {isLoading ? (
+              {addressesBooting ? (
                 <p className="body-sm text-muted">Loading addresses…</p>
               ) : isError ? (
                 <p className="body-sm address-modal__error">

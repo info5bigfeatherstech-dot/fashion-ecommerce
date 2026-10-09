@@ -24,12 +24,14 @@ import { useAppStore } from '@/store'
 
 export function useUserOrders({ enabled = true, refetchOnMount } = {}) {
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
+  const authReady = useAppStore((s) => s.authReady)
   const accessToken = useAppStore((s) => s.accessToken)
+  const userId = useAppStore((s) => s.user?.id)
 
   return useQuery({
-    queryKey: orderKeys.list(),
+    queryKey: orderKeys.list(userId),
     queryFn: ({ signal }) => getUserOrders({ signal }),
-    enabled: enabled && isAuthenticated && Boolean(accessToken),
+    enabled: enabled && authReady && isAuthenticated && Boolean(accessToken),
     staleTime: 1000 * 60, // 1 minute — uses cache on tab switch, background-refetches when stale
     ...(refetchOnMount !== undefined ? { refetchOnMount } : {}),
   })
@@ -94,7 +96,7 @@ export function useCreateReturnRequest() {
     mutationFn: ({ orderId, data }) => createReturnRequest(orderId, data),
     onSuccess: (_, { orderId }) => {
       queryClient.invalidateQueries({ queryKey: orderKeys.detail(orderId) })
-      queryClient.invalidateQueries({ queryKey: orderKeys.list() })
+      queryClient.invalidateQueries({ queryKey: orderKeys.all })
       queryClient.invalidateQueries({ queryKey: orderKeys.returnChat(orderId) })
     },
   })
@@ -127,7 +129,7 @@ export function useInvalidateOrders() {
   const queryClient = useQueryClient()
 
   return (orderId) => {
-    queryClient.invalidateQueries({ queryKey: orderKeys.list() })
+    queryClient.invalidateQueries({ queryKey: orderKeys.all })
     if (orderId) {
       queryClient.invalidateQueries({ queryKey: orderKeys.detail(orderId) })
       queryClient.invalidateQueries({ queryKey: orderKeys.tracking(orderId) })

@@ -192,22 +192,24 @@ export function getCancellationRefundNotice(order) {
     pay === 'refunded' ||
     pay === 'partially_refunded' ||
     returnStatus === 'refunded'
+  // Include refund_failed: customer still sees soft “initiated” copy (admin sees real reason).
   const refundPending =
     returnStatus === 'refund_pending' ||
+    returnStatus === 'refund_failed' ||
     (amount > 0.01 && (pay === 'paid' || pay === 'partially_paid'))
 
   if (refundDone && amount > 0.01) {
     return {
       amount,
       headline: 'Order cancelled',
-      body: `Refund of ₹${amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })} has been processed. It will reflect in your account within 3–5 working days.`,
+      body: `Refund of ₹${amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })} has been processed. It will reflect in your account within 5–7 working days.`,
     }
   }
   if (refundPending && amount > 0.01) {
     return {
       amount,
       headline: 'Order cancelled',
-      body: `Refund of ₹${amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })} has been initiated. It will reflect in your account within 3–5 working days.`,
+      body: `Refund of ₹${amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })} has been initiated. It will reflect in your account within 5–7 working days.`,
     }
   }
   if (isCancellationRefundOnly(order) || pay === 'failed' || pay === 'pending') {

@@ -46,18 +46,21 @@ export function Header() {
   const wishlistCount = useWishlistCount()
   const openCart = useAppStore((s) => s.openCart)
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
+  const authReady = useAppStore((s) => s.authReady)
+  const accessToken = useAppStore((s) => s.accessToken)
   const user = useAppStore((s) => s.user)
   const openAuthModal = useAppStore((s) => s.openAuthModal)
   const { navItems } = useHeaderNavItems()
+  const sessionLive = Boolean(authReady && isAuthenticated && accessToken)
   const accountFirstName = getUserFirstName(user)
   const accountLabel = isAuthenticated && accountFirstName ? accountFirstName : 'My Account'
   const loyaltyBadge = isAuthenticated ? user?.loyalty?.badge : null
 
-  // In-app badge: fetch once on session open / login. No polling, no per-route refetch.
-  // Bell click opens modal which refreshes list + unread (see NotificationsModal).
+  // In-app badge: fetch once after bootstrap has a live access token.
+  // Avoids /me + notifications 401 flood while SessionBootstrap is still refreshing.
   useEffect(() => {
-    if (!isAuthenticated) {
-      setUnreadNotifications(0)
+    if (!sessionLive) {
+      if (authReady && !isAuthenticated) setUnreadNotifications(0)
       return undefined
     }
     let cancelled = false
@@ -74,7 +77,7 @@ export function Header() {
     return () => {
       cancelled = true
     }
-  }, [isAuthenticated])
+  }, [sessionLive, authReady, isAuthenticated])
 
   const handleOpenNotifications = useCallback(() => {
     if (!isAuthenticated) return

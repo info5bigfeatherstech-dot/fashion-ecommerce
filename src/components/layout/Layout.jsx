@@ -228,7 +228,9 @@ function ScrollToTop() {
 
 export function Layout() {
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
-  usePushNotifications(Boolean(isAuthenticated))
+  const authReady = useAppStore((s) => s.authReady)
+  const accessToken = useAppStore((s) => s.accessToken)
+  usePushNotifications(Boolean(authReady && isAuthenticated && accessToken))
 
   return (
     <>

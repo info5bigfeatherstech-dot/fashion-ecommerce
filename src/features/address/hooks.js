@@ -7,12 +7,18 @@ import {
   updateAddress,
 } from './api'
 import { addressKeys } from './queryKeys'
+import { useAppStore } from '@/store'
 
 export function useAddresses({ enabled = true, refetchOnMount } = {}) {
+  const isAuthenticated = useAppStore((s) => s.isAuthenticated)
+  const authReady = useAppStore((s) => s.authReady)
+  const accessToken = useAppStore((s) => s.accessToken)
+  const userId = useAppStore((s) => s.user?.id)
+
   return useQuery({
-    queryKey: addressKeys.list(),
+    queryKey: addressKeys.list(userId),
     queryFn: ({ signal }) => listAddresses({ signal }),
-    enabled,
+    enabled: enabled && authReady && isAuthenticated && Boolean(accessToken),
     ...(refetchOnMount !== undefined ? { refetchOnMount } : {}),
   })
 }

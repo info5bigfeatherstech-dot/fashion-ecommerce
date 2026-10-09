@@ -6,6 +6,7 @@ import { useOrdersWithDetails, useUserOrders } from '@/features/orders/hooks'
 import { getOrderItems } from '@/features/orders/utils'
 import { AccountOrderCard } from '@/routes/account/AccountOrderCard'
 import { AccountOrderDetail } from '@/routes/account/AccountOrderDetail'
+import { useAppStore } from '@/store'
 
 class DetailErrorBoundary extends React.Component {
   constructor(props) {
@@ -53,6 +54,8 @@ class DetailErrorBoundary extends React.Component {
 export function AccountOrdersTab() {
   const location = useLocation()
   const [selectedOrderId, setSelectedOrderId] = useState(location.state?.openOrderId ?? null)
+  const authReady = useAppStore((s) => s.authReady)
+  const accessToken = useAppStore((s) => s.accessToken)
   const { data, isLoading, isError, error, refetch, isFetching } = useUserOrders()
   const orders = data?.orders ?? []
   const { orders: enrichedOrders, isHydrating } = useOrdersWithDetails(orders, {
@@ -76,7 +79,8 @@ export function AccountOrdersTab() {
     )
   }
 
-  if (isLoading) {
+  // Avoid false "No orders yet" while session bootstrap still has no access token.
+  if (!authReady || !accessToken || isLoading) {
     return (
       <div className="account-orders-state">
         <Loader2 size={22} className="account-orders-state__spin" aria-hidden="true" />
@@ -95,6 +99,15 @@ export function AccountOrdersTab() {
             Try again
           </Button>
         </div>
+      </div>
+    )
+  }
+
+  if (data === undefined) {
+    return (
+      <div className="account-orders-state">
+        <Loader2 size={22} className="account-orders-state__spin" aria-hidden="true" />
+        <p className="body-sm text-muted">Loading your orders…</p>
       </div>
     )
   }

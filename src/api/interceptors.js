@@ -2,7 +2,7 @@ import axiosClient from './axiosClient'
 import { normalizeApiError } from './errors'
 import { useAppStore } from '@/store'
 import { useAdminStore } from '@/features/admin/store'
-import { refreshSession } from '@/features/auth/api'
+import { refreshSession, canAttemptStorefrontRefresh } from '@/features/auth/api'
 import { refreshAdminSession } from '@/features/admin/api'
 
 let interceptorsInstalled = false
@@ -15,7 +15,8 @@ function isPublicAuthRequest(config) {
     url.includes('/auth/login') ||
     url.includes('/auth/register') ||
     url.includes('/auth/google') ||
-    url.includes('/auth/otp-verify')
+    url.includes('/auth/otp-verify') ||
+    url.includes('/auth/refresh')
   )
 }
 
@@ -74,6 +75,11 @@ export function setupInterceptors() {
         original?.skipAuthRefresh || original?._retry || isPublicAuthRequest(original)
 
       if (status === 401 && original && !skipRefresh) {
+        // No session signal → reject without hitting /auth/refresh (avoids anon flood).
+        if (!original.useAdminAuth && !canAttemptStorefrontRefresh()) {
+          return Promise.reject(normalizeApiError(error))
+        }
+
         original._retry = true
         try {
           if (original.useAdminAuth) {

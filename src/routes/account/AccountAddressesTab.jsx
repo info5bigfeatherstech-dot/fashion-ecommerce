@@ -27,6 +27,8 @@ function revealAddressesTop() {
 export function AccountAddressesTab() {
   const user = useAppStore((s) => s.user)
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
+  const authReady = useAppStore((s) => s.authReady)
+  const accessToken = useAppStore((s) => s.accessToken)
   const [addressFormError, setAddressFormError] = useState('')
   const [showAddressForm, setShowAddressForm] = useState(false)
   const [editingAddressId, setEditingAddressId] = useState(null)
@@ -37,6 +39,11 @@ export function AccountAddressesTab() {
     isError: addressesFailed,
     error: addressesError,
   } = useAddresses({ enabled: isAuthenticated, refetchOnMount: 'always' })
+  const addressesBooting =
+    !authReady ||
+    !accessToken ||
+    addressesLoading ||
+    (!addressesFailed && addressData === undefined)
   const createAddress = useCreateAddress()
   const updateAddress = useUpdateAddress()
   const deleteAddress = useDeleteAddress()
@@ -182,7 +189,7 @@ export function AccountAddressesTab() {
           <p className="heading-sm text-accent">Addresses</p>
           <h2 className="display-md">Saved Addresses</h2>
         </div>
-        {!addressesLoading && !addressesFailed && !showAddressForm && addresses.length > 0 && (
+        {!addressesBooting && !addressesFailed && !showAddressForm && addresses.length > 0 && (
           <Button variant="secondary" size="sm" onClick={openAddressForm}>
             <Plus size={16} />
             Add address
@@ -190,7 +197,7 @@ export function AccountAddressesTab() {
         )}
       </div>
 
-      {addressesLoading ? (
+      {addressesBooting ? (
         <div className="account-panel">
           <p className="body-lg text-muted">Loading addresses…</p>
         </div>

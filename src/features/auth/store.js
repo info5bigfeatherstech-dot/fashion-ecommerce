@@ -1,4 +1,4 @@
-import { clearAuthSession } from '@/api/config'
+import { clearAuthSession, clearStorefrontRefreshToken } from '@/api/config'
 
 export const authSlice = (set, get) => ({
   user: null,
@@ -55,6 +55,7 @@ export const authSlice = (set, get) => ({
 
   clearUser: () => {
     clearAuthSession()
+    clearStorefrontRefreshToken()
     set({
       user: null,
       accessToken: null,

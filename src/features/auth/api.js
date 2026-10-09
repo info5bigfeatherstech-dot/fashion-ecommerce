@@ -1,8 +1,24 @@
 import { http } from '@/api/http'
 import { API_ENDPOINTS, AUTH_PORTAL } from '@/api/endpoints'
-import { clearAuthSession } from '@/api/config'
+import { clearAuthSession, STOREFRONT_REFRESH_TOKEN_KEY } from '@/api/config'
+import { queryClient } from '@/api/queryClient'
 import { syncBagsAfterLogin } from '@/features/commerce/syncBags'
+import { orderKeys } from '@/features/orders/queryKeys'
+import { addressKeys } from '@/features/address/queryKeys'
 import { useAppStore } from '@/store'
+
+/** Drop per-user caches so a new login never shows another account's empty/stale data. */
+function clearStorefrontUserQueries() {
+  try {
+    queryClient.removeQueries({ queryKey: orderKeys.all })
+    queryClient.removeQueries({ queryKey: addressKeys.all })
+    queryClient.removeQueries({ queryKey: ['notifications'] })
+    queryClient.removeQueries({ queryKey: ['cart'] })
+    queryClient.removeQueries({ queryKey: ['wishlist'] })
+  } catch {
+    // ignore
+  }
+}
 
 function mapAuthUser(user) {
   if (!user) return null
@@ -31,14 +47,26 @@ function mapAuthUser(user) {
   }
 }
 
-const STOREFRONT_REFRESH_TOKEN_KEY = 'fabuniqo_storefront_rt'
-
 function getStoredRefreshToken() {
   try {
     return localStorage.getItem(STOREFRONT_REFRESH_TOKEN_KEY) || null
   } catch {
     return null
   }
+}
+
+/** True when localStorage still holds a storefront refresh fallback token. */
+export function hasStorefrontRefreshToken() {
+  return Boolean(getStoredRefreshToken())
+}
+
+/**
+ * Whether the client has any signal that a storefront session may exist.
+ * Used to avoid anonymous /auth/refresh spam when there is nothing to restore.
+ */
+export function canAttemptStorefrontRefresh() {
+  const { accessToken, user } = useAppStore.getState()
+  return Boolean(accessToken || user || getStoredRefreshToken())
 }
 
 function setStoredRefreshToken(token) {
@@ -57,6 +85,7 @@ function applyLoginPayload(payload) {
     setStoredRefreshToken(payload.refreshToken)
   }
 
+  clearStorefrontUserQueries()
   useAppStore.getState().setSession({ user, accessToken })
   clearAuthSession() // wipe any legacy localStorage token/user keys
 
@@ -136,8 +165,9 @@ export async function refreshSession() {
           refreshToken: fallbackToken || undefined,
         },
         {
+          // Token goes in JSON body only — custom x-refresh-token header
+          // triggers CORS preflight failures when not on Access-Control-Allow-Headers.
           skipAuthRefresh: true,
-          headers: fallbackToken ? { 'x-refresh-token': fallbackToken } : undefined,
         }
       )
       .then(async (payload) => {
@@ -159,6 +189,13 @@ export async function refreshSession() {
           }
         }
         return result
+      })
+      .catch((err) => {
+        // Drop dead fallback RT so cold starts don't keep POSTing /auth/refresh.
+        if (isFatalAuthRefreshError(err)) {
+          setStoredRefreshToken(null)
+        }
+        throw err
       })
       .finally(() => {
         refreshPromise = null
@@ -292,6 +329,7 @@ export async function logout() {
     // Clear local session even if the network call fails
   } finally {
     setStoredRefreshToken(null)
+    clearStorefrontUserQueries()
     useAppStore.getState().clearUser()
     try {
       useAppStore.persist?.clearStorage()

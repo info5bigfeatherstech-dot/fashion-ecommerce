@@ -40,7 +40,7 @@ export async function refreshAdminSession() {
         {
           skipAuthRefresh: true,
           useAdminAuth: true,
-          headers: currentRefreshToken ? { 'x-refresh-token': currentRefreshToken } : undefined,
+          // Refresh token in JSON body only (avoids CORS preflight on x-refresh-token).
         }
       )
       .then(async (payload) => {

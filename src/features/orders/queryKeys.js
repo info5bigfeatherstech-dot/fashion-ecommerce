@@ -1,6 +1,6 @@
 export const orderKeys = {
   all: ['orders'],
-  list: () => [...orderKeys.all, 'list'],
+  list: (userId) => [...orderKeys.all, 'list', String(userId || '')],
   detail: (orderId) => [...orderKeys.all, 'detail', String(orderId || '')],
   tracking: (orderId) => [...orderKeys.all, 'tracking', String(orderId || '')],
   invoice: (orderId) => [...orderKeys.all, 'invoice', String(orderId || '')],

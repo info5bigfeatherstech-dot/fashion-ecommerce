@@ -1,12 +1,19 @@
 import { useEffect } from 'react'
 import { useAppStore } from '@/store'
-import { refreshSession, isFatalAuthRefreshError } from '@/features/auth/api'
+import {
+  refreshSession,
+  isFatalAuthRefreshError,
+  canAttemptStorefrontRefresh,
+} from '@/features/auth/api'
 import { syncBagsFromServer } from '@/features/commerce/syncBags'
 
 /**
  * Restore the in-memory access token from the HttpOnly refresh cookie
  * (valid ≥ 7 days). Only clears the local session on a real auth rejection,
  * not on transient network / cold-start errors.
+ *
+ * Waits for Zustand persist hydration first so a cached user does not trigger
+ * /me or notifications before this bootstrap finishes (see authReady).
  */
 export function SessionBootstrap() {
   const setAuthReady = useAppStore((s) => s.setAuthReady)
@@ -34,7 +41,9 @@ export function SessionBootstrap() {
 
         const { accessToken, clearUser } = useAppStore.getState()
 
-        if (!accessToken) {
+        // Anonymous visits: do not POST /auth/refresh (cookie-only restore still
+        // runs when persist has a user, or when a fallback RT exists).
+        if (!accessToken && canAttemptStorefrontRefresh()) {
           try {
             await refreshSession()
           } catch (err) {

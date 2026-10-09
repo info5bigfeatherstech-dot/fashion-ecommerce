@@ -1,5 +1,7 @@
 const TOKEN_STORAGE_KEY = 'verao_token'
 const USER_STORAGE_KEY = 'verao_user'
+/** Fallback refresh token when HttpOnly cookie is unavailable (same key as auth/api). */
+export const STOREFRONT_REFRESH_TOKEN_KEY = 'fabuniqo_storefront_rt'
 
 function trimSlash(value) {
   return String(value || '').replace(/\/+$/, '')
@@ -51,6 +53,15 @@ export function clearAuthSession() {
   try {
     localStorage.removeItem(apiConfig.tokenStorageKey)
     localStorage.removeItem(apiConfig.userStorageKey)
+  } catch {
+    // ignore
+  }
+}
+
+/** Clears the storefront refresh-token fallback (not the HttpOnly cookie). */
+export function clearStorefrontRefreshToken() {
+  try {
+    localStorage.removeItem(STOREFRONT_REFRESH_TOKEN_KEY)
   } catch {
     // ignore
   }

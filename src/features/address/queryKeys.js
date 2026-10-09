@@ -1,4 +1,4 @@
 export const addressKeys = {
   all: ['addresses'],
-  list: () => [...addressKeys.all, 'list'],
+  list: (userId) => [...addressKeys.all, 'list', String(userId || '')],
 }

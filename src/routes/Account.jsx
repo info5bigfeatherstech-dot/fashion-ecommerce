@@ -41,6 +41,8 @@ export default function Account() {
   const location = useLocation()
   const user = useAppStore((s) => s.user)
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
+  const authReady = useAppStore((s) => s.authReady)
+  const accessToken = useAppStore((s) => s.accessToken)
   const openAuthModal = useAppStore((s) => s.openAuthModal)
   const clearUser = useAppStore((s) => s.clearUser)
   const cartCount = useCartCount()
@@ -118,6 +120,8 @@ export default function Account() {
   }
 
   useEffect(() => {
+    // Wait for SessionBootstrap so a persisted user is not bounced before refresh.
+    if (!authReady) return
     if (!isAuthenticated) {
       const redirectTo = location.pathname.startsWith('/account')
         ? location.pathname
@@ -125,18 +129,18 @@ export default function Account() {
       openAuthModal({ redirectTo, mode: 'login' })
       navigate('/', { replace: true })
     }
-  }, [isAuthenticated, location.pathname, navigate, openAuthModal])
+  }, [authReady, isAuthenticated, location.pathname, navigate, openAuthModal])
 
   // Pull latest loyalty badge after admin recompute / new paid orders (store can be stale).
   useEffect(() => {
-    if (!isAuthenticated) return undefined
+    if (!authReady || !isAuthenticated || !accessToken) return undefined
     refreshCurrentUser().catch(() => {
       /* auth layer handles session errors */
     })
     return undefined
-  }, [isAuthenticated, activeTab])
+  }, [authReady, isAuthenticated, accessToken, activeTab])
 
-  if (!isAuthenticated) {
+  if (!authReady || !isAuthenticated) {
     return null
   }
 

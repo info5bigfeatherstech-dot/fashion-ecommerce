@@ -15,6 +15,24 @@ function labelPaymentStatus(raw) {
   return PAYMENT_STATUS_LABELS[key] || key.replace(/_/g, ' ') || '—'
 }
 
+function formatRefundWhen(value) {
+  if (!value) return null
+  try {
+    const d = new Date(value)
+    if (Number.isNaN(d.getTime())) return null
+    return d.toLocaleString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    })
+  } catch {
+    return null
+  }
+}
+
 function readLockedCollectable(orderSafe) {
   try {
     const facing = orderSafe?.customerFacing
@@ -39,6 +57,9 @@ export function OrderPaymentSummaryCard({
   const pi = orderSafe.paymentInfo && typeof orderSafe.paymentInfo === 'object'
     ? orderSafe.paymentInfo
     : {}
+  const ri = orderSafe.returnInfo && typeof orderSafe.returnInfo === 'object'
+    ? orderSafe.returnInfo
+    : {}
 
   const payStatus = String(orderSafe.paymentStatus || '').toLowerCase()
   const balanceDue = Number(orderSafe.balanceDueInr) || 0
@@ -54,11 +75,34 @@ export function OrderPaymentSummaryCard({
       ? `Courier collectable (locked at push): ${formatPrice(lockedCollectable)}. Internal due differs: ${formatPrice(balanceDue)}.`
       : null)
 
+  const refundHistory = Array.isArray(orderSafe.refundHistory) ? orderSafe.refundHistory : []
+  const refundAmount = Math.max(
+    0,
+    Number(ri.refundAmount) ||
+      refundHistory.reduce((s, r) => s + (Number(r.amountInr) || 0), 0) ||
+      0,
+  )
+  const refundId = ri.refundId || refundHistory[0]?.refundId || null
+  const refundWhen =
+    formatRefundWhen(ri.approvedAt) ||
+    formatRefundWhen(refundHistory[0]?.createdAt) ||
+    formatRefundWhen(pi.cancelledAt) ||
+    null
+  const refundStatus = String(ri.status || '').toLowerCase()
+  const refundFailureReason = String(pi.refundFailureReason || '').trim()
+  const showRefundBlock =
+    payStatus === 'refunded' ||
+    payStatus === 'partially_refunded' ||
+    refundAmount > 0.01 ||
+    Boolean(refundId) ||
+    ['refunded', 'refund_pending', 'refund_failed'].includes(refundStatus) ||
+    Boolean(refundFailureReason)
+
   const statusTone = isPaid
     ? 'admin-badge admin-badge--success'
     : hasDue || payStatus === 'partially_paid' || (hasLockedCollectable && lockedCollectable > 0.01)
       ? 'admin-badge admin-badge--warn'
-      : payStatus === 'failed' || payStatus === 'refunded'
+      : payStatus === 'failed' || payStatus === 'refunded' || payStatus === 'partially_refunded'
         ? 'admin-badge admin-badge--error'
         : 'admin-badge'
 
@@ -108,6 +152,54 @@ export function OrderPaymentSummaryCard({
         <p className="admin-card__subtitle" style={{ marginTop: '0.5rem' }}>
           {lockDiffHint}
         </p>
+      ) : null}
+
+      {showRefundBlock ? (
+        <div className="admin-payment-refs" style={{ marginTop: '0.75rem' }}>
+          <p className="admin-card__subtitle">Refund</p>
+          <div className="admin-payment-grid">
+            <div className="admin-payment-row">
+              <span>Refund status</span>
+              <strong>{refundStatus ? refundStatus.replace(/_/g, ' ') : labelPaymentStatus(payStatus)}</strong>
+            </div>
+            {refundAmount > 0.01 ? (
+              <div className="admin-payment-row">
+                <span>Refund amount</span>
+                <strong>{formatPrice(refundAmount)}</strong>
+              </div>
+            ) : null}
+            {refundWhen ? (
+              <div className="admin-payment-row">
+                <span>Refunded on</span>
+                <strong>{refundWhen}</strong>
+              </div>
+            ) : null}
+            {refundId ? (
+              <div className="admin-payment-row">
+                <span>Refund id</span>
+                <code>{refundId}</code>
+              </div>
+            ) : null}
+          </div>
+          {refundFailureReason ? (
+            <p className="admin-card__subtitle" style={{ marginTop: '0.5rem', color: '#b91c1c' }}>
+              Refund failure reason: {refundFailureReason}
+            </p>
+          ) : null}
+          {refundHistory.length > 1 ? (
+            <div style={{ marginTop: '0.5rem' }}>
+              <p className="admin-card__subtitle">Refund history</p>
+              {refundHistory.map((entry, idx) => (
+                <p key={entry.refundId || idx} className="admin-card__subtitle">
+                  {formatPrice(entry.amountInr || 0)}
+                  {entry.refundId ? ` · ${entry.refundId}` : ''}
+                  {formatRefundWhen(entry.createdAt) ? ` · ${formatRefundWhen(entry.createdAt)}` : ''}
+                  {entry.status ? ` · ${entry.status}` : ''}
+                </p>
+              ))}
+            </div>
+          ) : null}
+        </div>
       ) : null}
 
       {showRazorpayIds && (pi.razorpayOrderId || pi.razorpayPaymentId) && (

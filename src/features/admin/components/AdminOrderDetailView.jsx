@@ -67,11 +67,16 @@ function buildPendingCancelConfirmMessage(order) {
 
   let refundLine = 'No online refund (nothing captured / no Razorpay payment).'
   if (hasRzp && pay === 'partially_paid' && paidInr > 0.01) {
-    refundLine = `Refund of paid advance ${formatInr(paidInr)} will be attempted via Razorpay (3–5 working days to reflect).`
+    refundLine = `Refund of paid advance ${formatInr(paidInr)} will be attempted via Razorpay (5–7 working days to reflect).`
   } else if (hasRzp && pay === 'paid' && totalInr > 0.01) {
-    refundLine = `Full refund ${formatInr(totalInr)} will be attempted via Razorpay (3–5 working days to reflect).`
+    refundLine = `Full refund ${formatInr(totalInr)} will be attempted via Razorpay (5–7 working days to reflect).`
   } else if (hasRzp && (pay === 'paid' || pay === 'partially_paid')) {
-    refundLine = 'Online refund will be attempted via Razorpay for the captured amount (3–5 working days to reflect).'
+    refundLine = 'Online refund will be attempted via Razorpay for the captured amount (5–7 working days to reflect).'
+  }
+
+  // Paid cancel always restocks (including after payment commit); refund is separate.
+  if (hasRzp && (pay === 'paid' || pay === 'partially_paid')) {
+    stockLine = 'Stock will be restocked on cancel (even if refund fails).'
   }
 
   return `Cancel this pending order?\n\n• ${stockLine}\n• ${refundLine}`
@@ -410,10 +415,16 @@ export function AdminOrderDetailView({
       const data = await cancelOrders.mutateAsync({ orderIds: [orderId] })
       const row = (data?.results || []).find((r) => String(r.orderId) === String(orderId))
       if (row && !row.success) throw new Error(row.message || 'Cancel failed.')
-      const text = row?.message || 'Order cancelled.'
-      setActionMsg({ type: row?.refundWarning ? 'warn' : 'ok', text })
-      if (row?.refundWarning) toast.warning(row.refundWarning)
-      else toast.success('Order cancelled')
+      const failureReason = String(row?.refundFailureReason || '').trim()
+      const text = failureReason
+        ? `${row?.message || 'Order cancelled.'}\nRefund failure reason: ${failureReason}`
+        : (row?.message || 'Order cancelled.')
+      setActionMsg({ type: row?.refundWarning || failureReason ? 'warn' : 'ok', text })
+      if (row?.refundWarning || failureReason) {
+        toast.warning(failureReason ? `Refund failed: ${failureReason}` : row.refundWarning)
+      } else {
+        toast.success('Order cancelled')
+      }
       await refreshOrder()
     } catch (e) {
       const text = errText(e, 'Cancel failed.')
