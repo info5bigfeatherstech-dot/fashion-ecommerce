@@ -48,6 +48,25 @@ function formatInr(amount) {
   }).format(n)
 }
 
+/** Confirm-dialog copy only — mirrors admin cancel refund amount rules (no behavior change). */
+function buildPendingCancelConfirmMessage(order) {
+  const pay = String(order?.paymentStatus || '').toLowerCase()
+  const hasRzp = Boolean(order?.paymentInfo?.razorpayPaymentId)
+  const paidInr = Math.max(0, Number(order?.amountPaidInr) || 0)
+  const totalInr = Math.max(0, Number(order?.totalAmount ?? order?.amountInr) || 0)
+
+  let refundLine = 'No online refund (nothing captured / no Razorpay payment).'
+  if (hasRzp && pay === 'partially_paid' && paidInr > 0.01) {
+    refundLine = `Refund of paid advance ${formatInr(paidInr)} will be attempted via Razorpay.`
+  } else if (hasRzp && pay === 'paid' && totalInr > 0.01) {
+    refundLine = `Full refund ${formatInr(totalInr)} will be attempted via Razorpay.`
+  } else if (hasRzp && (pay === 'paid' || pay === 'partially_paid')) {
+    refundLine = 'Online refund will be attempted via Razorpay for the captured amount.'
+  }
+
+  return `Cancel this pending order?\n\n• Stock will be restored.\n• ${refundLine}`
+}
+
 function getDeliveryBreakdown(order) {
   const charges = Number(order?.deliveryCharges)
   if (Number.isFinite(charges) && charges !== 0) {
@@ -375,14 +394,16 @@ export function AdminOrderDetailView({
   }
 
   const handleCancel = async () => {
-    if (!window.confirm('Cancel this pending order? Stock will be restored.')) return
+    if (!window.confirm(buildPendingCancelConfirmMessage(order))) return
     setActionMsg(null)
     try {
       const data = await cancelOrders.mutateAsync({ orderIds: [orderId] })
       const row = (data?.results || []).find((r) => String(r.orderId) === String(orderId))
       if (row && !row.success) throw new Error(row.message || 'Cancel failed.')
-      setActionMsg({ type: 'ok', text: row?.message || 'Order cancelled.' })
-      toast.success('Order cancelled')
+      const text = row?.message || 'Order cancelled.'
+      setActionMsg({ type: row?.refundWarning ? 'warn' : 'ok', text })
+      if (row?.refundWarning) toast.warning(row.refundWarning)
+      else toast.success('Order cancelled')
       await refreshOrder()
     } catch (e) {
       const text = errText(e, 'Cancel failed.')

@@ -300,11 +300,27 @@ export default function AdminOrdersPage() {
       setBulkInlineError('No eligible orders. Cancel applies to Pending orders only.')
       return
     }
-    if (!window.confirm(`Cancel ${ids.length} order(s)? Stock will be restored.`)) return
+    if (
+      !window.confirm(
+        `Cancel ${ids.length} order(s)?\n\n• Stock will be restored.\n• Any captured online payment (full or partial advance) will be refunded via Razorpay when applicable.`
+      )
+    ) {
+      return
+    }
     setBulkInlineError(null)
     try {
-      await cancelOrders.mutateAsync({ orderIds: ids })
-      toast.success('Orders cancelled')
+      const data = await cancelOrders.mutateAsync({ orderIds: ids })
+      const results = Array.isArray(data?.results) ? data.results : []
+      const refundWarnings = results
+        .map((r) => r?.refundWarning)
+        .filter(Boolean)
+      if (refundWarnings.length) {
+        toast.warning(
+          `${refundWarnings.length} cancel(s) need support for refund. Orders were still cancelled.`
+        )
+      } else {
+        toast.success('Orders cancelled')
+      }
       setSelectedOrders([])
       setShowBulkMenu(false)
       refreshList()
