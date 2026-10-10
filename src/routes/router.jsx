@@ -126,6 +126,7 @@ export const router = createBrowserRouter([
       { path: 'settings/profile', element: <AdminSettingsSectionPage section="profile" /> },
       { path: 'settings/controls', element: <AdminSettingsSectionPage section="controls" /> },
       { path: 'settings/product-display', element: <AdminSettingsSectionPage section="product-display" /> },
+      { path: 'settings/header-badge', element: <AdminSettingsSectionPage section="header-badge" /> },
       { path: 'settings/product-code-prefix', element: <AdminProductCodePrefixSettingsPage /> },
       { path: 'settings/delivery', element: <AdminDeliverySettingsPage /> },
       { path: 'settings/label', element: <AdminSettingsSectionPage section="label" /> },

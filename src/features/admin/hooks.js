@@ -40,6 +40,8 @@ import {
   deleteAdminStaff,
   getAdminAbandonedCarts,
   getAdminFreeShippingOffers,
+  getAdminFestiveOfferSettings,
+  updateAdminFestiveOfferSettings,
   getAdminCheckoutSettings,
   getAdminProductCodePrefixSettings,
   getAdminCoupons,
@@ -1276,6 +1278,27 @@ export function useToggleAdminFreeShippingOffer() {
   return useMutation({
     mutationFn: toggleAdminFreeShippingOffer,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'free-shipping-offers'] }),
+  })
+}
+
+export function useAdminFestiveOfferSettings({ enabled = true } = {}) {
+  const queryEnabled = useAdminQueryEnabled(enabled)
+  return useQuery({
+    queryKey: adminKeys.festiveOfferSettings(),
+    queryFn: ({ signal }) => getAdminFestiveOfferSettings({ signal }),
+    enabled: queryEnabled,
+    staleTime: 1000 * 30,
+  })
+}
+
+export function useUpdateAdminFestiveOfferSettings() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: updateAdminFestiveOfferSettings,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.festiveOfferSettings() })
+      queryClient.invalidateQueries({ queryKey: ['marketing', 'festive-offer'] })
+    },
   })
 }
 

@@ -28,6 +28,14 @@ export const ADMIN_PRODUCT_MARKETING_TAGS = [
     bulkLabel: 'Bestselling Jewelry',
     description: 'Shows in the Bestselling Jewelry homepage carousel.',
   },
+  {
+    id: 'festive-offer',
+    label: 'Festive offer',
+    shortLabel: 'Festive',
+    bulkLabel: 'Festive offer',
+    description:
+      'Shows under the header festive badge (/shop/festive). Badge name is set in Settings → Header badge.',
+  },
 ]
 
 export const ADMIN_PRODUCT_MARKETING_TAG_IDS = ADMIN_PRODUCT_MARKETING_TAGS.map((t) => t.id)

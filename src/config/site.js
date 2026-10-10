@@ -24,6 +24,13 @@ export const SALE_LIVE = {
   tag: 'on-sale',
 }
 
+/** Festive header badge — label/visibility come from GET /marketing/festive-offer */
+export const FESTIVE_OFFER = {
+  href: '/shop/festive',
+  tag: 'festive-offer',
+  defaultLabel: 'Festive Offers',
+}
+
 export const NAV_ITEMS = [
   { label: 'Home', slug: 'home', megaMenu: false },
 ]

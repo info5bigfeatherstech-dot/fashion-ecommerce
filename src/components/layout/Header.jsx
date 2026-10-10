@@ -11,6 +11,7 @@ import { SITE_NAME } from '@/config/site'
 import { useHeaderNavItems } from '@/features/category/hooks'
 import { BrandLogo } from './BrandLogo'
 import { SaleLiveBadge } from './SaleLiveBadge'
+import { FestiveOfferBadge } from './FestiveOfferBadge'
 import { getUserFirstName } from '@/lib/utils'
 import { MEDIA_QUERIES } from '@/config/breakpoints'
 import { startLenis, stopLenis } from '@/lib/lenis'
@@ -372,6 +373,7 @@ export function Header() {
                 </div>
               )}
               <SaleLiveBadge />
+              <FestiveOfferBadge />
             </nav>
           </div>
         </div>
@@ -478,6 +480,7 @@ export function Header() {
 
                     <div className="header__mobile-sale">
                       <SaleLiveBadge />
+                      <FestiveOfferBadge />
                     </div>
 
                     <div className="header__mobile-extras">

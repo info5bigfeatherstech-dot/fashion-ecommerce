@@ -236,6 +236,11 @@ export {
 } from './api/freeShippingOffers'
 
 export {
+  getAdminFestiveOfferSettings,
+  updateAdminFestiveOfferSettings,
+} from './api/festiveOfferSettings'
+
+export {
   getAdminCheckoutSettings,
   updateAdminCheckoutSettings,
   getAdminProductCodePrefixSettings,

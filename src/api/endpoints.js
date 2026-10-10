@@ -63,6 +63,9 @@ export const API_ENDPOINTS = {
   public: {
     razorpayKey: '/public/razorpay-key',
   },
+  marketing: {
+    festiveOffer: '/marketing/festive-offer',
+  },
   orders: {
     items: '/orders/items',
     giftIntentOptions: '/orders/gift-intent/options',
@@ -202,6 +205,7 @@ export const API_ENDPOINTS = {
     freeShippingOffers: '/admin/free-shipping-offers',
     freeShippingOfferById: (id) => `/admin/free-shipping-offers/${encodeURIComponent(String(id))}`,
     freeShippingOfferToggle: (id) => `/admin/free-shipping-offers/${encodeURIComponent(String(id))}/toggle`,
+    festiveOfferSettings: '/admin/marketing/festive-offer',
     staff: '/admin/staff',
     staffProfile: '/admin/staff/profile/me',
     staffProfilePasswordResetInit: '/admin/staff/profile/me/initiate-password-reset',

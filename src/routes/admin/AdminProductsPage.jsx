@@ -781,10 +781,12 @@ export default function AdminProductsPage() {
   const [jewellerySpotted, setJewellerySpotted] = useState(false)
   const [bestsellingJewelry, setBestsellingJewelry] = useState(false)
   const [onSale, setOnSale] = useState(false)
+  const [festiveOffer, setFestiveOffer] = useState(false)
   const [todayIndeterminate, setTodayIndeterminate] = useState(false)
   const [spottedIndeterminate, setSpottedIndeterminate] = useState(false)
   const [bestsellingIndeterminate, setBestsellingIndeterminate] = useState(false)
   const [onSaleIndeterminate, setOnSaleIndeterminate] = useState(false)
+  const [festiveIndeterminate, setFestiveIndeterminate] = useState(false)
   const [flagLoading, setFlagLoading] = useState(false)
   const [showEcomMenu, setShowEcomMenu] = useState(false)
   const [showWholesaleMenu, setShowWholesaleMenu] = useState(false)
@@ -938,10 +940,12 @@ export default function AdminProductsPage() {
         setJewellerySpotted(false)
         setBestsellingJewelry(false)
         setOnSale(false)
+        setFestiveOffer(false)
         setTodayIndeterminate(false)
         setSpottedIndeterminate(false)
         setBestsellingIndeterminate(false)
         setOnSaleIndeterminate(false)
+        setFestiveIndeterminate(false)
         setShowEcomMenu(false)
         setShowWholesaleMenu(false)
         return
@@ -955,6 +959,7 @@ export default function AdminProductsPage() {
       const spottedCount = selected.filter((p) => p.tags?.includes('jewellery-spotted')).length
       const bestsellingCount = selected.filter((p) => p.tags?.includes('bestselling-jewelry')).length
       const onSaleCount = selected.filter((p) => p.tags?.includes('on-sale')).length
+      const festiveCount = selected.filter((p) => p.tags?.includes('festive-offer')).length
 
       setTodayArrival(todayCount === total)
       setTodayIndeterminate(todayCount > 0 && todayCount < total)
@@ -964,6 +969,8 @@ export default function AdminProductsPage() {
       setBestsellingIndeterminate(bestsellingCount > 0 && bestsellingCount < total)
       setOnSale(onSaleCount === total)
       setOnSaleIndeterminate(onSaleCount > 0 && onSaleCount < total)
+      setFestiveOffer(festiveCount === total)
+      setFestiveIndeterminate(festiveCount > 0 && festiveCount < total)
     } catch {
       /* keep previous bulk-flag UI state if selection math fails */
     }
@@ -1007,6 +1014,7 @@ export default function AdminProductsPage() {
       'today-arrival': [todayArrival, setTodayArrival, todayIndeterminate],
       'jewellery-spotted': [jewellerySpotted, setJewellerySpotted, spottedIndeterminate],
       'bestselling-jewelry': [bestsellingJewelry, setBestsellingJewelry, bestsellingIndeterminate],
+      'festive-offer': [festiveOffer, setFestiveOffer, festiveIndeterminate],
     }
     const stateEntry = stateMap[normalizedFlag]
     if (!stateEntry) {
@@ -1147,6 +1155,7 @@ export default function AdminProductsPage() {
                   'today-arrival': [todayArrival, todayIndeterminate],
                   'jewellery-spotted': [jewellerySpotted, spottedIndeterminate],
                   'bestselling-jewelry': [bestsellingJewelry, bestsellingIndeterminate],
+                  'festive-offer': [festiveOffer, festiveIndeterminate],
                 }
                 const [checked, indeterminate] = stateById[tag.id] || [false, false]
                 return (

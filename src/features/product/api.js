@@ -23,7 +23,17 @@ export {
 
 const BEAUTY_CATEGORIES = new Set(['skincare', 'makeup', 'beauty', 'beauty-and-personal-care'])
 const FOOTWEAR_SUBS = new Set(['sneakers', 'sandals', 'heels', 'boots', 'loafers', 'flats', 'shoes'])
-const SPECIAL_CATEGORIES = new Set(['sale', 'new-arrivals', 'beauty', 'footwear', 'bags', 'jewellery-spotted', 'bestsellers', 'bestselling-jewelry'])
+const SPECIAL_CATEGORIES = new Set([
+  'sale',
+  'festive',
+  'new-arrivals',
+  'beauty',
+  'footwear',
+  'bags',
+  'jewellery-spotted',
+  'bestsellers',
+  'bestselling-jewelry',
+])
 const CATALOG_TTL_MS = 1000 * 60
 const FEATURED_TTL_MS = 1000 * 60
 
@@ -122,6 +132,11 @@ function applyProductFilters(products, filters = {}) {
     results = results.filter((product) => {
       const tags = Array.isArray(product.tags) ? product.tags : []
       return tags.includes('on-sale') || product.badge === 'sale' || Boolean(product.originalPrice)
+    })
+  } else if (filters.category === 'festive') {
+    results = results.filter((product) => {
+      const tags = Array.isArray(product.tags) ? product.tags.map((t) => String(t).toLowerCase()) : []
+      return tags.includes('festive-offer')
     })
   } else if (filters.category === 'new-arrivals') {
     results = results.filter((product) => Boolean(product.isFeatured))
@@ -517,13 +532,15 @@ export async function getProducts(filters = {}) {
     filters.discountTag ||
     (category === 'sale'
       ? 'on-sale'
-      : category === 'today-arrival'
-        ? 'today-arrival'
-        : category === 'jewellery-spotted'
-          ? 'jewellery-spotted'
-          : isBestsellers
-            ? 'bestselling-jewelry'
-            : null)
+      : category === 'festive'
+        ? 'festive-offer'
+        : category === 'today-arrival'
+          ? 'today-arrival'
+          : category === 'jewellery-spotted'
+            ? 'jewellery-spotted'
+            : isBestsellers
+              ? 'bestselling-jewelry'
+              : null)
 
   // Prefer dedicated search API when a query is present
   if (searchQuery.length >= 2) {

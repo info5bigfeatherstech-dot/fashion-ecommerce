@@ -57,7 +57,7 @@ export default function ProductListing() {
     }
   }, [category, subcategory, search, navType])
 
-  const specials = ['new-arrivals', 'sale', 'bestsellers', 'bestselling-jewelry']
+  const specials = ['new-arrivals', 'sale', 'festive', 'bestsellers', 'bestselling-jewelry']
   const isBestsellers = category === 'bestsellers' || category === 'bestselling-jewelry'
   const resolvedCategory = specials.includes(category) ? category : category
   const categoryInfo = CATEGORY_TREE[category] || null
@@ -156,9 +156,11 @@ export default function ProductListing() {
         ? 'New Arrivals'
         : category === 'sale'
           ? 'Sale'
-          : isBestsellers
-            ? 'Bestselling Jewelry'
-            : formatCategoryTitle(resolvedCategoryLabel || category || 'All Products')
+          : category === 'festive'
+            ? 'Festive Offers'
+            : isBestsellers
+              ? 'Bestselling Jewelry'
+              : formatCategoryTitle(resolvedCategoryLabel || category || 'All Products')
 
   const updateParam = (key, value) => {
     const params = new URLSearchParams(searchParams)

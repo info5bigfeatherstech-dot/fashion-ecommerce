@@ -24,6 +24,7 @@ import {
   verifyAdminSelfPasswordReset,
 } from '@/features/admin/api/marketing'
 import LabelSettingsSection from '@/features/admin/components/LabelSettingsSection'
+import { AdminFestiveOfferSettingsCard } from '@/features/admin/components/AdminFestiveOfferSettingsCard'
 import { useAdminStore } from '@/features/admin/store'
 import { getVisibleSettingsNav, getSettingsDefaultPath } from '@/features/admin/config/nav'
 import AdminSectionPage from './AdminSectionPage'
@@ -568,6 +569,10 @@ const META = {
     title: 'Product display preference',
     description: '',
   },
+  'header-badge': {
+    title: 'Header badge',
+    description: 'Storefront header UI badge next to Sale is live.',
+  },
   label: {
     title: 'Label settings',
     description: '',
@@ -652,6 +657,23 @@ export default function AdminSettingsSectionPage({ section = 'profile' }) {
     return (
       <div className="admin-page">
         <ProductDisplaySection />
+      </div>
+    )
+  }
+
+  if (section === 'header-badge') {
+    return (
+      <div className="admin-page">
+        <div style={{ marginBottom: 16 }}>
+          <p className="body-sm text-muted" style={{ margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Settings · Website
+          </p>
+          <h1 style={{ margin: '4px 0 6px', fontSize: 22 }}>{meta.title}</h1>
+          <p className="body-sm text-muted" style={{ margin: 0, maxWidth: 520 }}>
+            {meta.description}
+          </p>
+        </div>
+        <AdminFestiveOfferSettingsCard />
       </div>
     )
   }

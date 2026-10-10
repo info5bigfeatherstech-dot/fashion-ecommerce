@@ -9,6 +9,7 @@ const MARKETING_TOGGLE_CLASS = {
   'today-arrival': 'pf-toggle--today',
   'jewellery-spotted': 'pf-toggle--spotted',
   'bestselling-jewelry': 'pf-toggle--bestselling',
+  'festive-offer': 'pf-toggle--festive',
 }
 
 const TAX_RATE_OPTIONS = [
