@@ -59,12 +59,6 @@ export function OrderTrackerSection({ orderId, order, className = '' }) {
     order?.shipmentInfo?.providerStatus ||
     null
 
-  const courier =
-    tracking?.courier ||
-    tracking?.shippingProvider ||
-    order?.shipmentInfo?.courier ||
-    'Courier Partner'
-
   const trackingNumber =
     tracking?.trackingNumber ||
     tracking?.awbCode ||
@@ -132,11 +126,6 @@ export function OrderTrackerSection({ orderId, order, className = '' }) {
             </div>
 
             <div className="order-tracker-info-grid">
-              <div className="order-tracker-info-cell">
-                <span className="order-tracker-info-label">Courier Partner</span>
-                <span className="order-tracker-info-val">{courier}</span>
-              </div>
-
               {trackingNumber ? (
                 <div className="order-tracker-info-cell">
                   <span className="order-tracker-info-label">Tracking # (AWB)</span>

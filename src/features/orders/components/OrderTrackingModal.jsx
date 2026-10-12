@@ -42,8 +42,11 @@ export function OrderTrackingModal({ open, onClose, orderId, initialTracking = n
   }
 
   const currentStatus = String(tracking?.currentStatus || '').toLowerCase()
-  const providerStatus = tracking?.providerStatus || tracking?.statusSummary?.status || null
-  const courier = tracking?.courier || tracking?.shippingProvider || 'Courier Partner'
+  const rawCourier = tracking?.courier || tracking?.shippingProvider || ''
+  const courier =
+    rawCourier && !/^(shiprocket|shipmozo)$/i.test(rawCourier.trim())
+      ? rawCourier
+      : null
   const trackingNumber = tracking?.trackingNumber || tracking?.awbCode || null
   const estimatedDelivery = tracking?.estimatedDelivery || null
   const timeline = Array.isArray(tracking?.timeline) ? tracking.timeline : []
@@ -124,10 +127,12 @@ export function OrderTrackingModal({ open, onClose, orderId, initialTracking = n
               </div>
 
               <div className="order-tracking-details-grid">
-                <div className="order-tracking-detail-item">
-                  <span className="order-tracking-detail-item__label">Courier</span>
-                  <span className="order-tracking-detail-item__val">{courier}</span>
-                </div>
+                {courier && (
+                  <div className="order-tracking-detail-item">
+                    <span className="order-tracking-detail-item__label">Courier</span>
+                    <span className="order-tracking-detail-item__val">{courier}</span>
+                  </div>
+                )}
 
                 {trackingNumber && (
                   <div className="order-tracking-detail-item">
