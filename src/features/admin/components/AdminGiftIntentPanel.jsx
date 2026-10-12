@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Gift, Pencil, Trash2, Check, X, MessageSquare, Tag, User } from 'lucide-react'
+import { Gift, Pencil, Trash2, Check, X, MessageSquare } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   useAdminOrderGiftIntent,

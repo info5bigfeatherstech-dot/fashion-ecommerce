@@ -36122,6 +36122,155 @@ button.admin-stats-chip:hover {
   cursor: not-allowed;
 }
 
+/* -- Shipping Partner Double Confirmation Modal -- */
+.admin-delivery-confirm-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.58);
+  backdrop-filter: blur(4px);
+  animation: adminConfirmFadeIn 0.15s ease-out;
+  border-radius: inherit;
+  pointer-events: auto;
+}
+
+@keyframes adminConfirmFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.admin-delivery-confirm-card {
+  width: min(100%, 420px);
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 24px 60px -12px rgba(15, 23, 42, 0.35);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  animation: adminConfirmScaleUp 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  z-index: 101;
+  pointer-events: auto;
+}
+
+@keyframes adminConfirmScaleUp {
+  from {
+    transform: scale(0.94);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.admin-delivery-confirm-icon-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #eff6ff;
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #dbeafe;
+}
+
+.admin-delivery-confirm-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-delivery-confirm-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.admin-delivery-confirm-desc {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #334155;
+  line-height: 1.45;
+}
+
+.admin-delivery-confirm-desc strong {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.admin-delivery-confirm-sub {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.admin-delivery-confirm-actions {
+  display: flex;
+  width: 100%;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.admin-delivery-confirm-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+}
+
+.admin-delivery-confirm-btn--cancel {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+}
+
+.admin-delivery-confirm-btn--cancel:hover:not(:disabled) {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.admin-delivery-confirm-btn--confirm {
+  background: #2563eb;
+  border: 1px solid #2563eb;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.admin-delivery-confirm-btn--confirm:hover:not(:disabled) {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.admin-delivery-confirm-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+
 /* -- Admin Label settings (Shipmozo) -- */
 .admin-label-settings-page {
   width: 100%;

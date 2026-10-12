@@ -113,6 +113,7 @@ export default function AdminDeliverySettingsPage() {
   const [minOrderValue, setMinOrderValue] = useState('')
   const [codEnabled, setCodEnabled] = useState(true)
   const [testMsg, setTestMsg] = useState(null)
+  const [confirmPartnerModalOpen, setConfirmPartnerModalOpen] = useState(false)
 
   const warehousesEnabled =
     activeItem?.kind === 'pickup' || activeItem?.kind === 'shipping-partners'
@@ -156,11 +157,13 @@ export default function AdminDeliverySettingsPage() {
 
   const openModal = (item) => {
     setActiveItem(item)
+    setConfirmPartnerModalOpen(false)
     setTestMsg(null)
   }
 
   const closeModal = () => {
     if (busy) return
+    setConfirmPartnerModalOpen(false)
     setActiveItem(null)
   }
 
@@ -174,6 +177,7 @@ export default function AdminDeliverySettingsPage() {
         },
       })
       toast.success(`Saved. New checkouts will use ${activeProvider === 'shipmozo' ? 'Shipmozo' : 'Shiprocket'}.`)
+      setConfirmPartnerModalOpen(false)
       setActiveItem(null)
     } catch (err) {
       toast.error(err?.message || 'Could not save shipping partner')
@@ -365,50 +369,113 @@ export default function AdminDeliverySettingsPage() {
         onOpenChange={(open) => {
           if (!open) closeModal()
         }}
-        title={activeItem?.title || 'Settings'}
+        title={confirmPartnerModalOpen ? 'Confirm shipping partner' : (activeItem?.title || 'Settings')}
         className="modal-content--delivery-settings"
         footer={
-          <div className="admin-delivery-modal__footer">
-            <button type="button" className="admin-delivery-modal__cancel" onClick={closeModal} disabled={busy}>
-              Cancel
-            </button>
-            {activeItem?.kind === 'shipping-partners' && (
-              <button
-                type="button"
-                className="admin-delivery-modal__save"
-                onClick={saveShippingPartner}
-                disabled={busy || shippingQ.isLoading}
-              >
-                {updateShipping.isPending ? 'Saving…' : 'Save Changes'}
+          confirmPartnerModalOpen ? null : (
+            <div className="admin-delivery-modal__footer">
+              <button type="button" className="admin-delivery-modal__cancel" onClick={closeModal} disabled={busy}>
+                Cancel
               </button>
-            )}
-            {activeItem?.kind === 'pickup' && (
-              <button type="button" className="admin-delivery-modal__save" onClick={savePickup} disabled={busy}>
-                {updateShipping.isPending ? 'Saving…' : 'Save Changes'}
-              </button>
-            )}
-            {activeItem?.kind === 'min-order' && (
-              <button type="button" className="admin-delivery-modal__save" onClick={saveMinOrder} disabled={busy}>
-                {createOffer.isPending || updateOffer.isPending ? 'Saving…' : 'Save Changes'}
-              </button>
-            )}
-            {activeItem?.kind === 'cod' && (
-              <button type="button" className="admin-delivery-modal__save" onClick={saveCod} disabled={busy}>
-                {updateCheckout.isPending ? 'Saving…' : 'Save Changes'}
-              </button>
-            )}
-            {activeItem?.kind === 'delivery-charge' && (
-              <button
-                type="button"
-                className="admin-delivery-modal__save"
-                onClick={() => openModal(SECTIONS[1].items[0])}
-              >
-                Open shipping partners
-              </button>
-            )}
-          </div>
+              {activeItem?.kind === 'shipping-partners' && (
+                <button
+                  type="button"
+                  className="admin-delivery-modal__save"
+                  onClick={() => setConfirmPartnerModalOpen(true)}
+                  disabled={busy || shippingQ.isLoading}
+                >
+                  Save Changes
+                </button>
+              )}
+              {activeItem?.kind === 'pickup' && (
+                <button type="button" className="admin-delivery-modal__save" onClick={savePickup} disabled={busy}>
+                  {updateShipping.isPending ? 'Saving…' : 'Save Changes'}
+                </button>
+              )}
+              {activeItem?.kind === 'min-order' && (
+                <button type="button" className="admin-delivery-modal__save" onClick={saveMinOrder} disabled={busy}>
+                  {createOffer.isPending || updateOffer.isPending ? 'Saving…' : 'Save Changes'}
+                </button>
+              )}
+              {activeItem?.kind === 'cod' && (
+                <button type="button" className="admin-delivery-modal__save" onClick={saveCod} disabled={busy}>
+                  {updateCheckout.isPending ? 'Saving…' : 'Save Changes'}
+                </button>
+              )}
+              {activeItem?.kind === 'delivery-charge' && (
+                <button
+                  type="button"
+                  className="admin-delivery-modal__save"
+                  onClick={() => openModal(SECTIONS[1].items[0])}
+                >
+                  Open shipping partners
+                </button>
+              )}
+            </div>
+          )
         }
       >
+        {confirmPartnerModalOpen && (
+          <div
+            className="admin-delivery-confirm-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirm-partner-title"
+            onClick={() => {
+              if (!updateShipping.isPending) setConfirmPartnerModalOpen(false)
+            }}
+          >
+            <div
+              className="admin-delivery-confirm-card"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="admin-delivery-confirm-icon-wrap" aria-hidden>
+                <Truck size={24} />
+              </div>
+
+              <div className="admin-delivery-confirm-content">
+                <h3 id="confirm-partner-title" className="admin-delivery-confirm-title">
+                  Confirm shipping partner
+                </h3>
+                <p className="admin-delivery-confirm-desc">
+                  Are you sure you want delivery from{' '}
+                  <strong>{activeProvider === 'shipmozo' ? 'Shipmozo' : 'Shiprocket'}</strong>?
+                </p>
+                <p className="admin-delivery-confirm-sub">
+                  New customer checkouts and orders will use{' '}
+                  {activeProvider === 'shipmozo' ? 'Shipmozo' : 'Shiprocket'}. Orders already created on their previous partner
+                  keep processing as usual.
+                </p>
+              </div>
+
+              <div className="admin-delivery-confirm-actions">
+                <button
+                  type="button"
+                  className="admin-delivery-confirm-btn admin-delivery-confirm-btn--cancel"
+                  onClick={() => setConfirmPartnerModalOpen(false)}
+                  disabled={updateShipping.isPending}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="admin-delivery-confirm-btn admin-delivery-confirm-btn--confirm"
+                  onClick={saveShippingPartner}
+                  disabled={updateShipping.isPending}
+                >
+                  {updateShipping.isPending ? (
+                    <>
+                      <Loader2 size={16} className="payment-overlay__spinner" />
+                      <span>Saving…</span>
+                    </>
+                  ) : (
+                    `Yes, use ${activeProvider === 'shipmozo' ? 'Shipmozo' : 'Shiprocket'}`
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         {activeItem?.kind === 'shipping-partners' && (
           <div className="admin-delivery-modal__body">
             <p className="admin-delivery-modal__lead">
