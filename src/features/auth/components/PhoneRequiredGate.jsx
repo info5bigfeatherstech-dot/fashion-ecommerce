@@ -121,57 +121,65 @@ export function PhoneRequiredGate() {
           <p className="gphone__subtitle">
             One step left to finish signing in to {SITE_NAME}.
           </p>
-          <p className="gphone__email" title={signedInAs}>
-            {signedInAs}
-          </p>
+          <div className="gphone__account-pill" title={signedInAs}>
+            <span className="gphone__account-avatar" aria-hidden="true">
+              {signedInAs.charAt(0).toUpperCase()}
+            </span>
+            <span className="gphone__email">
+              {signedInAs}
+            </span>
+          </div>
         </header>
 
-        <p className="gphone__prompt">
-          Used for order updates and delivery support.
-        </p>
+        <div className="gphone__body">
+          <p className="gphone__prompt">
+            Used for order updates and delivery support.
+          </p>
 
-        <div className={`gphone__field${error ? ' is-error' : ''}`}>
-          <label htmlFor="gphone-input" className="gphone__label">
-            Phone number
-          </label>
-          <div className="gphone__input-shell">
-            <span className="gphone__cc" aria-hidden="true">
-              +91
-            </span>
-            <input
-              id="gphone-input"
-              className="gphone__input"
-              type="tel"
-              inputMode="numeric"
-              autoComplete="tel-national"
-              maxLength={10}
-              placeholder="Phone number"
-              aria-label="10-digit phone number"
-              aria-invalid={Boolean(error)}
-              aria-describedby={error ? 'gphone-error' : 'gphone-help'}
-              value={phone}
-              disabled={saving || loggingOut}
-              autoFocus
-              onChange={(e) => {
-                setPhone(normalizePhoneInput(e.target.value))
-                if (error) setError('')
-              }}
-              onKeyDown={(e) => {
-                if (e.key.length === 1 && !/[0-9]/.test(e.key) && !e.ctrlKey && !e.metaKey) {
-                  e.preventDefault()
-                }
-              }}
-            />
+          <div className={`gphone__field${error ? ' is-error' : ''}`}>
+            <label htmlFor="gphone-input" className="gphone__label">
+              Phone number
+            </label>
+            <div className="gphone__input-shell">
+              <span className="gphone__cc" aria-hidden="true">
+                <span className="gphone__flag" aria-hidden="true">🇮🇳</span>
+                +91
+              </span>
+              <input
+                id="gphone-input"
+                className="gphone__input"
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel-national"
+                maxLength={10}
+                placeholder="Phone number"
+                aria-label="10-digit phone number"
+                aria-invalid={Boolean(error)}
+                aria-describedby={error ? 'gphone-error' : 'gphone-help'}
+                value={phone}
+                disabled={saving || loggingOut}
+                autoFocus
+                onChange={(e) => {
+                  setPhone(normalizePhoneInput(e.target.value))
+                  if (error) setError('')
+                }}
+                onKeyDown={(e) => {
+                  if (e.key.length === 1 && !/[0-9]/.test(e.key) && !e.ctrlKey && !e.metaKey) {
+                    e.preventDefault()
+                  }
+                }}
+              />
+            </div>
+            {error ? (
+              <p id="gphone-error" className="gphone__error" role="alert">
+                {error}
+              </p>
+            ) : (
+              <p id="gphone-help" className="gphone__help">
+                10-digit Indian mobile number
+              </p>
+            )}
           </div>
-          {error ? (
-            <p id="gphone-error" className="gphone__error" role="alert">
-              {error}
-            </p>
-          ) : (
-            <p id="gphone-help" className="gphone__help">
-              10-digit Indian mobile number
-            </p>
-          )}
         </div>
 
         <div className="gphone__footer">
