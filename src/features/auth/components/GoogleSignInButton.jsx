@@ -208,9 +208,38 @@ export function GoogleSignInButton({
                 errorRef.current?.('Google did not return a sign-in token')
                 return
               }
+              let googlePicture = ''
+              try {
+                const tokenParts = String(response.credential).split('.')
+                if (tokenParts.length >= 2) {
+                  const base64 = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/')
+                  const json = decodeURIComponent(
+                    atob(base64)
+                      .split('')
+                      .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                      .join('')
+                  )
+                  const parsed = JSON.parse(json)
+                  if (parsed?.picture) {
+                    googlePicture = String(parsed.picture).trim()
+                    try {
+                      sessionStorage.setItem('google_profile_picture', googlePicture)
+                    } catch {
+                      // ignore
+                    }
+                  }
+                }
+              } catch {
+                // ignore
+              }
+
               setBusy(true)
               try {
                 const result = await googleLogin({ idToken: response.credential })
+                if (googlePicture && result?.user) {
+                  result.user.picture = result.user.picture || googlePicture
+                  result.user.avatar = result.user.avatar || googlePicture
+                }
                 callbackRef.current?.(result)
               } catch (err) {
                 errorRef.current?.(err?.message || 'Google sign-in failed')

@@ -43,6 +43,20 @@ function mapAuthUser(user) {
       user.needsContactPhone != null
         ? Boolean(user.needsContactPhone)
         : !String(user.phone || '').trim(),
+    avatar:
+      user.avatar ||
+      user.picture ||
+      user.profilePicture ||
+      user.photo ||
+      user.image ||
+      null,
+    picture:
+      user.picture ||
+      user.avatar ||
+      user.profilePicture ||
+      user.photo ||
+      user.image ||
+      null,
     loyalty: user.loyalty || {
       lifetimeSpendInr: 0,
       lifetimeOrderCount: 0,
