@@ -33,8 +33,19 @@ const VariantModal = ({
   const [variantImageDragging, setVariantImageDragging] = useState(false);
   const isEditing = editingVariantIndex !== null;
 
-  const addVariantAttribute = () =>
-    setVariantForm(prev => ({ ...prev, attributes: [...prev.attributes, { key: '', value: '' }] }));
+  const addVariantAttribute = () => {
+    let nextKey = ''
+    try {
+      const stored = JSON.parse(localStorage.getItem('admin_last_variant_attribute_keys') || '[]')
+      const currentKeys = new Set(variantForm.attributes.map(a => (a.key || '').trim().toLowerCase()))
+      const unused = stored.find(k => k && !currentKeys.has(String(k).trim().toLowerCase()))
+      if (unused) nextKey = unused
+    } catch {}
+    setVariantForm(prev => ({
+      ...prev,
+      attributes: [...prev.attributes, { key: nextKey, value: '' }],
+    }))
+  };
 
   const removeVariantAttribute = (index) =>
     setVariantForm(prev => ({ ...prev, attributes: prev.attributes.filter((_, i) => i !== index) }));
@@ -144,6 +155,16 @@ const VariantModal = ({
     }
 
     const validAttributes = variantForm.attributes.filter(a => a.key.trim() && a.value.trim());
+
+    // Remember attribute keys so future variants automatically show the keys with blank values
+    const usedKeys = validAttributes.map(a => a.key.trim()).filter(Boolean);
+    if (usedKeys.length) {
+      try {
+        const existing = JSON.parse(localStorage.getItem('admin_last_variant_attribute_keys') || '[]');
+        const merged = [...new Set([...usedKeys, ...existing])];
+        localStorage.setItem('admin_last_variant_attribute_keys', JSON.stringify(merged));
+      } catch {}
+    }
 
     // CRITICAL: Pass price object with wholesaleBase INSIDE, NOT at root level
     onSave({

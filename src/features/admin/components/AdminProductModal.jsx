@@ -196,6 +196,25 @@ export function AdminProductModal({
     setFormData(initialForm)
     savedMarketingTagsRef.current = { ...(initialForm.marketingTags || {}) }
     setLoadedProduct(product || null)
+
+    try {
+      const pKeys = []
+      ;(product?.variants || []).forEach((v) => {
+        ;(v?.attributes || []).forEach((a) => {
+          const k = (a?.key || a?.name || '').trim()
+          if (k) pKeys.push(k)
+        })
+      })
+      ;(product?.attributes || []).forEach((a) => {
+        const k = (a?.key || a?.name || '').trim()
+        if (k) pKeys.push(k)
+      })
+      if (pKeys.length) {
+        const stored = JSON.parse(localStorage.getItem('admin_last_variant_attribute_keys') || '[]')
+        localStorage.setItem('admin_last_variant_attribute_keys', JSON.stringify([...new Set([...pKeys, ...stored])]))
+      }
+    } catch {}
+
     let cancelled = false
     const slug = product.slug
 
@@ -299,9 +318,47 @@ export function AdminProductModal({
 
   const openAddVariant = () => {
     const nextCode = nextVariantProductCode(formData)
+
+    // Find previously used attribute keys (e.g., "Color") from:
+    // 1. Existing variants in current product (latest variant with attributes)
+    // 2. Current product attributes
+    // 3. Stored attribute keys from previous products in localStorage
+    let candidateKeys = []
+    const variants = Array.isArray(formData.variants) ? formData.variants : []
+    for (let i = variants.length - 1; i >= 0; i--) {
+      const v = variants[i]
+      if (Array.isArray(v.attributes) && v.attributes.length > 0) {
+        const keys = v.attributes.map((a) => (a?.key || a?.name || '').trim()).filter(Boolean)
+        if (keys.length > 0) {
+          candidateKeys = keys
+          break
+        }
+      }
+    }
+
+    if (!candidateKeys.length && Array.isArray(formData.attributes) && formData.attributes.length > 0) {
+      candidateKeys = formData.attributes.map((a) => (a?.key || a?.name || '').trim()).filter(Boolean)
+    }
+
+    if (!candidateKeys.length) {
+      try {
+        const stored = JSON.parse(localStorage.getItem('admin_last_variant_attribute_keys') || '[]')
+        if (Array.isArray(stored) && stored.length > 0) {
+          candidateKeys = stored.map((k) => String(k).trim()).filter(Boolean)
+        }
+      } catch {}
+    }
+
+    const uniqueKeys = [...new Set(candidateKeys)]
+    // Populate the key with empty value so the user only fills in the new value
+    const initialAttributes = uniqueKeys.length > 0
+      ? uniqueKeys.map((key) => ({ key, value: '' }))
+      : [{ key: '', value: '' }]
+
     setVariantForm({
       ...defaultVariant,
       ProductCode: nextCode,
+      attributes: initialAttributes,
     })
     setEditingVariantIndex(null)
     setVariantSaveError(null)
@@ -382,6 +439,17 @@ export function AdminProductModal({
 
   const handleVariantSave = async (variantToSave) => {
     setVariantSaveError(null)
+
+    // Remember attribute keys for subsequent variants/products
+    const usedKeys = (variantToSave.attributes || [])
+      .map((a) => (a?.key || a?.name || '').trim())
+      .filter(Boolean)
+    if (usedKeys.length > 0) {
+      try {
+        const stored = JSON.parse(localStorage.getItem('admin_last_variant_attribute_keys') || '[]')
+        localStorage.setItem('admin_last_variant_attribute_keys', JSON.stringify([...new Set([...usedKeys, ...stored])]))
+      } catch {}
+    }
 
     // Create mode: product does not exist yet — keep variants in local form only.
     if (!isEdit) {
