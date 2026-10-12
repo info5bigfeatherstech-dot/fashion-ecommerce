@@ -51,6 +51,7 @@ export function PhoneRequiredGate() {
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
   const user = useAppStore((s) => s.user)
   const accessToken = useAppStore((s) => s.accessToken)
+  const openAuthModal = useAppStore((s) => s.openAuthModal)
   const closeAuthModal = useAppStore((s) => s.closeAuthModal)
 
   const [phone, setPhone] = useState('')
@@ -144,11 +145,18 @@ export function PhoneRequiredGate() {
     setLoggingOut(true)
     setError('')
     try {
+      try {
+        sessionStorage.removeItem('google_profile_picture')
+        window.google?.accounts?.id?.disableAutoSelect?.()
+      } catch {
+        // ignore
+      }
       await logout()
     } catch {
       // cleared in logout finally
     } finally {
       setLoggingOut(false)
+      openAuthModal({ mode: 'login' })
     }
   }
 
