@@ -12,12 +12,18 @@ export const PRICE_RANGES = [
 
 export const MAIN_COLOR_OPTIONS = [
   { value: '', label: 'All colors' },
-  { value: 'Ruby Red', label: 'Ruby Red' },
-  { value: 'Emerald Green', label: 'Emerald Green' },
-  { value: 'Sapphire Blue', label: 'Sapphire Blue' },
+  { value: 'Red', label: 'Red' },
+  { value: 'Green', label: 'Green' },
+  { value: 'Blue', label: 'Blue' },
+  { value: 'Pink', label: 'Pink' },
+  { value: 'Purple', label: 'Purple' },
+  { value: 'Yellow', label: 'Yellow' },
+  { value: 'Orange', label: 'Orange' },
+  { value: 'White / Diamond', label: 'White / Diamond' },
+  { value: 'Black', label: 'Black' },
+  { value: 'Maroon', label: 'Maroon' },
+  { value: 'Peach', label: 'Peach' },
   { value: 'Mint Green', label: 'Mint Green' },
-  { value: 'Baby Pink', label: 'Baby Pink' },
-  { value: 'Clear White / Diamond', label: 'Clear White / Diamond' },
   { value: 'Multi-Color', label: 'Multi-Color' },
 ]
 
@@ -26,8 +32,13 @@ export const PLATING_OPTIONS = [
   { value: 'Gold Plated', label: 'Gold Plated' },
   { value: 'Silver Plated', label: 'Silver Plated' },
   { value: 'Rose Gold Plated', label: 'Rose Gold Plated' },
-  { value: 'Oxidized / Antique Silver', label: 'Oxidized / Antique Silver' },
+  { value: 'Oxidized Silver', label: 'Oxidized Silver' },
+  { value: 'Antique Gold', label: 'Antique Gold' },
+  { value: 'Antique Silver', label: 'Antique Silver' },
   { value: 'Rhodium Plated', label: 'Rhodium Plated' },
+  { value: 'Black Metal / Gunmetal', label: 'Black Metal / Gunmetal' },
+  { value: 'Two-Tone', label: 'Two-Tone' },
+  { value: 'Multi-Tone', label: 'Multi-Tone' },
 ]
 
 export const DISCOUNT_OPTIONS = [
@@ -35,8 +46,8 @@ export const DISCOUNT_OPTIONS = [
   { value: '10', label: '10% Off & Above', minDiscount: 10 },
   { value: '20', label: '20% Off & Above', minDiscount: 20 },
   { value: '30', label: '30% Off & Above', minDiscount: 30 },
-  { value: '50', label: '50% Off & Above', minDiscount: 50 },
-  { value: 'mega-clearance', label: 'Mega Clearance Sale', tag: 'mega-clearance' },
+  { value: '50', label: '50% Off & Above', minDiscount: 50, maxDiscount: 50 },
+  { value: 'mega-clearance', label: 'Mega Clearance Sale', minDiscount: 51, tag: 'mega-clearance' },
 ]
 
 /** @deprecated Fashion badges — kept for older URLs */

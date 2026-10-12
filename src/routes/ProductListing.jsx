@@ -76,7 +76,9 @@ export default function ProductListing() {
     color: color || undefined,
     plating: plating || undefined,
     minDiscount: discountOption?.minDiscount,
+    maxDiscount: discountOption?.maxDiscount,
     discountTag: discountOption?.tag,
+    discount: discount || undefined,
     sort: sort || undefined,
     search: search || undefined,
   }
@@ -183,6 +185,7 @@ export default function ProductListing() {
     category,
     subcategory,
     categoryInfo,
+    categoryLabel: resolvedCategoryLabel,
     priceKey,
     color,
     plating,

@@ -61,10 +61,41 @@ function matchesSearch(product, query) {
 function matchesAttrValue(values = [], target) {
   const needle = String(target || '').trim().toLowerCase()
   if (!needle) return true
-  return values.some((value) => String(value).trim().toLowerCase() === needle)
+  return values.some((value) => {
+    const val = String(value).trim().toLowerCase()
+    if (val === needle) return true
+    if (needle === 'white / diamond') {
+      return val.includes('white') || val.includes('diamond')
+    }
+    if (needle === 'multi-color' || needle === 'multi color') {
+      return val.includes('multi') || val.includes('rainbow')
+    }
+    if (needle === 'black metal / gunmetal') {
+      return val.includes('black metal') || val.includes('gunmetal')
+    }
+    if (needle === 'oxidized silver') {
+      return val.includes('oxidized') || val.includes('oxidised')
+    }
+    if (needle === 'antique silver') {
+      return val.includes('antique silver') || val.includes('oxidized / antique silver')
+    }
+    if (needle === 'two-tone' || needle === 'two tone') {
+      return val.includes('two-tone') || val.includes('two tone') || val.includes('dual tone')
+    }
+    if (needle === 'multi-tone' || needle === 'multi tone') {
+      return val.includes('multi-tone') || val.includes('multi tone') || val.includes('multitone')
+    }
+    if (needle.length >= 3) {
+      const regex = new RegExp(`(^|\\s|/|-)${needle}($|\\s|/|-)`, 'i')
+      if (regex.test(val)) return true
+    }
+    return false
+  })
 }
 
 function productDiscountPct(product) {
+  if (product.discountPct != null) return Number(product.discountPct)
+  if (product.discount != null && typeof product.discount === 'number') return Number(product.discount)
   return formatDiscount(product.originalPrice, product.price) || 0
 }
 
@@ -93,10 +124,15 @@ export function buildProductQueryParams(filters = {}) {
     params.minDiscount = Number(filters.minDiscount)
     params.discount = Number(filters.minDiscount)
   }
+  if (filters.maxDiscount != null && filters.maxDiscount !== '') {
+    params.maxDiscount = Number(filters.maxDiscount)
+  }
 
   const tags = []
   if (filters.tags) tags.push(String(filters.tags))
-  if (filters.discountTag) tags.push(String(filters.discountTag))
+  if (filters.discountTag && filters.discountTag !== 'mega-clearance') {
+    tags.push(String(filters.discountTag))
+  }
   if (filters.onSale) tags.push('on-sale')
   if (tags.length) {
     params.tags = [...new Set(tags)].join(',')
@@ -118,6 +154,7 @@ function hasServerFilterParams(params = {}) {
     params.plating ||
     params.metalColor ||
     params.minDiscount != null ||
+    params.maxDiscount != null ||
     params.discount != null ||
     params.tags
   )
@@ -210,16 +247,29 @@ function applyProductFilters(products, filters = {}) {
     results = results.filter((product) => matchesAttrValue(product.platings || [], filters.plating))
   }
 
-  if (filters.minDiscount != null) {
-    const min = Number(filters.minDiscount)
-    results = results.filter((product) => productDiscountPct(product) >= min)
-  }
+  if (filters.discount === 'mega-clearance' || filters.discountTag === 'mega-clearance') {
+    results = results.filter((product) => {
+      const pct = productDiscountPct(product)
+      const hasTag = (product.tags || []).some((item) => String(item).toLowerCase() === 'mega-clearance')
+      return pct > 50 || hasTag
+    })
+  } else {
+    if (filters.minDiscount != null) {
+      const min = Number(filters.minDiscount)
+      results = results.filter((product) => productDiscountPct(product) >= min)
+    }
 
-  if (filters.discountTag) {
-    const tag = String(filters.discountTag).toLowerCase()
-    results = results.filter((product) =>
-      (product.tags || []).some((item) => String(item).toLowerCase() === tag)
-    )
+    if (filters.maxDiscount != null) {
+      const max = Number(filters.maxDiscount)
+      results = results.filter((product) => productDiscountPct(product) <= max)
+    }
+
+    if (filters.discountTag) {
+      const tag = String(filters.discountTag).toLowerCase()
+      results = results.filter((product) =>
+        (product.tags || []).some((item) => String(item).toLowerCase() === tag)
+      )
+    }
   }
 
   if (filters.search) {

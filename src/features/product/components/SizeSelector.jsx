@@ -1,3 +1,7 @@
+/** Vibrant 360-degree conic spectrum so every color is fully visible in the circular swatch. */
+export const MULTI_COLOR_GRADIENT =
+  'conic-gradient(from -45deg, #FF1E56 0deg, #FF7700 45deg, #FFD000 90deg, #00C853 145deg, #00B0FF 200deg, #651FFF 260deg, #F50057 315deg, #FF1E56 360deg)'
+
 const COLOR_SWATCH = {
   Ink: '#14120F',
   Ivory: '#F4EFE6',
@@ -52,16 +56,23 @@ const COLOR_SWATCH = {
   'Mint Green': '#8FE3C0',
   'Baby Pink': '#F7C6D0',
   'Clear White / Diamond': 'linear-gradient(135deg, #EBF4FF 0%, #FFFFFF 50%, #E2E8F0 100%)',
+  'White / Diamond': 'linear-gradient(135deg, #EBF4FF 0%, #FFFFFF 50%, #E2E8F0 100%)',
   Diamond: 'linear-gradient(135deg, #EBF4FF 0%, #FFFFFF 50%, #E2E8F0 100%)',
+  Peach: '#FFCBA4',
   'Clear White': '#FFFFFF',
   'Antique Silver': '#949599',
+  'Antique Gold': '#C9A227',
+  'Gold Plated': '#C9A227',
+  'Silver Plated': '#C0C0C0',
+  'Rose Gold Plated': '#B76E79',
   'Oxidized Silver': '#4A4A4A',
   Rhodium: '#D1D5DB',
+  'Rhodium Plated': '#D1D5DB',
+  'Black Metal / Gunmetal': '#2B2B2B',
+  Gunmetal: '#2B2B2B',
+  'Two-Tone': 'linear-gradient(135deg, #C9A227 0%, #C9A227 50%, #C0C0C0 50%, #C0C0C0 100%)',
+  'Multi-Tone': MULTI_COLOR_GRADIENT,
 }
-
-/** Vibrant 360-degree conic spectrum so every color is fully visible in the circular swatch. */
-export const MULTI_COLOR_GRADIENT =
-  'conic-gradient(from -45deg, #FF1E56 0deg, #FF7700 45deg, #FFD000 90deg, #00C853 145deg, #00B0FF 200deg, #651FFF 260deg, #F50057 315deg, #FF1E56 360deg)'
 
 const MULTI_COLOR_REGEX =
   /^(multi([\s-]?(colou?red?|ply|ple|variant|colors?))?|rainbow|assorted|mixed|various|all[\s-]?colou?rs?)$/i

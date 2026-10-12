@@ -1358,6 +1358,28 @@ select.input {
 
 .select-viewport {
   padding: var(--space-1);
+  max-height: 230px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(180, 160, 140, 0.45) transparent;
+}
+
+.select-viewport::-webkit-scrollbar {
+  width: 5px;
+}
+
+.select-viewport::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.select-viewport::-webkit-scrollbar-thumb {
+  background: rgba(180, 160, 140, 0.4);
+  border-radius: 4px;
+}
+
+.select-viewport::-webkit-scrollbar-thumb:hover {
+  background: rgba(180, 160, 140, 0.7);
 }
 
 .select-item {
