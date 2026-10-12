@@ -534,6 +534,7 @@ function ProductDetailPage() {
                   colors={group.values}
                   selected={selected}
                   outOfStockValues={outOfStockValues}
+                  swatchHexByValue={group.swatchHexByValue}
                   onSelect={(value) => handleAttrSelect(group.key, value)}
                 />
               )

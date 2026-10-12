@@ -365,7 +365,11 @@ export function ProductCard({ product, compact = false }) {
                   ].filter(Boolean).join(' ')}
                   title={swatchColor}
                   style={{
-                    background: resolveSwatchBackground(swatchColor),
+                    background: resolveSwatchBackground(
+                      swatchColor,
+                      product?.colorSwatchHex?.[swatchColor] ||
+                        product?.colorSwatchHex?.[String(swatchColor).toLowerCase()]
+                    ),
                   }}
                 />
               ))}

@@ -4,9 +4,15 @@ import { useState } from 'react'
 import VariantCatalogFieldsSection from './VariantCatalogFieldsSection'
 import { emptyVariantShippingForm } from '@/lib/variantCatalogForm'
 import { parseQuantityInput, quantityFieldValue, MAX_VARIANT_IMAGES } from './utils'
+import {
+  isColorAttributeKey,
+  normalizeHexColor,
+  suggestHexForColorName,
+  UNKNOWN_SWATCH_HEX,
+} from '@/features/product/colorSwatch'
 
 export const defaultVariant = {
-  attributes: [{ key: '', value: '' }],
+  attributes: [{ key: '', value: '', hex: '' }],
   price: { base: '', sale: '', wholesaleBase: '', wholesaleSale: '' },
   inventory: { quantity: '', lowStockThreshold: 0, trackInventory: true },
   images: [],
@@ -43,7 +49,7 @@ const VariantModal = ({
     } catch {}
     setVariantForm(prev => ({
       ...prev,
-      attributes: [...prev.attributes, { key: nextKey, value: '' }],
+      attributes: [...prev.attributes, { key: nextKey, value: '', hex: '' }],
     }))
   };
 
@@ -51,9 +57,24 @@ const VariantModal = ({
     setVariantForm(prev => ({ ...prev, attributes: prev.attributes.filter((_, i) => i !== index) }));
 
   const updateVariantAttribute = (index, field, value) =>
-    setVariantForm(prev => ({
+    setVariantForm((prev) => ({
       ...prev,
-      attributes: prev.attributes.map((attr, i) => i === index ? { ...attr, [field]: value } : attr)
+      attributes: prev.attributes.map((attr, i) => {
+        if (i !== index) return attr
+        const next = { ...attr, [field]: value }
+        if (field === 'value' && isColorAttributeKey(next.key)) {
+          const existingHex = normalizeHexColor(next.hex)
+          if (!existingHex) {
+            const suggested = suggestHexForColorName(value)
+            if (suggested) next.hex = suggested
+          }
+        }
+        if (field === 'hex') {
+          const normalized = normalizeHexColor(value)
+          next.hex = normalized || String(value || '').trim()
+        }
+        return next
+      }),
     }));
 
   const handleVariantImageUpload = (e) => {
@@ -154,7 +175,16 @@ const VariantModal = ({
       }
     }
 
-    const validAttributes = variantForm.attributes.filter(a => a.key.trim() && a.value.trim());
+    const validAttributes = variantForm.attributes
+      .filter((a) => a.key.trim() && a.value.trim())
+      .map((a) => {
+        const attr = { key: a.key.trim(), value: a.value.trim() }
+        if (isColorAttributeKey(attr.key)) {
+          const hex = normalizeHexColor(a.hex)
+          if (hex) attr.hex = hex
+        }
+        return attr
+      })
 
     // Remember attribute keys so future variants automatically show the keys with blank values
     const usedKeys = validAttributes.map(a => a.key.trim()).filter(Boolean);
@@ -223,16 +253,76 @@ const VariantModal = ({
               <button type="button" onClick={addVariantAttribute} className="pf-variant-chip">+ Add</button>
             </div>
             <div className="pf-variant-attr-list">
-              {variantForm.attributes.map((attr, index) => (
-                <div key={index} className="pf-variant-attr-row">
-                  <input type="text" value={attr.key} onChange={(e) => updateVariantAttribute(index, 'key', e.target.value)} className="pf-variant-input" placeholder="Key (e.g., Color)" />
-                  <input type="text" value={attr.value} onChange={(e) => updateVariantAttribute(index, 'value', e.target.value)} className="pf-variant-input" placeholder="Value (e.g., Blue)" />
-                  {variantForm.attributes.length > 1 ? (
-                    <button type="button" onClick={() => removeVariantAttribute(index)} className="pf-variant-remove" aria-label="Remove attribute">✕</button>
-                  ) : null}
-                </div>
-              ))}
+              {variantForm.attributes.map((attr, index) => {
+                const isColor = isColorAttributeKey(attr.key)
+                const pickerHex =
+                  normalizeHexColor(attr.hex) ||
+                  suggestHexForColorName(attr.value) ||
+                  UNKNOWN_SWATCH_HEX
+                return (
+                  <div
+                    key={index}
+                    className={`pf-variant-attr-row${isColor ? ' pf-variant-attr-row--color' : ''}`}
+                  >
+                    <input
+                      type="text"
+                      value={attr.key}
+                      onChange={(e) => updateVariantAttribute(index, 'key', e.target.value)}
+                      className="pf-variant-input"
+                      placeholder="Key (e.g., Color)"
+                    />
+                    <input
+                      type="text"
+                      value={attr.value}
+                      onChange={(e) => updateVariantAttribute(index, 'value', e.target.value)}
+                      className="pf-variant-input"
+                      placeholder="Value (e.g., Ochre)"
+                    />
+                    {isColor ? (
+                      <>
+                        <label
+                          className="pf-variant-swatch-picker"
+                          title="Swatch color"
+                          aria-label={`Swatch for ${attr.value || 'color'}`}
+                        >
+                          <input
+                            type="color"
+                            value={pickerHex}
+                            onChange={(e) =>
+                              updateVariantAttribute(index, 'hex', e.target.value)
+                            }
+                          />
+                        </label>
+                        <input
+                          type="text"
+                          value={attr.hex || ''}
+                          onChange={(e) =>
+                            updateVariantAttribute(index, 'hex', e.target.value)
+                          }
+                          className="pf-variant-input pf-variant-hex-input"
+                          placeholder="#CC7722"
+                          spellCheck={false}
+                          aria-label="Color hex"
+                        />
+                      </>
+                    ) : null}
+                    {variantForm.attributes.length > 1 ? (
+                      <button
+                        type="button"
+                        onClick={() => removeVariantAttribute(index)}
+                        className="pf-variant-remove"
+                        aria-label="Remove attribute"
+                      >
+                        ✕
+                      </button>
+                    ) : null}
+                  </div>
+                )
+              })}
             </div>
+            <p className="pf-variant-attr-hint">
+              For Color / Shade, set the swatch hex so the storefront palette matches the real color.
+            </p>
           </div>
 
           <div className="pf-variant-panel pf-variant-panel--ecom">

@@ -14,6 +14,24 @@ import {
   downloadBlob,
   unwrapAdmin,
 } from './client'
+import { normalizeHexColor } from '@/features/product/colorSwatch'
+
+/** Persist optional swatch hex with variant color attributes. */
+function sanitizeAdminAttributes(list) {
+  if (!Array.isArray(list)) return []
+  return list
+    .filter((a) => a && a.key && a.value)
+    .map((a) => {
+      const attr = {
+        key: String(a.key).trim(),
+        value: String(a.value).trim(),
+      }
+      const hex = normalizeHexColor(a.hex)
+      if (hex) attr.hex = hex
+      return attr
+    })
+    .filter((a) => a.key && a.value)
+}
 
 /**
  * Client wait budget for admin bulk CSV / ZIP import (download + optimize + R2/Cloudinary).
@@ -563,7 +581,7 @@ export function buildCreateProductFormData(productData) {
     normalizedVariantCodes.push(normalizedVariantProductCode)
     extraVariants.push({
       productCode: normalizedVariantProductCode,
-      attributes: (v.attributes || []).filter((a) => a.key && a.value),
+      attributes: sanitizeAdminAttributes(v.attributes),
       price: vPrice,
       inventory: buildInventoryObj(v.inventory),
       isActive: v.isActive !== false,
@@ -644,9 +662,7 @@ export async function addAdminProductVariant(slug, variantData) {
   fd.append('productCode', canonicalProductCode)
   fd.append('price', JSON.stringify(buildPriceObj(variantData.price, 'Variant base price')))
 
-  const cleanAttrs = Array.isArray(variantData.attributes)
-    ? variantData.attributes.filter((a) => a.key && a.value).map((a) => ({ key: a.key, value: a.value }))
-    : []
+  const cleanAttrs = sanitizeAdminAttributes(variantData.attributes)
   fd.append('attributes', JSON.stringify(cleanAttrs))
   fd.append('inventory', JSON.stringify(buildInventoryObj(variantData.inventory || {})))
   fd.append('isActive', variantData.isActive !== false ? 'true' : 'false')
@@ -717,10 +733,7 @@ export async function updateAdminProductVariant({
     fd.append('inventory', JSON.stringify(buildInventoryObj(inventory)))
   }
   if (attributes !== undefined) {
-    const cleanAttrs = Array.isArray(attributes)
-      ? attributes.filter((a) => a.key && a.value).map((a) => ({ key: a.key, value: a.value }))
-      : []
-    fd.append('attributes', JSON.stringify(cleanAttrs))
+    fd.append('attributes', JSON.stringify(sanitizeAdminAttributes(attributes)))
   }
   if (isActive !== undefined) fd.append('isActive', String(isActive))
   if (wholesale !== undefined) fd.append('wholesale', String(wholesale))

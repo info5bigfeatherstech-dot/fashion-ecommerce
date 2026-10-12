@@ -28990,8 +28990,54 @@ button.admin-stats-chip:hover {
   align-items: center;
 }
 
+.pf-variant-attr-row--color {
+  flex-wrap: wrap;
+}
+
 .pf-variant-attr-row .pf-variant-input {
   flex: 1;
+  min-width: 0;
+}
+
+.pf-variant-swatch-picker {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  background: #fff;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pf-variant-swatch-picker input[type='color'] {
+  width: 48px;
+  height: 48px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  transform: scale(1.35);
+}
+
+.pf-variant-hex-input {
+  flex: 0 0 108px !important;
+  max-width: 108px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.pf-variant-attr-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #6b7280;
 }
 
 .pf-variant-remove {

@@ -166,7 +166,9 @@ export function normaliseVariantsForEdit(variants = []) {
       trackInventory: v.inventory?.trackInventory !== false,
     },
     attributes: (v.attributes || []).map((a, i) => ({
-      ...a,
+      key: a.key || '',
+      value: a.value || '',
+      hex: a.hex || '',
       id: a.id ?? a._id ?? `var-${vIdx}-attr-${i}`,
     })),
     images: (v.images || [])

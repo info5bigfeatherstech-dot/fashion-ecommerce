@@ -352,8 +352,8 @@ export function AdminProductModal({
     const uniqueKeys = [...new Set(candidateKeys)]
     // Populate the key with empty value so the user only fills in the new value
     const initialAttributes = uniqueKeys.length > 0
-      ? uniqueKeys.map((key) => ({ key, value: '' }))
-      : [{ key: '', value: '' }]
+      ? uniqueKeys.map((key) => ({ key, value: '', hex: '' }))
+      : [{ key: '', value: '', hex: '' }]
 
     setVariantForm({
       ...defaultVariant,
@@ -379,8 +379,13 @@ export function AdminProductModal({
     setVariantForm({
       ProductCode: String(v.ProductCode ?? v.productCode ?? ''),
       attributes: v.attributes?.length > 0
-        ? v.attributes.map((a) => ({ key: a.key || '', value: a.value || '', id: a.id }))
-        : [{ key: '', value: '' }],
+        ? v.attributes.map((a) => ({
+            key: a.key || '',
+            value: a.value || '',
+            hex: a.hex || '',
+            id: a.id,
+          }))
+        : [{ key: '', value: '', hex: '' }],
       price: {
         base: v.price?.base ?? '',
         sale: v.price?.sale ?? '',

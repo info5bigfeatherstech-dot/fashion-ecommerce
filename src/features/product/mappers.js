@@ -1,5 +1,7 @@
+import { normalizeHexColor, COLOR_KEY_RE } from '@/features/product/colorSwatch'
+
 const SIZE_KEYS = /size|capacity|fit/i
-const COLOR_KEYS = /colou?r|shade|main\s*colou?r/i
+const COLOR_KEYS = COLOR_KEY_RE
 const PLATING_KEYS = /plating|metal|finish|coating/i
 
 function asArray(value) {
@@ -36,30 +38,66 @@ function collectAttributeValues(variants, productAttributes, matcher) {
  */
 function collectAttributeGroups(variants) {
   const groups = new Map()
+  /** @type {Map<string, Map<string, string>>} groupKey → value → hex */
+  const hexByGroup = new Map()
 
-  const add = (key, value) => {
+  const add = (key, value, hex) => {
     const k = String(key || '').trim()
     const v = String(value || '').trim()
     if (!k || !v) return
     if (!groups.has(k)) groups.set(k, new Set())
     groups.get(k).add(v)
+    const normalizedHex = normalizeHexColor(hex)
+    if (!normalizedHex) return
+    if (!hexByGroup.has(k)) hexByGroup.set(k, new Map())
+    const valueMap = hexByGroup.get(k)
+    // First persisted hex wins (stable across duplicate labels).
+    if (!valueMap.has(v)) valueMap.set(v, normalizedHex)
+    const lower = v.toLowerCase()
+    if (!valueMap.has(lower)) valueMap.set(lower, normalizedHex)
   }
 
   for (const variant of variants) {
     for (const attribute of asArray(variant.attributes)) {
-      add(attribute.key, attribute.value)
+      add(attribute.key, attribute.value, attribute.hex)
     }
   }
 
   return [...groups.entries()]
-    .map(([key, values]) => ({
-      key,
-      label: key,
-      values: [...values],
-      isColor: COLOR_KEYS.test(key),
-      isSize: SIZE_KEYS.test(key),
-    }))
+    .map(([key, values]) => {
+      const isColor = COLOR_KEYS.test(key)
+      const hexMap = hexByGroup.get(key)
+      const swatchHexByValue =
+        isColor && hexMap && hexMap.size
+          ? Object.fromEntries(hexMap.entries())
+          : undefined
+      return {
+        key,
+        label: key,
+        values: [...values],
+        isColor,
+        isSize: SIZE_KEYS.test(key),
+        swatchHexByValue,
+      }
+    })
     .filter((group) => group.values.length > 0)
+}
+
+/** Flat color-name → hex for listing cards (all color attrs across variants). */
+function collectColorSwatchHex(variants) {
+  const map = {}
+  for (const variant of asArray(variants)) {
+    for (const attribute of asArray(variant.attributes)) {
+      if (!COLOR_KEYS.test(attribute?.key || '')) continue
+      const value = String(attribute?.value || '').trim()
+      const hex = normalizeHexColor(attribute?.hex)
+      if (!value || !hex) continue
+      if (!map[value]) map[value] = hex
+      const lower = value.toLowerCase()
+      if (!map[lower]) map[lower] = hex
+    }
+  }
+  return map
 }
 
 function collectImages(dto, variants) {
@@ -156,10 +194,12 @@ function mapVariant(variant, fallbackImages = []) {
     inStock: resolveVariantInStock(variant),
     quantity,
     images: variantImages.length > 0 ? variantImages : fallbackImages,
-    attributes: asArray(variant.attributes).map((attribute) => ({
-      key: attribute.key,
-      value: attribute.value,
-    })),
+    attributes: asArray(variant.attributes).map((attribute) => {
+      const hex = normalizeHexColor(attribute.hex)
+      return hex
+        ? { key: attribute.key, value: attribute.value, hex }
+        : { key: attribute.key, value: attribute.value }
+    }),
   }
 }
 
@@ -214,6 +254,7 @@ export function mapProduct(dto) {
     reviewCount: toNumber(dto.rating?.count, 0),
     sizes: collectAttributeValues(variants, [], SIZE_KEYS),
     colors: collectAttributeValues(variants, [], COLOR_KEYS),
+    colorSwatchHex: collectColorSwatchHex(variants),
     platings: collectAttributeValues(variants, [], PLATING_KEYS),
     optionGroups: collectAttributeGroups(variants),
     images,
