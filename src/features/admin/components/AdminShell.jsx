@@ -43,7 +43,6 @@ import {
   groupAdminNav,
   groupSettingsNav,
   getSettingsDefaultPath,
-  SETTINGS_DEFAULT_PATH,
 } from '@/features/admin/config/nav'
 
 const NAV_ICONS = {
@@ -113,6 +112,10 @@ export function AdminShell() {
   const settingsNav = useMemo(() => getVisibleSettingsNav(user?.role), [user?.role])
   const navGroups = useMemo(() => groupAdminNav(visibleNav), [visibleNav])
   const settingsGroups = useMemo(() => groupSettingsNav(settingsNav), [settingsNav])
+  const defaultAdminPath = useMemo(
+    () => visibleNav[0]?.path || '/admin/dashboard',
+    [visibleNav]
+  )
 
   const [expanded, setExpanded] = useState(() => new Set())
 
@@ -234,11 +237,14 @@ export function AdminShell() {
             <>
               <button
                 type="button"
-                className="admin-sidebar__link admin-sidebar__back"
-                onClick={() => navigate('/admin/orders')}
+                className="admin-sidebar__back"
+                onClick={() => navigate(defaultAdminPath)}
+                aria-label="Back to admin overview"
               >
-                <ArrowLeft size={16} />
-                <span>Back to admin</span>
+                <span className="admin-sidebar__back-icon" aria-hidden="true">
+                  <ArrowLeft size={14} />
+                </span>
+                <span className="admin-sidebar__back-label">Back to admin</span>
               </button>
               {Array.from(settingsGroups.entries()).map(([group, items]) => (
                 <div key={group} className="admin-sidebar__group">

@@ -498,8 +498,16 @@ export default function AdminDeliverySettingsPage() {
                   <span className="admin-delivery-modal__label">Active partner for new orders</span>
                   <div className="admin-delivery-modal__providers">
                     {[
-                      { id: 'shiprocket', label: 'Shiprocket' },
-                      { id: 'shipmozo', label: 'Shipmozo' },
+                      {
+                        id: 'shiprocket',
+                        label: 'Shiprocket',
+                        hint: 'Default account settings',
+                      },
+                      {
+                        id: 'shipmozo',
+                        label: 'Shipmozo',
+                        hint: shipmozoReady ? 'Ready' : `Missing: ${missing.join(', ') || 'setup'}`,
+                      },
                     ].map((opt) => (
                       <button
                         key={opt.id}
@@ -507,10 +515,11 @@ export default function AdminDeliverySettingsPage() {
                         className={`admin-delivery-modal__provider${activeProvider === opt.id ? ' is-selected' : ''}`}
                         onClick={() => setActiveProvider(opt.id)}
                       >
-                        <strong>{opt.label}</strong>
-                        {opt.id === 'shipmozo' && (
-                          <span>{shipmozoReady ? 'Ready' : `Missing: ${missing.join(', ') || 'setup'}`}</span>
-                        )}
+                        <div className="admin-delivery-modal__provider-top">
+                          <strong>{opt.label}</strong>
+                          <span className="admin-delivery-modal__provider-radio" aria-hidden="true" />
+                        </div>
+                        <span className="admin-delivery-modal__provider-hint">{opt.hint}</span>
                       </button>
                     ))}
                   </div>
