@@ -242,7 +242,6 @@ export default function AdminCustomersPage() {
                     />
                   </th>
                   <th>Customer</th>
-                  <th>Status</th>
                   <th>Engagement</th>
                   <th>Joined</th>
                   <th className="admin-leads__actions-col">Actions</th>
@@ -252,7 +251,6 @@ export default function AdminCustomersPage() {
                 {users.map((user) => {
                   const id = userIdOf(user)
                   const initial = (user.name || user.email || '?').charAt(0).toUpperCase()
-                  const verified = Boolean(user.isVerified)
                   return (
                     <tr key={id}>
                       <td className="admin-leads__check-col">
@@ -269,13 +267,11 @@ export default function AdminCustomersPage() {
                           <div className="admin-leads__customer-meta">
                             <strong>{user.name || 'Customer'}</strong>
                             <span>{user.email || '—'}</span>
+                            <span className="admin-leads__phone">
+                              {user.phone ? user.phone : 'No phone'}
+                            </span>
                           </div>
                         </div>
-                      </td>
-                      <td>
-                        <span className={`admin-leads__status${verified ? ' is-verified' : ''}`}>
-                          {verified ? 'Verified' : 'Unverified'}
-                        </span>
                       </td>
                       <td>
                         <div className="admin-leads__engage">

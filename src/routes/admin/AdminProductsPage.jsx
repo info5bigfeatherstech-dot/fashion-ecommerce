@@ -159,7 +159,7 @@ function isLowStockProduct(product) {
   if (Array.isArray(product?.variants)) {
     return product.variants.some((v) => {
       const qty = toNumber(v?.inventory?.quantity, Infinity)
-      const threshold = toNumber(v?.inventory?.lowStockThreshold, 5)
+      const threshold = toNumber(v?.inventory?.lowStockThreshold, 0)
       return qty < threshold
     })
   }
@@ -416,7 +416,7 @@ export function ProductViewModal({ open, onOpenChange, product }) {
   const vDiscount = vHasSale && vBase > 0 ? getDiscountPercentage(vBase, vSale) : 0
   const vEcom = toNumber(activeVariant?.inventory?.quantity ?? activeVariant?.availability?.quantity ?? activeVariant?.stock ?? 0, 0)
   const vInv = activeVariant?.inventory?.liveQuantity ?? activeVariant?.inventory?.warehouseQuantity ?? null
-  const vLow = toNumber(activeVariant?.inventory?.lowStockThreshold, 5)
+  const vLow = toNumber(activeVariant?.inventory?.lowStockThreshold, 0)
   const trackFlag = activeVariant?.inventory?.trackInventory
   const trackedFlag = activeVariant?.inventory?.tracked
   const vTracking = trackFlag != null ? Boolean(trackFlag) : trackedFlag !== false

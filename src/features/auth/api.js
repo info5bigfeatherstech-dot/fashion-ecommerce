@@ -39,12 +39,23 @@ function mapAuthUser(user) {
     isPhoneVerified: Boolean(user.isPhoneVerified),
     isEmailVerified: Boolean(user.isEmailVerified),
     isProfileComplete: Boolean(user.isProfileComplete),
+    needsContactPhone:
+      user.needsContactPhone != null
+        ? Boolean(user.needsContactPhone)
+        : !String(user.phone || '').trim(),
     loyalty: user.loyalty || {
       lifetimeSpendInr: 0,
       lifetimeOrderCount: 0,
       badge: null,
     },
   }
+}
+
+/** True when storefront session is missing a contact phone (e.g. Google-only signup). */
+export function userNeedsContactPhone(user) {
+  if (!user) return false
+  if (user.needsContactPhone != null) return Boolean(user.needsContactPhone)
+  return !String(user.phone || '').trim()
 }
 
 function getStoredRefreshToken() {
@@ -109,11 +120,16 @@ export function isFatalAuthRefreshError(error) {
 /**
  * PUT /api/auth/profile — update storefront profile name.
  * First-time email is allowed when the account has no email yet (legacy phone-only users).
+ * First-time phone is allowed when the account has no phone yet (e.g. Google login).
  */
-export async function updateProfile({ name, email } = {}) {
+export async function updateProfile({ name, email, phone } = {}) {
   const body = {}
   if (name != null) body.name = String(name || '').trim()
   if (email != null) body.email = String(email || '').trim().toLowerCase()
+  if (phone != null) {
+    const digits = String(phone || '').replace(/\D/g, '')
+    body.phone = digits.length === 12 && digits.startsWith('91') ? digits.slice(2) : digits
+  }
 
   const payload = await http.put(API_ENDPOINTS.auth.profile, body)
   const user = mapAuthUser(payload?.user)

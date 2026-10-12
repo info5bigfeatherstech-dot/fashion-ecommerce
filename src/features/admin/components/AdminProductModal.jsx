@@ -332,7 +332,7 @@ export function AdminProductModal({
       },
       inventory: {
         quantity: v.inventory?.quantity ?? 0,
-        lowStockThreshold: v.inventory?.lowStockThreshold ?? 5,
+        lowStockThreshold: v.inventory?.lowStockThreshold ?? 0,
         trackInventory: v.inventory?.trackInventory !== false,
       },
       images: v.images || [],

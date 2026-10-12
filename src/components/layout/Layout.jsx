@@ -6,6 +6,7 @@ import { Header } from './Header'
 import { Footer } from './Footer'
 import { MobileBottomNav } from './MobileBottomNav'
 import { AuthModal } from '@/features/auth/components/AuthModal'
+import { PhoneRequiredGate } from '@/features/auth/components/PhoneRequiredGate'
 import { AppInstallNotification } from '@/components/common/AppInstallNotification'
 import { AllowNotificationModal } from '@/components/common/AllowNotificationModal'
 import { usePushNotifications } from '@/features/notifications/usePushNotifications'
@@ -249,6 +250,7 @@ export function Layout() {
       </div>
       <MobileBottomNav />
       <AuthModal />
+      <PhoneRequiredGate />
       <AppInstallNotification />
       <AllowNotificationModal />
     </>

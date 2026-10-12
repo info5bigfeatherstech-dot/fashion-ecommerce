@@ -170,7 +170,7 @@ export default function ProductFormBody({
   const primarySale = formData.price?.sale ?? "";
   const primaryTrack = formData.inventory?.trackInventory ?? true;
   const primaryQty = formData.inventory?.quantity;
-  const primaryLow = formData.inventory?.lowStockThreshold ?? 5;
+  const primaryLow = formData.inventory?.lowStockThreshold ?? 0;
 
   const mainGalleryImage = galleryImages.find((img) => img.isMain) || galleryImages[0] || null;
 
@@ -477,7 +477,10 @@ export default function ProductFormBody({
                       className="pf-input"
                       placeholder="Quantity"
                     />
-                    <input type="number" value={primaryVariant.inventory?.lowStockThreshold ?? 5} onChange={(e) => updateMainVariantInventory('lowStockThreshold', parseInt(e.target.value, 10) || 5)} className="pf-input" placeholder="Low stock alert" />
+                    <input type="number" min={0} value={primaryVariant.inventory?.lowStockThreshold ?? 0} onChange={(e) => {
+                      const n = parseInt(e.target.value, 10)
+                      updateMainVariantInventory('lowStockThreshold', Number.isFinite(n) && n >= 0 ? n : 0)
+                    }} className="pf-input" placeholder="Low stock alert" />
                   </div>
                 )}
               </div>
@@ -631,7 +634,16 @@ export default function ProductFormBody({
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Low Stock Alert</label>
-                      <input type="number" value={primaryLow} onChange={(e) => setFormData((p) => ({ ...p, inventory: { ...p.inventory, lowStockThreshold: parseInt(e.target.value) || 5 } }))} className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="5" />
+                      <input type="number" min={0} value={primaryLow} onChange={(e) => {
+                        const n = parseInt(e.target.value, 10)
+                        setFormData((p) => ({
+                          ...p,
+                          inventory: {
+                            ...p.inventory,
+                            lowStockThreshold: Number.isFinite(n) && n >= 0 ? n : 0,
+                          },
+                        }))
+                      }} className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="0" />
                     </div>
                   </div>
                 )}

@@ -156,7 +156,7 @@ export default function AdminAnalyticsPage() {
     const alerts = []
     for (const product of lowStockList) {
       for (const variant of product.variants || []) {
-        const threshold = toNumber(variant.inventory?.lowStockThreshold, 5)
+        const threshold = toNumber(variant.inventory?.lowStockThreshold, 0)
         const quantity = toNumber(variant.inventory?.quantity, 0)
         if (quantity <= threshold) {
           alerts.push({
@@ -207,7 +207,7 @@ export default function AdminAnalyticsPage() {
       for (const variant of product.variants || []) {
         totalVariants += 1
         const quantity = toNumber(variant.inventory?.quantity, 0)
-        const threshold = toNumber(variant.inventory?.lowStockThreshold, 5)
+        const threshold = toNumber(variant.inventory?.lowStockThreshold, 0)
         if (quantity === 0) outOfStock += 1
         else if (quantity <= threshold) lowStock += 1
         else healthyStock += 1

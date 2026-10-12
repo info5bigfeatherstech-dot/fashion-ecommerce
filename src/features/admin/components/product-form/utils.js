@@ -100,7 +100,7 @@ export function emptyProductForm() {
     ProductCode: '',
     price: { base: '', sale: '' },
     // quantity '' = empty UI; API normalize → 0 if left blank
-    inventory: { quantity: '', lowStockThreshold: 5, trackInventory: true },
+    inventory: { quantity: '', lowStockThreshold: 0, trackInventory: true },
     images: [],
     variants: [],
     attributes: [],
@@ -162,7 +162,7 @@ export function normaliseVariantsForEdit(variants = []) {
     },
     inventory: {
       quantity: v.inventory?.quantity ?? 0,
-      lowStockThreshold: v.inventory?.lowStockThreshold ?? 5,
+      lowStockThreshold: v.inventory?.lowStockThreshold ?? 0,
       trackInventory: v.inventory?.trackInventory !== false,
     },
     attributes: (v.attributes || []).map((a, i) => ({
@@ -246,7 +246,7 @@ export function productToEditForm(product) {
     },
     inventory: {
       quantity: main.inventory?.quantity ?? 0,
-      lowStockThreshold: main.inventory?.lowStockThreshold ?? 5,
+      lowStockThreshold: main.inventory?.lowStockThreshold ?? 0,
       trackInventory: main.inventory?.trackInventory !== false,
     },
     wholesale: Boolean(main.wholesale),

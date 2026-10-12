@@ -8,7 +8,7 @@ import { parseQuantityInput, quantityFieldValue, MAX_VARIANT_IMAGES } from './ut
 export const defaultVariant = {
   attributes: [{ key: '', value: '' }],
   price: { base: '', sale: '', wholesaleBase: '', wholesaleSale: '' },
-  inventory: { quantity: '', lowStockThreshold: 5, trackInventory: true },
+  inventory: { quantity: '', lowStockThreshold: 0, trackInventory: true },
   images: [],
   isActive: true,
   ProductCode: '',
@@ -341,7 +341,16 @@ const VariantModal = ({
                   className="pf-variant-input"
                   placeholder="Quantity"
                 />
-                <input type="number" value={variantForm.inventory.lowStockThreshold} onChange={(e) => setVariantForm((prev) => ({ ...prev, inventory: { ...prev.inventory, lowStockThreshold: parseInt(e.target.value, 10) || 5 } }))} className="pf-variant-input" placeholder="Low stock alert" />
+                <input type="number" min={0} value={variantForm.inventory.lowStockThreshold} onChange={(e) => {
+                  const n = parseInt(e.target.value, 10)
+                  setVariantForm((prev) => ({
+                    ...prev,
+                    inventory: {
+                      ...prev.inventory,
+                      lowStockThreshold: Number.isFinite(n) && n >= 0 ? n : 0,
+                    },
+                  }))
+                }} className="pf-variant-input" placeholder="Low stock alert" />
               </div>
             ) : null}
           </div>

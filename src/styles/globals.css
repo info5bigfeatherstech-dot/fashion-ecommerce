@@ -1900,6 +1900,384 @@ html.modal-open.lenis body {
   min-height: 0;
 }
 
+/* ─── Post–sign-in phone step (FABUNIQO — clean / minimal) ─── */
+.modal-content--google-phone {
+  --g-ink: #1c1917;
+  --g-muted: #78716c;
+  --g-border: #e7e5e4;
+  --g-danger: #b91c1c;
+  --g-focus: #44403c;
+  --g-btn: #1c1917;
+  --g-btn-hover: #292524;
+  box-sizing: border-box;
+  width: min(400px, calc(100vw - 32px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+  max-width: min(400px, calc(100vw - 32px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+  max-height: min(90vh, calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)));
+  margin: 0;
+  padding: clamp(24px, 4vw, 32px) clamp(18px, 4vw, 28px) clamp(20px, 3.5vw, 28px);
+  border-radius: 14px;
+  border: 1px solid var(--g-border);
+  background: #fff;
+  box-shadow: 0 18px 40px rgba(28, 25, 23, 0.14);
+  font-family: var(--font-ui), 'Segoe UI', Helvetica, Arial, sans-serif;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal-content--google-phone > .modal-header {
+  display: none;
+}
+
+.modal-content--google-phone > :not(.modal-header) {
+  overflow: visible;
+  padding-right: 0;
+  flex: 0 1 auto;
+  min-width: 0;
+  width: 100%;
+}
+
+.gphone {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+  min-width: 0;
+}
+
+.gphone__intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: clamp(6px, 1.5vw, 10px);
+  margin-bottom: clamp(16px, 3vw, 22px);
+  min-width: 0;
+  width: 100%;
+}
+
+.gphone__brand {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 4px;
+  background: transparent;
+}
+
+.gphone__logo.brand-logo,
+.gphone__logo.brand-logo--header,
+.gphone__logo.brand-logo--gate {
+  display: block;
+  width: auto;
+  height: clamp(32px, 8vw, 40px);
+  max-height: clamp(32px, 8vw, 40px);
+  max-width: min(200px, 70vw);
+  min-width: 0;
+  object-fit: contain;
+  object-position: center;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transform: none !important;
+}
+
+.gphone__title {
+  margin: 0;
+  max-width: 100%;
+  font-family: var(--font-ui), 'Segoe UI', Helvetica, Arial, sans-serif;
+  font-size: clamp(1.05rem, 3.6vw, 1.25rem);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--g-ink);
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.gphone__subtitle {
+  margin: 0;
+  max-width: min(28ch, 100%);
+  font-size: clamp(0.8125rem, 2.8vw, 0.875rem);
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--g-muted);
+  overflow-wrap: anywhere;
+}
+
+.gphone__email {
+  margin: 2px 0 0;
+  max-width: 100%;
+  padding: 0 4px;
+  font-size: clamp(0.75rem, 2.6vw, 0.8125rem);
+  font-weight: 500;
+  color: var(--g-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gphone__prompt {
+  margin: 0 0 10px;
+  font-size: clamp(0.75rem, 2.6vw, 0.8125rem);
+  line-height: 1.4;
+  color: var(--g-muted);
+}
+
+.gphone__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+  min-width: 0;
+  width: 100%;
+}
+
+.gphone__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.gphone__input-shell {
+  display: flex;
+  align-items: stretch;
+  min-height: 48px;
+  width: 100%;
+  min-width: 0;
+  border-radius: 10px;
+  border: 1px solid var(--g-border);
+  background: #fff;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.gphone__field.is-error .gphone__input-shell {
+  border-color: var(--g-danger);
+}
+
+.gphone__input-shell:focus-within {
+  border-color: var(--g-focus);
+  box-shadow: 0 0 0 3px rgba(68, 64, 60, 0.12);
+}
+
+.gphone__field.is-error .gphone__input-shell:focus-within {
+  border-color: var(--g-danger);
+  box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.12);
+}
+
+.gphone__cc {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  padding: 0 0 0 clamp(12px, 3vw, 16px);
+  font-size: 16px;
+  color: var(--g-ink);
+  user-select: none;
+}
+
+.gphone__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: none;
+  background: transparent;
+  padding: 0 clamp(12px, 3vw, 16px) 0 10px;
+  font-family: inherit;
+  font-size: 16px; /* keep 16px to avoid iOS zoom */
+  font-weight: 400;
+  color: var(--g-ink);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.gphone__input::placeholder {
+  color: #a8a29e;
+}
+
+.gphone__input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.gphone__help,
+.gphone__error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.333;
+  padding-left: 2px;
+}
+
+.gphone__help {
+  color: var(--g-muted);
+}
+
+.gphone__error {
+  color: var(--g-danger);
+}
+
+.gphone__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: clamp(20px, 4vw, 28px);
+  width: 100%;
+  min-width: 0;
+}
+
+.gphone__link {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 10px 4px;
+  margin: 0;
+  font-family: inherit;
+  font-size: clamp(12px, 2.8vw, 13px);
+  font-weight: 500;
+  color: var(--g-muted);
+  cursor: pointer;
+  border-radius: 6px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-align: left;
+}
+
+.gphone__link:hover:not(:disabled) {
+  color: var(--g-ink);
+}
+
+.gphone__link:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gphone__next {
+  appearance: none;
+  border: 0;
+  min-height: 44px;
+  min-width: 96px;
+  padding: 0 20px;
+  margin-left: auto;
+  border-radius: 10px;
+  background: var(--g-btn);
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: none;
+  transition: background 0.15s ease;
+  touch-action: manipulation;
+}
+
+.gphone__next:hover:not(:disabled) {
+  background: var(--g-btn-hover);
+}
+
+.gphone__next:disabled {
+  background: #d6d3d1;
+  color: #fff;
+  cursor: not-allowed;
+}
+
+/* Tablets / large phones */
+@media (max-width: 767px) {
+  .modal-content.modal-content--google-phone {
+    width: min(400px, calc(100vw - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+    max-width: min(400px, calc(100vw - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+    max-height: min(88dvh, calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)));
+    padding: 24px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+    border-radius: 14px;
+  }
+
+  .gphone__intro {
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .gphone__footer {
+    margin-top: 22px;
+  }
+}
+
+/* Narrow phones */
+@media (max-width: 380px) {
+  .modal-content.modal-content--google-phone {
+    width: calc(100vw - 16px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+    max-width: calc(100vw - 16px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+    padding: 20px 14px calc(16px + env(safe-area-inset-bottom, 0px));
+    border-radius: 12px;
+  }
+
+  .gphone__footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .gphone__link {
+    text-align: center;
+    width: 100%;
+    padding: 8px;
+  }
+
+  .gphone__next {
+    width: 100%;
+    margin-left: 0;
+    min-height: 46px;
+  }
+}
+
+/* Short / landscape viewports — keep modal scrollable and compact */
+@media (max-height: 560px) {
+  .modal-content.modal-content--google-phone {
+    max-height: calc(100dvh - 16px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    padding-top: 16px;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .gphone__intro {
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+
+  .gphone__brand {
+    margin-bottom: 0;
+  }
+
+  .gphone__logo.brand-logo,
+  .gphone__logo.brand-logo--header,
+  .gphone__logo.brand-logo--gate {
+    height: 28px;
+    max-height: 28px;
+  }
+
+  .gphone__subtitle {
+    display: none;
+  }
+
+  .gphone__prompt {
+    margin-bottom: 8px;
+  }
+
+  .gphone__footer {
+    margin-top: 14px;
+  }
+}
+
 .auth-modal__split {
   display: grid;
   grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
@@ -22117,7 +22495,9 @@ a.cart-item__name:hover {
 .admin-leads-autopush__text small {
   font-size: 0.625rem;
   color: #6b7280;
-  white-space: nowrap;
+  white-space: normal;
+  max-width: 170px;
+  line-height: 1.35;
 }
 
 .admin-leads__role {
@@ -22795,6 +23175,11 @@ a.cart-item__name:hover {
   color: #6b7280;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.admin-leads__phone {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
 }
 
 .admin-leads__status {

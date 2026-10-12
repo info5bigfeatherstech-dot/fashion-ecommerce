@@ -3,7 +3,18 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
 import { startLenis, stopLenis } from '@/lib/lenis'
 
-export function Modal({ open, onOpenChange, title, subtitle, children, className, overlayClassName, footer }) {
+export function Modal({
+  open,
+  onOpenChange,
+  title,
+  subtitle,
+  children,
+  className,
+  overlayClassName,
+  footer,
+  dismissible = true,
+  hideClose = false,
+}) {
   useEffect(() => {
     if (!open) {
       startLenis()
@@ -20,8 +31,13 @@ export function Modal({ open, onOpenChange, title, subtitle, children, className
     }
   }, [open])
 
+  const handleOpenChange = (next) => {
+    if (!next && !dismissible) return
+    onOpenChange?.(next)
+  }
+
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+    <Dialog.Root open={open} onOpenChange={handleOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className={`modal-overlay${overlayClassName ? ` ${overlayClassName}` : ''}`} />
         <Dialog.Content
@@ -29,6 +45,15 @@ export function Modal({ open, onOpenChange, title, subtitle, children, className
           data-lenis-prevent
           onWheel={(event) => event.stopPropagation()}
           onTouchMove={(event) => event.stopPropagation()}
+          onPointerDownOutside={(event) => {
+            if (!dismissible) event.preventDefault()
+          }}
+          onEscapeKeyDown={(event) => {
+            if (!dismissible) event.preventDefault()
+          }}
+          onInteractOutside={(event) => {
+            if (!dismissible) event.preventDefault()
+          }}
         >
           <div className="modal-header">
             {(title || subtitle) && (
@@ -41,11 +66,13 @@ export function Modal({ open, onOpenChange, title, subtitle, children, className
                 )}
               </div>
             )}
-            <Dialog.Close asChild>
-              <button className="btn btn--ghost btn--icon" aria-label="Close">
-                <X size={20} />
-              </button>
-            </Dialog.Close>
+            {!hideClose && (
+              <Dialog.Close asChild>
+                <button className="btn btn--ghost btn--icon" aria-label="Close">
+                  <X size={20} />
+                </button>
+              </Dialog.Close>
+            )}
           </div>
           {children}
           {footer}

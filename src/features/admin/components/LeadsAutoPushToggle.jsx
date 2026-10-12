@@ -5,36 +5,33 @@ import {
   useUpdateAdminLeadsPushSettings,
 } from '@/features/admin/hooks'
 
-function formatIstHourLabel(hour) {
-  const h = Math.floor(Number(hour))
-  if (!Number.isFinite(h) || h < 0 || h > 23) return '—'
-  if (h === 0) return '12:00 AM IST'
-  if (h === 12) return '12:00 PM IST'
-  if (h < 12) return `${h}:00 AM IST`
-  return `${h - 12}:00 PM IST`
-}
-
 function PushChannelToggle({
   label,
-  hourLabel,
+  scheduleLabel,
   enabled,
   busy,
   pushConfigured,
   onToggle,
   ariaLabel,
 }) {
+  const scheduleText = enabled
+    ? scheduleLabel || 'Schedule unavailable'
+    : 'Off'
+
   return (
     <div
       className={`admin-leads-autopush${enabled ? ' is-on' : ''}${!pushConfigured ? ' is-disabled' : ''}`}
       title={
         pushConfigured
-          ? `Scheduled days · ~${hourLabel} IST for users who allowed notifications`
+          ? enabled
+            ? `Sends only on: ${scheduleLabel || '—'}`
+            : 'Auto push is off'
           : 'Configure VAPID keys on server to enable push'
       }
     >
       <div className="admin-leads-autopush__text">
         <span>{label}</span>
-        <small>{enabled ? `On · ~${hourLabel}` : 'Off'}</small>
+        <small>{scheduleText}</small>
       </div>
       <button
         type="button"
@@ -51,20 +48,41 @@ function PushChannelToggle({
   )
 }
 
+function resolvePushSettings(data) {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return null
+  if (data.data && typeof data.data === 'object' && !Array.isArray(data.data)) {
+    return data.data
+  }
+  return data
+}
+
 export function LeadsAutoPushToggle() {
   const { data, isLoading, isFetching } = useAdminLeadsPushSettings()
   const updateSettings = useUpdateAdminLeadsPushSettings()
   const [cartEnabled, setCartEnabled] = useState(false)
   const [wishlistEnabled, setWishlistEnabled] = useState(false)
 
-  const settings = data && typeof data === 'object' && !Array.isArray(data)
-    ? (data.data && typeof data.data === 'object' ? data.data : data)
-    : null
+  const settings = resolvePushSettings(data)
   const pushConfigured = settings?.pushConfigured !== false
-  const cartHourLabel = formatIstHourLabel(settings?.autoPushHourIst ?? 17)
-  const wishlistHourLabel = formatIstHourLabel(settings?.autoWishlistPushHourIst ?? 18)
-  const cartScheduleHint = settings?.cartReminderDaysLabel || 'Tue · Fri · Sat'
-  const wishlistScheduleHint = settings?.wishlistReminderDaysLabel || 'Thu · Sun'
+  const cartSchedule =
+    String(settings?.cartScheduleSummary || '').trim() ||
+    [
+      String(settings?.cartReminderDaysLabel || '').trim(),
+      settings?.autoPushHourIst != null ? formatHourFallback(settings.autoPushHourIst) : '',
+    ]
+      .filter(Boolean)
+      .join(' · ')
+  const wishlistSchedule =
+    String(settings?.wishlistScheduleSummary || '').trim() ||
+    [
+      String(settings?.wishlistReminderDaysLabel || '').trim(),
+      settings?.autoWishlistPushHourIst != null
+        ? formatHourFallback(settings.autoWishlistPushHourIst)
+        : '',
+    ]
+      .filter(Boolean)
+      .join(' · ')
+
   const busy = isLoading || isFetching || updateSettings.isPending
 
   useEffect(() => {
@@ -84,7 +102,7 @@ export function LeadsAutoPushToggle() {
       await updateSettings.mutateAsync({ autoPushEnabled: next })
       toast.success(
         next
-          ? `Cart auto push on (${cartScheduleHint} · ~${cartHourLabel})`
+          ? `Cart auto push on — ${cartSchedule || 'scheduled days'}`
           : 'Cart auto push off'
       )
     } catch (err) {
@@ -104,7 +122,7 @@ export function LeadsAutoPushToggle() {
       await updateSettings.mutateAsync({ autoWishlistPushEnabled: next })
       toast.success(
         next
-          ? `Wishlist auto push on (${wishlistScheduleHint} · ~${wishlistHourLabel})`
+          ? `Wishlist auto push on — ${wishlistSchedule || 'scheduled days'}`
           : 'Wishlist auto push off'
       )
     } catch (err) {
@@ -117,7 +135,7 @@ export function LeadsAutoPushToggle() {
     <div className="admin-leads-autopush-group" role="group" aria-label="Auto push channels">
       <PushChannelToggle
         label="Cart auto push"
-        hourLabel={`${cartScheduleHint} · ${cartHourLabel}`}
+        scheduleLabel={cartSchedule}
         enabled={cartEnabled}
         busy={busy}
         pushConfigured={pushConfigured}
@@ -126,7 +144,7 @@ export function LeadsAutoPushToggle() {
       />
       <PushChannelToggle
         label="Wishlist auto push"
-        hourLabel={`${wishlistScheduleHint} · ${wishlistHourLabel}`}
+        scheduleLabel={wishlistSchedule}
         enabled={wishlistEnabled}
         busy={busy}
         pushConfigured={pushConfigured}
@@ -135,4 +153,13 @@ export function LeadsAutoPushToggle() {
       />
     </div>
   )
+}
+
+function formatHourFallback(hour) {
+  const h = Math.floor(Number(hour))
+  if (!Number.isFinite(h) || h < 0 || h > 23) return ''
+  if (h === 0) return '12:00 AM IST'
+  if (h === 12) return '12:00 PM IST'
+  if (h < 12) return `${h}:00 AM IST`
+  return `${h - 12}:00 PM IST`
 }
