@@ -18,36 +18,77 @@ export const getDiscountPercentage = (base, sale) => {
   return Math.round(((Number(base) - Number(sale)) / Number(base)) * 100)
 }
 
-export const SUFFIXED_PRODUCT_CODE_REGEX = /^([A-Z0-9]+)-(\d+)$/
+export const SUFFIXED_PRODUCT_CODE_REGEX = /^([A-Z0-9_-]+)-(\d+)$/
 
-/** Next unused BASE-N for "Add Variant" (1221-1 → 1221-2 → 1221-3). */
+/** Extract the base code (stripping trailing -N if present). */
+export function getBaseProductCode(rawCode) {
+  const code = String(rawCode || '').trim().toUpperCase()
+  if (!code) return ''
+  const match = code.match(SUFFIXED_PRODUCT_CODE_REGEX)
+  if (match) {
+    return match[1]
+  }
+  return code
+}
+
+/** Get the base product code from formData (from ProductCode, productCode, or existing variants). */
+export function getFormDataProductBase(formData) {
+  const main = formData?.ProductCode || formData?.productCode
+  if (main && String(main).trim()) {
+    return getBaseProductCode(main)
+  }
+
+  const variants = Array.isArray(formData?.variants) ? formData.variants : []
+  for (const v of variants) {
+    const code = v?.ProductCode || v?.productCode
+    if (code && String(code).trim()) {
+      return getBaseProductCode(code)
+    }
+  }
+
+  return ''
+}
+
+/** Next unused BASE-N for "Add Variant" (788-1 → 788-2 → 788-3, or 788 → 788-2 → 788-3). */
 export function nextVariantProductCode(formData) {
-  const codes = []
-  const push = (raw) => {
-    const c = String(raw || '').trim().toUpperCase()
-    if (c) codes.push(c)
-  }
-  push(formData?.ProductCode)
-  for (const v of Array.isArray(formData?.variants) ? formData.variants : []) {
-    push(v?.ProductCode || v?.productCode)
+  const base = getFormDataProductBase(formData)
+  if (!base) return ''
+
+  // Collect all sequence numbers already used for this base
+  const usedSeqs = new Set()
+
+  // 1. Check main product code
+  const mainRaw = String(formData?.ProductCode || formData?.productCode || '').trim().toUpperCase()
+  if (mainRaw) {
+    const mainMatch = mainRaw.match(SUFFIXED_PRODUCT_CODE_REGEX)
+    if (mainMatch && mainMatch[1] === base) {
+      usedSeqs.add(parseInt(mainMatch[2], 10))
+    } else {
+      // Main product without suffix counts as seq 1 (main product will be saved as base-1)
+      usedSeqs.add(1)
+    }
+  } else {
+    usedSeqs.add(1)
   }
 
-  const parsed = []
-  for (const code of codes) {
-    const match = code.match(SUFFIXED_PRODUCT_CODE_REGEX)
-    if (match) parsed.push({ base: match[1], seq: Number(match[2]) })
+  // 2. Check all existing variants
+  const variants = Array.isArray(formData?.variants) ? formData.variants : []
+  for (const v of variants) {
+    const raw = String(v?.ProductCode || v?.productCode || '').trim().toUpperCase()
+    if (!raw) continue
+    const match = raw.match(SUFFIXED_PRODUCT_CODE_REGEX)
+    if (match && match[1] === base) {
+      usedSeqs.add(parseInt(match[2], 10))
+    }
   }
 
-  if (parsed.length) {
-    const base = parsed[0].base
-    const used = new Set(parsed.filter((p) => p.base === base).map((p) => p.seq))
-    let next = 1
-    while (used.has(next)) next += 1
-    return `${base}-${next}`
+  // Find next unused sequence number starting from 2 (sequence 1 is the main product)
+  let nextSeq = 2
+  while (usedSeqs.has(nextSeq)) {
+    nextSeq += 1
   }
 
-  const bare = codes[0] && /^[A-Z0-9]+$/.test(codes[0]) ? codes[0] : ''
-  return bare ? `${bare}-2` : ''
+  return `${base}-${nextSeq}`
 }
 
 export function validateProductCodeSeries(rawCodes, contextLabel = 'variants') {
@@ -263,8 +304,12 @@ export function validateCreateProductForm(formData) {
   if (!formData.title?.trim()) throw new Error('Product title is required')
   if (!formData.category) throw new Error('Please select a category')
 
-  const bc0 = String(formData.ProductCode ?? '').trim()
+  let bc0 = String(formData.ProductCode ?? '').trim()
   if (!bc0) throw new Error('Main ProductCode is required')
+  if (!/-\d+$/.test(bc0) && /^[A-Za-z0-9_-]+$/.test(bc0)) {
+    bc0 = `${bc0}-1`
+    formData.ProductCode = bc0
+  }
   const m0 = bc0.toUpperCase().match(SUFFIXED_PRODUCT_CODE_REGEX)
   const s0 = m0 ? Number(m0[2]) : NaN
   if (!m0 || !Number.isInteger(s0) || s0 < 1) {
@@ -276,8 +321,12 @@ export function validateCreateProductForm(formData) {
   }
 
   for (let i = 0; i < (formData.variants || []).length; i++) {
-    const bc = String(formData.variants[i].ProductCode ?? '').trim()
+    let bc = String(formData.variants[i].ProductCode ?? '').trim()
     if (!bc) throw new Error(`Variant ${i + 1}: ProductCode is required`)
+    if (!/-\d+$/.test(bc) && /^[A-Za-z0-9_-]+$/.test(bc)) {
+      bc = `${bc}-${i + 2}`
+      formData.variants[i].ProductCode = bc
+    }
     const mv = bc.toUpperCase().match(SUFFIXED_PRODUCT_CODE_REGEX)
     const sv = mv ? Number(mv[2]) : NaN
     if (!mv || !Number.isInteger(sv) || sv < 1) {

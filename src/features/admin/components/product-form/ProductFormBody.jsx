@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom'
 import { ADMIN_PRODUCT_MARKETING_TAGS } from '@/features/admin/constants/productMarketingTags'
 import { useAdminProductCodePrefixSettings } from '@/features/admin/hooks'
 import VariantModal from './VariantModal'
-import { parseQuantityInput, quantityFieldValue, MAX_VARIANT_IMAGES } from './utils'
+import { parseQuantityInput, quantityFieldValue, MAX_VARIANT_IMAGES, nextVariantProductCode } from './utils'
+import { isPlatingAttributeKey, PLATING_OPTIONS } from '@/features/product/colorSwatch'
 
 const MARKETING_TOGGLE_CLASS = {
   'on-sale': 'pf-toggle--onsale',
@@ -60,8 +61,15 @@ export default function ProductFormBody({
   // Inline Attribute form state
   const [showAttributeForm, setShowAttributeForm] = useState(false);
   const [editingAttr, setEditingAttr] = useState(null);
+  // For editing single attribute:
   const [attrKey, setAttrKey] = useState('');
   const [attrValue, setAttrValue] = useState('');
+  // For adding new attributes (pre-set Color and Plating):
+  const [newColorValue, setNewColorValue] = useState('');
+  const [newPlatingValue, setNewPlatingValue] = useState('');
+  const [showCustomAttrField, setShowCustomAttrField] = useState(false);
+  const [customAttrKey, setCustomAttrKey] = useState('');
+  const [customAttrValue, setCustomAttrValue] = useState('');
   const attributeFormRef = useRef(null);
   const attrKeyInputRef = useRef(null);
 
@@ -75,12 +83,20 @@ export default function ProductFormBody({
     if (showAttributeForm && !editingAttr) {
       setShowAttributeForm(false);
       setEditingAttr(null);
-      setAttrKey('');
-      setAttrValue('');
+      setNewColorValue('');
+      setNewPlatingValue('');
+      setShowCustomAttrField(false);
+      setCustomAttrKey('');
+      setCustomAttrValue('');
     } else {
       setEditingAttr(null);
       setAttrKey('');
       setAttrValue('');
+      setNewColorValue('');
+      setNewPlatingValue('');
+      setShowCustomAttrField(false);
+      setCustomAttrKey('');
+      setCustomAttrValue('');
       setShowAttributeForm(true);
     }
   };
@@ -97,14 +113,20 @@ export default function ProductFormBody({
     setEditingAttr(null);
     setAttrKey('');
     setAttrValue('');
+    setNewColorValue('');
+    setNewPlatingValue('');
+    setShowCustomAttrField(false);
+    setCustomAttrKey('');
+    setCustomAttrValue('');
   };
 
   const handleSaveAttribute = () => {
-    const k = attrKey.trim();
-    const v = attrValue.trim();
-    if (!k || !v) return;
-
     if (editingAttr) {
+      const k = attrKey.trim();
+      const v = attrValue.trim();
+      if (!k || !v) return;
+
+      const oldKey = editingAttr.key;
       const updated = { ...editingAttr, key: k, value: v };
       if (isEditMode) {
         setFormData((p) => {
@@ -120,22 +142,79 @@ export default function ProductFormBody({
           attributes: (p.attributes || []).map((a) => (a.id === editingAttr.id ? updated : a)),
         }));
       }
-    } else {
-      const created = { id: `attr-${Date.now()}`, key: k, value: v };
-      if (isEditMode) {
-        setFormData((p) => {
-          const variants = [...(p.variants || [])];
-          if (!variants[0]) return p;
-          const nextAttrs = [...(variants[0].attributes || []), created];
-          variants[0] = { ...variants[0], attributes: nextAttrs };
-          return { ...p, variants, attributes: nextAttrs };
+
+      // If variant form is open and has this old key, update the key name
+      if (setVariantForm && oldKey) {
+        setVariantForm((prev) => {
+          if (!prev || !Array.isArray(prev.attributes)) return prev;
+          return {
+            ...prev,
+            attributes: prev.attributes.map((a) =>
+              (a.key || '').trim().toLowerCase() === oldKey.trim().toLowerCase()
+                ? { ...a, key: k }
+                : a
+            ),
+          };
         });
-      } else {
-        setFormData((p) => ({
-          ...p,
-          attributes: [...(p.attributes || []), created],
-        }));
       }
+      handleCancelAttribute();
+      return;
+    }
+
+    // Adding new attributes: collect all filled attributes
+    const toAdd = [];
+    if (newColorValue.trim()) {
+      toAdd.push({ id: `attr-color-${Date.now()}`, key: 'Color', value: newColorValue.trim() });
+    }
+    if (newPlatingValue.trim()) {
+      toAdd.push({ id: `attr-plating-${Date.now() + 1}`, key: 'Plating', value: newPlatingValue.trim() });
+    }
+    if (customAttrKey.trim() && customAttrValue.trim()) {
+      toAdd.push({ id: `attr-custom-${Date.now() + 2}`, key: customAttrKey.trim(), value: customAttrValue.trim() });
+    }
+
+    if (!toAdd.length) return;
+
+    if (isEditMode) {
+      setFormData((p) => {
+        const variants = [...(p.variants || [])];
+        if (!variants[0]) return p;
+        const existing = variants[0].attributes || [];
+        const existingKeys = new Set(existing.map((a) => (a.key || '').trim().toLowerCase()));
+        const uniqueToAdd = toAdd.filter((a) => !existingKeys.has(a.key.toLowerCase()));
+        const nextAttrs = [...existing, ...uniqueToAdd];
+        variants[0] = { ...variants[0], attributes: nextAttrs };
+        return { ...p, variants, attributes: nextAttrs };
+      });
+    } else {
+      setFormData((p) => {
+        const existing = p.attributes || [];
+        const existingKeys = new Set(existing.map((a) => (a.key || '').trim().toLowerCase()));
+        const uniqueToAdd = toAdd.filter((a) => !existingKeys.has(a.key.toLowerCase()));
+        return {
+          ...p,
+          attributes: [...existing, ...uniqueToAdd],
+        };
+      });
+    }
+
+    // If variant form is open (creating a new variant), synchronize newly added keys
+    if (setVariantForm) {
+      setVariantForm((prev) => {
+        if (!prev || !Array.isArray(prev.attributes)) return prev;
+        const currentKeys = new Set(prev.attributes.map((a) => (a.key || '').trim().toLowerCase()));
+        const newRows = toAdd
+          .filter((a) => !currentKeys.has(a.key.toLowerCase()))
+          .map((a) => ({ key: a.key, value: '', hex: '' }));
+        if (!newRows.length) return prev;
+        const existingRows = prev.attributes.filter(
+          (a) => (a.key || '').trim() || (a.value || '').trim()
+        );
+        return {
+          ...prev,
+          attributes: [...existingRows, ...newRows],
+        };
+      });
     }
 
     handleCancelAttribute();
@@ -604,7 +683,29 @@ export default function ProductFormBody({
             </div>
             <div className="pf-card__body">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Product Code <span className="text-red-400">*</span></label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Product Code <span className="text-red-400">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const rand = Math.floor(1000 + Math.random() * 9000);
+                      const newCode = `${rand}-1`;
+                      setFormData((p) => ({ ...p, ProductCode: newCode }));
+                      if (showVariantForm && editingVariantIndex === null && setVariantForm) {
+                        const nextCode = nextVariantProductCode({ ...formData, ProductCode: newCode });
+                        if (nextCode) {
+                          setVariantForm((prev) => ({ ...prev, ProductCode: nextCode }));
+                        }
+                      }
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline inline-flex items-center gap-1 cursor-pointer"
+                    title="Generate a unique product code"
+                  >
+                    <span>⚡ Auto-generate</span>
+                  </button>
+                </div>
                 <div className="flex items-stretch gap-0">
                   {listingPrefix ? (
                     <span
@@ -617,16 +718,47 @@ export default function ProductFormBody({
                   <input
                     type="text"
                     value={formData.ProductCode || ""}
-                    onChange={(e) => setFormData((p) => ({ ...p, ProductCode: e.target.value }))}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData((p) => ({ ...p, ProductCode: val }));
+                      if (showVariantForm && editingVariantIndex === null && setVariantForm) {
+                        const nextCode = nextVariantProductCode({ ...formData, ProductCode: val });
+                        if (nextCode) {
+                          setVariantForm((prev) => ({ ...prev, ProductCode: nextCode }));
+                        }
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const val = e.target.value.trim();
+                      if (val && !/-\d+$/.test(val)) {
+                        const formatted = `${val.toUpperCase()}-1`;
+                        setFormData((p) => ({ ...p, ProductCode: formatted }));
+                        if (showVariantForm && editingVariantIndex === null && setVariantForm) {
+                          const nextCode = nextVariantProductCode({ ...formData, ProductCode: formatted });
+                          if (nextCode) {
+                            setVariantForm((prev) => ({ ...prev, ProductCode: nextCode }));
+                          }
+                        }
+                      }
+                    }}
                     className={`w-full px-4 py-2 bg-gray-50 border border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500 font-mono ${listingPrefix ? 'rounded-r-lg' : 'rounded-lg'}`}
-                    placeholder={listingPrefix ? 'e.g. 788-1' : 'e.g. 788-1'}
+                    placeholder={listingPrefix ? 'e.g. 788 or 788-1' : 'e.g. 788 or 788-1'}
                     maxLength={20}
                   />
                 </div>
                 {listingPrefix ? (
                   <p className="mt-1.5 text-xs text-gray-500">
-                    Saved as <span className="font-mono">{listingPrefix}{String(formData.ProductCode || '').trim() || '…'}</span>.
-                    If you already type the prefix, it won&apos;t be doubled.
+                    Saved as <span className="font-mono font-medium text-gray-800">
+                      {listingPrefix}
+                      {String(formData.ProductCode || '').trim()
+                        ? (/-\d+$/.test(String(formData.ProductCode).trim())
+                            ? String(formData.ProductCode).trim()
+                            : `${String(formData.ProductCode).trim()}-1`)
+                        : '…'}
+                    </span>.
+                    {String(formData.ProductCode || '').trim() && !/-\d+$/.test(String(formData.ProductCode).trim()) ? (
+                      <span className="text-blue-600 ml-1">(-1 automatically added for main product)</span>
+                    ) : null}
                   </p>
                 ) : (
                   <p className="mt-1.5 text-xs text-amber-700">
@@ -634,7 +766,7 @@ export default function ProductFormBody({
                     <Link to="/admin/settings/product-code-prefix" className="underline font-medium">
                       Settings → Product code prefix
                     </Link>{' '}
-                    before listing (required).
+                    before listing (required). Main variant automatically takes <span className="font-mono font-semibold">-1</span>.
                   </p>
                 )}
               </div>
@@ -871,50 +1003,149 @@ export default function ProductFormBody({
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-blue-600 inline-block"></span>
                       <span className="text-sm font-semibold text-gray-800">
-                        {editingAttr ? 'Edit Attribute' : 'Add New Attribute'}
+                        {editingAttr ? `Edit Attribute: ${editingAttr.key}` : 'Add Product Attributes'}
                       </span>
                     </div>
                     <button
                       type="button"
                       onClick={handleCancelAttribute}
-                      className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-1 rounded-md transition-colors"
+                      className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-1 rounded-md transition-colors cursor-pointer"
                       aria-label="Close"
                       title="Close"
                     >
                       <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">Key <span className="text-red-500">*</span></label>
-                      <input
-                        ref={attrKeyInputRef}
-                        type="text"
-                        value={attrKey}
-                        onChange={(e) => setAttrKey(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') { e.preventDefault(); handleSaveAttribute(); }
-                          if (e.key === 'Escape') handleCancelAttribute();
-                        }}
-                        className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all"
-                        placeholder="e.g., Material, Pattern, Occasion"
-                      />
+
+                  {editingAttr ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-2">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1.5">Attribute Name</label>
+                        <input
+                          ref={attrKeyInputRef}
+                          type="text"
+                          value={attrKey}
+                          onChange={(e) => setAttrKey(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-xs"
+                          placeholder="e.g. Color, Plating, Material"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1.5">Value</label>
+                        {isPlatingAttributeKey(attrKey) ? (
+                          <select
+                            value={attrValue}
+                            onChange={(e) => setAttrValue(e.target.value)}
+                            className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-xs cursor-pointer"
+                          >
+                            <option value="">Select Plating...</option>
+                            {PLATING_OPTIONS.map((opt) => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            type="text"
+                            value={attrValue}
+                            onChange={(e) => setAttrValue(e.target.value)}
+                            className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-xs"
+                            placeholder="e.g. Cotton, Floral, Festive"
+                          />
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">Value <span className="text-red-500">*</span></label>
-                      <input
-                        type="text"
-                        value={attrValue}
-                        onChange={(e) => setAttrValue(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') { e.preventDefault(); handleSaveAttribute(); }
-                          if (e.key === 'Escape') handleCancelAttribute();
-                        }}
-                        className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all"
-                        placeholder="e.g., Cotton, Floral, Festive"
-                      />
+                  ) : (
+                    <div className="space-y-4 mb-2">
+                      {/* Clean 2-column grid for Color and Plating */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* 1. Color */}
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                            Color
+                          </label>
+                          <input
+                            type="text"
+                            value={newColorValue}
+                            onChange={(e) => setNewColorValue(e.target.value)}
+                            className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-xs"
+                            placeholder="e.g. Maroon, Emerald, Royal Blue"
+                          />
+                        </div>
+
+                        {/* 2. Plating */}
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                            Plating <span className="font-normal text-gray-400">(Optional)</span>
+                          </label>
+                          <select
+                            value={newPlatingValue}
+                            onChange={(e) => setNewPlatingValue(e.target.value)}
+                            className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-xs cursor-pointer"
+                          >
+                            <option value="">Select Plating...</option>
+                            {PLATING_OPTIONS.map((opt) => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* 3. Optional custom specification */}
+                      {showCustomAttrField ? (
+                        <div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[11px] font-semibold text-gray-700">Custom Specification</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowCustomAttrField(false);
+                                setCustomAttrKey('');
+                                setCustomAttrValue('');
+                              }}
+                              className="text-gray-400 hover:text-red-500 text-xs px-1 cursor-pointer transition-colors"
+                              title="Cancel custom specification"
+                            >
+                              ✕ Remove
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            <div>
+                              <input
+                                type="text"
+                                value={customAttrKey}
+                                onChange={(e) => setCustomAttrKey(e.target.value)}
+                                placeholder="Specification name (e.g. Material)"
+                                className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-xs"
+                              />
+                            </div>
+                            <div>
+                              <input
+                                type="text"
+                                value={customAttrValue}
+                                onChange={(e) => setCustomAttrValue(e.target.value)}
+                                placeholder="Specification value (e.g. Brass, Cotton)"
+                                className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-xs"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="pt-0.5">
+                          <button
+                            type="button"
+                            onClick={() => setShowCustomAttrField(true)}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11.5px] font-medium text-slate-600 hover:text-indigo-600 bg-white hover:bg-indigo-50/50 border border-slate-200 hover:border-indigo-200 rounded-md transition-all cursor-pointer shadow-2xs"
+                          >
+                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" className="text-indigo-500">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                            </svg>
+                            <span>Add other specification (e.g. Material)</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  </div>
+                  )}
+
                   <div className="pf-attr-inline-actions">
                     <button
                       type="button"
@@ -926,7 +1157,11 @@ export default function ProductFormBody({
                     <button
                       type="button"
                       onClick={handleSaveAttribute}
-                      disabled={!attrKey.trim() || !attrValue.trim()}
+                      disabled={
+                        editingAttr
+                          ? (!attrKey.trim() || !attrValue.trim())
+                          : (!newColorValue.trim() && !newPlatingValue.trim() && !(customAttrKey.trim() && customAttrValue.trim()))
+                      }
                       className="pf-attr-inline-btn pf-attr-inline-btn--add"
                     >
                       {editingAttr ? (
@@ -937,7 +1172,7 @@ export default function ProductFormBody({
                       ) : (
                         <>
                           <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M12 4v16m8-8H4" /></svg>
-                          Add Attribute
+                          Add Attributes
                         </>
                       )}
                     </button>

@@ -13,7 +13,9 @@ import { marketingTagsFromProductTags } from '@/features/admin/constants/product
 import {
   emptyProductForm,
   formatIndianRupee,
+  getBaseProductCode,
   getDiscountPercentage,
+  getFormDataProductBase,
   nextVariantProductCode,
   normaliseVariantsForEdit,
   productToEditForm,
@@ -294,40 +296,43 @@ export function AdminProductModal({
   const openAddVariant = () => {
     const nextCode = nextVariantProductCode(formData)
 
-    // Find previously used attribute keys (e.g., "Color") from:
-    // 1. Existing variants in current product (latest variant with attributes)
-    // 2. Current product attributes
-    // 3. Stored attribute keys from previous products in localStorage
-    let candidateKeys = []
-    const variants = Array.isArray(formData.variants) ? formData.variants : []
-    for (let i = variants.length - 1; i >= 0; i--) {
-      const v = variants[i]
-      if (Array.isArray(v.attributes) && v.attributes.length > 0) {
-        const keys = v.attributes.map((a) => (a?.key || a?.name || '').trim()).filter(Boolean)
-        if (keys.length > 0) {
-          candidateKeys = keys
-          break
-        }
+    // Collect ALL unique attribute keys from:
+    // 1. Current product attributes (formData.attributes) - primary source
+    // 2. Main variant attributes (variants[0].attributes)
+    // 3. Other variants in current product
+    // 4. Stored attribute keys from previous products in localStorage
+    const candidateKeys = []
+    const addKey = (rawKey) => {
+      const trimmed = String(rawKey || '').trim()
+      if (trimmed && !candidateKeys.some((k) => k.toLowerCase() === trimmed.toLowerCase())) {
+        candidateKeys.push(trimmed)
       }
     }
 
-    if (!candidateKeys.length && Array.isArray(formData.attributes) && formData.attributes.length > 0) {
-      candidateKeys = formData.attributes.map((a) => (a?.key || a?.name || '').trim()).filter(Boolean)
-    }
-
-    if (!candidateKeys.length) {
-      try {
-        const stored = JSON.parse(localStorage.getItem('admin_last_variant_attribute_keys') || '[]')
-        if (Array.isArray(stored) && stored.length > 0) {
-          candidateKeys = stored.map((k) => String(k).trim()).filter(Boolean)
+    // 1. Current product attributes (formData.attributes) - only if actually added with a value or key
+    if (Array.isArray(formData.attributes)) {
+      formData.attributes.forEach((a) => {
+        const k = a?.key || a?.name
+        if (k && String(a?.value ?? '').trim() !== '') {
+          addKey(k)
         }
-      } catch {}
+      })
     }
 
-    const uniqueKeys = [...new Set(candidateKeys)]
-    // Populate the key with empty value so the user only fills in the new value
-    const initialAttributes = uniqueKeys.length > 0
-      ? uniqueKeys.map((key) => ({ key, value: '', hex: '' }))
+    // 2. Existing variants attributes for this product
+    const variants = Array.isArray(formData.variants) ? formData.variants : []
+    variants.forEach((v) => {
+      if (Array.isArray(v.attributes)) {
+        v.attributes.forEach((a) => {
+          const k = a?.key || a?.name
+          if (k) addKey(k)
+        })
+      }
+    })
+
+    // Populate each key with an empty value so the user only fills in the new variant's value!
+    const initialAttributes = candidateKeys.length > 0
+      ? candidateKeys.map((key) => ({ key, value: '', hex: '' }))
       : [{ key: '', value: '', hex: '' }]
 
     setVariantForm({
@@ -339,6 +344,26 @@ export function AdminProductModal({
     setVariantSaveError(null)
     setShowVariantModal(true)
   }
+
+  // Keep open "Add Variant" form's ProductCode automatically in sync with next unused code
+  // whenever main ProductCode changes or variants change
+  useEffect(() => {
+    if (!showVariantModal || editingVariantIndex !== null) return
+    const nextCode = nextVariantProductCode(formData)
+    if (!nextCode) return
+
+    setVariantForm((prev) => {
+      if (!prev.ProductCode || prev.ProductCode === nextCode) {
+        return prev.ProductCode === nextCode ? prev : { ...prev, ProductCode: nextCode }
+      }
+      const prevBase = getBaseProductCode(prev.ProductCode)
+      const currentBase = getFormDataProductBase(formData)
+      if (!prev.ProductCode || prevBase !== currentBase) {
+        return { ...prev, ProductCode: nextCode }
+      }
+      return prev
+    })
+  }, [formData.ProductCode, formData.variants, showVariantModal, editingVariantIndex])
 
   const discardCreateDraft = () => {
     clearCreateProductDraft()

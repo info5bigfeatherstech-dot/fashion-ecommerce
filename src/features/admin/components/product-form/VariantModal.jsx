@@ -3,9 +3,11 @@
 import { useState } from 'react'
 import VariantCatalogFieldsSection from './VariantCatalogFieldsSection'
 import { emptyVariantShippingForm } from '@/lib/variantCatalogForm'
-import { parseQuantityInput, quantityFieldValue, MAX_VARIANT_IMAGES } from './utils'
+import { parseQuantityInput, quantityFieldValue, MAX_VARIANT_IMAGES, SUFFIXED_PRODUCT_CODE_REGEX } from './utils'
 import {
   isColorAttributeKey,
+  isPlatingAttributeKey,
+  PLATING_OPTIONS,
   normalizeHexColor,
   suggestHexForColorName,
   UNKNOWN_SWATCH_HEX,
@@ -131,7 +133,7 @@ const VariantModal = ({
       return;
     }
     {
-      const m = ProductCode.toUpperCase().match(/^([A-Z0-9]+)-(\d+)$/);
+      const m = ProductCode.toUpperCase().match(SUFFIXED_PRODUCT_CODE_REGEX);
       const seq = m ? Number(m[2]) : NaN;
       if (!m || !Number.isInteger(seq) || seq < 1) {
         alert("ProductCode must be BASE-N (e.g., 3897-1 or 3897-01)");
@@ -236,12 +238,11 @@ const VariantModal = ({
             </label>
             <input
               type="text"
-              inputMode="numeric"
               value={variantForm.ProductCode ?? ''}
               onChange={(e) => setVariantForm((prev) => ({ ...prev, ProductCode: e.target.value }))}
               disabled={isEditing}
               className={`pf-variant-input pf-variant-input--mono${isEditing ? ' is-locked' : ''}`}
-              placeholder="e.g., 1234567890128"
+              placeholder="e.g., 788-2"
             />
           </div>
 
@@ -255,6 +256,7 @@ const VariantModal = ({
             <div className="pf-variant-attr-list">
               {variantForm.attributes.map((attr, index) => {
                 const isColor = isColorAttributeKey(attr.key)
+                const isPlating = isPlatingAttributeKey(attr.key)
                 const pickerHex =
                   normalizeHexColor(attr.hex) ||
                   suggestHexForColorName(attr.value) ||
@@ -271,13 +273,26 @@ const VariantModal = ({
                       className="pf-variant-input"
                       placeholder="Key (e.g., Color)"
                     />
-                    <input
-                      type="text"
-                      value={attr.value}
-                      onChange={(e) => updateVariantAttribute(index, 'value', e.target.value)}
-                      className="pf-variant-input"
-                      placeholder="Value (e.g., Ochre)"
-                    />
+                    {isPlating ? (
+                      <select
+                        value={attr.value || ''}
+                        onChange={(e) => updateVariantAttribute(index, 'value', e.target.value)}
+                        className="pf-variant-input pf-variant-select"
+                      >
+                        <option value="">Select Plating</option>
+                        {PLATING_OPTIONS.map((opt) => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        value={attr.value}
+                        onChange={(e) => updateVariantAttribute(index, 'value', e.target.value)}
+                        className="pf-variant-input"
+                        placeholder={isColor ? "Color (e.g., Maroon)" : "Value (e.g., Ochre)"}
+                      />
+                    )}
                     {isColor ? (
                       <>
                         <label

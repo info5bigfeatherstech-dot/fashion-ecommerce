@@ -12,6 +12,26 @@ export const MULTI_COLOR_GRADIENT =
 
 export const COLOR_KEY_RE = /colou?r|shade|main\s*colou?r/i
 
+export const PLATING_OPTIONS = [
+  'Gold Plated',
+  'Silver Plated',
+  'Rose Gold Plated',
+  'Oxidized Silver',
+  'Antique Gold',
+  'Antique Silver',
+  'Rhodium Plated',
+  'Black Metal / Gunmetal',
+  'Two-Tone',
+  'Multi-Tone',
+]
+
+export const PLATING_KEY_RE = /^plat(?:ing|ed)?$/i
+
+export function isPlatingAttributeKey(key) {
+  if (!key) return false
+  return PLATING_KEY_RE.test(String(key).trim())
+}
+
 export const COLOR_SWATCH = {
   Ink: '#14120F',
   Ivory: '#F4EFE6',

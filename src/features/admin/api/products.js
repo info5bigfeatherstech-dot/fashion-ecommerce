@@ -478,7 +478,7 @@ const toNum = (raw) => {
   return Number.isNaN(n) ? undefined : n
 }
 
-const SUFFIXED_PRODUCT_CODE_REGEX = /^([A-Z0-9]+)-(\d+)$/
+const SUFFIXED_PRODUCT_CODE_REGEX = /^([A-Z0-9_-]+)-(\d+)$/
 
 function buildPriceObj(price, label = 'Base price') {
   const base = toNum(price?.base)
@@ -516,8 +516,11 @@ function buildInventoryObj(inv) {
 }
 
 function normalizeProductCode(rawCode, label = 'ProductCode') {
-  const code = String(rawCode ?? '').trim().toUpperCase()
+  let code = String(rawCode ?? '').trim().toUpperCase()
   if (!code) throw new Error(`${label} is required`)
+  if (!/-\d+$/.test(code) && /^[A-Z0-9_-]+$/.test(code)) {
+    code = `${code}-1`
+  }
   const m = code.match(SUFFIXED_PRODUCT_CODE_REGEX)
   if (!m) throw new Error(`${label} must be in BASE-N format (e.g., 3897-1 or 3897-01)`)
   const seq = Number(m[2])
@@ -651,7 +654,7 @@ export async function addAdminProductVariant(slug, variantData) {
   const rawCode = variantData.ProductCode ?? variantData.productCode
   if (!rawCode && rawCode !== 0) throw new Error('ProductCode is required to add a variant')
   const upper = String(rawCode).trim().toUpperCase()
-  const m = upper.match(/^([A-Z0-9]+)-(\d+)$/)
+  const m = upper.match(SUFFIXED_PRODUCT_CODE_REGEX)
   const seq = m ? Number(m[2]) : NaN
   if (!m || !Number.isInteger(seq) || seq < 1) {
     throw new Error('ProductCode must be BASE-N (e.g., 3897-1 or 3897-01)')
