@@ -48,6 +48,8 @@ export function OrderTrackingModal({ open, onClose, orderId, initialTracking = n
       ? rawCourier
       : null
   const trackingNumber = tracking?.trackingNumber || tracking?.awbCode || null
+  const providerStatus =
+    tracking?.providerStatus || tracking?.statusSummary?.status || null
   const estimatedDelivery = tracking?.estimatedDelivery || null
   const timeline = Array.isArray(tracking?.timeline) ? tracking.timeline : []
   const courierTimeline = Array.isArray(tracking?.courierTimeline) ? tracking.courierTimeline : []
