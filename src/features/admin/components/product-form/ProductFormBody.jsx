@@ -4,7 +4,7 @@ import { ADMIN_PRODUCT_MARKETING_TAGS } from '@/features/admin/constants/product
 import { useAdminProductCodePrefixSettings } from '@/features/admin/hooks'
 import VariantModal from './VariantModal'
 import { parseQuantityInput, quantityFieldValue, MAX_VARIANT_IMAGES, nextVariantProductCode } from './utils'
-import { isPlatingAttributeKey, PLATING_OPTIONS } from '@/features/product/colorSwatch'
+import { isPlatingAttributeKey, PLATING_OPTIONS, COLOR_KEY_RE } from '@/features/product/colorSwatch'
 
 const MARKETING_TOGGLE_CLASS = {
   'on-sale': 'pf-toggle--onsale',
@@ -58,167 +58,90 @@ export default function ProductFormBody({
   const [isDraggingZone, setIsDraggingZone] = useState(false);
   const variantDropdownRef = useRef(null);
 
-  // Inline Attribute form state
-  const [showAttributeForm, setShowAttributeForm] = useState(false);
-  const [editingAttr, setEditingAttr] = useState(null);
-  // For editing single attribute:
-  const [attrKey, setAttrKey] = useState('');
-  const [attrValue, setAttrValue] = useState('');
-  // For adding new attributes (pre-set Color and Plating):
-  const [newColorValue, setNewColorValue] = useState('');
-  const [newPlatingValue, setNewPlatingValue] = useState('');
-  const [showCustomAttrField, setShowCustomAttrField] = useState(false);
-  const [customAttrKey, setCustomAttrKey] = useState('');
-  const [customAttrValue, setCustomAttrValue] = useState('');
-  const attributeFormRef = useRef(null);
-  const attrKeyInputRef = useRef(null);
+  // Specifications (Attributes) state
+  const [newSpecName, setNewSpecName] = useState('');
+  const [newSpecValue, setNewSpecValue] = useState('');
 
-  useEffect(() => {
-    if (showAttributeForm && attrKeyInputRef.current) {
-      attrKeyInputRef.current.focus();
-    }
-  }, [showAttributeForm, editingAttr]);
-
-  const handleToggleAddAttribute = () => {
-    if (showAttributeForm && !editingAttr) {
-      setShowAttributeForm(false);
-      setEditingAttr(null);
-      setNewColorValue('');
-      setNewPlatingValue('');
-      setShowCustomAttrField(false);
-      setCustomAttrKey('');
-      setCustomAttrValue('');
+  const updateAttributeField = (attrId, field, val) => {
+    if (isEditMode) {
+      setFormData((p) => {
+        const variants = [...(p.variants || [])];
+        if (!variants[0]) return p;
+        const nextAttrs = (variants[0].attributes || []).map((a) =>
+          a.id === attrId ? { ...a, [field]: val } : a
+        );
+        variants[0] = { ...variants[0], attributes: nextAttrs };
+        return { ...p, variants, attributes: nextAttrs };
+      });
     } else {
-      setEditingAttr(null);
-      setAttrKey('');
-      setAttrValue('');
-      setNewColorValue('');
-      setNewPlatingValue('');
-      setShowCustomAttrField(false);
-      setCustomAttrKey('');
-      setCustomAttrValue('');
-      setShowAttributeForm(true);
+      setFormData((p) => ({
+        ...p,
+        attributes: (p.attributes || []).map((a) =>
+          a.id === attrId ? { ...a, [field]: val } : a
+        ),
+      }));
     }
   };
 
-  const handleStartEditAttribute = (attr) => {
-    setEditingAttr(attr);
-    setAttrKey(attr.key || '');
-    setAttrValue(attr.value || '');
-    setShowAttributeForm(true);
-  };
+  const handleAddNewSpec = () => {
+    const k = newSpecName.trim();
+    const v = newSpecValue.trim();
+    if (!k || !v) return;
 
-  const handleCancelAttribute = () => {
-    setShowAttributeForm(false);
-    setEditingAttr(null);
-    setAttrKey('');
-    setAttrValue('');
-    setNewColorValue('');
-    setNewPlatingValue('');
-    setShowCustomAttrField(false);
-    setCustomAttrKey('');
-    setCustomAttrValue('');
-  };
-
-  const handleSaveAttribute = () => {
-    if (editingAttr) {
-      const k = attrKey.trim();
-      const v = attrValue.trim();
-      if (!k || !v) return;
-
-      const oldKey = editingAttr.key;
-      const updated = { ...editingAttr, key: k, value: v };
-      if (isEditMode) {
-        setFormData((p) => {
-          const variants = [...(p.variants || [])];
-          if (!variants[0]) return p;
-          const nextAttrs = (variants[0].attributes || []).map((a) => (a.id === editingAttr.id ? updated : a));
-          variants[0] = { ...variants[0], attributes: nextAttrs };
-          return { ...p, variants, attributes: nextAttrs };
-        });
-      } else {
-        setFormData((p) => ({
-          ...p,
-          attributes: (p.attributes || []).map((a) => (a.id === editingAttr.id ? updated : a)),
-        }));
-      }
-
-      // If variant form is open and has this old key, update the key name
-      if (setVariantForm && oldKey) {
-        setVariantForm((prev) => {
-          if (!prev || !Array.isArray(prev.attributes)) return prev;
-          return {
-            ...prev,
-            attributes: prev.attributes.map((a) =>
-              (a.key || '').trim().toLowerCase() === oldKey.trim().toLowerCase()
-                ? { ...a, key: k }
-                : a
-            ),
-          };
-        });
-      }
-      handleCancelAttribute();
-      return;
-    }
-
-    // Adding new attributes: collect all filled attributes
-    const toAdd = [];
-    if (newColorValue.trim()) {
-      toAdd.push({ id: `attr-color-${Date.now()}`, key: 'Color', value: newColorValue.trim() });
-    }
-    if (newPlatingValue.trim()) {
-      toAdd.push({ id: `attr-plating-${Date.now() + 1}`, key: 'Plating', value: newPlatingValue.trim() });
-    }
-    if (customAttrKey.trim() && customAttrValue.trim()) {
-      toAdd.push({ id: `attr-custom-${Date.now() + 2}`, key: customAttrKey.trim(), value: customAttrValue.trim() });
-    }
-
-    if (!toAdd.length) return;
+    const newAttr = {
+      id: `attr-${Date.now()}`,
+      key: k,
+      value: v,
+    };
 
     if (isEditMode) {
       setFormData((p) => {
         const variants = [...(p.variants || [])];
         if (!variants[0]) return p;
-        const existing = variants[0].attributes || [];
-        const existingKeys = new Set(existing.map((a) => (a.key || '').trim().toLowerCase()));
-        const uniqueToAdd = toAdd.filter((a) => !existingKeys.has(a.key.toLowerCase()));
-        const nextAttrs = [...existing, ...uniqueToAdd];
+        const nextAttrs = [...(variants[0].attributes || []), newAttr];
         variants[0] = { ...variants[0], attributes: nextAttrs };
         return { ...p, variants, attributes: nextAttrs };
       });
     } else {
-      setFormData((p) => {
-        const existing = p.attributes || [];
-        const existingKeys = new Set(existing.map((a) => (a.key || '').trim().toLowerCase()));
-        const uniqueToAdd = toAdd.filter((a) => !existingKeys.has(a.key.toLowerCase()));
-        return {
-          ...p,
-          attributes: [...existing, ...uniqueToAdd],
-        };
-      });
+      setFormData((p) => ({
+        ...p,
+        attributes: [...(p.attributes || []), newAttr],
+      }));
     }
 
-    // If variant form is open (creating a new variant), synchronize newly added keys
     if (setVariantForm) {
       setVariantForm((prev) => {
         if (!prev || !Array.isArray(prev.attributes)) return prev;
-        const currentKeys = new Set(prev.attributes.map((a) => (a.key || '').trim().toLowerCase()));
-        const newRows = toAdd
-          .filter((a) => !currentKeys.has(a.key.toLowerCase()))
-          .map((a) => ({ key: a.key, value: '', hex: '' }));
-        if (!newRows.length) return prev;
-        const existingRows = prev.attributes.filter(
-          (a) => (a.key || '').trim() || (a.value || '').trim()
+        const exists = prev.attributes.some(
+          (a) => (a.key || '').trim().toLowerCase() === k.toLowerCase()
         );
+        if (exists) return prev;
         return {
           ...prev,
-          attributes: [...existingRows, ...newRows],
+          attributes: [...prev.attributes, { key: k, value: '', hex: '' }],
         };
       });
     }
 
-    handleCancelAttribute();
+    setNewSpecName('');
+    setNewSpecValue('');
   };
+
+  // Ensure default Color and Plating specification rows exist in create mode
+  useEffect(() => {
+    if (!isEditMode && (!formData.attributes || formData.attributes.length === 0)) {
+      setFormData((p) => {
+        if (p.attributes && p.attributes.length > 0) return p;
+        return {
+          ...p,
+          attributes: [
+            { id: 'attr-default-color', key: 'Color', value: '' },
+            { id: 'attr-default-plating', key: 'Plating', value: '' },
+          ],
+        };
+      });
+    }
+  }, [isEditMode]);
 
   useEffect(() => {
     if (showVariantForm && variantDropdownRef.current) {
@@ -980,226 +903,131 @@ export default function ProductFormBody({
           </div>
         </div>
 
-        {/* Product Attributes - with inline dropdown form */}
+        {/* Product Attributes / Specifications */}
         <div className="pf-card">
-          <div className="pf-card__head pf-card__head--row">
+          <div className="pf-card__head">
             <div>
               <h3>Product Attributes</h3>
-              <p className="text-xs text-gray-500 mt-0.5">Specifications like Material, Style, Occasion, etc.</p>
+              <p className="text-xs text-gray-500 mt-0.5">Specifications like Color, Plating, Material, etc.</p>
             </div>
-            <button
-              type="button"
-              onClick={handleToggleAddAttribute}
-              className={`pf-chip-btn ${showAttributeForm && !editingAttr ? 'pf-chip-btn--secondary' : ''}`}
-            >
-              {showAttributeForm && !editingAttr ? '✕ Close Form' : '+ Add'}
-            </button>
           </div>
           <div className="pf-card__body space-y-3">
-            {showAttributeForm && (
-              <div className="pf-attr-dropdown-panel" ref={attributeFormRef}>
-                <div className="pf-attr-card--inline">
-                  <div className="flex items-center justify-between mb-3 pb-2.5 border-b border-gray-200/70">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-blue-600 inline-block"></span>
-                      <span className="text-sm font-semibold text-gray-800">
-                        {editingAttr ? `Edit Attribute: ${editingAttr.key}` : 'Add Product Attributes'}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleCancelAttribute}
-                      className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-1 rounded-md transition-colors cursor-pointer"
-                      aria-label="Close"
-                      title="Close"
-                    >
-                      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                    </button>
-                  </div>
-
-                  {editingAttr ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-2">
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1.5">Attribute Name</label>
-                        <input
-                          ref={attrKeyInputRef}
-                          type="text"
-                          value={attrKey}
-                          onChange={(e) => setAttrKey(e.target.value)}
-                          className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-xs"
-                          placeholder="e.g. Color, Plating, Material"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1.5">Value</label>
-                        {isPlatingAttributeKey(attrKey) ? (
-                          <select
-                            value={attrValue}
-                            onChange={(e) => setAttrValue(e.target.value)}
-                            className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-xs cursor-pointer"
-                          >
-                            <option value="">Select Plating...</option>
-                            {PLATING_OPTIONS.map((opt) => (
-                              <option key={opt} value={opt}>{opt}</option>
-                            ))}
-                          </select>
-                        ) : (
-                          <input
-                            type="text"
-                            value={attrValue}
-                            onChange={(e) => setAttrValue(e.target.value)}
-                            className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-xs"
-                            placeholder="e.g. Cotton, Floral, Festive"
-                          />
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-4 mb-2">
-                      {/* Clean 2-column grid for Color and Plating */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {/* 1. Color */}
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                            Color
-                          </label>
-                          <input
-                            type="text"
-                            value={newColorValue}
-                            onChange={(e) => setNewColorValue(e.target.value)}
-                            className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-xs"
-                            placeholder="e.g. Maroon, Emerald, Royal Blue"
-                          />
-                        </div>
-
-                        {/* 2. Plating */}
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                            Plating <span className="font-normal text-gray-400">(Optional)</span>
-                          </label>
-                          <select
-                            value={newPlatingValue}
-                            onChange={(e) => setNewPlatingValue(e.target.value)}
-                            className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-xs cursor-pointer"
-                          >
-                            <option value="">Select Plating...</option>
-                            {PLATING_OPTIONS.map((opt) => (
-                              <option key={opt} value={opt}>{opt}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-
-                      {/* 3. Optional custom specification */}
-                      {showCustomAttrField ? (
-                        <div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-[11px] font-semibold text-gray-700">Custom Specification</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowCustomAttrField(false);
-                                setCustomAttrKey('');
-                                setCustomAttrValue('');
-                              }}
-                              className="text-gray-400 hover:text-red-500 text-xs px-1 cursor-pointer transition-colors"
-                              title="Cancel custom specification"
-                            >
-                              ✕ Remove
-                            </button>
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                            <div>
-                              <input
-                                type="text"
-                                value={customAttrKey}
-                                onChange={(e) => setCustomAttrKey(e.target.value)}
-                                placeholder="Specification name (e.g. Material)"
-                                className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-xs"
-                              />
-                            </div>
-                            <div>
-                              <input
-                                type="text"
-                                value={customAttrValue}
-                                onChange={(e) => setCustomAttrValue(e.target.value)}
-                                placeholder="Specification value (e.g. Brass, Cotton)"
-                                className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-xs"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="pt-0.5">
-                          <button
-                            type="button"
-                            onClick={() => setShowCustomAttrField(true)}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11.5px] font-medium text-slate-600 hover:text-indigo-600 bg-white hover:bg-indigo-50/50 border border-slate-200 hover:border-indigo-200 rounded-md transition-all cursor-pointer shadow-2xs"
-                          >
-                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" className="text-indigo-500">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                            </svg>
-                            <span>Add other specification (e.g. Material)</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="pf-attr-inline-actions">
-                    <button
-                      type="button"
-                      onClick={handleCancelAttribute}
-                      className="pf-attr-inline-btn pf-attr-inline-btn--cancel"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSaveAttribute}
-                      disabled={
-                        editingAttr
-                          ? (!attrKey.trim() || !attrValue.trim())
-                          : (!newColorValue.trim() && !newPlatingValue.trim() && !(customAttrKey.trim() && customAttrValue.trim()))
-                      }
-                      className="pf-attr-inline-btn pf-attr-inline-btn--add"
-                    >
-                      {editingAttr ? (
-                        <>
-                          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M5 13l4 4L19 7" /></svg>
-                          Save Changes
-                        </>
-                      ) : (
-                        <>
-                          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M12 4v16m8-8H4" /></svg>
-                          Add Attributes
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {!displayedAttributes.length && !showAttributeForm ? (
-              <p className="pf-empty">No attributes added yet</p>
-            ) : null}
-
             {displayedAttributes.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {displayedAttributes.map((attr) => (
-                  <div key={attr.id} className="inline-flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg group hover:bg-gray-100 transition-colors">
-                    <span className="text-sm whitespace-nowrap"><span className="font-medium text-gray-700">{attr.key}:</span> <span className="text-gray-600">{attr.value}</span></span>
-                    <button type="button" onClick={() => handleStartEditAttribute(attr)} title="Edit attribute" className="text-gray-400 hover:text-blue-500 transition-colors">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                    </button>
-                    <button type="button" onClick={() => onRemoveAttribute(attr.id)} title="Delete attribute" className="text-gray-400 hover:text-red-500 transition-colors">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                    </button>
-                  </div>
-                ))}
+              <div className="space-y-2.5">
+                {displayedAttributes.map((attr, idx) => {
+                  const isPlating = isPlatingAttributeKey(attr.key);
+                  const isColor = COLOR_KEY_RE.test(String(attr.key || '').trim());
+                  return (
+                    <div
+                      key={attr.id || idx}
+                      className="flex items-center gap-3 p-2.5 sm:p-3 bg-white border border-gray-200/90 rounded-2xl shadow-2xs hover:border-gray-300 transition-colors"
+                    >
+                      <input
+                        type="text"
+                        value={attr.key || ''}
+                        onChange={(e) => updateAttributeField(attr.id, 'key', e.target.value)}
+                        className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-2xs"
+                        placeholder="Name"
+                      />
+                      {isPlating ? (
+                        <select
+                          value={attr.value || ''}
+                          onChange={(e) => updateAttributeField(attr.id, 'value', e.target.value)}
+                          className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-2xs cursor-pointer"
+                        >
+                          <option value="">Select Plating...</option>
+                          {PLATING_OPTIONS.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          value={attr.value || ''}
+                          onChange={(e) => updateAttributeField(attr.id, 'value', e.target.value)}
+                          className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-2xs"
+                          placeholder={isColor ? "Color (e.g. Maroon, Blue)" : "Value"}
+                        />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => onRemoveAttribute(attr.id)}
+                        title="Delete specification"
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer shrink-0"
+                        aria-label="Delete specification"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.75}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
+
+            <div className="p-4 bg-white border border-gray-200/90 rounded-2xl shadow-2xs">
+              <h4 className="text-sm font-bold text-gray-900 mb-3">Add Specification</h4>
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={newSpecName}
+                  onChange={(e) => setNewSpecName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddNewSpec();
+                    }
+                  }}
+                  placeholder="Name (e.g. Plating / Occasion)"
+                  className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-2xs"
+                />
+                {isPlatingAttributeKey(newSpecName) ? (
+                  <select
+                    value={newSpecValue}
+                    onChange={(e) => setNewSpecValue(e.target.value)}
+                    className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-2xs cursor-pointer"
+                  >
+                    <option value="">Select Plating...</option>
+                    {PLATING_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={newSpecValue}
+                    onChange={(e) => setNewSpecValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddNewSpec();
+                      }
+                    }}
+                    placeholder="Value (e.g. 18K Gold PVD)"
+                    className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-2xs"
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={handleAddNewSpec}
+                  disabled={!newSpecName.trim() || !newSpecValue.trim()}
+                  className="inline-flex items-center justify-center gap-1 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-semibold transition-all cursor-pointer shadow-xs disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap shrink-0"
+                >
+                  <span className="text-base leading-none font-bold">+</span>
+                  <span>Add</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 

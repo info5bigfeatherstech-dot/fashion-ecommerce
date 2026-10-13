@@ -144,7 +144,10 @@ export function emptyProductForm() {
     inventory: { quantity: '', lowStockThreshold: 0, trackInventory: true },
     images: [],
     variants: [],
-    attributes: [],
+    attributes: [
+      { id: 'attr-default-color', key: 'Color', value: '' },
+      { id: 'attr-default-plating', key: 'Plating', value: '' },
+    ],
     hsnCode: '',
     taxRate: '',
     isFragile: false,
