@@ -8,7 +8,6 @@ import ProductFormBody from '@/features/admin/components/product-form/ProductFor
 import VariantModal, { defaultVariant } from '@/features/admin/components/product-form/VariantModal'
 import { BrandModal } from '@/features/admin/components/product-form/BrandModal'
 import { CategoryQuickModal } from '@/features/admin/components/product-form/CategoryQuickModal'
-import AttributeModal from '@/features/admin/components/product-form/AttributeModal'
 import CustomMessageModal from '@/features/admin/components/product-form/CustomMessageModal'
 import { marketingTagsFromProductTags } from '@/features/admin/constants/productMarketingTags'
 import {
@@ -161,33 +160,12 @@ export function AdminProductModal({
       setLoadedProduct(null)
       savedMarketingTagsRef.current = null
       setLoadingProduct(false)
-      let cancelled = false
-      ;(async () => {
-        try {
-          const draft = readCreateProductDraft()
-          if (cancelled) return
-          if (draft) {
-            const restored = await rehydrateCreateDraft(draft)
-            if (cancelled) return
-            setFormData(restored || draft)
-            setHasCreateDraft(true)
-            toast.message('Unsaved product draft restored')
-          } else {
-            setFormData(emptyProductForm())
-            setHasCreateDraft(false)
-          }
-        } catch {
-          if (!cancelled) {
-            setFormData(emptyProductForm())
-            setHasCreateDraft(false)
-          }
-        } finally {
-          if (!cancelled) createHydratedRef.current = true
-        }
-      })()
-      return () => {
-        cancelled = true
-      }
+      clearCreateProductDraft()
+      setHasCreateDraft(false)
+      setFormData(emptyProductForm())
+      setShowVariantModal(false)
+      createHydratedRef.current = true
+      return
     }
 
     // Hydrate immediately from list row, then refresh from full product GET.
@@ -241,19 +219,6 @@ export function AdminProductModal({
   }, [open, isEdit, product?.slug, product?._id])
 
   useEffect(() => {
-    if (!open || isEdit || !createHydratedRef.current) return undefined
-    const timer = setTimeout(() => {
-      const result = writeCreateProductDraft(formData)
-      if (result.ok && result.strippedImages && !draftQuotaWarnedRef.current) {
-        draftQuotaWarnedRef.current = true
-        toast.message('Draft saved without images (storage limit). Text fields are kept.')
-      }
-      setHasCreateDraft(result.ok && Boolean(readCreateProductDraft()))
-    }, 500)
-    return () => clearTimeout(timer)
-  }, [formData, open, isEdit])
-
-  useEffect(() => {
     if (!open) {
       startLenis()
       document.documentElement.classList.remove('modal-open')
@@ -270,6 +235,11 @@ export function AdminProductModal({
       setError('')
       setLoadedProduct(null)
       createHydratedRef.current = false
+      clearCreateProductDraft()
+      setHasCreateDraft(false)
+      if (!isEdit) {
+        setFormData(emptyProductForm())
+      }
       return undefined
     }
     stopLenis()
@@ -312,6 +282,11 @@ export function AdminProductModal({
       setEditingAttribute(null)
       setVariantForm(defaultVariant)
       setVariantSaveError(null)
+      clearCreateProductDraft()
+      setHasCreateDraft(false)
+      if (!isEdit) {
+        setFormData(emptyProductForm())
+      }
     }
     onOpenChange(nextOpen)
   }
@@ -961,10 +936,31 @@ export function AdminProductModal({
                   getDiscountPercentage={getDiscountPercentage}
                   productSlug={isEdit ? product.slug : undefined}
                   actionLoading={busy}
+                  variantForm={variantForm}
+                  setVariantForm={setVariantForm}
+                  editingVariantIndex={editingVariantIndex}
+                  showVariantForm={showVariantModal}
+                  onSaveVariant={handleVariantSave}
+                  onCloseVariantForm={closeVariantModal}
+                  variantSaving={variantSaving}
+                  variantSaveError={variantSaveError}
                 />
               </div>
               <div className="product-modal-form__footer">
-                <Button type="button" variant="secondary" fullWidth disabled={busy} onClick={() => onOpenChange(false)}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  fullWidth
+                  disabled={busy}
+                  onClick={() => {
+                    if (!isEdit) {
+                      clearCreateProductDraft()
+                      setHasCreateDraft(false)
+                      setFormData(emptyProductForm())
+                    }
+                    onOpenChange(false)
+                  }}
+                >
                   Cancel
                 </Button>
                 <Button type="submit" variant="primary" fullWidth disabled={busy} className="product-modal-submit">
@@ -990,33 +986,11 @@ export function AdminProductModal({
               onClose={() => setShowBrandModal(false)}
             />
           ) : null}
-          {showAttributeModal ? (
-            <AttributeModal
-              initialValue={editingAttribute}
-              onAdd={handleAddAttribute}
-              onClose={() => {
-                setShowAttributeModal(false)
-                setEditingAttribute(null)
-              }}
-            />
-          ) : null}
           {showCustomMessageModal ? (
             <CustomMessageModal
               currentMessage={formData.fomo?.customMessage}
               onSave={(msg) => setFormData((p) => ({ ...p, fomo: { ...p.fomo, customMessage: msg } }))}
               onClose={() => setShowCustomMessageModal(false)}
-            />
-          ) : null}
-          {showVariantModal ? (
-            <VariantModal
-              variantForm={variantForm}
-              setVariantForm={setVariantForm}
-              editingVariantIndex={editingVariantIndex}
-              onSave={handleVariantSave}
-              onClose={closeVariantModal}
-              getDiscountPercentage={getDiscountPercentage}
-              isSaving={variantSaving}
-              saveError={variantSaveError}
             />
           ) : null}
         </Dialog.Content>

@@ -35,6 +35,7 @@ const VariantModal = ({
   getDiscountPercentage,
   isSaving = false,
   saveError = null,
+  inline = false,
 }) => {
   const [variantImageDragging, setVariantImageDragging] = useState(false);
   const isEditing = editingVariantIndex !== null;
@@ -215,10 +216,9 @@ const VariantModal = ({
     });
   };
 
-  return (
-    <div className="pf-variant-overlay">
-      <div className="pf-variant-card">
-        <div className="pf-variant-card__head">
+  const cardContent = (
+    <div className={`pf-variant-card ${inline ? 'pf-variant-card--inline' : ''}`}>
+      <div className="pf-variant-card__head">
           <div>
             <h3>{isEditing ? 'Edit Variant' : 'Add New Variant'}</h3>
             <p>{isEditing ? 'Update price, inventory & attributes' : 'Set ProductCode, attributes, price & stock'}</p>
@@ -507,8 +507,13 @@ const VariantModal = ({
           </div>
         </div>
       </div>
-    </div>
   )
+
+  if (inline) {
+    return cardContent
+  }
+
+  return <div className="pf-variant-overlay">{cardContent}</div>
 }
 
 export default VariantModal

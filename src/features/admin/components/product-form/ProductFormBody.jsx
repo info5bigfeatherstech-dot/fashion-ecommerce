@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ADMIN_PRODUCT_MARKETING_TAGS } from '@/features/admin/constants/productMarketingTags'
 import { useAdminProductCodePrefixSettings } from '@/features/admin/hooks'
+import VariantModal from './VariantModal'
 import { parseQuantityInput, quantityFieldValue, MAX_VARIANT_IMAGES } from './utils'
 
 const MARKETING_TOGGLE_CLASS = {
@@ -40,12 +41,111 @@ export default function ProductFormBody({
   productSlug,
   actionLoading = false,
   actionError = null,
+  variantForm,
+  setVariantForm,
+  editingVariantIndex,
+  showVariantForm = false,
+  onSaveVariant,
+  onCloseVariantForm,
+  variantSaving = false,
+  variantSaveError = null,
 }) {
   const isEditMode = !!productSlug;
   const { data: prefixSettings } = useAdminProductCodePrefixSettings({ enabled: !isEditMode })
   const listingPrefix = prefixSettings?.configured ? String(prefixSettings.prefix || '').toUpperCase() : ''
   const [draggedIdx, setDraggedIdx] = useState(null);
   const [isDraggingZone, setIsDraggingZone] = useState(false);
+  const variantDropdownRef = useRef(null);
+
+  // Inline Attribute form state
+  const [showAttributeForm, setShowAttributeForm] = useState(false);
+  const [editingAttr, setEditingAttr] = useState(null);
+  const [attrKey, setAttrKey] = useState('');
+  const [attrValue, setAttrValue] = useState('');
+  const attributeFormRef = useRef(null);
+  const attrKeyInputRef = useRef(null);
+
+  useEffect(() => {
+    if (showAttributeForm && attrKeyInputRef.current) {
+      attrKeyInputRef.current.focus();
+    }
+  }, [showAttributeForm, editingAttr]);
+
+  const handleToggleAddAttribute = () => {
+    if (showAttributeForm && !editingAttr) {
+      setShowAttributeForm(false);
+      setEditingAttr(null);
+      setAttrKey('');
+      setAttrValue('');
+    } else {
+      setEditingAttr(null);
+      setAttrKey('');
+      setAttrValue('');
+      setShowAttributeForm(true);
+    }
+  };
+
+  const handleStartEditAttribute = (attr) => {
+    setEditingAttr(attr);
+    setAttrKey(attr.key || '');
+    setAttrValue(attr.value || '');
+    setShowAttributeForm(true);
+  };
+
+  const handleCancelAttribute = () => {
+    setShowAttributeForm(false);
+    setEditingAttr(null);
+    setAttrKey('');
+    setAttrValue('');
+  };
+
+  const handleSaveAttribute = () => {
+    const k = attrKey.trim();
+    const v = attrValue.trim();
+    if (!k || !v) return;
+
+    if (editingAttr) {
+      const updated = { ...editingAttr, key: k, value: v };
+      if (isEditMode) {
+        setFormData((p) => {
+          const variants = [...(p.variants || [])];
+          if (!variants[0]) return p;
+          const nextAttrs = (variants[0].attributes || []).map((a) => (a.id === editingAttr.id ? updated : a));
+          variants[0] = { ...variants[0], attributes: nextAttrs };
+          return { ...p, variants, attributes: nextAttrs };
+        });
+      } else {
+        setFormData((p) => ({
+          ...p,
+          attributes: (p.attributes || []).map((a) => (a.id === editingAttr.id ? updated : a)),
+        }));
+      }
+    } else {
+      const created = { id: `attr-${Date.now()}`, key: k, value: v };
+      if (isEditMode) {
+        setFormData((p) => {
+          const variants = [...(p.variants || [])];
+          if (!variants[0]) return p;
+          const nextAttrs = [...(variants[0].attributes || []), created];
+          variants[0] = { ...variants[0], attributes: nextAttrs };
+          return { ...p, variants, attributes: nextAttrs };
+        });
+      } else {
+        setFormData((p) => ({
+          ...p,
+          attributes: [...(p.attributes || []), created],
+        }));
+      }
+    }
+
+    handleCancelAttribute();
+  };
+
+  useEffect(() => {
+    if (showVariantForm && variantDropdownRef.current) {
+      variantDropdownRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [showVariantForm, editingVariantIndex]);
 
   const galleryImages = isEditMode ? (formData.variants?.[0]?.images || []) : (formData.images || []);
 
@@ -489,7 +589,7 @@ export default function ProductFormBody({
             <div className="pf-main__tip">
               <span aria-hidden="true">💡</span>
               <p>
-                Images for main variant are managed in the <strong>Product Gallery</strong> panel →. All changes here are saved when you click <strong>Save Changes</strong>.
+                Images for main variant are managed in the <strong>Product Gallery</strong> section below. All changes here are saved when you click <strong>Save Changes</strong>.
               </p>
             </div>
           </div>
@@ -701,24 +801,164 @@ export default function ProductFormBody({
           </div>
         </div>
 
-        {/* Product Attributes - unchanged */}
+        {/* Product Gallery (Moved directly after Shipping Details) */}
+        <div className="pf-card pf-gallery">
+          <div className="pf-card__head">
+            <h3>Product Gallery</h3>
+            <p>{isEditMode ? 'Main variant images · ★ = thumbnail · saved with Save Changes' : `Up to ${MAX_VARIANT_IMAGES} · drag to reorder · ★ = thumbnail`}</p>
+          </div>
+          {mainGalleryImage && (
+            <div className="pf-gallery__hero">
+              <img src={mainGalleryImage.url} alt="Main" />
+              <span>★ MAIN</span>
+            </div>
+          )}
+          <div className="pf-card__body">
+            <label
+              className={`pf-dropzone${isDraggingZone ? ' is-drag' : ''}${galleryImages.length >= MAX_VARIANT_IMAGES ? ' is-full' : ''}`}
+              onDragOver={(e) => { e.preventDefault(); setIsDraggingZone(true); }}
+              onDragLeave={() => setIsDraggingZone(false)}
+              onDrop={(e) => { e.preventDefault(); setIsDraggingZone(false); handleGalleryUpload({ target: { files: e.dataTransfer.files } }); }}
+            >
+              <input type="file" multiple accept="image/*" className="hidden" disabled={galleryImages.length >= MAX_VARIANT_IMAGES} onChange={handleGalleryUpload} />
+              <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              <p>{galleryImages.length}/{MAX_VARIANT_IMAGES} · click or drop</p>
+            </label>
+            {galleryImages.length > 0 && (
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {galleryImages.map((image, index) => (
+                  <div key={image.id || image.url} draggable onDragStart={(e) => handleGalleryDragStart(e, index)} onDragOver={(e) => handleGalleryDragOver(e, index)} onDragEnd={() => setDraggedIdx(null)} className={`flex items-center gap-2 p-2 rounded-lg border-2 cursor-grab active:cursor-grabbing transition-all ${image.isMain ? "border-blue-500 bg-blue-50" : "border-transparent bg-gray-50 hover:border-gray-200"}`}>
+                    <div className="w-10 h-10 rounded overflow-hidden bg-white flex-shrink-0 border border-gray-100"><img src={image.url} alt="" className="w-full h-full object-cover" /></div>
+                    <div className="flex-1 text-xs truncate text-gray-600">{image.isMain && <span className="text-blue-600 font-bold mr-1">★</span>}{image.name || "Uploaded image"}</div>
+                    <div className="flex items-center gap-1">
+                      {!image.isMain && (<button type="button" onClick={() => setMainGalleryImage(image.id || image.url)} title="Set as main thumbnail" className="p-1 text-gray-400 hover:text-blue-600">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+                      </button>)}
+                      <button type="button" onClick={() => removeGalleryImage(image.id || image.url)} className="p-1 text-gray-400 hover:text-red-600">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {galleryImages.length > 0 && (
+              <p className="text-xs text-gray-400 text-center mt-2">Drag to reorder · ★ = thumbnail</p>
+            )}
+          </div>
+        </div>
+
+        {/* Product Attributes - with inline dropdown form */}
         <div className="pf-card">
           <div className="pf-card__head pf-card__head--row">
-            <h3>Product Attributes</h3>
-            <button type="button" onClick={onOpenAttributeModal} className="pf-chip-btn">+ Add</button>
+            <div>
+              <h3>Product Attributes</h3>
+              <p className="text-xs text-gray-500 mt-0.5">Specifications like Material, Style, Occasion, etc.</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleToggleAddAttribute}
+              className={`pf-chip-btn ${showAttributeForm && !editingAttr ? 'pf-chip-btn--secondary' : ''}`}
+            >
+              {showAttributeForm && !editingAttr ? '✕ Close Form' : '+ Add'}
+            </button>
           </div>
-          <div className="pf-card__body">
-          {!displayedAttributes.length ? (
+          <div className="pf-card__body space-y-3">
+            {showAttributeForm && (
+              <div className="pf-attr-dropdown-panel" ref={attributeFormRef}>
+                <div className="pf-attr-card--inline">
+                  <div className="flex items-center justify-between mb-3 pb-2.5 border-b border-gray-200/70">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-blue-600 inline-block"></span>
+                      <span className="text-sm font-semibold text-gray-800">
+                        {editingAttr ? 'Edit Attribute' : 'Add New Attribute'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCancelAttribute}
+                      className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-1 rounded-md transition-colors"
+                      aria-label="Close"
+                      title="Close"
+                    >
+                      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">Key <span className="text-red-500">*</span></label>
+                      <input
+                        ref={attrKeyInputRef}
+                        type="text"
+                        value={attrKey}
+                        onChange={(e) => setAttrKey(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') { e.preventDefault(); handleSaveAttribute(); }
+                          if (e.key === 'Escape') handleCancelAttribute();
+                        }}
+                        className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all"
+                        placeholder="e.g., Material, Pattern, Occasion"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">Value <span className="text-red-500">*</span></label>
+                      <input
+                        type="text"
+                        value={attrValue}
+                        onChange={(e) => setAttrValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') { e.preventDefault(); handleSaveAttribute(); }
+                          if (e.key === 'Escape') handleCancelAttribute();
+                        }}
+                        className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all"
+                        placeholder="e.g., Cotton, Floral, Festive"
+                      />
+                    </div>
+                  </div>
+                  <div className="pf-attr-inline-actions">
+                    <button
+                      type="button"
+                      onClick={handleCancelAttribute}
+                      className="pf-attr-inline-btn pf-attr-inline-btn--cancel"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveAttribute}
+                      disabled={!attrKey.trim() || !attrValue.trim()}
+                      className="pf-attr-inline-btn pf-attr-inline-btn--add"
+                    >
+                      {editingAttr ? (
+                        <>
+                          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M5 13l4 4L19 7" /></svg>
+                          Save Changes
+                        </>
+                      ) : (
+                        <>
+                          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M12 4v16m8-8H4" /></svg>
+                          Add Attribute
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!displayedAttributes.length && !showAttributeForm ? (
               <p className="pf-empty">No attributes added yet</p>
-            ) : (
+            ) : null}
+
+            {displayedAttributes.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {displayedAttributes.map((attr) => (
-                  <div key={attr.id} className="inline-flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg group hover:bg-gray-100 transition-colors">
+                  <div key={attr.id} className="inline-flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg group hover:bg-gray-100 transition-colors">
                     <span className="text-sm whitespace-nowrap"><span className="font-medium text-gray-700">{attr.key}:</span> <span className="text-gray-600">{attr.value}</span></span>
-                    <button type="button" onClick={() => onEditAttribute(attr)} className="text-gray-400 hover:text-blue-500 transition-colors">
+                    <button type="button" onClick={() => handleStartEditAttribute(attr)} title="Edit attribute" className="text-gray-400 hover:text-blue-500 transition-colors">
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                     </button>
-                    <button type="button" onClick={() => onRemoveAttribute(attr.id)} className="text-gray-400 hover:text-red-500 transition-colors">
+                    <button type="button" onClick={() => onRemoveAttribute(attr.id)} title="Delete attribute" className="text-gray-400 hover:text-red-500 transition-colors">
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                   </div>
@@ -728,26 +968,56 @@ export default function ProductFormBody({
           </div>
         </div>
 
-        {/* Additional Variants - UPDATED with channel visibility badges */}
+        {/* Additional Variants - with inline dropdown form */}
         <div className="pf-card">
           <div className="pf-card__head pf-card__head--row">
             <div>
               <h3>{isEditMode ? 'Additional Variants' : 'Product Variants'}</h3>
               <p>{isEditMode ? 'variants[1+] · each has its own ProductCode, price, images' : 'e.g., different colors or sizes — each needs a unique ProductCode'}</p>
             </div>
-            <button type="button" onClick={onOpenAddVariant} disabled={actionLoading && isEditMode} className="pf-chip-btn pf-chip-btn--indigo">
-              + Add Variant
+            <button
+              type="button"
+              onClick={() => {
+                if (showVariantForm && editingVariantIndex === null) {
+                  onCloseVariantForm?.()
+                } else {
+                  onOpenAddVariant?.()
+                }
+              }}
+              disabled={actionLoading && isEditMode}
+              className={`pf-chip-btn ${showVariantForm && editingVariantIndex === null ? 'pf-chip-btn--secondary' : 'pf-chip-btn--indigo'}`}
+            >
+              {showVariantForm && editingVariantIndex === null ? '✕ Close Form' : '+ Add Variant'}
             </button>
           </div>
-          <div className="pf-card__body">
+          <div className="pf-card__body space-y-4">
             {actionError && isEditMode && (
               <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg"><p className="text-red-700 text-sm">❌😢 {actionError}</p></div>
             )}
-            {extraVariants.length === 0 ? (
+
+            {showVariantForm && (
+              <div className="pf-variant-dropdown-panel" ref={variantDropdownRef}>
+                <VariantModal
+                  inline
+                  variantForm={variantForm}
+                  setVariantForm={setVariantForm}
+                  editingVariantIndex={editingVariantIndex}
+                  onSave={onSaveVariant}
+                  onClose={onCloseVariantForm}
+                  getDiscountPercentage={getDiscountPercentage}
+                  isSaving={variantSaving}
+                  saveError={variantSaveError}
+                />
+              </div>
+            )}
+
+            {extraVariants.length === 0 && !showVariantForm ? (
               <div className="pf-empty-box">
                 <p>{isEditMode ? 'No additional variants — main variant is the card above' : 'No variants yet'}</p>
               </div>
-            ) : (
+            ) : null}
+
+            {extraVariants.length > 0 && (
               <div className="space-y-3">
                 {extraVariants.map((variant, idx) => {
                   const realIndex = extraOffset + idx;
@@ -827,52 +1097,6 @@ export default function ProductFormBody({
           </div>
         </div>
       </div>
-
-      <aside className="pf-layout__aside">
-        <div className="pf-card pf-gallery">
-          <div className="pf-card__head">
-            <h3>Product Gallery</h3>
-            <p>{isEditMode ? 'Main variant images · ★ = thumbnail · saved with Save Changes' : `Up to ${MAX_VARIANT_IMAGES} · drag to reorder · ★ = thumbnail`}</p>
-          </div>
-          {mainGalleryImage && (
-            <div className="pf-gallery__hero">
-              <img src={mainGalleryImage.url} alt="Main" />
-              <span>★ MAIN</span>
-            </div>
-          )}
-          <div className="pf-card__body">
-            <label
-              className={`pf-dropzone${isDraggingZone ? ' is-drag' : ''}${galleryImages.length >= MAX_VARIANT_IMAGES ? ' is-full' : ''}`}
-              onDragOver={(e) => { e.preventDefault(); setIsDraggingZone(true); }}
-              onDragLeave={() => setIsDraggingZone(false)}
-              onDrop={(e) => { e.preventDefault(); setIsDraggingZone(false); handleGalleryUpload({ target: { files: e.dataTransfer.files } }); }}
-            >
-              <input type="file" multiple accept="image/*" className="hidden" disabled={galleryImages.length >= MAX_VARIANT_IMAGES} onChange={handleGalleryUpload} />
-              <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-              <p>{galleryImages.length}/{MAX_VARIANT_IMAGES} · click or drop</p>
-            </label>
-            {galleryImages.length > 0 && (
-              <div className="mt-3 space-y-2">
-                {galleryImages.map((image, index) => (
-                  <div key={image.id || image.url} draggable onDragStart={(e) => handleGalleryDragStart(e, index)} onDragOver={(e) => handleGalleryDragOver(e, index)} onDragEnd={() => setDraggedIdx(null)} className={`flex items-center gap-2 p-2 rounded-lg border-2 cursor-grab active:cursor-grabbing transition-all ${image.isMain ? "border-blue-500 bg-blue-50" : "border-transparent bg-gray-50 hover:border-gray-200"}`}>
-                    <div className="w-10 h-10 rounded overflow-hidden bg-white flex-shrink-0 border border-gray-100"><img src={image.url} alt="" className="w-full h-full object-cover" /></div>
-                    <div className="flex-1 text-xs truncate text-gray-600">{image.isMain && <span className="text-blue-600 font-bold mr-1">★</span>}{image.name || "Uploaded image"}</div>
-                    <div className="flex items-center gap-1">
-                      {!image.isMain && (<button type="button" onClick={() => setMainGalleryImage(image.id || image.url)} title="Set as main thumbnail" className="p-1 text-gray-400 hover:text-blue-600">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
-                      </button>)}
-                      <button type="button" onClick={() => removeGalleryImage(image.id || image.url)} className="p-1 text-gray-400 hover:text-red-600">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                <p className="text-xs text-gray-400 text-center">Drag to reorder · ★ = thumbnail</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </aside>
     </div>
   )
 }

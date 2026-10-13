@@ -27005,7 +27005,7 @@ button.admin-stats-chip:hover {
 }
 
 .modal-content--product-full {
-  width: min(1080px, calc(100vw - 32px));
+  width: min(860px, calc(100vw - 32px));
   max-width: none;
   max-height: min(92vh, 960px);
   padding: 0;
@@ -27141,16 +27141,10 @@ button.admin-stats-chip:hover {
 }
 
 .pf-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(260px, 0.9fr);
+  display: flex;
+  flex-direction: column;
   gap: 20px;
-  align-items: start;
-}
-
-@media (max-width: 1200px) {
-  .pf-layout {
-    grid-template-columns: 1fr;
-  }
+  width: 100%;
 }
 
 .pf-layout__main {
@@ -27158,11 +27152,11 @@ button.admin-stats-chip:hover {
   flex-direction: column;
   gap: 16px;
   min-width: 0;
+  width: 100%;
 }
 
 .pf-layout__aside {
-  position: sticky;
-  top: 0;
+  display: none;
 }
 
 /* ── Admin Panel Monitor Responsiveness (11" to 22"+ Monitors) ─────────── */
@@ -27664,6 +27658,95 @@ button.admin-stats-chip:hover {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
 }
 
+.pf-attr-card--inline {
+  width: 100%;
+  max-width: 100%;
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  border: 1.5px solid #bfdbfe;
+  border-radius: 14px;
+  background: #f8fafc;
+  box-shadow: 0 4px 14px -2px rgba(37, 99, 235, 0.08);
+}
+
+.pf-attr-inline-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.pf-attr-inline-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  user-select: none;
+}
+
+.pf-attr-inline-btn--cancel {
+  background: #ffffff;
+  border: 1.5px solid #d1d5db;
+  color: #374151;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.pf-attr-inline-btn--cancel:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+  color: #111827;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.pf-attr-inline-btn--cancel:active {
+  background: #e5e7eb;
+  transform: translateY(1px);
+}
+
+.pf-attr-inline-btn--add {
+  background: #2563eb;
+  border: 1.5px solid #2563eb;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.28);
+}
+
+.pf-attr-inline-btn--add:hover:not(:disabled) {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.38);
+  transform: translateY(-1px);
+}
+
+.pf-attr-inline-btn--add:active:not(:disabled) {
+  transform: translateY(0);
+  background: #1e40af;
+}
+
+.pf-attr-inline-btn--add:disabled {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+  color: #94a3b8;
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 1;
+}
+
+.pf-attr-dropdown-panel {
+  width: 100%;
+  animation: pf-variant-slide-down 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .pf-attr-card__title {
   margin: 0 0 16px;
   font-size: 1.25rem;
@@ -27736,28 +27819,37 @@ button.admin-stats-chip:hover {
 }
 
 .pf-attr-btn--cancel {
-  background: transparent;
-  color: #6b7280;
+  background: #ffffff;
+  border: 1.5px solid #d1d5db;
+  color: #374151;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .pf-attr-btn--cancel:hover {
-  background: #f9fafb;
-  color: #1f2937;
+  background: #f3f4f6;
+  border-color: #9ca3af;
+  color: #111827;
 }
 
 .pf-attr-btn--add {
   padding-left: 20px;
   padding-right: 20px;
   background: #2563eb;
+  border: 1.5px solid #2563eb;
   color: #fff;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.25);
 }
 
 .pf-attr-btn--add:hover:not(:disabled) {
   background: #1d4ed8;
+  border-color: #1d4ed8;
 }
 
 .pf-attr-btn--add:disabled {
-  opacity: 0.45;
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+  color: #94a3b8;
+  opacity: 1;
   cursor: not-allowed;
 }
 
@@ -28789,6 +28881,31 @@ button.admin-stats-chip:hover {
   overflow: hidden;
 }
 
+.pf-variant-card--inline {
+  max-width: 100%;
+  margin: 0;
+  border: 1.5px solid #c7d2fe;
+  border-radius: 14px;
+  box-shadow: 0 4px 16px -2px rgba(99, 102, 241, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+}
+
+.pf-variant-dropdown-panel {
+  width: 100%;
+  margin-bottom: 8px;
+  animation: pf-variant-slide-down 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes pf-variant-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .pf-variant-card__head {
   display: flex;
   align-items: flex-start;
@@ -29448,6 +29565,17 @@ button.admin-stats-chip:hover {
 
 .pf-chip-btn--indigo:hover {
   background: #4f46e5;
+}
+
+.pf-chip-btn--secondary {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.pf-chip-btn--secondary:hover {
+  background: #e5e7eb;
+  color: #111827;
 }
 
 .pf-chip-btn:disabled {
