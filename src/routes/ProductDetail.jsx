@@ -461,6 +461,75 @@ function ProductDetailPage() {
       : []),
   ]
 
+  // Collect attributes from variants / product that are NOT shown in the interactive pickers above (e.g. Plating)
+  const choosableKeys = new Set(
+    choosableGroups.map((g) => String(g.key || '').trim().toLowerCase())
+  )
+
+  const unpickedAttributesMap = new Map()
+
+  // 1. Current selected variant attributes not in pickers
+  for (const attr of selectedVariant?.attributes || []) {
+    const k = String(attr?.key || '').trim().toLowerCase()
+    if (k && !choosableKeys.has(k) && attr.value) {
+      unpickedAttributesMap.set(k, {
+        key: attr.key,
+        label: attr.key,
+        value: String(attr.value),
+      })
+    }
+  }
+
+  // 2. Attributes on any other variant that are not in pickers (e.g. Plating on Variant 2)
+  for (const v of product?.variants || []) {
+    for (const attr of v?.attributes || []) {
+      const k = String(attr?.key || '').trim().toLowerCase()
+      if (k && !choosableKeys.has(k) && attr.value) {
+        if (!unpickedAttributesMap.has(k)) {
+          unpickedAttributesMap.set(k, {
+            key: attr.key,
+            label: attr.key,
+            value: String(attr.value),
+          })
+        } else {
+          const existing = unpickedAttributesMap.get(k)
+          const vals = existing.value.split(', ').map((s) => s.trim().toLowerCase())
+          if (!vals.includes(String(attr.value).trim().toLowerCase())) {
+            existing.value = `${existing.value}, ${attr.value}`
+          }
+        }
+      }
+    }
+  }
+
+  // 3. Fallback for product.platings if plating wasn't already found
+  if (product?.platings?.length && !unpickedAttributesMap.has('plating')) {
+    unpickedAttributesMap.set('plating', {
+      key: 'Plating',
+      label: 'Plating',
+      value: product.platings.join(', '),
+    })
+  }
+
+  // 4. Product-level attributes not in pickers
+  for (const attr of product?.attributes || []) {
+    const k = String(attr?.key || '').trim().toLowerCase()
+    if (k && !choosableKeys.has(k) && attr.value && !unpickedAttributesMap.has(k)) {
+      unpickedAttributesMap.set(k, {
+        key: attr.key,
+        label: attr.key,
+        value: String(attr.value),
+      })
+    }
+  }
+
+  const otherVariantAttributes = Array.from(unpickedAttributesMap.values())
+
+  const otherKeys = new Set(otherVariantAttributes.map((a) => String(a.key).toLowerCase()))
+  const filteredDetailLines = detailLines.filter(
+    (row) => !otherKeys.has(String(row.key).toLowerCase())
+  )
+
   const effectiveGstRate =
     selectedVariant?.gstRate ??
     selectedVariant?.taxRate ??
@@ -476,40 +545,63 @@ function ProductDetailPage() {
     !Number.isNaN(Number(effectiveGstRate)) &&
     Number(effectiveGstRate) >= 0
 
+  const hasDescriptionContent = Boolean(
+    product.description ||
+    otherVariantAttributes.length > 0 ||
+    hasGstRate
+  )
+
   const accordionItems = [
-    ...(product.description
+    ...(hasDescriptionContent
       ? [{
         value: 'description',
         title: 'Description',
-        content: product.description,
+        content: (
+          <div className="pdp-description-body">
+            {product.description ? (
+              <div className="pdp-description-text">{product.description}</div>
+            ) : null}
+
+            {otherVariantAttributes.length > 0 && (
+              <div className="pdp-description-section">
+                <dl className="pdp-details-list">
+                  {otherVariantAttributes.map((row) => (
+                    <div key={row.key} className="pdp-details-list__row">
+                      <dt>{row.label}</dt>
+                      <dd>{row.value || '—'}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            )}
+
+            {hasGstRate && (
+              <div className="pdp-description-section">
+                <h4 className="pdp-description-subheading">GST</h4>
+                <dl className="pdp-details-list">
+                  <div className="pdp-details-list__row">
+                    <dt>GST Rate</dt>
+                    <dd>{Number(effectiveGstRate)}%</dd>
+                  </div>
+                </dl>
+              </div>
+            )}
+          </div>
+        ),
       }]
       : []),
-    ...(detailLines.length
+    ...(filteredDetailLines.length
       ? [{
         value: 'details',
         title: 'Details',
         content: (
           <dl className="pdp-details-list">
-            {detailLines.map((row) => (
+            {filteredDetailLines.map((row) => (
               <div key={row.key} className="pdp-details-list__row">
                 <dt>{row.label}</dt>
                 <dd>{row.value || '—'}</dd>
               </div>
             ))}
-          </dl>
-        ),
-      }]
-      : []),
-    ...(hasGstRate
-      ? [{
-        value: 'gst-information',
-        title: 'GST Information',
-        content: (
-          <dl className="pdp-details-list">
-            <div className="pdp-details-list__row">
-              <dt>GST Rate</dt>
-              <dd>{Number(effectiveGstRate)}%</dd>
-            </div>
           </dl>
         ),
       }]
