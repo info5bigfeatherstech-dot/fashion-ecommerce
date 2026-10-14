@@ -438,130 +438,109 @@ export default function ProductFormBody({
               </div>
             </div>
 
-            <div className="pf-row">
-              <div className="pf-field">
-                <div className="flex items-center justify-between mb-1.5" style={{ minHeight: '28px' }}>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Product Code <span className="pf-req">*</span>
-                  </label>
-                  {!isEditMode && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const rand = Math.floor(1000 + Math.random() * 9000);
-                        const newCode = `${rand}-1`;
-                        setFormData((p) => ({ ...p, ProductCode: newCode }));
-                        if (showVariantForm && setVariantForm) {
-                          if (editingVariantIndex === 'primary' || editingVariantIndex === -1) {
-                            setVariantForm((prev) => ({ ...prev, ProductCode: newCode }));
-                          } else if (editingVariantIndex === null) {
-                            const nextCode = nextVariantProductCode({ ...formData, ProductCode: newCode });
-                            if (nextCode) {
-                              setVariantForm((prev) => ({ ...prev, ProductCode: nextCode }));
-                            }
-                          }
-                        }
-                      }}
-                      className="pf-autogen-btn"
-                      title="Generate a unique product code"
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-amber-500">
-                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-                      </svg>
-                      <span>Auto-generate</span>
-                    </button>
-                  )}
-                </div>
-                <div className={`pf-code-group${isEditMode ? ' is-disabled' : ''}`}>
-                  {listingPrefix ? (
-                    <span
-                      className="pf-code-prefix"
-                      title="Configured listing prefix"
-                    >
-                      {listingPrefix}
-                    </span>
-                  ) : null}
-                  <input
-                    type="text"
-                    value={formData.ProductCode || ""}
-                    disabled={isEditMode}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setFormData((p) => ({ ...p, ProductCode: val }));
+            <div className="pf-field">
+              <div className="flex items-center justify-between mb-1.5" style={{ minHeight: '28px' }}>
+                <label className="block text-sm font-medium text-gray-700">
+                  Product Code <span className="pf-req">*</span>
+                </label>
+                {!isEditMode && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const rand = Math.floor(1000 + Math.random() * 9000);
+                      const newCode = `${rand}-1`;
+                      setFormData((p) => ({ ...p, ProductCode: newCode }));
                       if (showVariantForm && setVariantForm) {
                         if (editingVariantIndex === 'primary' || editingVariantIndex === -1) {
-                          setVariantForm((prev) => ({ ...prev, ProductCode: val }));
+                          setVariantForm((prev) => ({ ...prev, ProductCode: newCode }));
                         } else if (editingVariantIndex === null) {
-                          const nextCode = nextVariantProductCode({ ...formData, ProductCode: val });
+                          const nextCode = nextVariantProductCode({ ...formData, ProductCode: newCode });
                           if (nextCode) {
                             setVariantForm((prev) => ({ ...prev, ProductCode: nextCode }));
                           }
                         }
                       }
                     }}
-                    onBlur={(e) => {
-                      const val = e.target.value.trim().toUpperCase();
-                      if (val) {
-                        const formatted = /-\d+$/.test(val) ? val : `${val}-1`;
-                        setFormData((p) => ({ ...p, ProductCode: formatted }));
-                        if (showVariantForm && setVariantForm) {
-                          if (editingVariantIndex === 'primary' || editingVariantIndex === -1) {
-                            setVariantForm((prev) => ({ ...prev, ProductCode: formatted }));
-                          } else if (editingVariantIndex === null) {
-                            const nextCode = nextVariantProductCode({ ...formData, ProductCode: formatted });
-                            if (nextCode) {
-                              setVariantForm((prev) => ({ ...prev, ProductCode: nextCode }));
-                            }
+                    className="pf-autogen-btn"
+                    title="Generate a unique product code"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-amber-500">
+                      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                    </svg>
+                    <span>Auto-generate</span>
+                  </button>
+                )}
+              </div>
+              <div className={`pf-code-group${isEditMode ? ' is-disabled' : ''}`}>
+                {listingPrefix ? (
+                  <span
+                    className="pf-code-prefix"
+                    title="Configured listing prefix"
+                  >
+                    {listingPrefix}
+                  </span>
+                ) : null}
+                <input
+                  type="text"
+                  value={formData.ProductCode || ""}
+                  disabled={isEditMode}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setFormData((p) => ({ ...p, ProductCode: val }));
+                    if (showVariantForm && setVariantForm) {
+                      if (editingVariantIndex === 'primary' || editingVariantIndex === -1) {
+                        setVariantForm((prev) => ({ ...prev, ProductCode: val }));
+                      } else if (editingVariantIndex === null) {
+                        const nextCode = nextVariantProductCode({ ...formData, ProductCode: val });
+                        if (nextCode) {
+                          setVariantForm((prev) => ({ ...prev, ProductCode: nextCode }));
+                        }
+                      }
+                    }
+                  }}
+                  onBlur={(e) => {
+                    const val = e.target.value.trim().toUpperCase();
+                    if (val) {
+                      const formatted = /-\d+$/.test(val) ? val : `${val}-1`;
+                      setFormData((p) => ({ ...p, ProductCode: formatted }));
+                      if (showVariantForm && setVariantForm) {
+                        if (editingVariantIndex === 'primary' || editingVariantIndex === -1) {
+                          setVariantForm((prev) => ({ ...prev, ProductCode: formatted }));
+                        } else if (editingVariantIndex === null) {
+                          const nextCode = nextVariantProductCode({ ...formData, ProductCode: formatted });
+                          if (nextCode) {
+                            setVariantForm((prev) => ({ ...prev, ProductCode: nextCode }));
                           }
                         }
                       }
-                    }}
-                    className="pf-code-input"
-                    placeholder="e.g. 788-1"
-                    maxLength={20}
-                  />
-                </div>
-                {listingPrefix ? (
-                  <p className="mt-1.5 text-xs text-gray-500 flex items-center gap-1.5 flex-wrap">
-                    <span>Saved as</span>
-                    <span className="pf-code-tag">
-                      {listingPrefix}
-                      {String(formData.ProductCode || '').trim()
-                        ? (/-\d+$/.test(String(formData.ProductCode).trim())
-                            ? String(formData.ProductCode).trim()
-                            : `${String(formData.ProductCode).trim()}-1`)
-                        : '…'}
-                    </span>
-                  </p>
-                ) : (
-                  <p className="mt-1 text-xs text-amber-700">
-                    Set a product code prefix in{' '}
-                    <Link to="/admin/settings/product-code-prefix" className="underline font-medium">
-                      Settings → Product code prefix
-                    </Link>{' '}
-                    before listing. Main variant automatically takes <span className="font-mono font-semibold">-1</span>.
-                  </p>
-                )}
-              </div>
-
-              <div className="pf-field">
-                <div className="flex items-center justify-between mb-1.5" style={{ minHeight: '28px' }}>
-                  <label className="block text-sm font-medium text-gray-700">
-                    HSN Code
-                  </label>
-                </div>
-                <input
-                  type="text"
-                  value={formData.hsnCode || ""}
-                  onChange={(e) => setFormData((p) => ({ ...p, hsnCode: e.target.value }))}
-                  className="pf-input font-mono"
-                  placeholder="e.g., 7117"
-                  maxLength={10}
+                    }
+                  }}
+                  className="pf-code-input"
+                  placeholder="e.g. 788-1"
+                  maxLength={20}
                 />
-                <p className="mt-1.5 text-xs text-gray-500">
-                  Harmonized System Nomenclature code for tax purposes
-                </p>
               </div>
+              {listingPrefix ? (
+                <p className="mt-1.5 text-xs text-gray-500 flex items-center gap-1.5 flex-wrap">
+                  <span>Saved as</span>
+                  <span className="pf-code-tag">
+                    {listingPrefix}
+                    {String(formData.ProductCode || '').trim()
+                      ? (/-\d+$/.test(String(formData.ProductCode).trim())
+                          ? String(formData.ProductCode).trim()
+                          : `${String(formData.ProductCode).trim()}-1`)
+                      : '…'}
+                  </span>
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-amber-700">
+                  Set a product code prefix in{' '}
+                  <Link to="/admin/settings/product-code-prefix" className="underline font-medium">
+                    Settings → Product code prefix
+                  </Link>{' '}
+                  before listing. Main variant automatically takes <span className="font-mono font-semibold">-1</span>.
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -676,29 +655,43 @@ export default function ProductFormBody({
           </div>
         </div>
 
-        {/* Shipping & Tax Details */}
         {/* Tax & Handling Details */}
         <div className="pf-card">
           <div className="pf-card__head">
             <h3>Tax &amp; Handling Details</h3>
-            <p>GST rate and shipping handling requirements (Weight &amp; Dimensions are configured per variant)</p>
+            <p>HSN code, GST rate, and shipping handling requirements (Weight &amp; Dimensions are configured per variant)</p>
           </div>
           <div className="pf-card__body space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">GST Rate</label>
-              <select
-                value={formData.taxRate ?? ""}
-                onChange={(e) => setFormData((p) => ({ ...p, taxRate: e.target.value === "" ? "" : parseFloat(e.target.value) }))}
-                className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 cursor-pointer"
-              >
-                <option value="">Select GST Rate</option>
-                {TAX_RATE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-gray-500 mt-1">Applicable GST percentage for this product</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">HSN Code</label>
+                <input
+                  type="text"
+                  value={formData.hsnCode || ""}
+                  onChange={(e) => setFormData((p) => ({ ...p, hsnCode: e.target.value }))}
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                  placeholder="e.g., 7117"
+                  maxLength={10}
+                />
+                <p className="text-xs text-gray-500 mt-1">Harmonized System Nomenclature code for tax purposes</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">GST Rate</label>
+                <select
+                  value={formData.taxRate ?? ""}
+                  onChange={(e) => setFormData((p) => ({ ...p, taxRate: e.target.value === "" ? "" : parseFloat(e.target.value) }))}
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 cursor-pointer text-sm"
+                >
+                  <option value="">Select GST Rate</option>
+                  {TAX_RATE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">Applicable GST percentage for this product</p>
+              </div>
             </div>
 
             <div>
