@@ -179,41 +179,41 @@ export function AdminProductModal({
 
     try {
       const pKeys = []
-      ;(product?.variants || []).forEach((v) => {
-        ;(v?.attributes || []).forEach((a) => {
+        ; (product?.variants || []).forEach((v) => {
+          ; (v?.attributes || []).forEach((a) => {
+            const k = (a?.key || a?.name || '').trim()
+            if (k) pKeys.push(k)
+          })
+        })
+        ; (product?.attributes || []).forEach((a) => {
           const k = (a?.key || a?.name || '').trim()
           if (k) pKeys.push(k)
         })
-      })
-      ;(product?.attributes || []).forEach((a) => {
-        const k = (a?.key || a?.name || '').trim()
-        if (k) pKeys.push(k)
-      })
       if (pKeys.length) {
         const stored = JSON.parse(localStorage.getItem('admin_last_variant_attribute_keys') || '[]')
         localStorage.setItem('admin_last_variant_attribute_keys', JSON.stringify([...new Set([...pKeys, ...stored])]))
       }
-    } catch {}
+    } catch { }
 
     let cancelled = false
     const slug = product.slug
 
-    ;(async () => {
-      setLoadingProduct(true)
-      try {
-        const full = await getAdminProductBySlug(slug)
-        if (!cancelled && full) {
-          setLoadedProduct(full)
-          const nextForm = productToEditForm(full)
-          setFormData(nextForm)
-          savedMarketingTagsRef.current = { ...(nextForm.marketingTags || {}) }
+      ; (async () => {
+        setLoadingProduct(true)
+        try {
+          const full = await getAdminProductBySlug(slug)
+          if (!cancelled && full) {
+            setLoadedProduct(full)
+            const nextForm = productToEditForm(full)
+            setFormData(nextForm)
+            savedMarketingTagsRef.current = { ...(nextForm.marketingTags || {}) }
+          }
+        } catch {
+          // List row hydration is enough to show the form if detail fetch fails.
+        } finally {
+          if (!cancelled) setLoadingProduct(false)
         }
-      } catch {
-        // List row hydration is enough to show the form if detail fetch fails.
-      } finally {
-        if (!cancelled) setLoadingProduct(false)
-      }
-    })()
+      })()
 
     return () => {
       cancelled = true
@@ -293,14 +293,21 @@ export function AdminProductModal({
     onOpenChange(nextOpen)
   }
 
-  const openAddVariant = () => {
-    const nextCode = nextVariantProductCode(formData)
+  const handleGenerateVariant = async () => {
+    let baseCode = String(formData.ProductCode || '').trim()
+    if (!baseCode) {
+      const rand = Math.floor(1000 + Math.random() * 9000)
+      baseCode = `${rand}-1`
+      setFormData((p) => ({ ...p, ProductCode: baseCode }))
+    }
 
-    // Collect ALL unique attribute keys from:
-    // 1. Current product attributes (formData.attributes) - primary source
-    // 2. Main variant attributes (variants[0].attributes)
-    // 3. Other variants in current product
-    // 4. Stored attribute keys from previous products in localStorage
+    const nextCode = nextVariantProductCode({ ...formData, ProductCode: baseCode })
+    if (!nextCode) {
+      toast.error('Could not determine next Product Code. Please check Product Code format.')
+      return
+    }
+
+    // Collect candidate attribute keys (Color, Plating, etc.)
     const candidateKeys = []
     const addKey = (rawKey) => {
       const trimmed = String(rawKey || '').trim()
@@ -308,20 +315,13 @@ export function AdminProductModal({
         candidateKeys.push(trimmed)
       }
     }
-
-    // 1. Current product attributes (formData.attributes) - only if actually added with a value or key
     if (Array.isArray(formData.attributes)) {
       formData.attributes.forEach((a) => {
         const k = a?.key || a?.name
-        if (k && String(a?.value ?? '').trim() !== '') {
-          addKey(k)
-        }
+        if (k) addKey(k)
       })
     }
-
-    // 2. Existing variants attributes for this product
-    const variants = Array.isArray(formData.variants) ? formData.variants : []
-    variants.forEach((v) => {
+    ;(formData.variants || []).forEach((v) => {
       if (Array.isArray(v.attributes)) {
         v.attributes.forEach((a) => {
           const k = a?.key || a?.name
@@ -330,19 +330,78 @@ export function AdminProductModal({
       }
     })
 
-    // Populate each key with an empty value so the user only fills in the new variant's value!
     const initialAttributes = candidateKeys.length > 0
       ? candidateKeys.map((key) => ({ key, value: '', hex: '' }))
-      : [{ key: '', value: '', hex: '' }]
+      : [{ key: 'Color', value: '', hex: '' }, { key: 'Plating', value: '', hex: '' }]
 
-    setVariantForm({
+    const defaultBasePrice =
+      formData.price?.base || formData.variants?.[0]?.price?.base || 999
+    const defaultSalePrice =
+      formData.price?.sale || formData.variants?.[0]?.price?.sale || null
+
+    const newVariant = {
       ...defaultVariant,
       ProductCode: nextCode,
+      productCode: nextCode,
+      hsnCode: formData.hsnCode || (formData.variants && formData.variants[0]?.hsnCode) || '',
+      price: {
+        base: defaultBasePrice,
+        sale: defaultSalePrice,
+        wholesaleBase: '',
+        wholesaleSale: '',
+      },
+      inventory: {
+        quantity: 0,
+        lowStockThreshold: 0,
+        trackInventory: true,
+      },
       attributes: initialAttributes,
-    })
-    setEditingVariantIndex(null)
-    setVariantSaveError(null)
-    setShowVariantModal(true)
+      images: [],
+      isActive: true,
+      wholesale: false,
+      minimumOrderQuantity: 1,
+      channelVisibility: { ecomm: 'active', wholesale: 'draft' },
+    }
+
+    if (!isEdit) {
+      const nextIdx = (formData.variants || []).length
+      setFormData((p) => ({
+        ...p,
+        variants: [...(p.variants || []), newVariant],
+      }))
+      setEditingVariantIndex(nextIdx)
+      setVariantForm(newVariant)
+      setShowVariantModal(true)
+      toast.success(`Added variant ${nextCode}`)
+      return
+    }
+
+    setVariantSaving(true)
+    try {
+      const pricePayload = {
+        base: parseFloat(defaultBasePrice) || 0,
+        sale: defaultSalePrice ? parseFloat(defaultSalePrice) : null,
+      }
+      const result = await addAdminProductVariant(product.slug, {
+        ...newVariant,
+        price: pricePayload,
+        channelVisibility: { ecomm: 'active', wholesale: 'draft' },
+      })
+      if (result?.product) {
+        setLoadedProduct(result.product)
+        applyProductVariants(result.product)
+      }
+      toast.success(`Added variant ${nextCode}`)
+      onSaved?.()
+    } catch (err) {
+      toast.error(err?.message || 'Failed to add variant')
+    } finally {
+      setVariantSaving(false)
+    }
+  }
+
+  const openAddVariant = () => {
+    handleGenerateVariant()
   }
 
   // Keep open "Add Variant" form's ProductCode automatically in sync with next unused code
@@ -399,11 +458,11 @@ export function AdminProductModal({
       ProductCode: String(v.ProductCode ?? v.productCode ?? ''),
       attributes: v.attributes?.length > 0
         ? v.attributes.map((a) => ({
-            key: a.key || '',
-            value: a.value || '',
-            hex: a.hex || '',
-            id: a.id,
-          }))
+          key: a.key || '',
+          value: a.value || '',
+          hex: a.hex || '',
+          id: a.id,
+        }))
         : [{ key: '', value: '', hex: '' }],
       price: {
         base: v.price?.base ?? '',
@@ -472,7 +531,7 @@ export function AdminProductModal({
       try {
         const stored = JSON.parse(localStorage.getItem('admin_last_variant_attribute_keys') || '[]')
         localStorage.setItem('admin_last_variant_attribute_keys', JSON.stringify([...new Set([...usedKeys, ...stored])]))
-      } catch {}
+      } catch { }
     }
 
     // Create mode: product does not exist yet — keep variants in local form only.
@@ -558,12 +617,12 @@ export function AdminProductModal({
           setLoadedProduct((prev) =>
             prev
               ? {
-                  ...prev,
-                  channelStatus: {
-                    ...(prev.channelStatus || {}),
-                    wholesale: 'draft',
-                  },
-                }
+                ...prev,
+                channelStatus: {
+                  ...(prev.channelStatus || {}),
+                  wholesale: 'draft',
+                },
+              }
               : prev
           )
           toast.message('Wholesale was set Inactive — no wholesale price was configured.')
@@ -696,10 +755,10 @@ export function AdminProductModal({
       variants: p.variants.map((v, i) =>
         i === index
           ? {
-              ...v,
-              isActive: newActiveState,
-              channelVisibility: { ...v.channelVisibility, ecomm: newEcommVisibility },
-            }
+            ...v,
+            isActive: newActiveState,
+            channelVisibility: { ...v.channelVisibility, ecomm: newEcommVisibility },
+          }
           : v
       ),
     }))
@@ -822,12 +881,12 @@ export function AdminProductModal({
             setLoadedProduct((prev) =>
               prev
                 ? {
-                    ...prev,
-                    channelStatus: {
-                      ...(prev.channelStatus || {}),
-                      wholesale: 'draft',
-                    },
-                  }
+                  ...prev,
+                  channelStatus: {
+                    ...(prev.channelStatus || {}),
+                    wholesale: 'draft',
+                  },
+                }
                 : prev
             )
             toast.message('Wholesale set to Inactive — no wholesale price was configured on any variant.')
@@ -847,9 +906,9 @@ export function AdminProductModal({
             sale: Number.isFinite(sale) ? sale : null,
             ...(wholesaleResolved.wholesale
               ? {
-                  wholesaleBase: wholesaleResolved.wholesaleBase,
-                  wholesaleSale: wholesaleResolved.wholesaleSale ?? null,
-                }
+                wholesaleBase: wholesaleResolved.wholesaleBase,
+                wholesaleSale: wholesaleResolved.wholesaleSale ?? null,
+              }
               : {}),
           }
           const channelVisibilityPayload = {
@@ -900,15 +959,29 @@ export function AdminProductModal({
       return
     }
 
+    const payloadForm = { ...formData }
+    if (!payloadForm.price?.base && payloadForm.variants?.[0]?.price?.base) {
+      payloadForm.price = {
+        base: payloadForm.variants[0].price.base,
+        sale: payloadForm.variants[0].price.sale,
+      }
+    }
+    if (!payloadForm.ProductCode && payloadForm.variants?.[0]?.ProductCode) {
+      payloadForm.ProductCode = payloadForm.variants[0].ProductCode
+    }
+    if (payloadForm.variants?.[0]?.images?.length && (!payloadForm.images || payloadForm.images.length === 0)) {
+      payloadForm.images = payloadForm.variants[0].images
+    }
+
     try {
-      validateCreateProductForm(formData)
+      validateCreateProductForm(payloadForm)
     } catch (err) {
       setError(err.message)
       return
     }
     setSaving(true)
     try {
-      const fd = buildCreateProductFormData(formData)
+      const fd = buildCreateProductFormData(payloadForm)
       const created = await createAdminProduct(fd)
       const slug = created?.product?.slug || created?.slug
       if (slug) {
@@ -992,6 +1065,7 @@ export function AdminProductModal({
                   }}
                   onOpenCustomMessage={() => setShowCustomMessageModal(true)}
                   onOpenAddVariant={openAddVariant}
+                  onGenerateVariant={handleGenerateVariant}
                   onOpenEditVariant={openEditVariant}
                   onRemoveAttribute={removeAttribute}
                   onDeleteVariant={deleteVariant}

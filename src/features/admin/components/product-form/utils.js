@@ -198,6 +198,7 @@ export function normaliseVariantsForEdit(variants = []) {
     ...v,
     productCode: v.productCode ?? v.ProductCode ?? '',
     ProductCode: v.ProductCode ?? v.productCode ?? '',
+    hsnCode: v.hsnCode || '',
     price: {
       base: v.price?.base ?? '',
       sale: v.price?.sale ?? '',

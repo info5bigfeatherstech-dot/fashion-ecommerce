@@ -20,6 +20,7 @@ export const defaultVariant = {
   images: [],
   isActive: true,
   ProductCode: '',
+  hsnCode: '',
   wholesale: false,
   minimumOrderQuantity: 1,
   channelVisibility: { ecomm: 'active', wholesale: 'draft' },
@@ -29,6 +30,7 @@ export const defaultVariant = {
 };
 
 const VariantModal = ({
+  listingPrefix,
   variantForm,
   setVariantForm,
   editingVariantIndex,
@@ -203,6 +205,7 @@ const VariantModal = ({
     onSave({
       ...variantForm,
       ProductCode: ProductCode,
+      hsnCode: (variantForm.hsnCode ?? '').toString().trim(),
       attributes: validAttributes,
       price: {
         base: base,
@@ -232,18 +235,42 @@ const VariantModal = ({
 
         <div className="pf-variant-card__body">
           <div className="pf-variant-section">
-            <label className="pf-variant-label">
-              Variant Product Code <span className="pf-req">*</span>
-              {isEditing ? <span className="pf-variant-locked">🔒 Locked</span> : null}
-            </label>
-            <input
-              type="text"
-              value={variantForm.ProductCode ?? ''}
-              onChange={(e) => setVariantForm((prev) => ({ ...prev, ProductCode: e.target.value }))}
-              disabled={isEditing}
-              className={`pf-variant-input pf-variant-input--mono${isEditing ? ' is-locked' : ''}`}
-              placeholder="e.g., 788-2"
-            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="pf-variant-label">
+                  Variant Product Code <span className="pf-req">*</span>
+                  {isEditing ? <span className="pf-variant-locked">🔒 Locked</span> : null}
+                </label>
+                <div className={`pf-code-group${isEditing ? ' is-disabled' : ''}`}>
+                  {listingPrefix ? (
+                    <span className="pf-code-prefix" title="Configured listing prefix">
+                      {listingPrefix}
+                    </span>
+                  ) : null}
+                  <input
+                    type="text"
+                    value={variantForm.ProductCode ?? ''}
+                    onChange={(e) => setVariantForm((prev) => ({ ...prev, ProductCode: e.target.value }))}
+                    disabled={isEditing}
+                    className="pf-code-input"
+                    placeholder="e.g., 788-2"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="pf-variant-label">
+                  HSN Code
+                </label>
+                <input
+                  type="text"
+                  value={variantForm.hsnCode ?? ''}
+                  onChange={(e) => setVariantForm((prev) => ({ ...prev, hsnCode: e.target.value }))}
+                  className="pf-variant-input pf-variant-input--mono"
+                  placeholder="e.g., 7117"
+                  maxLength={10}
+                />
+              </div>
+            </div>
           </div>
 
           <div className="pf-variant-section">
@@ -362,65 +389,145 @@ const VariantModal = ({
           </div>
 
           <div className="pf-variant-section">
-            <label className="pf-variant-label">Pricing (₹)</label>
+            <div>
+              <h4 className="pf-variant-label">Pricing &amp; Inventory</h4>
+              <p className="pf-variant-hint">Pricing, wholesale rules, and inventory for this variant</p>
+            </div>
+
             <div className="pf-variant-grid">
               <div className="pf-variant-field">
-                <label>Base Price <span className="pf-req">*</span></label>
-                <input type="number" value={variantForm.price.base} onChange={(e) => setVariantForm((prev) => ({ ...prev, price: { ...prev.price, base: e.target.value } }))} className="pf-variant-input" placeholder="89000" />
+                <label>Base Price (₹) <span className="pf-req">*</span></label>
+                <input type="number" value={variantForm.price.base} onChange={(e) => setVariantForm((prev) => ({ ...prev, price: { ...prev.price, base: e.target.value } }))} className="pf-variant-input" placeholder="29999" />
               </div>
               <div className="pf-variant-field">
-                <label>Sale Price</label>
-                <input type="number" value={variantForm.price.sale ?? ''} onChange={(e) => setVariantForm((prev) => ({ ...prev, price: { ...prev.price, sale: e.target.value } }))} className="pf-variant-input" placeholder="79000" />
+                <label>Sale Price (₹)</label>
+                <input type="number" value={variantForm.price.sale ?? ''} onChange={(e) => setVariantForm((prev) => ({ ...prev, price: { ...prev.price, sale: e.target.value } }))} className="pf-variant-input" placeholder="19999" />
               </div>
             </div>
-          </div>
-
-          <div className="pf-variant-section pf-variant-section--divided">
-            <div className="pf-variant-row">
-              <div>
-                <label className="pf-variant-label">Wholesale Pricing</label>
-                <p className="pf-variant-hint">Enable bulk pricing for wholesalers</p>
+            {variantForm.price.base && variantForm.price.sale && (
+              <div className="mt-2.5 p-2.5 bg-blue-50 rounded-lg flex items-center gap-3">
+                <span className="text-gray-400 line-through text-xs font-mono">₹{variantForm.price.base}</span>
+                <span className="text-sm font-bold text-gray-900 font-mono">₹{variantForm.price.sale}</span>
+                {Number(variantForm.price.sale) < Number(variantForm.price.base) && (
+                  <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                    {Math.round(((Number(variantForm.price.base) - Number(variantForm.price.sale)) / Number(variantForm.price.base)) * 100)}% OFF
+                  </span>
+                )}
               </div>
-              <button
-                type="button"
-                aria-label="Toggle wholesale pricing"
-                onClick={() => setVariantForm((prev) => ({ ...prev, wholesale: !prev.wholesale }))}
-                className={`pf-toggle pf-toggle--wholesale${variantForm.wholesale ? ' is-on' : ''}`}
-              >
-                <span className="pf-toggle__knob" />
-              </button>
-            </div>
+            )}
 
-            <div className={`pf-variant-panel${isWholesaleEligible() ? ' pf-variant-panel--wholesale-on' : ' pf-variant-panel--muted'}`}>
-              <span className="pf-variant-panel__title">Wholesale Visibility</span>
-              <span className={`pf-main__badge${isWholesaleEligible() ? ' is-active' : ''}`}>
-                {isWholesaleEligible() ? 'Active' : 'Ineligible'}
-              </span>
-            </div>
+            <div className="pf-variant-section--divided">
+              <div className="pf-variant-row">
+                <div>
+                  <label className="pf-variant-label">Wholesale Pricing</label>
+                  <p className="pf-variant-hint">Enable bulk pricing for wholesalers</p>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Toggle wholesale pricing"
+                  onClick={() => setVariantForm((prev) => ({ ...prev, wholesale: !prev.wholesale }))}
+                  className={`pf-toggle pf-toggle--wholesale${variantForm.wholesale ? ' is-on' : ''}`}
+                >
+                  <span className="pf-toggle__knob" />
+                </button>
+              </div>
 
-            {variantForm.wholesale ? (
-              <div className="pf-variant-wholesale-box">
-                <div className="pf-variant-grid">
-                  <div className="pf-variant-field">
-                    <label>Wholesale Base Price (₹) <span className="pf-req">*</span></label>
-                    <input type="number" value={variantForm.price.wholesaleBase || ''} onChange={(e) => setVariantForm((prev) => ({ ...prev, price: { ...prev.price, wholesaleBase: e.target.value } }))} className="pf-variant-input" placeholder="75000" />
+              <div className={`pf-variant-panel${isWholesaleEligible() ? ' pf-variant-panel--wholesale-on' : ' pf-variant-panel--muted'}`}>
+                <span className="pf-variant-panel__title">Wholesale Visibility</span>
+                <span className={`pf-main__badge${isWholesaleEligible() ? ' is-active' : ''}`}>
+                  {isWholesaleEligible() ? 'Active' : 'Ineligible'}
+                </span>
+              </div>
+
+              {variantForm.wholesale ? (
+                <div className="pf-variant-wholesale-box">
+                  <div className="pf-variant-grid">
+                    <div className="pf-variant-field">
+                      <label>Wholesale Base Price (₹) <span className="pf-req">*</span></label>
+                      <input type="number" value={variantForm.price.wholesaleBase || ''} onChange={(e) => setVariantForm((prev) => ({ ...prev, price: { ...prev.price, wholesaleBase: e.target.value } }))} className="pf-variant-input" placeholder="25000" />
+                    </div>
+                    <div className="pf-variant-field">
+                      <label>Wholesale Sale Price (₹)</label>
+                      <input type="number" value={variantForm.price.wholesaleSale || ''} onChange={(e) => setVariantForm((prev) => ({ ...prev, price: { ...prev.price, wholesaleSale: e.target.value } }))} className="pf-variant-input" placeholder="23000" />
+                    </div>
                   </div>
                   <div className="pf-variant-field">
-                    <label>Wholesale Sale Price (₹)</label>
-                    <input type="number" value={variantForm.price.wholesaleSale || ''} onChange={(e) => setVariantForm((prev) => ({ ...prev, price: { ...prev.price, wholesaleSale: e.target.value } }))} className="pf-variant-input" placeholder="72000" />
+                    <label>Minimum Order Quantity (MOQ) <span className="pf-req">*</span></label>
+                    <input type="number" min="1" value={variantForm.minimumOrderQuantity || 1} onChange={(e) => setVariantForm((prev) => ({ ...prev, minimumOrderQuantity: parseInt(e.target.value, 10) || 1 }))} className="pf-variant-input" placeholder="Minimum quantity for wholesale price" />
+                  </div>
+                  {isWholesaleMoqUnmet() ? (
+                    <p className="pf-main__warn">
+                      Wholesale warning: MOQ ({variantForm.minimumOrderQuantity ?? 1}) is greater than stock ({variantForm.inventory?.quantity ?? 0})
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="pf-variant-section--divided">
+              <div className="pf-variant-row">
+                <div>
+                  <label className="pf-variant-label">Track Inventory</label>
+                  <p className="pf-variant-hint">Manage stock and alerts for this variant</p>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Toggle inventory tracking"
+                  onClick={() => setVariantForm((prev) => ({
+                    ...prev,
+                    inventory: { ...prev.inventory, trackInventory: !prev.inventory.trackInventory },
+                  }))}
+                  className={`pf-toggle pf-toggle--inventory${variantForm.inventory.trackInventory ? ' is-on' : ''}`}
+                >
+                  <span className="pf-toggle__knob" />
+                </button>
+              </div>
+              {variantForm.inventory.trackInventory ? (
+                <div className="pf-variant-grid mt-2">
+                  <div className="pf-variant-field">
+                    <label>Quantity</label>
+                    <input
+                      type="number"
+                      min={0}
+                      inputMode="numeric"
+                      value={quantityFieldValue(variantForm.inventory.quantity)}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) =>
+                        setVariantForm((prev) => ({
+                          ...prev,
+                          inventory: {
+                            ...prev.inventory,
+                            quantity: parseQuantityInput(e.target.value),
+                          },
+                        }))
+                      }
+                      className="pf-variant-input"
+                      placeholder="Enter stock qty"
+                    />
+                  </div>
+                  <div className="pf-variant-field">
+                    <label>Low Stock Alert</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={variantForm.inventory.lowStockThreshold}
+                      onChange={(e) => {
+                        const n = parseInt(e.target.value, 10)
+                        setVariantForm((prev) => ({
+                          ...prev,
+                          inventory: {
+                            ...prev.inventory,
+                            lowStockThreshold: Number.isFinite(n) && n >= 0 ? n : 0,
+                          },
+                        }))
+                      }}
+                      className="pf-variant-input"
+                      placeholder="0"
+                    />
                   </div>
                 </div>
-                <div className="pf-variant-field">
-                  <label>Minimum Order Quantity (MOQ)</label>
-                  <input type="number" min="1" value={variantForm.minimumOrderQuantity || 1} onChange={(e) => setVariantForm((prev) => ({ ...prev, minimumOrderQuantity: parseInt(e.target.value, 10) || 1 }))} className="pf-variant-input" />
-                </div>
-                {isWholesaleMoqUnmet() ? (
-                  <p className="pf-main__warn">
-                    Wholesale warning: MOQ ({variantForm.minimumOrderQuantity ?? 1}) is greater than stock ({variantForm.inventory?.quantity ?? 0})
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
+              ) : null}
+            </div>
           </div>
 
           <VariantCatalogFieldsSection
@@ -431,55 +538,6 @@ const VariantModal = ({
             onDescriptionChange={(value) => setVariantForm((prev) => ({ ...prev, description: value }))}
             onShippingChange={(shipping) => setVariantForm((prev) => ({ ...prev, shipping }))}
           />
-
-          <div className="pf-variant-section">
-            <div className="pf-variant-row">
-              <label className="pf-variant-label">Inventory</label>
-              <button
-                type="button"
-                aria-label="Toggle inventory tracking"
-                onClick={() => setVariantForm((prev) => ({
-                  ...prev,
-                  inventory: { ...prev.inventory, trackInventory: !prev.inventory.trackInventory },
-                }))}
-                className={`pf-toggle pf-toggle--inventory${variantForm.inventory.trackInventory ? ' is-on' : ''}`}
-              >
-                <span className="pf-toggle__knob" />
-              </button>
-            </div>
-            {variantForm.inventory.trackInventory ? (
-              <div className="pf-variant-grid">
-                <input
-                  type="number"
-                  min={0}
-                  inputMode="numeric"
-                  value={quantityFieldValue(variantForm.inventory.quantity)}
-                  onFocus={(e) => e.target.select()}
-                  onChange={(e) =>
-                    setVariantForm((prev) => ({
-                      ...prev,
-                      inventory: {
-                        ...prev.inventory,
-                        quantity: parseQuantityInput(e.target.value),
-                      },
-                    }))
-                  }
-                  className="pf-variant-input"
-                  placeholder="Quantity"
-                />
-                <input type="number" min={0} value={variantForm.inventory.lowStockThreshold} onChange={(e) => {
-                  const n = parseInt(e.target.value, 10)
-                  setVariantForm((prev) => ({
-                    ...prev,
-                    inventory: {
-                      ...prev.inventory,
-                      lowStockThreshold: Number.isFinite(n) && n >= 0 ? n : 0,
-                    },
-                  }))
-                }} className="pf-variant-input" placeholder="Low stock alert" />
-              </div>
-            ) : null}
-          </div>
 
           <div className="pf-variant-section">
             <label className="pf-variant-label">Images (up to {MAX_VARIANT_IMAGES})</label>

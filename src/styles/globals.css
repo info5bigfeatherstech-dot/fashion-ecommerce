@@ -29477,6 +29477,107 @@ button.admin-stats-chip:hover {
   min-height: 36px;
 }
 
+/* Product Code Prefix Input Group */
+.pf-code-group {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-height: 42px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pf-code-group:focus-within {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.pf-code-group.is-disabled {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+}
+
+.pf-code-prefix {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  background: #f8fafc;
+  border-right: 1px solid #e2e8f0;
+  color: #334155;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.pf-code-group input.pf-code-input,
+.pf-layout .pf-code-group input[type="text"].pf-code-input,
+.pf-variant-card .pf-code-group input[type="text"].pf-code-input {
+  flex: 1;
+  width: 100%;
+  min-height: 40px;
+  padding: 9px 12px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  background: transparent !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+}
+
+.pf-code-group.is-disabled input.pf-code-input,
+.pf-layout .pf-code-group.is-disabled input[type="text"].pf-code-input {
+  cursor: not-allowed;
+  color: #6b7280;
+}
+
+.pf-autogen-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.pf-autogen-btn:hover {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.pf-autogen-btn:active {
+  transform: scale(0.97);
+}
+
+.pf-code-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #1e293b;
+  border: 1px solid #e2e8f0;
+}
+
 .pf-gallery__hero {
   position: relative;
   margin: 14px 16px 0;
@@ -29566,6 +29667,15 @@ button.admin-stats-chip:hover {
 
 .pf-chip-btn--indigo:hover {
   background: #4f46e5;
+}
+
+.pf-chip-btn--emerald {
+  background: #059669;
+  color: #fff;
+}
+
+.pf-chip-btn--emerald:hover {
+  background: #047857;
 }
 
 .pf-chip-btn--secondary {
