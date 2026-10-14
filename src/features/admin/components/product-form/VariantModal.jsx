@@ -1,6 +1,6 @@
 // Shared_components/VariantModal.jsx
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import VariantCatalogFieldsSection from './VariantCatalogFieldsSection'
 import { emptyVariantShippingForm } from '@/lib/variantCatalogForm'
@@ -24,7 +24,10 @@ export const TAX_RATE_OPTIONS = [
 ];
 
 export const defaultVariant = {
-  attributes: [{ key: '', value: '', hex: '' }],
+  attributes: [
+    { key: 'Color', value: '', hex: '' },
+    { key: 'Plating', value: '', hex: '' },
+  ],
   price: { base: '', sale: '', wholesaleBase: '', wholesaleSale: '' },
   inventory: { quantity: '', lowStockThreshold: 0, trackInventory: true },
   images: [],
@@ -59,6 +62,35 @@ const VariantModal = ({
   const [variantImageDragging, setVariantImageDragging] = useState(false);
   const isEditing = editingVariantIndex !== null;
   const isCodeLocked = Boolean(isEditMode && isEditing && editingVariantIndex !== 'primary');
+
+  // Ensure Color and Plating fields are always present in the attributes list
+  useEffect(() => {
+    const attrs = variantForm?.attributes || []
+    const hasColor = attrs.some((a) => (a?.key || '').trim().toLowerCase() === 'color')
+    const hasPlating = attrs.some((a) => (a?.key || '').trim().toLowerCase() === 'plating')
+
+    if (!hasColor || !hasPlating) {
+      setVariantForm?.((prev) => {
+        const curAttrs = (prev?.attributes || []).filter((a) => (a?.key || '').trim() || (a?.value || '').trim())
+        const curHasColor = curAttrs.some((a) => (a?.key || '').trim().toLowerCase() === 'color')
+        const curHasPlating = curAttrs.some((a) => (a?.key || '').trim().toLowerCase() === 'plating')
+
+        const next = [...curAttrs]
+        if (!curHasColor) {
+          next.unshift({ key: 'Color', value: '', hex: '' })
+        }
+        if (!curHasPlating) {
+          const colorIdx = next.findIndex((a) => (a?.key || '').trim().toLowerCase() === 'color')
+          if (colorIdx !== -1) {
+            next.splice(colorIdx + 1, 0, { key: 'Plating', value: '', hex: '' })
+          } else {
+            next.push({ key: 'Plating', value: '', hex: '' })
+          }
+        }
+        return { ...prev, attributes: next }
+      })
+    }
+  }, [editingVariantIndex]);
 
   const addVariantAttribute = () => {
     let nextKey = ''
@@ -459,7 +491,7 @@ const VariantModal = ({
                   onChange={(e) => {
                     const val = e.target.value;
                     setVariantForm((prev) => ({ ...prev, price: { ...prev.price, base: val } }));
-                    if (editingVariantIndex === 'primary' || editingVariantIndex === -1) {
+                    if (editingVariantIndex === 'primary' || editingVariantIndex === -1 || (isEditMode && editingVariantIndex === 0)) {
                       setFormData?.((prev) => ({ ...prev, price: { ...prev.price, base: val } }));
                     }
                   }}
@@ -475,7 +507,7 @@ const VariantModal = ({
                   onChange={(e) => {
                     const val = e.target.value;
                     setVariantForm((prev) => ({ ...prev, price: { ...prev.price, sale: val } }));
-                    if (editingVariantIndex === 'primary' || editingVariantIndex === -1) {
+                    if (editingVariantIndex === 'primary' || editingVariantIndex === -1 || (isEditMode && editingVariantIndex === 0)) {
                       setFormData?.((prev) => ({ ...prev, price: { ...prev.price, sale: val } }));
                     }
                   }}

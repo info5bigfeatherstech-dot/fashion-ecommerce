@@ -310,8 +310,8 @@ export default function ProductFormBody({
               ? (variantForm?.attributes || (isPrimary ? displayedAttributes : (v.attributes || [])))
               : (isPrimary ? (displayedAttributes.length > 0 ? displayedAttributes : (v.attributes || [])) : (v.attributes || [])),
             price: isThisEditing
-              ? (variantForm?.price?.sale || variantForm?.price?.base || v.price?.sale || v.price?.base || (isPrimary ? (primarySale || primaryBase) : 0))
-              : (v.price?.sale || v.price?.base || (isPrimary ? (primarySale || primaryBase) : 0)),
+              ? (variantForm?.price?.sale || variantForm?.price?.base || (isPrimary ? (v.price?.sale || v.price?.base || primarySale || primaryBase) : (v.price?.sale || v.price?.base || '')))
+              : (isPrimary ? (v.price?.sale || v.price?.base || primarySale || primaryBase) : (v.price?.sale || v.price?.base || '')),
             stock: isThisEditing
               ? (variantForm?.inventory?.quantity ?? v.inventory?.quantity ?? (isPrimary ? (primaryQty ?? 0) : 0))
               : (v.inventory?.quantity ?? (isPrimary ? (primaryQty ?? 0) : 0)),
@@ -333,8 +333,8 @@ export default function ProductFormBody({
           ? (variantForm?.attributes || formData.attributes || [])
           : (formData.attributes || []),
         price: isV1ActiveEditing
-          ? (variantForm?.price?.sale || variantForm?.price?.base || formData.price?.sale || formData.price?.base || 0)
-          : (formData.price?.sale || formData.price?.base || 0),
+          ? (variantForm?.price?.sale || variantForm?.price?.base || formData.price?.sale || formData.price?.base || '')
+          : (formData.price?.sale || formData.price?.base || ''),
         stock: isV1ActiveEditing
           ? (variantForm?.inventory?.quantity ?? formData.inventory?.quantity ?? 0)
           : (formData.inventory?.quantity ?? 0),
@@ -348,7 +348,7 @@ export default function ProductFormBody({
             displayIndex: i + 2,
             code: isThisEditing ? (variantForm?.ProductCode || v.ProductCode || v.productCode || '') : (v.ProductCode || v.productCode || ''),
             attributes: isThisEditing ? (variantForm?.attributes || v.attributes || []) : (v.attributes || []),
-            price: isThisEditing ? (variantForm?.price?.sale || variantForm?.price?.base || v.price?.sale || v.price?.base || 0) : (v.price?.sale || v.price?.base || 0),
+            price: isThisEditing ? (variantForm?.price?.sale || variantForm?.price?.base || v.price?.sale || v.price?.base || '') : (v.price?.sale || v.price?.base || ''),
             stock: isThisEditing ? (variantForm?.inventory?.quantity ?? v.inventory?.quantity ?? 0) : (v.inventory?.quantity ?? 0),
             isActive: v.channelVisibility?.ecomm === 'active' || (v.isActive !== false && v.channelVisibility?.ecomm !== 'draft'),
             raw: v,
@@ -1149,12 +1149,14 @@ export default function ProductFormBody({
                           <div className="flex items-center gap-1.5 text-xs text-gray-500">
                             <span>Price:</span>
                             <span className="font-bold text-gray-900 text-sm">
-                              {formatIndianRupee(variant.price)}
+                              {variant.price && Number(variant.price) > 0
+                                ? formatIndianRupee(variant.price)
+                                : '—'}
                             </span>
                             <span className="text-gray-300 mx-1">|</span>
                             <span>Stock:</span>
                             <span className="font-bold text-gray-900 text-sm">
-                              {variant.stock}
+                              {variant.stock !== '' && variant.stock != null ? variant.stock : '0'}
                             </span>
                           </div>
 
@@ -1299,7 +1301,7 @@ export default function ProductFormBody({
                 </div>
                 <div className="pf-confirm-preview-right">
                   <div className="pf-confirm-preview-price">
-                    {formatIndianRupee(variantToDelete.price)}
+                    {variantToDelete?.price && Number(variantToDelete.price) > 0 ? formatIndianRupee(variantToDelete.price) : '—'}
                   </div>
                   <div className="pf-confirm-preview-stock">
                     Stock: {variantToDelete.stock}

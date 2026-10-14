@@ -464,8 +464,8 @@ export function AdminProductModal({
       return
     }
 
-    // Collect candidate attribute keys (Color, Plating, etc.)
-    const candidateKeys = []
+    // Collect candidate attribute keys (Color and Plating always included by default)
+    const candidateKeys = ['Color', 'Plating']
     const addKey = (rawKey) => {
       const trimmed = String(rawKey || '').trim()
       if (trimmed && !candidateKeys.some((k) => k.toLowerCase() === trimmed.toLowerCase())) {
@@ -493,20 +493,7 @@ export function AdminProductModal({
       }
     })
 
-    const initialAttributes = candidateKeys.length > 0
-      ? candidateKeys.map((key) => ({ key, value: '', hex: '' }))
-      : [{ key: 'Color', value: '', hex: '' }, { key: 'Plating', value: '', hex: '' }]
-
-    const defaultBasePrice =
-      (showVariantModal && variantForm?.price?.base) ||
-      formData.price?.base ||
-      formData.variants?.[0]?.price?.base ||
-      999
-    const defaultSalePrice =
-      (showVariantModal && variantForm?.price?.sale) ||
-      formData.price?.sale ||
-      formData.variants?.[0]?.price?.sale ||
-      null
+    const initialAttributes = candidateKeys.map((key) => ({ key, value: '', hex: '' }))
 
     const newVariant = {
       ...defaultVariant,
@@ -521,8 +508,8 @@ export function AdminProductModal({
         ? { ...variantForm.shipping }
         : (formData.shipping ? { ...formData.shipping } : emptyVariantShippingForm()),
       price: {
-        base: defaultBasePrice,
-        sale: defaultSalePrice,
+        base: '',
+        sale: '',
         wholesaleBase: '',
         wholesaleSale: '',
       },
@@ -539,49 +526,24 @@ export function AdminProductModal({
       wholesale: false,
       minimumOrderQuantity: 1,
       channelVisibility: { ecomm: 'active', wholesale: 'draft' },
+      isLocalNew: isEdit ? true : undefined,
     }
 
-    if (!isEdit) {
-      const nextIdx = (formData.variants || []).length
-      setFormData((p) => {
-        let currentVariants = p.variants || []
-        if (showVariantModal && editingVariantIndex !== null && editingVariantIndex !== 'primary' && editingVariantIndex !== -1) {
-          currentVariants = currentVariants.map((v, i) => (i === editingVariantIndex ? variantForm : v))
-        }
-        return {
-          ...p,
-          variants: [...currentVariants, newVariant],
-        }
-      })
-      setEditingVariantIndex(nextIdx)
-      setVariantForm(newVariant)
-      setShowVariantModal(true)
-      toast.success(`Added variant ${nextCode}`)
-      return
-    }
-
-    setVariantSaving(true)
-    try {
-      const pricePayload = {
-        base: parseFloat(defaultBasePrice) || 0,
-        sale: defaultSalePrice ? parseFloat(defaultSalePrice) : null,
+    const nextIdx = (formData.variants || []).length
+    setFormData((p) => {
+      let currentVariants = p.variants || []
+      if (showVariantModal && editingVariantIndex !== null && editingVariantIndex !== 'primary' && editingVariantIndex !== -1 && !(isEdit && editingVariantIndex === 0)) {
+        currentVariants = currentVariants.map((v, i) => (i === editingVariantIndex ? variantForm : v))
       }
-      const result = await addAdminProductVariant(product.slug, {
-        ...newVariant,
-        price: pricePayload,
-        channelVisibility: { ecomm: 'active', wholesale: 'draft' },
-      })
-      if (result?.product) {
-        setLoadedProduct(result.product)
-        applyProductVariants(result.product)
+      return {
+        ...p,
+        variants: [...currentVariants, newVariant],
       }
-      toast.success(`Added variant ${nextCode}`)
-      onSaved?.()
-    } catch (err) {
-      toast.error(err?.message || 'Failed to add variant')
-    } finally {
-      setVariantSaving(false)
-    }
+    })
+    setEditingVariantIndex(nextIdx)
+    setVariantForm(newVariant)
+    setShowVariantModal(true)
+    toast.success(`Added variant ${nextCode}`)
   }
 
   const openAddVariant = () => {
@@ -658,14 +620,29 @@ export function AdminProductModal({
           ? v.gstRate
           : (isPrimary && currentForm.taxRate !== undefined ? currentForm.taxRate : '')),
       isFragile: Boolean(v.isFragile ?? (isPrimary ? currentForm.isFragile : false)),
-      attributes: v.attributes?.length > 0
-        ? v.attributes.map((a) => ({
+      attributes: (() => {
+        const rawAttrs = (v.attributes || []).map((a) => ({
           key: a.key || '',
           value: a.value || '',
           hex: a.hex || '',
           id: a.id,
-        }))
-        : [{ key: '', value: '', hex: '' }],
+        })).filter((a) => a.key || a.value)
+        const hasColor = rawAttrs.some((a) => (a.key || '').trim().toLowerCase() === 'color')
+        const hasPlating = rawAttrs.some((a) => (a.key || '').trim().toLowerCase() === 'plating')
+        const list = [...rawAttrs]
+        if (!hasColor) {
+          list.unshift({ key: 'Color', value: '', hex: '' })
+        }
+        if (!hasPlating) {
+          const colorIdx = list.findIndex((a) => (a.key || '').trim().toLowerCase() === 'color')
+          if (colorIdx !== -1) {
+            list.splice(colorIdx + 1, 0, { key: 'Plating', value: '', hex: '' })
+          } else {
+            list.push({ key: 'Plating', value: '', hex: '' })
+          }
+        }
+        return list
+      })(),
       price: {
         base: v.price?.base ?? '',
         sale: v.price?.sale ?? '',
@@ -845,7 +822,7 @@ export function AdminProductModal({
 
     setVariantSaving(true)
     try {
-      if (editingVariantIndex !== null) {
+      if (editingVariantIndex !== null && !formData.variants[editingVariantIndex]?.isLocalNew) {
         const existingProductCode =
           formData.variants[editingVariantIndex]?.productCode ??
           formData.variants[editingVariantIndex]?.ProductCode
@@ -914,13 +891,25 @@ export function AdminProductModal({
       return
     }
 
-    // Create mode: local list only
-    if (!isEdit) {
+    const variant = formData.variants[index]
+    if (variant?.isLocalNew) {
       setFormData((p) => ({ ...p, variants: p.variants.filter((_, i) => i !== index) }))
+      if (showVariantModal && editingVariantIndex === index) {
+        closeVariantModal()
+      }
+      toast.success('Variant removed')
       return
     }
 
-    const variant = formData.variants[index]
+    // Create mode: local list only
+    if (!isEdit) {
+      setFormData((p) => ({ ...p, variants: p.variants.filter((_, i) => i !== index) }))
+      if (showVariantModal && editingVariantIndex === index) {
+        closeVariantModal()
+      }
+      return
+    }
+
     const barcode = variant?.productCode ?? variant?.ProductCode
     if (!barcode && barcode !== 0) {
       toast.error('Cannot delete — variant has no productCode')
