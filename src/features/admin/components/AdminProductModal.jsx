@@ -373,8 +373,27 @@ export function AdminProductModal({
   }
 
   const openEditVariant = (index) => {
-    if (isEdit && index === 0) return
-    const v = formData.variants[index]
+    let v
+    if (index === 'primary' || (!isEdit && (index === -1 || index === 0))) {
+      v = {
+        ProductCode: formData.ProductCode || formData.productCode || '',
+        attributes: formData.attributes || [],
+        price: formData.price || { base: '', sale: '' },
+        inventory: formData.inventory || { quantity: 0, lowStockThreshold: 0, trackInventory: true },
+        images: formData.images || [],
+        isActive: formData.status !== 'inactive',
+        wholesale: formData.wholesale || false,
+        wholesaleBase: formData.wholesaleBase || '',
+        wholesaleSale: formData.wholesaleSale || '',
+        minimumOrderQuantity: formData.minimumOrderQuantity || 1,
+        channelVisibility: { ecomm: formData.status !== 'inactive' ? 'active' : 'draft', wholesale: 'draft' },
+        title: formData.title || '',
+        description: formData.description || '',
+        shipping: formData.shipping,
+      }
+    } else {
+      v = formData.variants?.[index]
+    }
     if (!v) return
     setVariantForm({
       ProductCode: String(v.ProductCode ?? v.productCode ?? ''),
@@ -458,7 +477,28 @@ export function AdminProductModal({
 
     // Create mode: product does not exist yet — keep variants in local form only.
     if (!isEdit) {
-      if (editingVariantIndex !== null) {
+      if (editingVariantIndex === 'primary' || editingVariantIndex === -1) {
+        setFormData((p) => ({
+          ...p,
+          ProductCode: variantToSave.ProductCode || p.ProductCode,
+          price: {
+            ...p.price,
+            base: variantToSave.price.base,
+            sale: variantToSave.price.sale,
+          },
+          inventory: {
+            ...p.inventory,
+            ...variantToSave.inventory,
+          },
+          attributes: variantToSave.attributes,
+          images: variantToSave.images,
+          wholesale: variantToSave.wholesale,
+          wholesaleBase: variantToSave.wholesaleBase,
+          wholesaleSale: variantToSave.wholesaleSale,
+          minimumOrderQuantity: variantToSave.minimumOrderQuantity,
+          status: variantToSave.isActive ? 'active' : 'inactive',
+        }))
+      } else if (editingVariantIndex !== null) {
         setFormData((p) => ({
           ...p,
           variants: p.variants.map((v, i) => (i === editingVariantIndex ? variantToSave : v)),
@@ -594,7 +634,7 @@ export function AdminProductModal({
 
   const deleteVariant = async (index) => {
     if (isEdit && index === 0) {
-      alert('Cannot delete the main variant. It is the product itself.')
+      toast.error('Cannot delete the main variant. It is the product itself.')
       return
     }
 
@@ -607,10 +647,9 @@ export function AdminProductModal({
     const variant = formData.variants[index]
     const barcode = variant?.productCode ?? variant?.ProductCode
     if (!barcode && barcode !== 0) {
-      alert('Cannot delete — variant has no productCode')
+      toast.error('Cannot delete — variant has no productCode')
       return
     }
-    if (!window.confirm(`Delete variant (productCode: ${barcode})? This cannot be undone.`)) return
 
     const prevVariants = formData.variants
     setFormData((p) => ({ ...p, variants: p.variants.filter((_, i) => i !== index) }))

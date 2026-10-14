@@ -222,7 +222,7 @@ const VariantModal = ({
     <div className={`pf-variant-card ${inline ? 'pf-variant-card--inline' : ''}`}>
       <div className="pf-variant-card__head">
           <div>
-            <h3>{isEditing ? 'Edit Variant' : 'Add New Variant'}</h3>
+            <h3>{isEditing ? (editingVariantIndex === 0 || editingVariantIndex === 'primary' ? 'Edit Variant 1 (Primary)' : 'Edit Variant') : 'Add New Variant'}</h3>
             <p>{isEditing ? 'Update price, inventory & attributes' : 'Set ProductCode, attributes, price & stock'}</p>
           </div>
           <button type="button" onClick={onClose} className="pf-variant-close" aria-label="Close">

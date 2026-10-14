@@ -1,10 +1,48 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import * as Dialog from '@radix-ui/react-dialog'
+import { Trash2, X } from 'lucide-react'
 import { ADMIN_PRODUCT_MARKETING_TAGS } from '@/features/admin/constants/productMarketingTags'
 import { useAdminProductCodePrefixSettings } from '@/features/admin/hooks'
 import VariantModal from './VariantModal'
 import { parseQuantityInput, quantityFieldValue, MAX_VARIANT_IMAGES, nextVariantProductCode } from './utils'
-import { isPlatingAttributeKey, PLATING_OPTIONS, COLOR_KEY_RE } from '@/features/product/colorSwatch'
+import {
+  isPlatingAttributeKey,
+  PLATING_OPTIONS,
+  COLOR_KEY_RE,
+  resolveSwatchBackground,
+  suggestHexForColorName,
+  normalizeHexColor,
+  MULTI_COLOR_GRADIENT,
+} from '@/features/product/colorSwatch'
+
+const POPULAR_COLOR_PALETTE = [
+  { name: 'Black', hex: '#14120F' },
+  { name: 'White', hex: '#FFFFFF' },
+  { name: 'Gold', hex: '#C9A227' },
+  { name: 'Rose Gold', hex: '#B76E79' },
+  { name: 'Silver', hex: '#C0C0C0' },
+  { name: 'Oxidized Silver', hex: '#4A4A4A' },
+  { name: 'Maroon', hex: '#6D1A2A' },
+  { name: 'Red', hex: '#C62828' },
+  { name: 'Ruby Red', hex: '#9B2335' },
+  { name: 'Blue', hex: '#1E4E8C' },
+  { name: 'Navy', hex: '#1B2A4A' },
+  { name: 'Sapphire Blue', hex: '#0F52BA' },
+  { name: 'Green', hex: '#2E7D4F' },
+  { name: 'Emerald Green', hex: '#137547' },
+  { name: 'Mint Green', hex: '#8FE3C0' },
+  { name: 'Pink', hex: '#E8A0B0' },
+  { name: 'Baby Pink', hex: '#F7C6D0' },
+  { name: 'Purple', hex: '#6B3FA0' },
+  { name: 'Lavender', hex: '#B57EDC' },
+  { name: 'Yellow', hex: '#E6B800' },
+  { name: 'Orange', hex: '#E07A3A' },
+  { name: 'Peach', hex: '#FFCBA4' },
+  { name: 'Brown', hex: '#5C4033' },
+  { name: 'Beige', hex: '#D4C4A8' },
+  { name: 'Multi-Color', hex: MULTI_COLOR_GRADIENT },
+]
 
 const MARKETING_TOGGLE_CLASS = {
   'on-sale': 'pf-toggle--onsale',
@@ -29,8 +67,8 @@ export default function ProductFormBody({
   brands,
   onOpenCategoryModal,
   onOpenBrandModal,
-  onOpenAttributeModal,
-  onEditAttribute,
+  onOpenAttributeModal: _onOpenAttributeModal,
+  onEditAttribute: _onEditAttribute,
   onOpenCustomMessage,
   onOpenAddVariant,
   onOpenEditVariant,
@@ -61,14 +99,42 @@ export default function ProductFormBody({
   // Specifications (Attributes) state
   const [newSpecName, setNewSpecName] = useState('');
   const [newSpecValue, setNewSpecValue] = useState('');
+  const [newSpecHex, setNewSpecHex] = useState('');
+  const [activeColorPaletteId, setActiveColorPaletteId] = useState(null);
+  const [popoverPlacement, setPopoverPlacement] = useState('bottom');
+  const colorPaletteRef = useRef(null);
 
-  const updateAttributeField = (attrId, field, val) => {
+  const handleToggleColorPalette = (id, event) => {
+    if (activeColorPaletteId === id) {
+      setActiveColorPaletteId(null);
+      return;
+    }
+    const rect = event?.currentTarget?.getBoundingClientRect();
+    if (rect) {
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setPopoverPlacement(spaceBelow < 310 ? 'top' : 'bottom');
+    }
+    setActiveColorPaletteId(id);
+  };
+
+  useEffect(() => {
+    if (!activeColorPaletteId) return;
+    const handleClickOutside = (e) => {
+      if (colorPaletteRef.current && !colorPaletteRef.current.contains(e.target)) {
+        setActiveColorPaletteId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [activeColorPaletteId]);
+
+  const updateAttribute = (attrId, updates) => {
     if (isEditMode) {
       setFormData((p) => {
         const variants = [...(p.variants || [])];
         if (!variants[0]) return p;
         const nextAttrs = (variants[0].attributes || []).map((a) =>
-          a.id === attrId ? { ...a, [field]: val } : a
+          a.id === attrId ? { ...a, ...updates } : a
         );
         variants[0] = { ...variants[0], attributes: nextAttrs };
         return { ...p, variants, attributes: nextAttrs };
@@ -77,21 +143,27 @@ export default function ProductFormBody({
       setFormData((p) => ({
         ...p,
         attributes: (p.attributes || []).map((a) =>
-          a.id === attrId ? { ...a, [field]: val } : a
+          a.id === attrId ? { ...a, ...updates } : a
         ),
       }));
     }
   };
+
+  const updateAttributeField = (attrId, field, val) => updateAttribute(attrId, { [field]: val });
 
   const handleAddNewSpec = () => {
     const k = newSpecName.trim();
     const v = newSpecValue.trim();
     if (!k || !v) return;
 
+    const isNewColor = COLOR_KEY_RE.test(k);
+    const suggested = isNewColor ? (newSpecHex || suggestHexForColorName(v)) : undefined;
+
     const newAttr = {
       id: `attr-${Date.now()}`,
       key: k,
       value: v,
+      ...(suggested ? { hex: suggested } : {}),
     };
 
     if (isEditMode) {
@@ -264,8 +336,6 @@ export default function ProductFormBody({
   };
 
   const primaryVariant = isEditMode ? (formData.variants?.[0] ?? null) : null;
-  const extraVariants = isEditMode ? (formData.variants?.slice(1) ?? []) : (formData.variants ?? []);
-  const extraOffset = isEditMode ? 1 : 0;
   const displayedAttributes = isEditMode ? (primaryVariant?.attributes || []) : (formData.attributes || []);
 
   const primaryBase = formData.price?.base ?? "";
@@ -276,39 +346,105 @@ export default function ProductFormBody({
 
   const mainGalleryImage = galleryImages.find((img) => img.isMain) || galleryImages[0] || null;
 
-  // Helper to determine if variant is wholesale eligible (for read-only badge)
-  const isWholesaleEligible = (variant) => {
-    return variant?.wholesale === true && (variant?.price?.wholesaleBase > 0);
-  };
 
-  const isWholesaleMoqUnmet = (variant) => {
-    if (!variant?.wholesale) return false;
-    const quantity = Number(variant?.inventory?.quantity ?? 0);
-    const moq = Number(variant?.minimumOrderQuantity ?? 1);
-    return moq > quantity;
-  };
+  const formatAttributesSummary = (attrs) => {
+    if (!attrs || !attrs.length) return ''
+    const parts = attrs
+      .filter((a) => a && (String(a.key || '').trim() || String(a.value || '').trim()))
+      .map((a) => {
+        const k = String(a.key || '').trim()
+        const v = String(a.value || '').trim()
+        if (k && v) return `${k}: ${v}`
+        return v || k
+      })
+    return parts.join(' · ')
+  }
 
-  // Get wholesale visibility badge text
-  const getWholesaleVisibilityBadge = (variant) => {
-    const isEligible = isWholesaleEligible(variant);
-    if (!isEligible) return { text: "Ineligible", color: "bg-gray-100 text-gray-500" };
-    const isActive = variant?.channelVisibility?.wholesale === "active";
-    return isActive
-      ? { text: "Active", color: "bg-purple-100 text-purple-700" }
-      : { text: "Draft", color: "bg-gray-100 text-gray-500" };
-  };
+  const allVariantsList = (() => {
+    const list = []
+    if (isEditMode) {
+      if (formData.variants && formData.variants.length > 0) {
+        formData.variants.forEach((v, i) => {
+          const isPrimary = i === 0
+          list.push({
+            isPrimary,
+            realIndex: i,
+            displayIndex: i + 1,
+            code: v.ProductCode || v.productCode || (isPrimary ? (formData.ProductCode || formData.productCode) : ''),
+            attributes: isPrimary
+              ? (displayedAttributes.length > 0 ? displayedAttributes : (v.attributes || []))
+              : (v.attributes || []),
+            price: v.price?.sale || v.price?.base || (isPrimary ? (primarySale || primaryBase) : 0),
+            stock: v.inventory?.quantity ?? (isPrimary ? (primaryQty ?? 0) : 0),
+            isActive: v.channelVisibility?.ecomm === 'active' || (v.isActive !== false && v.channelVisibility?.ecomm !== 'draft'),
+            raw: v,
+          })
+        })
+      }
+    } else {
+      list.push({
+        isPrimary: true,
+        realIndex: 'primary',
+        displayIndex: 1,
+        code: formData.ProductCode || formData.productCode || '',
+        attributes: formData.attributes || [],
+        price: formData.price?.sale || formData.price?.base || 0,
+        stock: formData.inventory?.quantity ?? 0,
+        isActive: formData.status !== 'inactive',
+      })
+      ;(formData.variants || []).forEach((v, i) => {
+        list.push({
+          isPrimary: false,
+          realIndex: i,
+          displayIndex: i + 2,
+          code: v.ProductCode || v.productCode || '',
+          attributes: v.attributes || [],
+          price: v.price?.sale || v.price?.base || 0,
+          stock: v.inventory?.quantity ?? 0,
+          isActive: v.channelVisibility?.ecomm === 'active' || (v.isActive !== false && v.channelVisibility?.ecomm !== 'draft'),
+          raw: v,
+        })
+      })
+    }
+    return list
+  })()
 
-  // Get ecomm visibility badge text (for read-only display)
-  const getEcommVisibilityBadge = (variant) => {
-    const isActive = variant?.channelVisibility?.ecomm === "active";
-    return isActive
-      ? { text: "Active", color: "bg-green-100 text-green-700" }
-      : { text: "Draft", color: "bg-gray-100 text-gray-500" };
-  };
+  const handleVariantToggleActive = (variant) => {
+    if (variant.realIndex === 'primary' || variant.realIndex === -1) {
+      setFormData((p) => ({
+        ...p,
+        status: p.status === 'inactive' ? 'active' : 'inactive',
+      }))
+      return
+    }
+    onToggleVariantActive?.(variant.realIndex)
+  }
 
+  const handleVariantChevronClick = (variant) => {
+    if (showVariantForm && editingVariantIndex === variant.realIndex) {
+      onCloseVariantForm?.()
+    } else {
+      onOpenEditVariant?.(variant.realIndex)
+    }
+  }
+
+  const [variantToDelete, setVariantToDelete] = useState(null)
+  const [isDeletingVariant, setIsDeletingVariant] = useState(false)
+
+  const handleConfirmDeleteVariant = async () => {
+    if (!variantToDelete) return
+    try {
+      setIsDeletingVariant(true)
+      await onDeleteVariant?.(variantToDelete.realIndex)
+      setVariantToDelete(null)
+    } finally {
+      setIsDeletingVariant(false)
+    }
+  }
 
   return (
     <div className="pf-layout">
+
       <div className="pf-layout__main">
         <div className="pf-card">
           <div className="pf-card__head">
@@ -911,29 +1047,29 @@ export default function ProductFormBody({
               <p className="text-xs text-gray-500 mt-0.5">Specifications like Color, Plating, Material, etc.</p>
             </div>
           </div>
-          <div className="pf-card__body space-y-3">
+          <div className="pf-card__body space-y-2.5">
             {displayedAttributes.length > 0 && (
-              <div className="space-y-2.5">
+              <div className="space-y-1.5">
                 {displayedAttributes.map((attr, idx) => {
                   const isPlating = isPlatingAttributeKey(attr.key);
                   const isColor = COLOR_KEY_RE.test(String(attr.key || '').trim());
                   return (
                     <div
                       key={attr.id || idx}
-                      className="flex items-center gap-3 p-2.5 sm:p-3 bg-white border border-gray-200/90 rounded-2xl shadow-2xs hover:border-gray-300 transition-colors"
+                      className="pf-spec-row"
                     >
                       <input
                         type="text"
                         value={attr.key || ''}
                         onChange={(e) => updateAttributeField(attr.id, 'key', e.target.value)}
-                        className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-2xs"
-                        placeholder="Name"
+                        className="pf-spec-input flex-1 min-w-0 font-medium text-gray-900"
+                        placeholder="Name (e.g. Color)"
                       />
                       {isPlating ? (
                         <select
                           value={attr.value || ''}
                           onChange={(e) => updateAttributeField(attr.id, 'value', e.target.value)}
-                          className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-2xs cursor-pointer"
+                          className="pf-spec-input flex-1 min-w-0 text-gray-900 cursor-pointer"
                         >
                           <option value="">Select Plating...</option>
                           {PLATING_OPTIONS.map((opt) => (
@@ -942,27 +1078,121 @@ export default function ProductFormBody({
                             </option>
                           ))}
                         </select>
+                      ) : isColor ? (
+                        <div className={`pf-spec-color-wrap${activeColorPaletteId === attr.id ? ' is-open' : ''}`}>
+                          <button
+                            type="button"
+                            onClick={(e) => handleToggleColorPalette(attr.id, e)}
+                            className="pf-spec-swatch-btn"
+                            title="Click to open color palette"
+                            aria-label={`Color palette for ${attr.value || 'color'}`}
+                          >
+                            <span
+                              className="pf-spec-swatch-circle"
+                              style={{ background: resolveSwatchBackground(attr.value, attr.hex) }}
+                            />
+                            <svg className="w-2.5 h-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                          <input
+                            type="text"
+                            value={attr.value || ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const suggested = suggestHexForColorName(val);
+                              updateAttribute(attr.id, {
+                                value: val,
+                                ...(suggested ? { hex: suggested } : {}),
+                              });
+                            }}
+                            className="pf-spec-input flex-1 min-w-0 text-gray-800"
+                            placeholder="Color (e.g. Black, Maroon, Gold)"
+                          />
+
+                          {/* Color Palette Popover */}
+                          {activeColorPaletteId === attr.id && (
+                            <div
+                              className={`pf-color-popover${popoverPlacement === 'top' ? ' pf-color-popover--top' : ''}`}
+                              ref={colorPaletteRef}
+                            >
+                              <div className="pf-color-popover-header">
+                                <span className="pf-color-popover-title">Color Palette</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveColorPaletteId(null)}
+                                  className="pf-color-popover-close"
+                                  aria-label="Close palette"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              <div className="pf-color-grid">
+                                {POPULAR_COLOR_PALETTE.map((color) => {
+                                  const isSelected = String(attr.value || '').trim().toLowerCase() === color.name.toLowerCase();
+                                  return (
+                                    <button
+                                      key={color.name}
+                                      type="button"
+                                      onClick={() => {
+                                        updateAttribute(attr.id, {
+                                          value: color.name,
+                                          hex: color.hex.startsWith('#') ? color.hex : undefined,
+                                        });
+                                        setActiveColorPaletteId(null);
+                                      }}
+                                      className={`pf-color-swatch-item${isSelected ? ' is-selected' : ''}`}
+                                      style={{ background: color.hex }}
+                                      title={color.name}
+                                      aria-label={color.name}
+                                    />
+                                  );
+                                })}
+                              </div>
+                              <div className="pf-color-custom-section">
+                                <label className="pf-color-native-picker" title="Pick custom color">
+                                  <input
+                                    type="color"
+                                    value={normalizeHexColor(attr.hex) || suggestHexForColorName(attr.value) || '#14120F'}
+                                    onChange={(e) => {
+                                      const hexVal = e.target.value;
+                                      updateAttribute(attr.id, { hex: hexVal });
+                                    }}
+                                  />
+                                </label>
+                                <input
+                                  type="text"
+                                  value={attr.hex || ''}
+                                  onChange={(e) => updateAttribute(attr.id, { hex: e.target.value })}
+                                  placeholder="#HEX"
+                                  className="pf-spec-input pf-color-hex-input"
+                                  maxLength={7}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       ) : (
                         <input
                           type="text"
                           value={attr.value || ''}
                           onChange={(e) => updateAttributeField(attr.id, 'value', e.target.value)}
-                          className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-2xs"
-                          placeholder={isColor ? "Color (e.g. Maroon, Blue)" : "Value"}
+                          className="pf-spec-input flex-1 min-w-0 text-gray-800"
+                          placeholder="Value"
                         />
                       )}
                       <button
                         type="button"
                         onClick={() => onRemoveAttribute(attr.id)}
                         title="Delete specification"
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer shrink-0"
+                        className="pf-spec-delete-btn"
                         aria-label="Delete specification"
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            strokeWidth={1.75}
+                            strokeWidth={2}
                             d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                           />
                         </svg>
@@ -973,9 +1203,11 @@ export default function ProductFormBody({
               </div>
             )}
 
-            <div className="p-4 bg-white border border-gray-200/90 rounded-2xl shadow-2xs">
-              <h4 className="text-sm font-bold text-gray-900 mb-3">Add Specification</h4>
-              <div className="flex items-center gap-3">
+            <div className="pt-2 border-t border-gray-100">
+              <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                Add Specification
+              </div>
+              <div className="pf-spec-add-row">
                 <input
                   type="text"
                   value={newSpecName}
@@ -987,13 +1219,13 @@ export default function ProductFormBody({
                     }
                   }}
                   placeholder="Name (e.g. Plating / Occasion)"
-                  className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-2xs"
+                  className="pf-spec-input flex-1 min-w-0"
                 />
                 {isPlatingAttributeKey(newSpecName) ? (
                   <select
                     value={newSpecValue}
                     onChange={(e) => setNewSpecValue(e.target.value)}
-                    className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-2xs cursor-pointer"
+                    className="pf-spec-input flex-1 min-w-0 cursor-pointer"
                   >
                     <option value="">Select Plating...</option>
                     {PLATING_OPTIONS.map((opt) => (
@@ -1002,6 +1234,96 @@ export default function ProductFormBody({
                       </option>
                     ))}
                   </select>
+                ) : COLOR_KEY_RE.test(String(newSpecName || '').trim()) ? (
+                  <div className={`pf-spec-color-wrap${activeColorPaletteId === 'new-spec' ? ' is-open' : ''}`}>
+                    <button
+                      type="button"
+                      onClick={(e) => handleToggleColorPalette('new-spec', e)}
+                      className="pf-spec-swatch-btn"
+                      title="Click to open color palette"
+                      aria-label="Color palette for new specification"
+                    >
+                      <span
+                        className="pf-spec-swatch-circle"
+                        style={{ background: resolveSwatchBackground(newSpecValue, newSpecHex) }}
+                      />
+                      <svg className="w-2.5 h-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    <input
+                      type="text"
+                      value={newSpecValue}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setNewSpecValue(val);
+                        const suggested = suggestHexForColorName(val);
+                        if (suggested) setNewSpecHex(suggested);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddNewSpec();
+                        }
+                      }}
+                      placeholder="Color (e.g. Black, Maroon)"
+                      className="pf-spec-input flex-1 min-w-0"
+                    />
+
+                    {/* Color Palette Popover for new spec */}
+                    {activeColorPaletteId === 'new-spec' && (
+                      <div
+                        className={`pf-color-popover${popoverPlacement === 'top' ? ' pf-color-popover--top' : ''}`}
+                        ref={colorPaletteRef}
+                      >
+                        <div className="pf-color-popover-header">
+                          <span className="pf-color-popover-title">Color Palette</span>
+                          <button
+                            type="button"
+                            onClick={() => setActiveColorPaletteId(null)}
+                            className="pf-color-popover-close"
+                            aria-label="Close palette"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <div className="pf-color-grid">
+                          {POPULAR_COLOR_PALETTE.map((color) => (
+                            <button
+                              key={color.name}
+                              type="button"
+                              onClick={() => {
+                                setNewSpecValue(color.name);
+                                if (color.hex.startsWith('#')) setNewSpecHex(color.hex);
+                                setActiveColorPaletteId(null);
+                              }}
+                              className="pf-color-swatch-item"
+                              style={{ background: color.hex }}
+                              title={color.name}
+                              aria-label={color.name}
+                            />
+                          ))}
+                        </div>
+                        <div className="pf-color-custom-section">
+                          <label className="pf-color-native-picker" title="Pick custom color">
+                            <input
+                              type="color"
+                              value={normalizeHexColor(newSpecHex) || suggestHexForColorName(newSpecValue) || '#14120F'}
+                              onChange={(e) => setNewSpecHex(e.target.value)}
+                            />
+                          </label>
+                          <input
+                            type="text"
+                            value={newSpecHex}
+                            onChange={(e) => setNewSpecHex(e.target.value)}
+                            placeholder="#HEX"
+                            className="pf-spec-input pf-color-hex-input"
+                            maxLength={7}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <input
                     type="text"
@@ -1014,16 +1336,19 @@ export default function ProductFormBody({
                       }
                     }}
                     placeholder="Value (e.g. 18K Gold PVD)"
-                    className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-2xs"
+                    className="pf-spec-input flex-1 min-w-0"
                   />
                 )}
                 <button
                   type="button"
                   onClick={handleAddNewSpec}
                   disabled={!newSpecName.trim() || !newSpecValue.trim()}
-                  className="inline-flex items-center justify-center gap-1 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-semibold transition-all cursor-pointer shadow-xs disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap shrink-0"
+                  className="pf-spec-add-btn"
+                  title="Add specification"
                 >
-                  <span className="text-base leading-none font-bold">+</span>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                  </svg>
                   <span>Add</span>
                 </button>
               </div>
@@ -1032,8 +1357,8 @@ export default function ProductFormBody({
         </div>
 
         {/* Additional Variants - with inline dropdown form */}
-        <div className="pf-card">
-          <div className="pf-card__head pf-card__head--row">
+        <div className="pf-card w-full">
+          <div className="pf-card__head pf-card__head--row w-full">
             <div>
               <h3>{isEditMode ? 'Additional Variants' : 'Product Variants'}</h3>
               <p>{isEditMode ? 'variants[1+] · each has its own ProductCode, price, images' : 'e.g., different colors or sizes — each needs a unique ProductCode'}</p>
@@ -1053,13 +1378,16 @@ export default function ProductFormBody({
               {showVariantForm && editingVariantIndex === null ? '✕ Close Form' : '+ Add Variant'}
             </button>
           </div>
-          <div className="pf-card__body space-y-4">
+          <div className="pf-card__body space-y-3 w-full">
             {actionError && isEditMode && (
-              <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg"><p className="text-red-700 text-sm">❌😢 {actionError}</p></div>
+              <div className="mb-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-700 text-sm">❌ {actionError}</p>
+              </div>
             )}
 
-            {showVariantForm && (
-              <div className="pf-variant-dropdown-panel" ref={variantDropdownRef}>
+            {/* When adding a new variant (+ Add Variant clicked) */}
+            {showVariantForm && editingVariantIndex === null && (
+              <div className="pf-variant-dropdown-panel mb-3 w-full" ref={variantDropdownRef}>
                 <VariantModal
                   inline
                   variantForm={variantForm}
@@ -1074,92 +1402,245 @@ export default function ProductFormBody({
               </div>
             )}
 
-            {extraVariants.length === 0 && !showVariantForm ? (
-              <div className="pf-empty-box">
-                <p>{isEditMode ? 'No additional variants — main variant is the card above' : 'No variants yet'}</p>
+            {allVariantsList.length === 0 ? (
+              <div className="pf-empty-box w-full">
+                <p>No variants configured</p>
               </div>
-            ) : null}
-
-            {extraVariants.length > 0 && (
-              <div className="space-y-3">
-                {extraVariants.map((variant, idx) => {
-                  const realIndex = extraOffset + idx;
-                  const variantThumb = variant.images?.find((img) => img.isMain)?.url || variant.images?.[0]?.url || null;
-                  const ecommBadge = getEcommVisibilityBadge(variant);
-                  const wholesaleBadge = getWholesaleVisibilityBadge(variant);
-                  const isEligibleForWholesale = isWholesaleEligible(variant);
+            ) : (
+              <div className="space-y-3 w-full">
+                {allVariantsList.map((variant) => {
+                  const summary = formatAttributesSummary(variant.attributes)
+                  const isExpanded = showVariantForm && editingVariantIndex === variant.realIndex
 
                   return (
-                    <div key={variant._id || variant.productCode || `v-${realIndex}`} className={`rounded-lg border-2 p-3 transition-all ${ecommBadge.text === "Active" ? "border-indigo-200 bg-indigo-50" : "border-gray-200 bg-gray-50 opacity-60"}`}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3 flex-1 min-w-0">
-                          {variantThumb ? (
-                            <img src={variantThumb} alt="" className="w-10 h-10 rounded-lg object-cover border border-indigo-200 flex-shrink-0" />
-                          ) : (
-                            <div className="w-10 h-10 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0">
-                              <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    <div
+                      key={variant.isPrimary ? 'primary-variant' : (variant.code || `v-${variant.realIndex}`)}
+                      className={`pf-variant-card pf-variant-row-card w-full ${!variant.isActive ? 'is-inactive' : ''}`}
+                    >
+                      <div
+                        className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap w-full cursor-pointer select-none"
+                        onClick={() => handleVariantChevronClick(variant)}
+                      >
+                        {/* Left: Badge + Title + Attributes */}
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="pf-variant-num-badge">
+                            {variant.displayIndex}
+                          </span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-gray-900 text-sm tracking-tight">
+                                Variant {variant.displayIndex}
+                              </span>
+                              {variant.isPrimary && (
+                                <span className="pf-variant-primary-badge">
+                                  PRIMARY
+                                </span>
+                              )}
+                              {variant.code ? (
+                                <span className="pf-variant-code-badge">
+                                  {variant.code}
+                                </span>
+                              ) : null}
                             </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            {variant.attributes?.length > 0 && (
-                              <div className="flex flex-wrap gap-1.5 mb-1.5">
-                                {variant.attributes.map((attr, aIdx) => (
-                                  <span key={aIdx} className="px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">{attr.key}: {attr.value}</span>
-                                ))}
-                              </div>
-                            )}
-                            <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-sm">
-                              <span className="font-semibold text-gray-900">{formatIndianRupee(variant.price?.sale || variant.price?.base)}</span>
-                              {variant.price?.sale != null && Number(variant.price.sale) > 0 && Number(variant.price.sale) < Number(variant.price.base) && (
-                                <>
-                                  <span className="text-gray-400 line-through text-xs">{formatIndianRupee(variant.price.base)}</span>
-                                  <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">{getDiscountPercentage(variant.price.base, variant.price.sale)}% OFF</span>
-                                </>
-                              )}
-                              <span className="text-gray-400 text-xs">·</span>
-                              <span className="text-gray-600 text-xs">Qty: {variant.inventory?.quantity ?? 0}</span>
-                              {variant.productCode != null && (
-                                <>
-                                  <span className="text-gray-400 text-xs">·</span>
-                                  <span className="text-xs font-mono text-gray-700 bg-white border border-gray-300 px-1.5 py-0.5 rounded">📦 {variant.productCode}</span>
-                                </>
-                              )}
-                              {/* Ecom visibility badge */}
-                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ecommBadge.color}`}>Ecom: {ecommBadge.text}</span>
-                              {/* Wholesale visibility badge - conditional on eligibility */}
-                              {isEligibleForWholesale && (
-                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${wholesaleBadge.color}`}>Wholesale: {wholesaleBadge.text}</span>
-                              )}
-                            </div>
+                            {summary ? (
+                              <p className="text-xs text-gray-500 mt-0.5 truncate">
+                                {summary}
+                              </p>
+                            ) : null}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
+
+                        {/* Right: Price + Stock + Active + Chevron + Delete */}
+                        <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0 text-sm">
+                          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                            <span>Price:</span>
+                            <span className="font-bold text-gray-900 text-sm">
+                              {formatIndianRupee(variant.price)}
+                            </span>
+                            <span className="text-gray-300 mx-1">|</span>
+                            <span>Stock:</span>
+                            <span className="font-bold text-gray-900 text-sm">
+                              {variant.stock}
+                            </span>
+                          </div>
+
+                          <label
+                            className="pf-variant-active-check"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={Boolean(variant.isActive)}
+                              onChange={() => handleVariantToggleActive(variant)}
+                              disabled={actionLoading && isEditMode}
+                            />
+                            <span>Active</span>
+                          </label>
+
                           <button
                             type="button"
-                            onClick={() => onToggleVariantActive(realIndex)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleVariantChevronClick(variant)
+                            }}
                             disabled={actionLoading && isEditMode}
-                            title={ecommBadge.text === 'Active' ? 'Click to deactivate (ecom)' : 'Click to activate (ecom)'}
-                            aria-label="Toggle ecom visibility"
-                            className={`pf-toggle pf-toggle--ecom${ecommBadge.text === 'Active' ? ' is-on' : ''}${(actionLoading && isEditMode) ? ' is-disabled' : ''}`}
+                            className="pf-variant-chevron-btn"
+                            title={isExpanded ? 'Collapse variant details' : 'Expand variant details'}
+                            aria-label={isExpanded ? 'Collapse variant details' : 'Expand variant details'}
                           >
-                            <span className="pf-toggle__knob" />
+                            <svg
+                              className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
                           </button>
-                          <button type="button" onClick={() => onOpenEditVariant(realIndex)} disabled={actionLoading && isEditMode} className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-100 rounded-lg disabled:opacity-50">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                          </button>
-                          <button type="button" onClick={() => onDeleteVariant(realIndex)} disabled={actionLoading && isEditMode} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-50">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                          </button>
+
+                          {!variant.isPrimary ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setVariantToDelete(variant)
+                              }}
+                              disabled={actionLoading && isEditMode}
+                              title="Delete variant"
+                              aria-label="Delete variant"
+                              className="pf-spec-delete-btn"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          ) : (
+                            <div className="w-7 h-7 shrink-0 hidden sm:block" />
+                          )}
                         </div>
                       </div>
+
+                      {/* Expanded inline editor for this variant */}
+                      {isExpanded && (
+                        <div className="mt-3.5 pt-3.5 border-t border-gray-100 w-full" ref={variantDropdownRef}>
+                          <VariantModal
+                            inline
+                            variantForm={variantForm}
+                            setVariantForm={setVariantForm}
+                            editingVariantIndex={editingVariantIndex}
+                            onSave={onSaveVariant}
+                            onClose={onCloseVariantForm}
+                            getDiscountPercentage={getDiscountPercentage}
+                            isSaving={variantSaving}
+                            saveError={variantSaveError}
+                          />
+                        </div>
+                      )}
                     </div>
-                  );
+                  )
                 })}
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* Radix UI Delete Confirmation Dialog */}
+      <Dialog.Root
+        open={Boolean(variantToDelete)}
+        onOpenChange={(open) => {
+          if (!open && !isDeletingVariant) setVariantToDelete(null)
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Overlay className="pf-confirm-overlay" />
+          <Dialog.Content className="pf-confirm-dialog" data-lenis-prevent>
+            <Dialog.Close asChild>
+              <button
+                type="button"
+                className="pf-confirm-close-btn"
+                aria-label="Close"
+                disabled={isDeletingVariant}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </Dialog.Close>
+
+            <div className="pf-confirm-badge-wrap">
+              <div className="pf-confirm-badge">
+                <Trash2 />
+              </div>
+            </div>
+
+            <Dialog.Title className="pf-confirm-title">
+              Delete Variant {variantToDelete?.displayIndex}?
+            </Dialog.Title>
+
+            <Dialog.Description className="pf-confirm-desc">
+              Are you sure you want to delete this variant? This action cannot be undone and will permanently remove this variant.
+            </Dialog.Description>
+
+            {variantToDelete && (
+              <div className="pf-confirm-preview">
+                <div className="pf-confirm-preview-left">
+                  <div className="pf-confirm-preview-badges">
+                    <span className="pf-confirm-pill">
+                      Variant {variantToDelete.displayIndex}
+                    </span>
+                    {variantToDelete.code ? (
+                      <span className="pf-confirm-code">
+                        {variantToDelete.code}
+                      </span>
+                    ) : null}
+                  </div>
+                  {formatAttributesSummary(variantToDelete.attributes) ? (
+                    <p className="pf-confirm-preview-summary">
+                      {formatAttributesSummary(variantToDelete.attributes)}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="pf-confirm-preview-right">
+                  <div className="pf-confirm-preview-price">
+                    {formatIndianRupee(variantToDelete.price)}
+                  </div>
+                  <div className="pf-confirm-preview-stock">
+                    Stock: {variantToDelete.stock}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="pf-confirm-actions">
+              <button
+                type="button"
+                disabled={isDeletingVariant}
+                onClick={() => setVariantToDelete(null)}
+                className="pf-confirm-cancel-btn"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingVariant}
+                onClick={handleConfirmDeleteVariant}
+                className="pf-confirm-delete-btn"
+              >
+                {isDeletingVariant ? (
+                  <>
+                    <span className="pf-confirm-spinner" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete Variant</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </div>
   )
 }
