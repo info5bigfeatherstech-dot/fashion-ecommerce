@@ -5,7 +5,7 @@ import { Trash2, X } from 'lucide-react'
 import { ADMIN_PRODUCT_MARKETING_TAGS } from '@/features/admin/constants/productMarketingTags'
 import { useAdminProductCodePrefixSettings } from '@/features/admin/hooks'
 import VariantModal from './VariantModal'
-import { parseQuantityInput, quantityFieldValue, nextVariantProductCode } from './utils'
+import { parseQuantityInput, quantityFieldValue, nextVariantProductCode, TAX_RATE_OPTIONS } from './utils'
 import {
   isPlatingAttributeKey,
   PLATING_OPTIONS,
@@ -240,7 +240,35 @@ export default function ProductFormBody({
       const [parent, child] = name.split(".");
       setFormData((p) => ({ ...p, [parent]: { ...p[parent], [child]: type === "checkbox" ? checked : value } }));
     } else {
-      setFormData((p) => ({ ...p, [name]: type === "checkbox" ? checked : value }));
+      const val = type === "checkbox" ? checked : value;
+      setFormData((p) => {
+        const next = { ...p, [name]: val };
+        if (name === 'title') {
+          next.variants = (p.variants || []).map((v) =>
+            (!v.title || v.title === p.title || v.title === p.name ? { ...v, title: val } : v)
+          );
+        } else if (name === 'name' && !p.title) {
+          next.variants = (p.variants || []).map((v) =>
+            (!v.title || v.title === p.name ? { ...v, title: val } : v)
+          );
+        } else if (name === 'description') {
+          next.variants = (p.variants || []).map((v) =>
+            (!v.description || v.description === p.description ? { ...v, description: val } : v)
+          );
+        }
+        return next;
+      });
+
+      if (showVariantForm && setVariantForm && (editingVariantIndex === 'primary' || editingVariantIndex === -1 || (isEditMode && editingVariantIndex === 0))) {
+        if (name === 'title') {
+          setVariantForm((prev) => (!prev?.title || prev.title === formData.title || prev.title === formData.name ? { ...prev, title: val } : prev));
+        } else if (name === 'name' && !formData.title) {
+          setVariantForm((prev) => (!prev?.title || prev.title === formData.name ? { ...prev, title: val } : prev));
+        }
+        if (name === 'description') {
+          setVariantForm((prev) => (!prev?.description || prev.description === formData.description ? { ...prev, description: val } : prev));
+        }
+      }
     }
   };
 
@@ -648,9 +676,61 @@ export default function ProductFormBody({
           </div>
         </div>
 
+        {/* Shipping & Tax Details */}
+        {/* Tax & Handling Details */}
+        <div className="pf-card">
+          <div className="pf-card__head">
+            <h3>Tax &amp; Handling Details</h3>
+            <p>GST rate and shipping handling requirements (Weight &amp; Dimensions are configured per variant)</p>
+          </div>
+          <div className="pf-card__body space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">GST Rate</label>
+              <select
+                value={formData.taxRate ?? ""}
+                onChange={(e) => setFormData((p) => ({ ...p, taxRate: e.target.value === "" ? "" : parseFloat(e.target.value) }))}
+                className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              >
+                <option value="">Select GST Rate</option>
+                {TAX_RATE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Applicable GST percentage for this product</p>
+            </div>
 
-
-
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Fragile Item?</label>
+              <div className="flex items-center gap-6">
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                  <input
+                    type="radio"
+                    name="isFragile"
+                    value="true"
+                    checked={formData.isFragile === true}
+                    onChange={() => setFormData((p) => ({ ...p, isFragile: true }))}
+                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span>Yes (Fragile)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                  <input
+                    type="radio"
+                    name="isFragile"
+                    value="false"
+                    checked={formData.isFragile !== true}
+                    onChange={() => setFormData((p) => ({ ...p, isFragile: false }))}
+                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span>No</span>
+                </label>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Indicates if special handling is required during shipping</p>
+            </div>
+          </div>
+        </div>
 
         {/* Product Attributes / Specifications */}
         <div className="pf-card">
@@ -1011,6 +1091,7 @@ export default function ProductFormBody({
                   saveError={variantSaveError}
                   isEditMode={isEditMode}
                   setFormData={setFormData}
+                  formData={formData}
                 />
               </div>
             )}
@@ -1149,6 +1230,7 @@ export default function ProductFormBody({
                             saveError={variantSaveError}
                             isEditMode={isEditMode}
                             setFormData={setFormData}
+                            formData={formData}
                           />
                         </div>
                       )}

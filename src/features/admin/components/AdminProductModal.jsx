@@ -319,13 +319,6 @@ export function AdminProductModal({
       (isEdit ? formData.variants?.[0]?.price?.base : formData.price?.base)
     const v1BasePrice = parseFloat(rawV1BasePrice)
 
-    const v1Attrs = (
-      isV1Editing ? variantForm?.attributes : null
-    ) || (isEdit ? formData.variants?.[0]?.attributes : formData.attributes) || []
-    const hasAttrValue = v1Attrs.some(
-      (a) => String(a?.key || '').trim() && String(a?.value || '').trim()
-    )
-
     const v1Wholesale = isV1Editing
       ? variantForm?.wholesale
       : (isEdit ? formData.variants?.[0]?.wholesale : formData.wholesale)
@@ -333,22 +326,10 @@ export function AdminProductModal({
     const v1Missing = []
     if (!v1Code) {
       v1Missing.push('Product Code')
-    } else {
-      const m = v1Code.toUpperCase().match(SUFFIXED_PRODUCT_CODE_REGEX)
-      const seq = m ? Number(m[2]) : NaN
-      if (!m || !Number.isInteger(seq) || seq < 1) {
-        v1Missing.push('Product Code (format: BASE-1)')
-      }
     }
 
     if (!rawV1BasePrice || Number.isNaN(v1BasePrice) || v1BasePrice <= 0) {
       v1Missing.push('Base Price')
-    }
-
-    if (!hasAttrValue) {
-      const attrNames = v1Attrs.map((a) => a?.key).filter(Boolean)
-      const attrLabel = attrNames.length > 0 ? `Attributes (${attrNames.join(', ')})` : 'Attributes (e.g. Color)'
-      v1Missing.push(attrLabel)
     }
 
     if (v1Wholesale) {
@@ -364,7 +345,7 @@ export function AdminProductModal({
     if (v1Missing.length > 0) {
       return {
         valid: false,
-        message: `Required field${v1Missing.length > 1 ? 's' : ''} missing in Variant 1: ${v1Missing.join(', ')}`,
+        message: `Please fill required field${v1Missing.length > 1 ? 's' : ''} in Variant 1 before adding another variant: ${v1Missing.join(', ')}`,
         targetIndex: isEdit ? 0 : 'primary',
       }
     }
@@ -384,17 +365,18 @@ export function AdminProductModal({
       if (!rawCurrPrice || Number.isNaN(currBasePrice) || currBasePrice <= 0) {
         currMissing.push('Base Price')
       }
-      const hasCurrAttr = (variantForm?.attributes || []).some(
-        (a) => String(a?.key || '').trim() && String(a?.value || '').trim()
-      )
-      if (!hasCurrAttr) {
-        currMissing.push('Attributes')
+
+      if (variantForm?.wholesale) {
+        const wholesaleBase = parseFloat(variantForm?.price?.wholesaleBase)
+        if (!wholesaleBase || Number.isNaN(wholesaleBase) || wholesaleBase <= 0) {
+          currMissing.push('Wholesale Base Price')
+        }
       }
 
       if (currMissing.length > 0) {
         return {
           valid: false,
-          message: `Required field${currMissing.length > 1 ? 's' : ''} missing in Variant ${variantNumber}: ${currMissing.join(', ')}`,
+          message: `Please fill required field${currMissing.length > 1 ? 's' : ''} in Variant ${variantNumber} before adding another variant: ${currMissing.join(', ')}`,
           targetIndex: currentIdx,
         }
       }
@@ -424,6 +406,9 @@ export function AdminProductModal({
     if (showVariantModal && variantForm) {
       if (editingVariantIndex === 'primary' || editingVariantIndex === -1) {
         baseCode = String(variantForm.ProductCode || formData.ProductCode || '').trim()
+        if (baseCode && !/-\d+$/.test(baseCode)) {
+          baseCode = `${baseCode}-1`
+        }
         const validAttributes = (variantForm.attributes || [])
           .filter((a) => String(a.key || '').trim() && String(a.value || '').trim())
           .map((a) => {
@@ -468,6 +453,9 @@ export function AdminProductModal({
 
     if (!baseCode) {
       baseCode = String(formData.ProductCode || '').trim()
+      if (baseCode && !/-\d+$/.test(baseCode)) {
+        baseCode = `${baseCode}-1`
+      }
     }
 
     const nextCode = nextVariantProductCode({ ...formData, ProductCode: baseCode })
@@ -543,6 +531,8 @@ export function AdminProductModal({
         lowStockThreshold: 0,
         trackInventory: true,
       },
+      title: formData.title || formData.name || '',
+      description: formData.description || '',
       attributes: initialAttributes,
       images: [],
       isActive: true,
@@ -553,10 +543,16 @@ export function AdminProductModal({
 
     if (!isEdit) {
       const nextIdx = (formData.variants || []).length
-      setFormData((p) => ({
-        ...p,
-        variants: [...(p.variants || []), newVariant],
-      }))
+      setFormData((p) => {
+        let currentVariants = p.variants || []
+        if (showVariantModal && editingVariantIndex !== null && editingVariantIndex !== 'primary' && editingVariantIndex !== -1) {
+          currentVariants = currentVariants.map((v, i) => (i === editingVariantIndex ? variantForm : v))
+        }
+        return {
+          ...p,
+          variants: [...currentVariants, newVariant],
+        }
+      })
       setEditingVariantIndex(nextIdx)
       setVariantForm(newVariant)
       setShowVariantModal(true)
@@ -688,8 +684,8 @@ export function AdminProductModal({
       wholesaleSale: v.wholesaleSale || v.price?.wholesaleSale || '',
       minimumOrderQuantity: v.minimumOrderQuantity || 1,
       channelVisibility: v.channelVisibility || { ecomm: 'active', wholesale: 'draft' },
-      title: v.title || '',
-      description: v.description || '',
+      title: v.title || currentForm.title || currentForm.name || '',
+      description: v.description || currentForm.description || '',
       shipping: shippingFormFromVariant(v, currentForm.shipping, currentForm),
     })
     setEditingVariantIndex(index)

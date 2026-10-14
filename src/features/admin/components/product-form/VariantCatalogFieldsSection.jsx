@@ -4,6 +4,8 @@
 export default function VariantCatalogFieldsSection({
   title = '',
   description = '',
+  placeholderTitle = '',
+  placeholderDescription = '',
   onTitleChange,
   onDescriptionChange,
   compact = false,
@@ -13,7 +15,7 @@ export default function VariantCatalogFieldsSection({
       <div>
         <p className="pf-variant-label">Variant display details (Optional)</p>
         <p className="pf-variant-hint">
-          Optional customer-facing title and specifications for this variant.
+          Optional — automatically uses the main product title and description if left blank.
         </p>
       </div>
 
@@ -24,7 +26,7 @@ export default function VariantCatalogFieldsSection({
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
           className="pf-variant-input"
-          placeholder="Customer-facing title for this SKU"
+          placeholder={placeholderTitle || "Customer-facing title for this SKU"}
         />
       </div>
 
@@ -35,7 +37,7 @@ export default function VariantCatalogFieldsSection({
           onChange={(e) => onDescriptionChange(e.target.value)}
           rows={compact ? 2 : 3}
           className="pf-variant-input pf-variant-textarea"
-          placeholder="Specifications / details for this variant"
+          placeholder={placeholderDescription || "Specifications / details for this variant"}
         />
       </div>
     </div>

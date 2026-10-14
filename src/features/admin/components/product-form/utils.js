@@ -5,6 +5,15 @@ import {
 
 export const MAX_VARIANT_IMAGES = 10
 
+export const TAX_RATE_OPTIONS = [
+  { value: 0, label: '0% (Nil Rated)' },
+  { value: 3, label: '3% (GST)' },
+  { value: 5, label: '5% (GST)' },
+  { value: 12, label: '12% (GST)' },
+  { value: 18, label: '18% (GST)' },
+  { value: 28, label: '28% (GST)' },
+]
+
 export const formatIndianRupee = (amount) =>
   new Intl.NumberFormat('en-IN', {
     style: 'currency',
