@@ -143,6 +143,17 @@ export function AdminProductModal({
   const createHydratedRef = useRef(false)
   const draftQuotaWarnedRef = useRef(false)
   const [hasCreateDraft, setHasCreateDraft] = useState(false)
+  const modalBodyRef = useRef(null)
+
+  useEffect(() => {
+    if (open) {
+      requestAnimationFrame(() => {
+        if (modalBodyRef.current) {
+          modalBodyRef.current.scrollTop = 0
+        }
+      })
+    }
+  }, [open])
 
   useEffect(() => {
     setCategories(categoriesProp)
@@ -164,8 +175,9 @@ export function AdminProductModal({
       setLoadingProduct(false)
       clearCreateProductDraft()
       setHasCreateDraft(false)
-      setFormData(emptyProductForm())
-      setShowVariantModal(false)
+      const initialForm = emptyProductForm()
+      setFormData(initialForm)
+      openEditVariant('primary', initialForm)
       createHydratedRef.current = true
       return
     }
@@ -293,12 +305,169 @@ export function AdminProductModal({
     onOpenChange(nextOpen)
   }
 
+  const validateVariantBeforeAdd = () => {
+    // 1. Check Variant 1
+    const isV1Editing = showVariantModal && (editingVariantIndex === 'primary' || editingVariantIndex === -1 || (isEdit && editingVariantIndex === 0))
+    const v1Code = String(
+      (isV1Editing ? variantForm?.ProductCode : null) ||
+      formData.ProductCode ||
+      (isEdit ? formData.variants?.[0]?.ProductCode || formData.variants?.[0]?.productCode : '') ||
+      ''
+    ).trim()
+
+    const rawV1BasePrice = (isV1Editing ? variantForm?.price?.base : null) ??
+      (isEdit ? formData.variants?.[0]?.price?.base : formData.price?.base)
+    const v1BasePrice = parseFloat(rawV1BasePrice)
+
+    const v1Attrs = (
+      isV1Editing ? variantForm?.attributes : null
+    ) || (isEdit ? formData.variants?.[0]?.attributes : formData.attributes) || []
+    const hasAttrValue = v1Attrs.some(
+      (a) => String(a?.key || '').trim() && String(a?.value || '').trim()
+    )
+
+    const v1Wholesale = isV1Editing
+      ? variantForm?.wholesale
+      : (isEdit ? formData.variants?.[0]?.wholesale : formData.wholesale)
+
+    const v1Missing = []
+    if (!v1Code) {
+      v1Missing.push('Product Code')
+    } else {
+      const m = v1Code.toUpperCase().match(SUFFIXED_PRODUCT_CODE_REGEX)
+      const seq = m ? Number(m[2]) : NaN
+      if (!m || !Number.isInteger(seq) || seq < 1) {
+        v1Missing.push('Product Code (format: BASE-1)')
+      }
+    }
+
+    if (!rawV1BasePrice || Number.isNaN(v1BasePrice) || v1BasePrice <= 0) {
+      v1Missing.push('Base Price')
+    }
+
+    if (!hasAttrValue) {
+      const attrNames = v1Attrs.map((a) => a?.key).filter(Boolean)
+      const attrLabel = attrNames.length > 0 ? `Attributes (${attrNames.join(', ')})` : 'Attributes (e.g. Color)'
+      v1Missing.push(attrLabel)
+    }
+
+    if (v1Wholesale) {
+      const wholesaleBase = parseFloat(
+        (isV1Editing ? variantForm?.price?.wholesaleBase : null) ??
+        (isEdit ? formData.variants?.[0]?.price?.wholesaleBase : formData.wholesaleBase)
+      )
+      if (!wholesaleBase || Number.isNaN(wholesaleBase) || wholesaleBase <= 0) {
+        v1Missing.push('Wholesale Base Price')
+      }
+    }
+
+    if (v1Missing.length > 0) {
+      return {
+        valid: false,
+        message: `Required field${v1Missing.length > 1 ? 's' : ''} missing in Variant 1: ${v1Missing.join(', ')}`,
+        targetIndex: isEdit ? 0 : 'primary',
+      }
+    }
+
+    // 2. Check if a subsequent variant is currently open and being edited
+    if (showVariantModal && editingVariantIndex !== null && editingVariantIndex !== 'primary' && editingVariantIndex !== -1 && !(isEdit && editingVariantIndex === 0)) {
+      const currentIdx = editingVariantIndex
+      const currCode = String(variantForm?.ProductCode || '').trim()
+      const variantNumber = isEdit ? currentIdx + 1 : currentIdx + 2
+      const currMissing = []
+
+      if (!currCode) {
+        currMissing.push('Product Code')
+      }
+      const rawCurrPrice = variantForm?.price?.base
+      const currBasePrice = parseFloat(rawCurrPrice)
+      if (!rawCurrPrice || Number.isNaN(currBasePrice) || currBasePrice <= 0) {
+        currMissing.push('Base Price')
+      }
+      const hasCurrAttr = (variantForm?.attributes || []).some(
+        (a) => String(a?.key || '').trim() && String(a?.value || '').trim()
+      )
+      if (!hasCurrAttr) {
+        currMissing.push('Attributes')
+      }
+
+      if (currMissing.length > 0) {
+        return {
+          valid: false,
+          message: `Required field${currMissing.length > 1 ? 's' : ''} missing in Variant ${variantNumber}: ${currMissing.join(', ')}`,
+          targetIndex: currentIdx,
+        }
+      }
+    }
+
+    return { valid: true }
+  }
+
   const handleGenerateVariant = async () => {
+    const check = validateVariantBeforeAdd()
+    if (!check.valid) {
+      toast.error(check.message)
+      if (check.targetIndex === 'primary' || (isEdit && check.targetIndex === 0)) {
+        if (!showVariantModal || (editingVariantIndex !== 'primary' && editingVariantIndex !== -1 && editingVariantIndex !== 0)) {
+          openEditVariant(check.targetIndex)
+        }
+      } else if (check.targetIndex !== null && check.targetIndex !== undefined) {
+        if (!showVariantModal || editingVariantIndex !== check.targetIndex) {
+          openEditVariant(check.targetIndex)
+        }
+      }
+      return
+    }
+
+    // Commit currently open variant so its values are persisted before adding the next
     let baseCode = String(formData.ProductCode || '').trim()
+    if (showVariantModal && variantForm) {
+      if (editingVariantIndex === 'primary' || editingVariantIndex === -1) {
+        baseCode = String(variantForm.ProductCode || formData.ProductCode || '').trim()
+        const validAttributes = (variantForm.attributes || [])
+          .filter((a) => String(a.key || '').trim() && String(a.value || '').trim())
+          .map((a) => {
+            const attr = { key: a.key.trim(), value: a.value.trim() }
+            if (isColorAttributeKey(attr.key)) {
+              const hex = normalizeHexColor(a.hex)
+              if (hex) attr.hex = hex
+            }
+            return attr
+          })
+        setFormData((p) => ({
+          ...p,
+          ProductCode: baseCode || p.ProductCode,
+          hsnCode: variantForm.hsnCode !== undefined ? variantForm.hsnCode : p.hsnCode,
+          taxRate: variantForm.taxRate !== undefined ? variantForm.taxRate : p.taxRate,
+          isFragile: variantForm.isFragile !== undefined ? variantForm.isFragile : p.isFragile,
+          shipping: variantForm.shipping || p.shipping,
+          price: {
+            ...p.price,
+            base: variantForm.price?.base ?? p.price?.base,
+            sale: variantForm.price?.sale ?? p.price?.sale,
+          },
+          inventory: {
+            ...p.inventory,
+            ...variantForm.inventory,
+          },
+          attributes: validAttributes.length > 0 ? validAttributes : p.attributes,
+          images: variantForm.images?.length > 0 ? variantForm.images : p.images,
+          wholesale: variantForm.wholesale,
+          wholesaleBase: variantForm.price?.wholesaleBase ?? p.wholesaleBase,
+          wholesaleSale: variantForm.price?.wholesaleSale ?? p.wholesaleSale,
+          minimumOrderQuantity: variantForm.minimumOrderQuantity ?? p.minimumOrderQuantity,
+          status: variantForm.isActive ? 'active' : 'inactive',
+        }))
+      } else if (editingVariantIndex !== null && !isEdit) {
+        setFormData((p) => ({
+          ...p,
+          variants: (p.variants || []).map((v, i) => (i === editingVariantIndex ? variantForm : v)),
+        }))
+      }
+    }
+
     if (!baseCode) {
-      const rand = Math.floor(1000 + Math.random() * 9000)
-      baseCode = `${rand}-1`
-      setFormData((p) => ({ ...p, ProductCode: baseCode }))
+      baseCode = String(formData.ProductCode || '').trim()
     }
 
     const nextCode = nextVariantProductCode({ ...formData, ProductCode: baseCode })
@@ -321,6 +490,12 @@ export function AdminProductModal({
         if (k) addKey(k)
       })
     }
+    if (showVariantModal && variantForm?.attributes) {
+      variantForm.attributes.forEach((a) => {
+        const k = a?.key || a?.name
+        if (k) addKey(k)
+      })
+    }
     ;(formData.variants || []).forEach((v) => {
       if (Array.isArray(v.attributes)) {
         v.attributes.forEach((a) => {
@@ -335,15 +510,28 @@ export function AdminProductModal({
       : [{ key: 'Color', value: '', hex: '' }, { key: 'Plating', value: '', hex: '' }]
 
     const defaultBasePrice =
-      formData.price?.base || formData.variants?.[0]?.price?.base || 999
+      (showVariantModal && variantForm?.price?.base) ||
+      formData.price?.base ||
+      formData.variants?.[0]?.price?.base ||
+      999
     const defaultSalePrice =
-      formData.price?.sale || formData.variants?.[0]?.price?.sale || null
+      (showVariantModal && variantForm?.price?.sale) ||
+      formData.price?.sale ||
+      formData.variants?.[0]?.price?.sale ||
+      null
 
     const newVariant = {
       ...defaultVariant,
       ProductCode: nextCode,
       productCode: nextCode,
-      hsnCode: formData.hsnCode || (formData.variants && formData.variants[0]?.hsnCode) || '',
+      hsnCode: (showVariantModal && variantForm?.hsnCode) || formData.hsnCode || (formData.variants && formData.variants[0]?.hsnCode) || '',
+      taxRate: (showVariantModal && variantForm?.taxRate !== undefined && variantForm?.taxRate !== '')
+        ? variantForm.taxRate
+        : (formData.taxRate !== undefined && formData.taxRate !== '' ? formData.taxRate : (formData.variants?.[0]?.taxRate ?? '')),
+      isFragile: (showVariantModal && variantForm?.isFragile !== undefined) ? variantForm.isFragile : (formData.isFragile ?? false),
+      shipping: (showVariantModal && variantForm?.shipping)
+        ? { ...variantForm.shipping }
+        : (formData.shipping ? { ...formData.shipping } : emptyVariantShippingForm()),
       price: {
         base: defaultBasePrice,
         sale: defaultSalePrice,
@@ -351,7 +539,7 @@ export function AdminProductModal({
         wholesaleSale: '',
       },
       inventory: {
-        quantity: 0,
+        quantity: '',
         lowStockThreshold: 0,
         trackInventory: true,
       },
@@ -404,10 +592,16 @@ export function AdminProductModal({
     handleGenerateVariant()
   }
 
-  // Keep open "Add Variant" form's ProductCode automatically in sync with next unused code
-  // whenever main ProductCode changes or variants change
+  // Keep open "Add Variant" or primary form's ProductCode automatically in sync
   useEffect(() => {
-    if (!showVariantModal || editingVariantIndex !== null) return
+    if (!showVariantModal) return
+    if (editingVariantIndex === 'primary' || editingVariantIndex === -1) {
+      if (formData.ProductCode && formData.ProductCode !== variantForm.ProductCode) {
+        setVariantForm((prev) => ({ ...prev, ProductCode: formData.ProductCode }))
+      }
+      return
+    }
+    if (editingVariantIndex !== null) return
     const nextCode = nextVariantProductCode(formData)
     if (!nextCode) return
 
@@ -431,31 +625,43 @@ export function AdminProductModal({
     toast.message('Draft discarded')
   }
 
-  const openEditVariant = (index) => {
+  const openEditVariant = (index, customForm = null) => {
+    const currentForm = customForm || formData
+    const isPrimary = index === 'primary' || index === -1 || (isEdit && index === 0)
     let v
-    if (index === 'primary' || (!isEdit && (index === -1 || index === 0))) {
+    if (isPrimary) {
       v = {
-        ProductCode: formData.ProductCode || formData.productCode || '',
-        attributes: formData.attributes || [],
-        price: formData.price || { base: '', sale: '' },
-        inventory: formData.inventory || { quantity: 0, lowStockThreshold: 0, trackInventory: true },
-        images: formData.images || [],
-        isActive: formData.status !== 'inactive',
-        wholesale: formData.wholesale || false,
-        wholesaleBase: formData.wholesaleBase || '',
-        wholesaleSale: formData.wholesaleSale || '',
-        minimumOrderQuantity: formData.minimumOrderQuantity || 1,
-        channelVisibility: { ecomm: formData.status !== 'inactive' ? 'active' : 'draft', wholesale: 'draft' },
-        title: formData.title || '',
-        description: formData.description || '',
-        shipping: formData.shipping,
+        ProductCode: currentForm.ProductCode || currentForm.productCode || '',
+        attributes: currentForm.attributes || [],
+        price: currentForm.price || { base: '', sale: '' },
+        inventory: currentForm.inventory || { quantity: '', lowStockThreshold: 0, trackInventory: true },
+        images: currentForm.images || [],
+        isActive: currentForm.status !== 'inactive',
+        wholesale: currentForm.wholesale || false,
+        wholesaleBase: currentForm.wholesaleBase || '',
+        wholesaleSale: currentForm.wholesaleSale || '',
+        minimumOrderQuantity: currentForm.minimumOrderQuantity || 1,
+        channelVisibility: { ecomm: currentForm.status !== 'inactive' ? 'active' : 'draft', wholesale: 'draft' },
+        title: currentForm.title || '',
+        description: currentForm.description || '',
+        hsnCode: currentForm.hsnCode || currentForm.variants?.[0]?.hsnCode || '',
+        taxRate: currentForm.taxRate ?? currentForm.variants?.[0]?.taxRate ?? currentForm.variants?.[0]?.gstRate ?? '',
+        isFragile: Boolean(currentForm.isFragile ?? currentForm.variants?.[0]?.isFragile),
+        shipping: currentForm.shipping || currentForm.variants?.[0]?.shipping || emptyVariantShippingForm(),
       }
     } else {
-      v = formData.variants?.[index]
+      v = currentForm.variants?.[index]
     }
     if (!v) return
     setVariantForm({
       ProductCode: String(v.ProductCode ?? v.productCode ?? ''),
+      hsnCode: String(v.hsnCode ?? (isPrimary ? currentForm.hsnCode : '') ?? ''),
+      taxRate: v.taxRate !== undefined && v.taxRate !== null && v.taxRate !== ''
+        ? v.taxRate
+        : (v.gstRate !== undefined && v.gstRate !== null && v.gstRate !== ''
+          ? v.gstRate
+          : (isPrimary && currentForm.taxRate !== undefined ? currentForm.taxRate : '')),
+      isFragile: Boolean(v.isFragile ?? (isPrimary ? currentForm.isFragile : false)),
       attributes: v.attributes?.length > 0
         ? v.attributes.map((a) => ({
           key: a.key || '',
@@ -471,7 +677,7 @@ export function AdminProductModal({
         wholesaleSale: v.price?.wholesaleSale ?? v.wholesaleSale ?? '',
       },
       inventory: {
-        quantity: v.inventory?.quantity ?? 0,
+        quantity: v.inventory?.quantity ?? '',
         lowStockThreshold: v.inventory?.lowStockThreshold ?? 0,
         trackInventory: v.inventory?.trackInventory !== false,
       },
@@ -484,7 +690,7 @@ export function AdminProductModal({
       channelVisibility: v.channelVisibility || { ecomm: 'active', wholesale: 'draft' },
       title: v.title || '',
       description: v.description || '',
-      shipping: shippingFormFromVariant(v, formData.shipping, formData),
+      shipping: shippingFormFromVariant(v, currentForm.shipping, currentForm),
     })
     setEditingVariantIndex(index)
     setVariantSaveError(null)
@@ -540,6 +746,10 @@ export function AdminProductModal({
         setFormData((p) => ({
           ...p,
           ProductCode: variantToSave.ProductCode || p.ProductCode,
+          hsnCode: variantToSave.hsnCode !== undefined ? variantToSave.hsnCode : p.hsnCode,
+          taxRate: variantToSave.taxRate !== undefined ? variantToSave.taxRate : p.taxRate,
+          isFragile: variantToSave.isFragile !== undefined ? variantToSave.isFragile : p.isFragile,
+          shipping: variantToSave.shipping || p.shipping,
           price: {
             ...p.price,
             base: variantToSave.price.base,
@@ -655,10 +865,21 @@ export function AdminProductModal({
           minimumOrderQuantity: variantToSave.minimumOrderQuantity,
           channelVisibility: channelVisibilityPayload,
         }
+        if (variantToSave.hsnCode !== undefined) variantUpdatePayload.hsnCode = variantToSave.hsnCode
+        if (variantToSave.taxRate !== undefined && variantToSave.taxRate !== '') variantUpdatePayload.gstRate = String(variantToSave.taxRate)
+        if (variantToSave.isFragile !== undefined) variantUpdatePayload.isFragile = variantToSave.isFragile
+        if (variantToSave.shipping) variantUpdatePayload.shipping = variantToSave.shipping
         if (editingVariantIndex > 0) {
           variantUpdatePayload.variantTitle = variantToSave.title
           variantUpdatePayload.variantDescription = variantToSave.description
-          variantUpdatePayload.shipping = variantToSave.shipping
+        } else if (editingVariantIndex === 0) {
+          setFormData((p) => ({
+            ...p,
+            hsnCode: variantToSave.hsnCode !== undefined ? variantToSave.hsnCode : p.hsnCode,
+            taxRate: variantToSave.taxRate !== undefined ? variantToSave.taxRate : p.taxRate,
+            isFragile: variantToSave.isFragile !== undefined ? variantToSave.isFragile : p.isFragile,
+            shipping: variantToSave.shipping || p.shipping,
+          }))
         }
         const result = await updateAdminProductVariant(variantUpdatePayload)
         if (result?.product) {
@@ -969,6 +1190,18 @@ export function AdminProductModal({
     if (!payloadForm.ProductCode && payloadForm.variants?.[0]?.ProductCode) {
       payloadForm.ProductCode = payloadForm.variants[0].ProductCode
     }
+    if (!payloadForm.hsnCode && payloadForm.variants?.[0]?.hsnCode) {
+      payloadForm.hsnCode = payloadForm.variants[0].hsnCode
+    }
+    if ((payloadForm.taxRate === '' || payloadForm.taxRate == null) && payloadForm.variants?.[0]?.taxRate !== undefined && payloadForm.variants?.[0]?.taxRate !== '') {
+      payloadForm.taxRate = payloadForm.variants[0].taxRate
+    }
+    if (payloadForm.variants?.[0]?.isFragile !== undefined) {
+      payloadForm.isFragile = payloadForm.variants[0].isFragile
+    }
+    if (!payloadForm.shipping?.weight && payloadForm.variants?.[0]?.shipping?.weight) {
+      payloadForm.shipping = payloadForm.variants[0].shipping
+    }
     if (payloadForm.variants?.[0]?.images?.length && (!payloadForm.images || payloadForm.images.length === 0)) {
       payloadForm.images = payloadForm.variants[0].images
     }
@@ -1047,7 +1280,7 @@ export function AdminProductModal({
             ) : null}
 
             <form className="product-modal-form" onSubmit={handleSubmit}>
-              <div className="product-modal-form__body product-modal-form__body--wide">
+              <div ref={modalBodyRef} className="product-modal-form__body product-modal-form__body--wide">
                 <ProductFormBody
                   formData={formData}
                   setFormData={setFormData}
@@ -1082,6 +1315,7 @@ export function AdminProductModal({
                   onCloseVariantForm={closeVariantModal}
                   variantSaving={variantSaving}
                   variantSaveError={variantSaveError}
+                  modalOpen={open}
                 />
               </div>
               <div className="product-modal-form__footer">

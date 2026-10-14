@@ -81,6 +81,7 @@ export default function ProductFormBody({
   onCloseVariantForm,
   variantSaving = false,
   variantSaveError = null,
+  modalOpen = true,
 }) {
   const isEditMode = !!productSlug;
   const { data: prefixSettings } = useAdminProductCodePrefixSettings({ enabled: !isEditMode })
@@ -137,6 +138,13 @@ export default function ProductFormBody({
           a.id === attrId ? { ...a, ...updates } : a
         ),
       }));
+    }
+    if (showVariantForm && (editingVariantIndex === 'primary' || editingVariantIndex === -1 || (isEditMode && editingVariantIndex === 0)) && setVariantForm) {
+      setVariantForm((prev) => {
+        if (!prev || !Array.isArray(prev.attributes)) return prev;
+        const nextAttrs = prev.attributes.map((a) => (a.id === attrId ? { ...a, ...updates } : a));
+        return { ...prev, attributes: nextAttrs };
+      });
     }
   };
 
@@ -206,7 +214,18 @@ export default function ProductFormBody({
     }
   }, [isEditMode]);
 
+  const isInitialOpenRef = useRef(true);
   useEffect(() => {
+    if (modalOpen) {
+      isInitialOpenRef.current = true;
+    }
+  }, [modalOpen]);
+
+  useEffect(() => {
+    if (isInitialOpenRef.current) {
+      isInitialOpenRef.current = false;
+      return;
+    }
     if (showVariantForm && variantDropdownRef.current) {
       variantDropdownRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
@@ -251,41 +270,58 @@ export default function ProductFormBody({
       if (formData.variants && formData.variants.length > 0) {
         formData.variants.forEach((v, i) => {
           const isPrimary = i === 0
+          const isThisEditing = showVariantForm && editingVariantIndex === i
           list.push({
             isPrimary,
             realIndex: i,
             displayIndex: i + 1,
-            code: v.ProductCode || v.productCode || (isPrimary ? (formData.ProductCode || formData.productCode) : ''),
-            attributes: isPrimary
-              ? (displayedAttributes.length > 0 ? displayedAttributes : (v.attributes || []))
-              : (v.attributes || []),
-            price: v.price?.sale || v.price?.base || (isPrimary ? (primarySale || primaryBase) : 0),
-            stock: v.inventory?.quantity ?? (isPrimary ? (primaryQty ?? 0) : 0),
+            code: isThisEditing
+              ? (variantForm?.ProductCode || v.ProductCode || v.productCode || (isPrimary ? (formData.ProductCode || formData.productCode) : ''))
+              : (v.ProductCode || v.productCode || (isPrimary ? (formData.ProductCode || formData.productCode) : '')),
+            attributes: isThisEditing
+              ? (variantForm?.attributes || (isPrimary ? displayedAttributes : (v.attributes || [])))
+              : (isPrimary ? (displayedAttributes.length > 0 ? displayedAttributes : (v.attributes || [])) : (v.attributes || [])),
+            price: isThisEditing
+              ? (variantForm?.price?.sale || variantForm?.price?.base || v.price?.sale || v.price?.base || (isPrimary ? (primarySale || primaryBase) : 0))
+              : (v.price?.sale || v.price?.base || (isPrimary ? (primarySale || primaryBase) : 0)),
+            stock: isThisEditing
+              ? (variantForm?.inventory?.quantity ?? v.inventory?.quantity ?? (isPrimary ? (primaryQty ?? 0) : 0))
+              : (v.inventory?.quantity ?? (isPrimary ? (primaryQty ?? 0) : 0)),
             isActive: v.channelVisibility?.ecomm === 'active' || (v.isActive !== false && v.channelVisibility?.ecomm !== 'draft'),
             raw: v,
           })
         })
       }
     } else {
+      const isV1ActiveEditing = showVariantForm && (editingVariantIndex === 'primary' || editingVariantIndex === -1)
       list.push({
         isPrimary: true,
         realIndex: 'primary',
         displayIndex: 1,
-        code: formData.ProductCode || formData.productCode || '',
-        attributes: formData.attributes || [],
-        price: formData.price?.sale || formData.price?.base || 0,
-        stock: formData.inventory?.quantity ?? 0,
+        code: isV1ActiveEditing
+          ? (variantForm?.ProductCode || formData.ProductCode || formData.productCode || '')
+          : (formData.ProductCode || formData.productCode || ''),
+        attributes: isV1ActiveEditing
+          ? (variantForm?.attributes || formData.attributes || [])
+          : (formData.attributes || []),
+        price: isV1ActiveEditing
+          ? (variantForm?.price?.sale || variantForm?.price?.base || formData.price?.sale || formData.price?.base || 0)
+          : (formData.price?.sale || formData.price?.base || 0),
+        stock: isV1ActiveEditing
+          ? (variantForm?.inventory?.quantity ?? formData.inventory?.quantity ?? 0)
+          : (formData.inventory?.quantity ?? 0),
         isActive: formData.status !== 'inactive',
       })
         ; (formData.variants || []).forEach((v, i) => {
+          const isThisEditing = showVariantForm && editingVariantIndex === i
           list.push({
             isPrimary: false,
             realIndex: i,
             displayIndex: i + 2,
-            code: v.ProductCode || v.productCode || '',
-            attributes: v.attributes || [],
-            price: v.price?.sale || v.price?.base || 0,
-            stock: v.inventory?.quantity ?? 0,
+            code: isThisEditing ? (variantForm?.ProductCode || v.ProductCode || v.productCode || '') : (v.ProductCode || v.productCode || ''),
+            attributes: isThisEditing ? (variantForm?.attributes || v.attributes || []) : (v.attributes || []),
+            price: isThisEditing ? (variantForm?.price?.sale || variantForm?.price?.base || v.price?.sale || v.price?.base || 0) : (v.price?.sale || v.price?.base || 0),
+            stock: isThisEditing ? (variantForm?.inventory?.quantity ?? v.inventory?.quantity ?? 0) : (v.inventory?.quantity ?? 0),
             isActive: v.channelVisibility?.ecomm === 'active' || (v.isActive !== false && v.channelVisibility?.ecomm !== 'draft'),
             raw: v,
           })
@@ -387,10 +423,14 @@ export default function ProductFormBody({
                         const rand = Math.floor(1000 + Math.random() * 9000);
                         const newCode = `${rand}-1`;
                         setFormData((p) => ({ ...p, ProductCode: newCode }));
-                        if (showVariantForm && editingVariantIndex === null && setVariantForm) {
-                          const nextCode = nextVariantProductCode({ ...formData, ProductCode: newCode });
-                          if (nextCode) {
-                            setVariantForm((prev) => ({ ...prev, ProductCode: nextCode }));
+                        if (showVariantForm && setVariantForm) {
+                          if (editingVariantIndex === 'primary' || editingVariantIndex === -1) {
+                            setVariantForm((prev) => ({ ...prev, ProductCode: newCode }));
+                          } else if (editingVariantIndex === null) {
+                            const nextCode = nextVariantProductCode({ ...formData, ProductCode: newCode });
+                            if (nextCode) {
+                              setVariantForm((prev) => ({ ...prev, ProductCode: nextCode }));
+                            }
                           }
                         }
                       }}
@@ -420,10 +460,14 @@ export default function ProductFormBody({
                     onChange={(e) => {
                       const val = e.target.value;
                       setFormData((p) => ({ ...p, ProductCode: val }));
-                      if (showVariantForm && editingVariantIndex === null && setVariantForm) {
-                        const nextCode = nextVariantProductCode({ ...formData, ProductCode: val });
-                        if (nextCode) {
-                          setVariantForm((prev) => ({ ...prev, ProductCode: nextCode }));
+                      if (showVariantForm && setVariantForm) {
+                        if (editingVariantIndex === 'primary' || editingVariantIndex === -1) {
+                          setVariantForm((prev) => ({ ...prev, ProductCode: val }));
+                        } else if (editingVariantIndex === null) {
+                          const nextCode = nextVariantProductCode({ ...formData, ProductCode: val });
+                          if (nextCode) {
+                            setVariantForm((prev) => ({ ...prev, ProductCode: nextCode }));
+                          }
                         }
                       }
                     }}
@@ -432,10 +476,14 @@ export default function ProductFormBody({
                       if (val) {
                         const formatted = /-\d+$/.test(val) ? val : `${val}-1`;
                         setFormData((p) => ({ ...p, ProductCode: formatted }));
-                        if (showVariantForm && editingVariantIndex === null && setVariantForm) {
-                          const nextCode = nextVariantProductCode({ ...formData, ProductCode: formatted });
-                          if (nextCode) {
-                            setVariantForm((prev) => ({ ...prev, ProductCode: nextCode }));
+                        if (showVariantForm && setVariantForm) {
+                          if (editingVariantIndex === 'primary' || editingVariantIndex === -1) {
+                            setVariantForm((prev) => ({ ...prev, ProductCode: formatted }));
+                          } else if (editingVariantIndex === null) {
+                            const nextCode = nextVariantProductCode({ ...formData, ProductCode: formatted });
+                            if (nextCode) {
+                              setVariantForm((prev) => ({ ...prev, ProductCode: nextCode }));
+                            }
                           }
                         }
                       }
@@ -483,7 +531,7 @@ export default function ProductFormBody({
                   maxLength={10}
                 />
                 <p className="mt-1.5 text-xs text-gray-500">
-                  Tax code (inherited by all generated variants)
+                  Harmonized System Nomenclature code for tax purposes
                 </p>
               </div>
             </div>
@@ -961,6 +1009,8 @@ export default function ProductFormBody({
                   getDiscountPercentage={getDiscountPercentage}
                   isSaving={variantSaving}
                   saveError={variantSaveError}
+                  isEditMode={isEditMode}
+                  setFormData={setFormData}
                 />
               </div>
             )}
@@ -1097,6 +1147,8 @@ export default function ProductFormBody({
                             getDiscountPercentage={getDiscountPercentage}
                             isSaving={variantSaving}
                             saveError={variantSaveError}
+                            isEditMode={isEditMode}
+                            setFormData={setFormData}
                           />
                         </div>
                       )}

@@ -1,6 +1,7 @@
 // Shared_components/VariantModal.jsx
 
 import { useState } from 'react'
+import { toast } from 'sonner'
 import VariantCatalogFieldsSection from './VariantCatalogFieldsSection'
 import { emptyVariantShippingForm } from '@/lib/variantCatalogForm'
 import { parseQuantityInput, quantityFieldValue, MAX_VARIANT_IMAGES, SUFFIXED_PRODUCT_CODE_REGEX } from './utils'
@@ -13,6 +14,15 @@ import {
   UNKNOWN_SWATCH_HEX,
 } from '@/features/product/colorSwatch'
 
+export const TAX_RATE_OPTIONS = [
+  { value: 0, label: '0% (Nil Rated)' },
+  { value: 3, label: '3% (GST)' },
+  { value: 5, label: '5% (GST)' },
+  { value: 12, label: '12% (GST)' },
+  { value: 18, label: '18% (GST)' },
+  { value: 28, label: '28% (GST)' },
+];
+
 export const defaultVariant = {
   attributes: [{ key: '', value: '', hex: '' }],
   price: { base: '', sale: '', wholesaleBase: '', wholesaleSale: '' },
@@ -21,6 +31,8 @@ export const defaultVariant = {
   isActive: true,
   ProductCode: '',
   hsnCode: '',
+  taxRate: '',
+  isFragile: false,
   wholesale: false,
   minimumOrderQuantity: 1,
   channelVisibility: { ecomm: 'active', wholesale: 'draft' },
@@ -40,9 +52,12 @@ const VariantModal = ({
   isSaving = false,
   saveError = null,
   inline = false,
+  isEditMode = false,
+  setFormData,
 }) => {
   const [variantImageDragging, setVariantImageDragging] = useState(false);
   const isEditing = editingVariantIndex !== null;
+  const isCodeLocked = Boolean(isEditMode && isEditing && editingVariantIndex !== 'primary');
 
   const addVariantAttribute = () => {
     let nextKey = ''
@@ -52,19 +67,27 @@ const VariantModal = ({
       const unused = stored.find(k => k && !currentKeys.has(String(k).trim().toLowerCase()))
       if (unused) nextKey = unused
     } catch {}
-    setVariantForm(prev => ({
-      ...prev,
-      attributes: [...prev.attributes, { key: nextKey, value: '', hex: '' }],
-    }))
+    setVariantForm(prev => {
+      const nextAttrs = [...prev.attributes, { key: nextKey, value: '', hex: '' }]
+      if (editingVariantIndex === 'primary' || editingVariantIndex === -1) {
+        setFormData?.((p) => ({ ...p, attributes: nextAttrs }))
+      }
+      return { ...prev, attributes: nextAttrs }
+    })
   };
 
   const removeVariantAttribute = (index) =>
-    setVariantForm(prev => ({ ...prev, attributes: prev.attributes.filter((_, i) => i !== index) }));
+    setVariantForm(prev => {
+      const nextAttrs = prev.attributes.filter((_, i) => i !== index)
+      if (editingVariantIndex === 'primary' || editingVariantIndex === -1) {
+        setFormData?.((p) => ({ ...p, attributes: nextAttrs }))
+      }
+      return { ...prev, attributes: nextAttrs }
+    });
 
   const updateVariantAttribute = (index, field, value) =>
-    setVariantForm((prev) => ({
-      ...prev,
-      attributes: prev.attributes.map((attr, i) => {
+    setVariantForm((prev) => {
+      const nextAttrs = prev.attributes.map((attr, i) => {
         if (i !== index) return attr
         const next = { ...attr, [field]: value }
         if (field === 'value' && isColorAttributeKey(next.key)) {
@@ -79,8 +102,12 @@ const VariantModal = ({
           next.hex = normalized || String(value || '').trim()
         }
         return next
-      }),
-    }));
+      })
+      if (editingVariantIndex === 'primary' || editingVariantIndex === -1) {
+        setFormData?.((p) => ({ ...p, attributes: nextAttrs }))
+      }
+      return { ...prev, attributes: nextAttrs }
+    });
 
   const handleVariantImageUpload = (e) => {
     const files = Array.from(e.target.files);
@@ -131,19 +158,19 @@ const VariantModal = ({
     const ProductCode = (variantForm.ProductCode ?? '').toString().trim();
 
     if (!ProductCode) {
-      alert('ProductCode is required');
+      toast.error('ProductCode is required');
       return;
     }
     {
       const m = ProductCode.toUpperCase().match(SUFFIXED_PRODUCT_CODE_REGEX);
       const seq = m ? Number(m[2]) : NaN;
       if (!m || !Number.isInteger(seq) || seq < 1) {
-        alert("ProductCode must be BASE-N (e.g., 3897-1 or 3897-01)");
+        toast.error("ProductCode must be BASE-N (e.g., 3897-1 or 3897-01)");
         return;
       }
     }
     if (!variantForm.price.base) {
-      alert('Please enter base price for this variant');
+      toast.error('Please enter base price for this variant');
       return;
     }
 
@@ -153,29 +180,29 @@ const VariantModal = ({
       : null;
 
     if (base <= 0) {
-      alert('Base price must be greater than 0');
+      toast.error('Base price must be greater than 0');
       return;
     }
     if (sale !== null && sale >= base) {
-      alert('Sale price must be less than base price');
+      toast.error('Sale price must be less than base price');
       return;
     }
 
     if (variantForm.wholesale) {
       const wholesaleBase = parseFloat(variantForm.price.wholesaleBase) || 0;
       if (wholesaleBase <= 0) {
-        alert('Wholesale base price is required and must be greater than 0');
+        toast.error('Wholesale base price is required and must be greater than 0');
         return;
       }
       if (!variantForm.minimumOrderQuantity || parseInt(variantForm.minimumOrderQuantity) < 1) {
-        alert('Minimum Order Quantity (MOQ) must be at least 1');
+        toast.error('Minimum Order Quantity (MOQ) must be at least 1');
         return;
       }
       const wholesaleSale = (variantForm.price.wholesaleSale !== '' && variantForm.price.wholesaleSale != null)
         ? parseFloat(variantForm.price.wholesaleSale)
         : null;
       if (wholesaleSale !== null && wholesaleSale >= wholesaleBase) {
-        alert('Wholesale sale price must be less than wholesale base price');
+        toast.error('Wholesale sale price must be less than wholesale base price');
         return;
       }
     }
@@ -206,6 +233,9 @@ const VariantModal = ({
       ...variantForm,
       ProductCode: ProductCode,
       hsnCode: (variantForm.hsnCode ?? '').toString().trim(),
+      taxRate: variantForm.taxRate !== undefined && variantForm.taxRate !== '' ? parseFloat(variantForm.taxRate) : '',
+      isFragile: Boolean(variantForm.isFragile),
+      shipping: variantForm.shipping || emptyVariantShippingForm(),
       attributes: validAttributes,
       price: {
         base: base,
@@ -225,8 +255,8 @@ const VariantModal = ({
     <div className={`pf-variant-card ${inline ? 'pf-variant-card--inline' : ''}`}>
       <div className="pf-variant-card__head">
           <div>
-            <h3>{isEditing ? (editingVariantIndex === 0 || editingVariantIndex === 'primary' ? 'Edit Variant 1 (Primary)' : 'Edit Variant') : 'Add New Variant'}</h3>
-            <p>{isEditing ? 'Update price, inventory & attributes' : 'Set ProductCode, attributes, price & stock'}</p>
+            <h3>{isEditing ? (editingVariantIndex === 0 || editingVariantIndex === 'primary' ? 'Variant 1 (Primary)' : 'Edit Variant') : 'Add New Variant'}</h3>
+            <p>{isEditing ? 'Set ProductCode, attributes, price & stock' : 'Set ProductCode, attributes, price & stock'}</p>
           </div>
           <button type="button" onClick={onClose} className="pf-variant-close" aria-label="Close">
             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -235,39 +265,64 @@ const VariantModal = ({
 
         <div className="pf-variant-card__body">
           <div className="pf-variant-section">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="pf-variant-label">
+            <div className="pf-variant-field">
+              <div className="flex items-center justify-between mb-1">
+                <label className="pf-variant-label mb-0">
                   Variant Product Code <span className="pf-req">*</span>
-                  {isEditing ? <span className="pf-variant-locked">🔒 Locked</span> : null}
+                  {isCodeLocked ? <span className="pf-variant-locked ml-2">🔒 Locked</span> : null}
                 </label>
-                <div className={`pf-code-group${isEditing ? ' is-disabled' : ''}`}>
-                  {listingPrefix ? (
-                    <span className="pf-code-prefix" title="Configured listing prefix">
-                      {listingPrefix}
-                    </span>
-                  ) : null}
-                  <input
-                    type="text"
-                    value={variantForm.ProductCode ?? ''}
-                    onChange={(e) => setVariantForm((prev) => ({ ...prev, ProductCode: e.target.value }))}
-                    disabled={isEditing}
-                    className="pf-code-input"
-                    placeholder="e.g., 788-2"
-                  />
-                </div>
+                {!isCodeLocked && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const rand = Math.floor(1000 + Math.random() * 9000);
+                      const code = (editingVariantIndex === 'primary' || editingVariantIndex === -1 || editingVariantIndex === null)
+                        ? `${rand}-1`
+                        : `${rand}-${(editingVariantIndex ?? 0) + 2}`;
+                      setVariantForm((prev) => ({ ...prev, ProductCode: code }));
+                      if (editingVariantIndex === 'primary' || editingVariantIndex === -1) {
+                        setFormData?.((prev) => ({ ...prev, ProductCode: code }));
+                      }
+                    }}
+                    className="pf-autogen-btn text-xs"
+                    title="Generate a unique product code"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-amber-500">
+                      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                    </svg>
+                    <span>Auto-generate</span>
+                  </button>
+                )}
               </div>
-              <div>
-                <label className="pf-variant-label">
-                  HSN Code
-                </label>
+              <div className={`pf-code-group${isCodeLocked ? ' is-disabled' : ''}`}>
+                {listingPrefix ? (
+                  <span className="pf-code-prefix" title="Configured listing prefix">
+                    {listingPrefix}
+                  </span>
+                ) : null}
                 <input
                   type="text"
-                  value={variantForm.hsnCode ?? ''}
-                  onChange={(e) => setVariantForm((prev) => ({ ...prev, hsnCode: e.target.value }))}
-                  className="pf-variant-input pf-variant-input--mono"
-                  placeholder="e.g., 7117"
-                  maxLength={10}
+                  value={variantForm.ProductCode ?? ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setVariantForm((prev) => ({ ...prev, ProductCode: val }));
+                    if (editingVariantIndex === 'primary' || editingVariantIndex === -1) {
+                      setFormData?.((prev) => ({ ...prev, ProductCode: val }));
+                    }
+                  }}
+                  onBlur={(e) => {
+                    const val = e.target.value.trim().toUpperCase();
+                    if (val) {
+                      const formatted = /-\d+$/.test(val) ? val : `${val}-1`;
+                      setVariantForm((prev) => ({ ...prev, ProductCode: formatted }));
+                      if (editingVariantIndex === 'primary' || editingVariantIndex === -1) {
+                        setFormData?.((prev) => ({ ...prev, ProductCode: formatted }));
+                      }
+                    }
+                  }}
+                  disabled={isCodeLocked}
+                  className="pf-code-input"
+                  placeholder="e.g., 788-1"
                 />
               </div>
             </div>
@@ -397,11 +452,35 @@ const VariantModal = ({
             <div className="pf-variant-grid">
               <div className="pf-variant-field">
                 <label>Base Price (₹) <span className="pf-req">*</span></label>
-                <input type="number" value={variantForm.price.base} onChange={(e) => setVariantForm((prev) => ({ ...prev, price: { ...prev.price, base: e.target.value } }))} className="pf-variant-input" placeholder="29999" />
+                <input
+                  type="number"
+                  value={variantForm.price.base}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setVariantForm((prev) => ({ ...prev, price: { ...prev.price, base: val } }));
+                    if (editingVariantIndex === 'primary' || editingVariantIndex === -1) {
+                      setFormData?.((prev) => ({ ...prev, price: { ...prev.price, base: val } }));
+                    }
+                  }}
+                  className="pf-variant-input"
+                  placeholder="29999"
+                />
               </div>
               <div className="pf-variant-field">
                 <label>Sale Price (₹)</label>
-                <input type="number" value={variantForm.price.sale ?? ''} onChange={(e) => setVariantForm((prev) => ({ ...prev, price: { ...prev.price, sale: e.target.value } }))} className="pf-variant-input" placeholder="19999" />
+                <input
+                  type="number"
+                  value={variantForm.price.sale ?? ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setVariantForm((prev) => ({ ...prev, price: { ...prev.price, sale: val } }));
+                    if (editingVariantIndex === 'primary' || editingVariantIndex === -1) {
+                      setFormData?.((prev) => ({ ...prev, price: { ...prev.price, sale: val } }));
+                    }
+                  }}
+                  className="pf-variant-input"
+                  placeholder="19999"
+                />
               </div>
             </div>
             {variantForm.price.base && variantForm.price.sale && (
@@ -530,13 +609,153 @@ const VariantModal = ({
             </div>
           </div>
 
+          {/* Shipping & Tax Details */}
+          <div className="pf-variant-section pf-variant-section--divided">
+            <div>
+              <h4 className="pf-variant-label">Shipping &amp; Tax Details</h4>
+              <p className="pf-variant-hint">GST rate, package weight and dimensions for this variant</p>
+            </div>
+
+            <div className="pf-variant-field">
+              <label>GST Rate</label>
+              <select
+                value={variantForm.taxRate ?? ''}
+                onChange={(e) => {
+                  const val = e.target.value === '' ? '' : parseFloat(e.target.value);
+                  setVariantForm((prev) => ({ ...prev, taxRate: val }));
+                  if (editingVariantIndex === 'primary' || editingVariantIndex === -1 || (isEditMode && editingVariantIndex === 0)) {
+                    setFormData?.((prev) => ({ ...prev, taxRate: val }));
+                  }
+                }}
+                className="pf-variant-input pf-variant-input--half cursor-pointer"
+              >
+                <option value="">Select GST Rate</option>
+                {TAX_RATE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <p className="pf-variant-attr-hint">Applicable GST percentage for this product variant</p>
+            </div>
+
+            <div className="pf-variant-field mt-3">
+              <label>Fragile Item?</label>
+              <div className="flex items-center gap-6 mt-1">
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                  <input
+                    type="radio"
+                    name={`fragile-${editingVariantIndex ?? 'new'}`}
+                    checked={variantForm.isFragile === true}
+                    onChange={() => {
+                      setVariantForm((prev) => ({ ...prev, isFragile: true }));
+                      if (editingVariantIndex === 'primary' || editingVariantIndex === -1 || (isEditMode && editingVariantIndex === 0)) {
+                        setFormData?.((prev) => ({ ...prev, isFragile: true }));
+                      }
+                    }}
+                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span>Yes (Fragile)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                  <input
+                    type="radio"
+                    name={`fragile-${editingVariantIndex ?? 'new'}`}
+                    checked={variantForm.isFragile !== true}
+                    onChange={() => {
+                      setVariantForm((prev) => ({ ...prev, isFragile: false }));
+                      if (editingVariantIndex === 'primary' || editingVariantIndex === -1 || (isEditMode && editingVariantIndex === 0)) {
+                        setFormData?.((prev) => ({ ...prev, isFragile: false }));
+                      }
+                    }}
+                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span>No</span>
+                </label>
+              </div>
+              <p className="pf-variant-attr-hint">Indicates if special handling is required during shipping</p>
+            </div>
+
+            <div className="pf-variant-field mt-3">
+              <label>Weight (kg)</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={variantForm.shipping?.weight ?? ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const nextShipping = {
+                    ...(variantForm.shipping || {}),
+                    weight: val,
+                    dimensions: variantForm.shipping?.dimensions || { length: '', width: '', height: '' },
+                  };
+                  setVariantForm((prev) => ({ ...prev, shipping: nextShipping }));
+                  if (editingVariantIndex === 'primary' || editingVariantIndex === -1 || (isEditMode && editingVariantIndex === 0)) {
+                    setFormData?.((prev) => ({
+                      ...prev,
+                      shipping: {
+                        ...(prev.shipping || {}),
+                        weight: val === '' ? '' : parseFloat(val) || 0,
+                      },
+                    }));
+                  }
+                }}
+                className="pf-variant-input pf-variant-input--half"
+                placeholder="0.5"
+              />
+            </div>
+
+            <div className="pf-variant-field mt-3">
+              <label>Dimensions (cm)</label>
+              <div className="pf-variant-grid pf-variant-grid--3">
+                {['length', 'width', 'height'].map((dim) => (
+                  <input
+                    key={dim}
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={variantForm.shipping?.dimensions?.[dim] ?? ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const nextDims = {
+                        ...(variantForm.shipping?.dimensions || {}),
+                        [dim]: val,
+                      };
+                      const nextShipping = {
+                        ...(variantForm.shipping || {}),
+                        dimensions: nextDims,
+                      };
+                      setVariantForm((prev) => ({ ...prev, shipping: nextShipping }));
+                      if (editingVariantIndex === 'primary' || editingVariantIndex === -1 || (isEditMode && editingVariantIndex === 0)) {
+                        setFormData?.((prev) => ({
+                          ...prev,
+                          shipping: {
+                            ...(prev.shipping || {}),
+                            dimensions: {
+                              ...(prev.shipping?.dimensions || {}),
+                              [dim]: val === '' ? '' : parseFloat(val) || 0,
+                            },
+                          },
+                        }));
+                      }
+                    }}
+                    className="pf-variant-input"
+                    placeholder={dim.charAt(0).toUpperCase() + dim.slice(1)}
+                  />
+                ))}
+              </div>
+              <p className="pf-variant-footnote mt-1 text-xs text-gray-400">
+                Length × Width × Height in cm. Used for checkout delivery charge and Shiprocket.
+              </p>
+            </div>
+          </div>
+
           <VariantCatalogFieldsSection
             title={variantForm.title ?? ''}
             description={variantForm.description ?? ''}
-            shipping={variantForm.shipping ?? emptyVariantShippingForm()}
             onTitleChange={(value) => setVariantForm((prev) => ({ ...prev, title: value }))}
             onDescriptionChange={(value) => setVariantForm((prev) => ({ ...prev, description: value }))}
-            onShippingChange={(shipping) => setVariantForm((prev) => ({ ...prev, shipping }))}
           />
 
           <div className="pf-variant-section">
