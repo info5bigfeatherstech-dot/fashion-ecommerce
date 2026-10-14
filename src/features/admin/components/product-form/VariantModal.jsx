@@ -92,6 +92,24 @@ const VariantModal = ({
     }
   }, [editingVariantIndex]);
 
+  const syncAttrsToParentForm = (nextAttrs) => {
+    if (!setFormData) return
+    const isPrimary = editingVariantIndex === 'primary' || editingVariantIndex === -1 || (isEditMode && editingVariantIndex === 0)
+    setFormData((p) => {
+      const variants = [...(p?.variants || [])]
+      if (isPrimary) {
+        if (variants[0]) {
+          variants[0] = { ...variants[0], attributes: nextAttrs }
+        }
+        return { ...p, attributes: nextAttrs, variants }
+      } else if (typeof editingVariantIndex === 'number' && variants[editingVariantIndex]) {
+        variants[editingVariantIndex] = { ...variants[editingVariantIndex], attributes: nextAttrs }
+        return { ...p, variants }
+      }
+      return p
+    })
+  }
+
   const addVariantAttribute = () => {
     let nextKey = ''
     try {
@@ -102,9 +120,7 @@ const VariantModal = ({
     } catch {}
     setVariantForm(prev => {
       const nextAttrs = [...prev.attributes, { key: nextKey, value: '', hex: '' }]
-      if (editingVariantIndex === 'primary' || editingVariantIndex === -1) {
-        setFormData?.((p) => ({ ...p, attributes: nextAttrs }))
-      }
+      syncAttrsToParentForm(nextAttrs)
       return { ...prev, attributes: nextAttrs }
     })
   };
@@ -112,9 +128,7 @@ const VariantModal = ({
   const removeVariantAttribute = (index) =>
     setVariantForm(prev => {
       const nextAttrs = prev.attributes.filter((_, i) => i !== index)
-      if (editingVariantIndex === 'primary' || editingVariantIndex === -1) {
-        setFormData?.((p) => ({ ...p, attributes: nextAttrs }))
-      }
+      syncAttrsToParentForm(nextAttrs)
       return { ...prev, attributes: nextAttrs }
     });
 
@@ -136,9 +150,7 @@ const VariantModal = ({
         }
         return next
       })
-      if (editingVariantIndex === 'primary' || editingVariantIndex === -1) {
-        setFormData?.((p) => ({ ...p, attributes: nextAttrs }))
-      }
+      syncAttrsToParentForm(nextAttrs)
       return { ...prev, attributes: nextAttrs }
     });
 

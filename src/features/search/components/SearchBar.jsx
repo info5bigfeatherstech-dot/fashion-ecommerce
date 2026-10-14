@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { Search } from 'lucide-react'
+import { Search, Sparkles } from 'lucide-react'
 import { searchProducts } from '../api'
 import { searchKeys } from '../queryKeys'
+import { formatPrice } from '@/lib/utils'
 
 export function SearchBar({ className, iconRight = false, autoFocus = false }) {
   const [query, setQuery] = useState('')
@@ -65,6 +66,28 @@ export function SearchBar({ className, iconRight = false, autoFocus = false }) {
   )
 }
 
+function SuggestThumb({ src, alt }) {
+  const [hasError, setHasError] = useState(false)
+
+  if (src && !hasError) {
+    return (
+      <img
+        src={src}
+        alt={alt || ''}
+        className="search-suggest__thumb"
+        onError={() => setHasError(true)}
+        loading="lazy"
+      />
+    )
+  }
+
+  return (
+    <div className="search-suggest__thumb search-suggest__thumb--empty" aria-hidden="true">
+      <Sparkles size={16} className="search-suggest__empty-icon" />
+    </div>
+  )
+}
+
 export function Autosuggest({ results, onSelect }) {
   const navigate = useNavigate()
 
@@ -80,14 +103,24 @@ export function Autosuggest({ results, onSelect }) {
             onSelect()
           }}
         >
-          {product.images?.[0] ? (
-            <img src={product.images[0]} alt="" className="search-suggest__thumb" />
-          ) : (
-            <div className="search-suggest__thumb search-suggest__thumb--empty" aria-hidden="true" />
-          )}
-          <div>
-            <p className="body-sm" style={{ fontWeight: 'var(--weight-medium)' }}>{product.name}</p>
-            <p className="body-sm text-muted">{product.categoryLabel || product.category}</p>
+          <SuggestThumb src={product.images?.[0]} alt={product.name} />
+          <div className="search-suggest__info">
+            <p className="body-sm search-suggest__name" style={{ fontWeight: 'var(--weight-medium)' }}>
+              {product.name}
+            </p>
+            <div className="search-suggest__meta">
+              <span className="search-suggest__category">
+                {product.categoryLabel || product.category}
+              </span>
+              {product.price != null && !Number.isNaN(Number(product.price)) && (
+                <>
+                  <span className="search-suggest__dot" aria-hidden="true">·</span>
+                  <span className="search-suggest__price">
+                    {formatPrice(product.price)}
+                  </span>
+                </>
+              )}
+            </div>
           </div>
         </button>
       ))}

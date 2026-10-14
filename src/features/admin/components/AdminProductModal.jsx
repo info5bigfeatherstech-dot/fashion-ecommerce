@@ -404,7 +404,7 @@ export function AdminProductModal({
     // Commit currently open variant so its values are persisted before adding the next
     let baseCode = String(formData.ProductCode || '').trim()
     if (showVariantModal && variantForm) {
-      if (editingVariantIndex === 'primary' || editingVariantIndex === -1) {
+      if (editingVariantIndex === 'primary' || editingVariantIndex === -1 || (isEdit && editingVariantIndex === 0)) {
         baseCode = String(variantForm.ProductCode || formData.ProductCode || '').trim()
         if (baseCode && !/-\d+$/.test(baseCode)) {
           baseCode = `${baseCode}-1`
@@ -419,30 +419,40 @@ export function AdminProductModal({
             }
             return attr
           })
-        setFormData((p) => ({
-          ...p,
-          ProductCode: baseCode || p.ProductCode,
-          hsnCode: variantForm.hsnCode !== undefined ? variantForm.hsnCode : p.hsnCode,
-          taxRate: variantForm.taxRate !== undefined ? variantForm.taxRate : p.taxRate,
-          isFragile: variantForm.isFragile !== undefined ? variantForm.isFragile : p.isFragile,
-          shipping: variantForm.shipping || p.shipping,
-          price: {
-            ...p.price,
-            base: variantForm.price?.base ?? p.price?.base,
-            sale: variantForm.price?.sale ?? p.price?.sale,
-          },
-          inventory: {
-            ...p.inventory,
-            ...variantForm.inventory,
-          },
-          attributes: validAttributes.length > 0 ? validAttributes : p.attributes,
-          images: variantForm.images?.length > 0 ? variantForm.images : p.images,
-          wholesale: variantForm.wholesale,
-          wholesaleBase: variantForm.price?.wholesaleBase ?? p.wholesaleBase,
-          wholesaleSale: variantForm.price?.wholesaleSale ?? p.wholesaleSale,
-          minimumOrderQuantity: variantForm.minimumOrderQuantity ?? p.minimumOrderQuantity,
-          status: variantForm.isActive ? 'active' : 'inactive',
-        }))
+        setFormData((p) => {
+          const variants = [...(p.variants || [])]
+          if (variants[0]) {
+            variants[0] = {
+              ...variants[0],
+              attributes: validAttributes.length > 0 ? validAttributes : (variants[0].attributes || []),
+            }
+          }
+          return {
+            ...p,
+            variants,
+            ProductCode: baseCode || p.ProductCode,
+            hsnCode: variantForm.hsnCode !== undefined ? variantForm.hsnCode : p.hsnCode,
+            taxRate: variantForm.taxRate !== undefined ? variantForm.taxRate : p.taxRate,
+            isFragile: variantForm.isFragile !== undefined ? variantForm.isFragile : p.isFragile,
+            shipping: variantForm.shipping || p.shipping,
+            price: {
+              ...p.price,
+              base: variantForm.price?.base ?? p.price?.base,
+              sale: variantForm.price?.sale ?? p.price?.sale,
+            },
+            inventory: {
+              ...p.inventory,
+              ...variantForm.inventory,
+            },
+            attributes: validAttributes.length > 0 ? validAttributes : p.attributes,
+            images: variantForm.images?.length > 0 ? variantForm.images : p.images,
+            wholesale: variantForm.wholesale,
+            wholesaleBase: variantForm.price?.wholesaleBase ?? p.wholesaleBase,
+            wholesaleSale: variantForm.price?.wholesaleSale ?? p.wholesaleSale,
+            minimumOrderQuantity: variantForm.minimumOrderQuantity ?? p.minimumOrderQuantity,
+            status: variantForm.isActive ? 'active' : 'inactive',
+          }
+        })
       } else if (editingVariantIndex !== null && !isEdit) {
         setFormData((p) => ({
           ...p,
@@ -588,9 +598,13 @@ export function AdminProductModal({
     const isPrimary = index === 'primary' || index === -1 || (isEdit && index === 0)
     let v
     if (isPrimary) {
+      const primaryAttrs =
+        currentForm.variants?.[0]?.attributes?.length > 0
+          ? currentForm.variants[0].attributes
+          : (currentForm.attributes?.length > 0 ? currentForm.attributes : [])
       v = {
         ProductCode: currentForm.ProductCode || currentForm.productCode || '',
-        attributes: currentForm.attributes || [],
+        attributes: primaryAttrs,
         price: currentForm.price || { base: '', sale: '' },
         inventory: currentForm.inventory || { quantity: '', lowStockThreshold: 0, trackInventory: true },
         images: currentForm.images || [],
@@ -681,20 +695,30 @@ export function AdminProductModal({
     if (!productPayload?.variants) return
     setFormData((prev) => {
       const normalised = normaliseVariantsForEdit(productPayload.variants)
-      // When saving an extra variant (index > 0), the server response replaces
-      // variants[0] with its persisted attributes — which may not yet include
-      // locally-added product attributes that the user hasn't saved yet.
-      // Preserve the current local attributes on variants[0] in that case.
-      if (preserveMainAttributes && normalised.length > 0 && prev.variants?.[0]?.attributes?.length > 0) {
-        normalised[0] = { ...normalised[0], attributes: prev.variants[0].attributes }
+
+      const prevMainAttrs =
+        prev.variants?.[0]?.attributes?.length > 0
+          ? prev.variants[0].attributes
+          : (prev.attributes?.length > 0 ? prev.attributes : [])
+
+      const serverMainAttrs =
+        normalised[0]?.attributes?.length > 0
+          ? normalised[0].attributes
+          : (productPayload.attributes?.length > 0 ? productPayload.attributes : [])
+
+      const bestMainAttrs =
+        preserveMainAttributes
+          ? (prevMainAttrs.length > 0 ? prevMainAttrs : serverMainAttrs)
+          : (serverMainAttrs.length > 0 ? serverMainAttrs : prevMainAttrs)
+
+      if (normalised.length > 0 && bestMainAttrs.length > 0) {
+        normalised[0] = { ...normalised[0], attributes: bestMainAttrs }
       }
+
       return {
         ...prev,
         variants: normalised,
-        // Keep formData.attributes in sync with variants[0].attributes
-        attributes: preserveMainAttributes
-          ? (prev.variants?.[0]?.attributes || prev.attributes)
-          : (normalised[0]?.attributes || prev.attributes),
+        attributes: bestMainAttrs,
       }
     })
   }
@@ -716,30 +740,41 @@ export function AdminProductModal({
     // Create mode: product does not exist yet — keep variants in local form only.
     if (!isEdit) {
       if (editingVariantIndex === 'primary' || editingVariantIndex === -1) {
-        setFormData((p) => ({
-          ...p,
-          ProductCode: variantToSave.ProductCode || p.ProductCode,
-          hsnCode: variantToSave.hsnCode !== undefined ? variantToSave.hsnCode : p.hsnCode,
-          taxRate: variantToSave.taxRate !== undefined ? variantToSave.taxRate : p.taxRate,
-          isFragile: variantToSave.isFragile !== undefined ? variantToSave.isFragile : p.isFragile,
-          shipping: variantToSave.shipping || p.shipping,
-          price: {
-            ...p.price,
-            base: variantToSave.price.base,
-            sale: variantToSave.price.sale,
-          },
-          inventory: {
-            ...p.inventory,
-            ...variantToSave.inventory,
-          },
-          attributes: variantToSave.attributes,
-          images: variantToSave.images,
-          wholesale: variantToSave.wholesale,
-          wholesaleBase: variantToSave.wholesaleBase,
-          wholesaleSale: variantToSave.wholesaleSale,
-          minimumOrderQuantity: variantToSave.minimumOrderQuantity,
-          status: variantToSave.isActive ? 'active' : 'inactive',
-        }))
+        setFormData((p) => {
+          const variants = [...(p.variants || [])]
+          if (variants[0]) {
+            variants[0] = {
+              ...variants[0],
+              ...variantToSave,
+              attributes: variantToSave.attributes,
+            }
+          }
+          return {
+            ...p,
+            variants,
+            ProductCode: variantToSave.ProductCode || p.ProductCode,
+            hsnCode: variantToSave.hsnCode !== undefined ? variantToSave.hsnCode : p.hsnCode,
+            taxRate: variantToSave.taxRate !== undefined ? variantToSave.taxRate : p.taxRate,
+            isFragile: variantToSave.isFragile !== undefined ? variantToSave.isFragile : p.isFragile,
+            shipping: variantToSave.shipping || p.shipping,
+            price: {
+              ...p.price,
+              base: variantToSave.price.base,
+              sale: variantToSave.price.sale,
+            },
+            inventory: {
+              ...p.inventory,
+              ...variantToSave.inventory,
+            },
+            attributes: variantToSave.attributes,
+            images: variantToSave.images,
+            wholesale: variantToSave.wholesale,
+            wholesaleBase: variantToSave.wholesaleBase,
+            wholesaleSale: variantToSave.wholesaleSale,
+            minimumOrderQuantity: variantToSave.minimumOrderQuantity,
+            status: variantToSave.isActive ? 'active' : 'inactive',
+          }
+        })
       } else if (editingVariantIndex !== null) {
         setFormData((p) => ({
           ...p,
@@ -846,20 +881,32 @@ export function AdminProductModal({
           variantUpdatePayload.variantTitle = variantToSave.title
           variantUpdatePayload.variantDescription = variantToSave.description
         } else if (editingVariantIndex === 0) {
-          setFormData((p) => ({
-            ...p,
-            hsnCode: variantToSave.hsnCode !== undefined ? variantToSave.hsnCode : p.hsnCode,
-            taxRate: variantToSave.taxRate !== undefined ? variantToSave.taxRate : p.taxRate,
-            isFragile: variantToSave.isFragile !== undefined ? variantToSave.isFragile : p.isFragile,
-            shipping: variantToSave.shipping || p.shipping,
-          }))
+          setFormData((p) => {
+            const variants = [...(p.variants || [])]
+            if (variants[0]) {
+              variants[0] = {
+                ...variants[0],
+                ...variantToSave,
+                attributes: variantToSave.attributes,
+              }
+            }
+            return {
+              ...p,
+              variants,
+              attributes: variantToSave.attributes,
+              hsnCode: variantToSave.hsnCode !== undefined ? variantToSave.hsnCode : p.hsnCode,
+              taxRate: variantToSave.taxRate !== undefined ? variantToSave.taxRate : p.taxRate,
+              isFragile: variantToSave.isFragile !== undefined ? variantToSave.isFragile : p.isFragile,
+              shipping: variantToSave.shipping || p.shipping,
+            }
+          })
         }
         const result = await updateAdminProductVariant(variantUpdatePayload)
         if (result?.product) {
           setLoadedProduct(result.product)
-          // For extra variants (index > 0), preserve locally-edited product
-          // attributes on variants[0] that haven't been submitted yet.
-          applyProductVariants(result.product, { preserveMainAttributes: editingVariantIndex > 0 })
+          applyProductVariants(result.product, {
+            preserveMainAttributes: editingVariantIndex > 0 || (editingVariantIndex === 0 && (variantToSave.attributes?.length > 0)),
+          })
         }
         toast.success('Variant updated')
       } else {
@@ -1044,18 +1091,44 @@ export function AdminProductModal({
 
       setSaving(true)
       try {
+        const isEditingPrimaryOpen =
+          showVariantModal &&
+          (editingVariantIndex === 0 || editingVariantIndex === 'primary' || editingVariantIndex === -1)
+
+        const openVariantValidAttrs = isEditingPrimaryOpen
+          ? (variantForm.attributes || [])
+            .filter((a) => (a.key || '').trim() && (a.value || '').trim())
+            .map((a) => {
+              const attr = { key: a.key.trim(), value: a.value.trim() }
+              if (isColorAttributeKey(attr.key)) {
+                const hex = normalizeHexColor(a.hex)
+                if (hex) attr.hex = hex
+              }
+              return attr
+            })
+          : []
+
         const mainVariant = formData.variants?.[0]
         const barcode = mainVariant?.productCode ?? mainVariant?.ProductCode
 
+        const mainAttrs =
+          openVariantValidAttrs.length > 0
+            ? openVariantValidAttrs
+            : (formData.variants?.[0]?.attributes?.length
+              ? formData.variants[0].attributes
+              : (formData.attributes?.length ? formData.attributes : []))
+
         // 1) Save main variant (price / wholesale / images) — same as fabFE updateVariantByBarcode
         if (barcode != null && barcode !== '') {
-          const base = parseFloat(mainVariant.price?.base)
+          const rawBase = isEditingPrimaryOpen && variantForm.price?.base ? variantForm.price.base : mainVariant.price?.base
+          const base = parseFloat(rawBase)
           if (!base || base <= 0) {
             throw new Error('Main variant base price is required and must be greater than 0')
           }
+          const rawSale = isEditingPrimaryOpen && variantForm.price?.sale !== undefined ? variantForm.price.sale : mainVariant.price?.sale
           const sale =
-            mainVariant.price?.sale !== '' && mainVariant.price?.sale != null
-              ? parseFloat(mainVariant.price.sale)
+            rawSale !== '' && rawSale != null
+              ? parseFloat(rawSale)
               : null
           if (sale !== null && Number.isFinite(sale) && sale >= base) {
             throw new Error('Main variant sale price must be less than base price')
@@ -1126,25 +1199,24 @@ export function AdminProductModal({
             slug: product.slug,
             barcode,
             price: pricePayload,
-            inventory: mainVariant.inventory,
-            attributes: mainVariant.attributes,
-            isActive: mainVariant.isActive,
-            images: mainVariant.images,
+            inventory: isEditingPrimaryOpen && variantForm.inventory ? variantForm.inventory : mainVariant.inventory,
+            attributes: mainAttrs,
+            isActive: isEditingPrimaryOpen && variantForm.isActive !== undefined ? variantForm.isActive : mainVariant.isActive,
+            images: isEditingPrimaryOpen && variantForm.images?.length ? variantForm.images : mainVariant.images,
             wholesale: wholesaleResolved.wholesale,
             minimumOrderQuantity: wholesaleResolved.minimumOrderQuantity,
             channelVisibility: channelVisibilityPayload,
           })
           if (variantResult?.product) {
             setLoadedProduct(variantResult.product)
-            applyProductVariants(variantResult.product)
+            applyProductVariants(variantResult.product, { preserveMainAttributes: true })
           }
         }
 
         // 2) Product-level fields only (no variants / images) — PUT /admin/products/:slug
         const fd = buildUpdateProductFormData({
           ...formData,
-          // Prefer attributes from main variant in edit mode
-          attributes: formData.variants?.[0]?.attributes || formData.attributes || [],
+          attributes: mainAttrs,
         })
         await updateAdminProduct(product.slug, fd)
         await syncAdminProductMarketingTags(
@@ -1186,6 +1258,12 @@ export function AdminProductModal({
     }
     if (!payloadForm.shipping?.weight && payloadForm.variants?.[0]?.shipping?.weight) {
       payloadForm.shipping = payloadForm.variants[0].shipping
+    }
+    if ((!payloadForm.attributes || payloadForm.attributes.length === 0) && payloadForm.variants?.[0]?.attributes?.length) {
+      payloadForm.attributes = payloadForm.variants[0].attributes
+    }
+    if (payloadForm.variants?.[0] && (!payloadForm.variants[0].attributes || payloadForm.variants[0].attributes.length === 0) && payloadForm.attributes?.length) {
+      payloadForm.variants[0].attributes = payloadForm.attributes
     }
     if (payloadForm.variants?.[0]?.images?.length && (!payloadForm.images || payloadForm.images.length === 0)) {
       payloadForm.images = payloadForm.variants[0].images

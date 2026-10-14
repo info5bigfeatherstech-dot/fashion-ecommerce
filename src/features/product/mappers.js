@@ -194,6 +194,9 @@ function mapVariant(variant, fallbackImages = []) {
     inStock: resolveVariantInStock(variant),
     quantity,
     images: variantImages.length > 0 ? variantImages : fallbackImages,
+    gstRate: variant.gstRate ?? variant.taxRate ?? null,
+    taxRate: variant.taxRate ?? variant.gstRate ?? null,
+    hsnCode: variant.hsnCode || null,
     attributes: asArray(variant.attributes).map((attribute) => {
       const hex = normalizeHexColor(attribute.hex)
       return hex
@@ -269,6 +272,12 @@ export function mapProduct(dto) {
     composition: attributes.map((item) => `${item.key}: ${item.value}`).join(' · ') || null,
     care: null,
     ingredients: null,
+    gstRate: dto.gstRate ?? dto.taxRate ?? null,
+    taxRate: dto.taxRate ?? dto.gstRate ?? null,
+    hsnCode: dto.hsnCode || null,
+    isFragile: Boolean(dto.isFragile),
+    shipping: dto.shipping || null,
+    raw: dto,
     variants: mappedVariants,
   }
 }

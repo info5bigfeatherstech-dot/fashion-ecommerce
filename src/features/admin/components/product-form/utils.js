@@ -258,6 +258,20 @@ export function productToEditForm(product) {
       ? (product.category._id || product.category.id || '')
       : (product.category || '')
 
+  const mainAttrs =
+    product.attributes?.length > 0
+      ? product.attributes
+      : (main.attributes?.length > 0 ? main.attributes : [])
+
+  if (variants[0]) {
+    variants[0].attributes = (variants[0].attributes?.length > 0 ? variants[0].attributes : mainAttrs).map((a, i) => ({
+      key: a.key || '',
+      value: a.value || '',
+      hex: a.hex || '',
+      id: a.id ?? a._id ?? `var-0-attr-${i}`,
+    }))
+  }
+
   return {
     ...emptyProductForm(),
     name: product.name || '',
@@ -289,7 +303,7 @@ export function productToEditForm(product) {
       id: img._id || img.publicId || img.url || `main-img-${i}`,
       isMain: img.isMain || i === 0,
     })),
-    attributes: (product.attributes || main.attributes || []).map((a, i) => ({
+    attributes: mainAttrs.map((a, i) => ({
       ...a,
       id: a.id ?? a._id ?? `attr-${i}`,
     })),

@@ -36,8 +36,8 @@ function initialAttrsFromProduct(product) {
   const groups = product?.optionGroups || []
   if (!groups.length) return {}
   const preferred =
-    product?.variants?.find((variant) => variant?.inStock) ||
-    product?.variants?.[0]
+    product?.variants?.[0] ||
+    product?.variants?.find((variant) => variant?.inStock)
   const fromVariant = {}
   for (const attr of preferred?.attributes || []) {
     if (attr?.key && attr?.value != null) fromVariant[attr.key] = attr.value
@@ -414,16 +414,35 @@ function ProductDetailPage() {
         : []),
     ]
 
-  // Only show pickers when there is more than one choice; single values go into Details.
-  const choosableGroups = optionGroups.filter((group) => (group.values?.length || 0) > 1)
-  const detailOnlyGroups = optionGroups.filter((group) => (group.values?.length || 0) === 1)
+  // Show pickers when there is more than one choice, or for the first attribute axis.
+  const choosableGroups = optionGroups.filter((group, index) => {
+    if ((group.values?.length || 0) > 1) return true
+    // Only show the first attribute axis when there's a single value (e.g. Color)
+    if (index === 0 && (group.values?.length || 0) > 0) return true
+    // Do not show the second or subsequent single-value attributes as pickers
+    return false
+  })
+  const detailOnlyGroups = optionGroups.filter((group) => !choosableGroups.includes(group))
+
+  const currentVariantAttrs = selectedVariant?.attributes || product?.variants?.[0]?.attributes || product?.attributes || []
+  const currentVariantAttrMap = new Map(
+    currentVariantAttrs.map((a) => [String(a.key || '').trim().toLowerCase(), a.value])
+  )
 
   const detailLines = [
-    ...detailOnlyGroups.map((group) => ({
-      key: group.key,
-      label: group.label || group.key,
-      value: group.values[0],
-    })),
+    ...detailOnlyGroups
+      .filter((group) => {
+        const k = String(group.key || '').trim().toLowerCase()
+        if (currentVariantAttrs.length > 0) {
+          return currentVariantAttrMap.has(k)
+        }
+        return true
+      })
+      .map((group) => ({
+        key: group.key,
+        label: group.label || group.key,
+        value: currentVariantAttrMap.get(String(group.key || '').trim().toLowerCase()) || group.values[0],
+      })),
     ...(product.composition
       ? String(product.composition)
         .split(' · ')
@@ -441,6 +460,21 @@ function ProductDetailPage() {
         .filter((row) => !detailOnlyGroups.some((g) => String(g.key).toLowerCase() === String(row.key).toLowerCase()))
       : []),
   ]
+
+  const effectiveGstRate =
+    selectedVariant?.gstRate ??
+    selectedVariant?.taxRate ??
+    product?.gstRate ??
+    product?.taxRate ??
+    product?.raw?.gstRate ??
+    product?.raw?.taxRate
+
+  const hasGstRate =
+    effectiveGstRate !== null &&
+    effectiveGstRate !== undefined &&
+    effectiveGstRate !== '' &&
+    !Number.isNaN(Number(effectiveGstRate)) &&
+    Number(effectiveGstRate) >= 0
 
   const accordionItems = [
     ...(product.description
@@ -462,6 +496,20 @@ function ProductDetailPage() {
                 <dd>{row.value || '—'}</dd>
               </div>
             ))}
+          </dl>
+        ),
+      }]
+      : []),
+    ...(hasGstRate
+      ? [{
+        value: 'gst-information',
+        title: 'GST Information',
+        content: (
+          <dl className="pdp-details-list">
+            <div className="pdp-details-list__row">
+              <dt>GST Rate</dt>
+              <dd>{Number(effectiveGstRate)}%</dd>
+            </div>
           </dl>
         ),
       }]

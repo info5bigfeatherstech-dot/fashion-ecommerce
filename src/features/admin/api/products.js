@@ -188,8 +188,8 @@ export function buildUpdateProductFormData(pd) {
   }))
   fd.append('soldInfo', JSON.stringify(pd.soldInfo || { enabled: false, count: 0 }))
   fd.append('fomo', JSON.stringify(pd.fomo || { enabled: false }))
-  // Always send attributes (even []) so clearing the last attribute persists
-  fd.append('attributes', JSON.stringify(pd.attributes || []))
+  // Always send sanitized attributes (even []) so clearing the last attribute persists
+  fd.append('attributes', JSON.stringify(sanitizeAdminAttributes(pd.attributes || [])))
 
   return fd
 }
@@ -554,9 +554,17 @@ export function buildCreateProductFormData(productData) {
   fd.append('shipping', JSON.stringify(shippingData))
   fd.append('soldInfo', JSON.stringify(productData.soldInfo || { enabled: false, count: 0 }))
   fd.append('fomo', JSON.stringify(productData.fomo || { enabled: false }))
-  if (productData.attributes?.length) fd.append('attributes', JSON.stringify(productData.attributes))
+  const primaryAttributes = sanitizeAdminAttributes(
+    productData.attributes?.length
+      ? productData.attributes
+      : (productData.variants?.[0]?.attributes || [])
+  )
+  if (primaryAttributes?.length) fd.append('attributes', JSON.stringify(primaryAttributes))
 
-  const productImageFiles = (productData.images || []).filter((img) => img.file instanceof File)
+  const mainImages = (productData.images?.length
+    ? productData.images
+    : (productData.variants?.[0]?.images || []))
+  const productImageFiles = mainImages.filter((img) => img.file instanceof File)
   productImageFiles.forEach((img) => fd.append('images', img.file))
 
   const priceData = {
@@ -615,7 +623,7 @@ export function buildCreateProductFormData(productData) {
 
   const primaryVariant = {
     productCode: normalizedMainProductCode,
-    attributes: [],
+    attributes: primaryAttributes,
     price: primaryPrice,
     inventory: buildInventoryObj(productData.inventory),
     isActive: productLifecycle === 'active',
