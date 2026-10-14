@@ -272,6 +272,23 @@ export function productToEditForm(product) {
     }))
   }
 
+  const primaryRawImages =
+    (product.images && product.images.length > 0)
+      ? product.images
+      : (main.images && main.images.length > 0)
+        ? main.images
+        : []
+
+  const formattedPrimaryImages = primaryRawImages.map((img, i) => ({
+    ...img,
+    id: img._id || img.publicId || img.url || `main-img-${i}`,
+    isMain: Boolean(img.isMain) || i === 0,
+  }))
+
+  if (variants[0] && (!variants[0].images || variants[0].images.length === 0) && formattedPrimaryImages.length > 0) {
+    variants[0].images = formattedPrimaryImages
+  }
+
   return {
     ...emptyProductForm(),
     name: product.name || '',
@@ -298,11 +315,7 @@ export function productToEditForm(product) {
       productLeft: 0,
       customMessage: '',
     },
-    images: (product.images || []).map((img, i) => ({
-      ...img,
-      id: img._id || img.publicId || img.url || `main-img-${i}`,
-      isMain: img.isMain || i === 0,
-    })),
+    images: formattedPrimaryImages,
     attributes: mainAttrs.map((a, i) => ({
       ...a,
       id: a.id ?? a._id ?? `attr-${i}`,

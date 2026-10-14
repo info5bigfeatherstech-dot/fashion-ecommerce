@@ -60,8 +60,28 @@ const VariantModal = ({
   formData = null,
 }) => {
   const [variantImageDragging, setVariantImageDragging] = useState(false);
+  const [draggedImageIndex, setDraggedImageIndex] = useState(null);
+  const [dragOverImageIndex, setDragOverImageIndex] = useState(null);
   const isEditing = editingVariantIndex !== null;
   const isCodeLocked = Boolean(isEditMode && isEditing && editingVariantIndex !== 'primary');
+  const isPrimary = editingVariantIndex === 'primary' || editingVariantIndex === -1 || (isEditMode && editingVariantIndex === 0);
+
+  // If editing Variant 1 and variantForm.images is empty, ensure it receives images from formData
+  useEffect(() => {
+    if (isPrimary && (!variantForm?.images || variantForm.images.length === 0)) {
+      const sourceImgs = (formData?.images && formData.images.length > 0)
+        ? formData.images
+        : (formData?.variants?.[0]?.images && formData.variants[0].images.length > 0)
+          ? formData.variants[0].images
+          : null;
+      if (sourceImgs && sourceImgs.length > 0) {
+        setVariantForm((prev) => {
+          if (prev.images && prev.images.length > 0) return prev;
+          return { ...prev, images: sourceImgs };
+        });
+      }
+    }
+  }, [isPrimary, formData?.images, formData?.variants]);
 
   // Ensure Color and Plating fields are always present in the attributes list
   useEffect(() => {
@@ -154,35 +174,136 @@ const VariantModal = ({
       return { ...prev, attributes: nextAttrs }
     });
 
-  const handleVariantImageUpload = (e) => {
-    const files = Array.from(e.target.files);
-    const newImages = [...variantForm.images];
-    files.forEach((file, index) => {
-      if (newImages.length < MAX_VARIANT_IMAGES) {
-        const reader = new FileReader();
-        const imageId = `vimg-${Date.now()}-${index}`;
-        reader.onloadend = () => {
-          newImages.push({ id: imageId, url: reader.result, file, name: file.name, isMain: newImages.length === 0 });
-          setVariantForm(prev => ({ ...prev, images: [...newImages] }));
-        };
-        reader.readAsDataURL(file);
+  const syncImagesToParentForm = (nextImages) => {
+    if (!setFormData) return;
+    setFormData((p) => {
+      const variants = [...(p?.variants || [])];
+      if (isPrimary) {
+        if (variants[0]) {
+          variants[0] = { ...variants[0], images: nextImages };
+        }
+        return { ...p, images: nextImages, variants };
+      } else if (typeof editingVariantIndex === 'number' && variants[editingVariantIndex]) {
+        variants[editingVariantIndex] = { ...variants[editingVariantIndex], images: nextImages };
+        return { ...p, variants };
       }
+      return p;
     });
   };
 
-  const removeVariantImage = (imageId) => {
-    const newImages = variantForm.images.filter(img => (img.id || img.url) !== imageId);
-    if (variantForm.images.find(img => (img.id || img.url) === imageId)?.isMain && newImages.length > 0) {
-      newImages[0] = { ...newImages[0], isMain: true };
+  const handleVariantImageUpload = async (e) => {
+    const rawFiles = Array.from(e.target?.files || []);
+    if (!rawFiles.length) return;
+    const currentImages = variantForm.images || [];
+    const remaining = MAX_VARIANT_IMAGES - currentImages.length;
+    if (remaining <= 0) {
+      toast.error(`Maximum of ${MAX_VARIANT_IMAGES} images allowed.`);
+      return;
     }
-    setVariantForm(prev => ({ ...prev, images: newImages }));
+    const filesToLoad = rawFiles.slice(0, remaining);
+
+    const readPromises = filesToLoad.map((file, idx) => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        const imageId = `vimg-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 7)}`;
+        reader.onloadend = () => {
+          resolve({
+            id: imageId,
+            url: reader.result,
+            file,
+            name: file.name,
+            isMain: false,
+          });
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    try {
+      const loaded = await Promise.all(readPromises);
+      const updated = [...currentImages, ...loaded];
+      if (!updated.some((img) => img.isMain) && updated.length > 0) {
+        updated[0] = { ...updated[0], isMain: true };
+      }
+      setVariantForm((prev) => ({ ...prev, images: updated }));
+      syncImagesToParentForm(updated);
+      toast.success(`Added ${loaded.length} image${loaded.length > 1 ? 's' : ''}`);
+    } catch {
+      toast.error('Failed to upload image(s)');
+    }
+    if (e.target) e.target.value = '';
   };
 
-  const setVariantMainImage = (imageId) =>
-    setVariantForm(prev => ({
-      ...prev,
-      images: prev.images.map(img => ({ ...img, isMain: (img.id || img.url) === imageId }))
+  const removeVariantImage = (imageId) => {
+    const remaining = (variantForm.images || []).filter((img) => (img.id || img.url) !== imageId);
+    const wasMain = (variantForm.images || []).find((img) => (img.id || img.url) === imageId)?.isMain;
+    if (wasMain && remaining.length > 0) {
+      remaining[0] = { ...remaining[0], isMain: true };
+    }
+    setVariantForm((prev) => ({ ...prev, images: remaining }));
+    syncImagesToParentForm(remaining);
+  };
+
+  const setVariantMainImage = (imageId) => {
+    const list = [...(variantForm.images || [])];
+    const targetIdx = list.findIndex((img) => (img.id || img.url) === imageId);
+    if (targetIdx === -1) return;
+
+    // Move target image to front (#1 position) and mark as isMain
+    const [targetImg] = list.splice(targetIdx, 1);
+    const updated = [
+      { ...targetImg, isMain: true },
+      ...list.map((img) => ({ ...img, isMain: false })),
+    ];
+    setVariantForm((prev) => ({ ...prev, images: updated }));
+    syncImagesToParentForm(updated);
+    toast.success('Image set as primary (#1)');
+  };
+
+  const handleImageDragStart = (e, index) => {
+    setDraggedImageIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(index));
+  };
+
+  const handleImageDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverImageIndex !== index) {
+      setDragOverImageIndex(index);
+    }
+  };
+
+  const handleImageDragEnd = () => {
+    setDraggedImageIndex(null);
+    setDragOverImageIndex(null);
+  };
+
+  const handleImageDrop = (e, targetIndex) => {
+    e.preventDefault();
+    const sourceIndex = draggedImageIndex;
+    if (sourceIndex === null || sourceIndex === targetIndex) {
+      setDraggedImageIndex(null);
+      setDragOverImageIndex(null);
+      return;
+    }
+
+    const reordered = [...(variantForm.images || [])];
+    const [moved] = reordered.splice(sourceIndex, 1);
+    reordered.splice(targetIndex, 0, moved);
+
+    // Keep position #1 as primary (isMain)
+    const updated = reordered.map((img, idx) => ({
+      ...img,
+      isMain: idx === 0,
     }));
+
+    setVariantForm((prev) => ({ ...prev, images: updated }));
+    syncImagesToParentForm(updated);
+    setDraggedImageIndex(null);
+    setDragOverImageIndex(null);
+    toast.success('Sequence updated');
+  };
 
   // SINGLE SOURCE OF TRUTH: check wholesale eligibility from price.wholesaleBase
   const isWholesaleEligible = () => {
@@ -743,7 +864,13 @@ const VariantModal = ({
           </div>
 
           <div className="pf-variant-section">
-            <label className="pf-variant-label">Images (up to {MAX_VARIANT_IMAGES})</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="pf-variant-label mb-0">Images (up to {MAX_VARIANT_IMAGES})</label>
+              <span className="text-xs text-gray-500 font-normal">
+                {variantForm.images.length}/{MAX_VARIANT_IMAGES} images {variantForm.images.length > 1 ? '· Drag to reorder sequence' : ''}
+              </span>
+            </div>
+
             <label
               className={`pf-variant-dropzone${variantImageDragging ? ' is-drag' : ''}${variantForm.images.length >= MAX_VARIANT_IMAGES ? ' is-full' : ''}`}
               onDragOver={(e) => { e.preventDefault(); setVariantImageDragging(true) }}
@@ -754,18 +881,113 @@ const VariantModal = ({
                 handleVariantImageUpload({ target: { files: e.dataTransfer.files } })
               }}
             >
-              <input type="file" multiple accept="image/*" onChange={handleVariantImageUpload} className="pf-variant-file" disabled={variantForm.images.length >= MAX_VARIANT_IMAGES} />
-              <p>Click or drop images ({variantForm.images.length}/{MAX_VARIANT_IMAGES})</p>
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleVariantImageUpload}
+                className="pf-variant-file"
+                disabled={variantForm.images.length >= MAX_VARIANT_IMAGES}
+              />
+              <div className="flex flex-col items-center justify-center gap-1 py-1">
+                <svg className="w-6 h-6 text-indigo-500 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <p className="text-sm font-medium text-gray-700">
+                  {variantForm.images.length >= MAX_VARIANT_IMAGES
+                    ? `Maximum ${MAX_VARIANT_IMAGES} images reached`
+                    : variantForm.images.length > 0
+                    ? `Click or drop more images (${variantForm.images.length}/${MAX_VARIANT_IMAGES})`
+                    : `Click or drop images (${variantForm.images.length}/${MAX_VARIANT_IMAGES})`}
+                </p>
+                <p className="text-xs text-gray-400">PNG, JPG, WEBP up to 10MB each</p>
+              </div>
             </label>
+
             {variantForm.images.length > 0 ? (
-              <div className="pf-variant-thumbs">
-                {variantForm.images.map((image) => (
-                  <div key={image.id || image.url} className={`pf-variant-thumb${image.isMain ? ' is-main' : ''}`}>
-                    <img src={image.url} alt="" />
-                    <button type="button" onClick={() => setVariantMainImage(image.id || image.url)} className="pf-variant-thumb__star" aria-label="Set as main">★</button>
-                    <button type="button" onClick={() => removeVariantImage(image.id || image.url)} className="pf-variant-thumb__remove" aria-label="Remove image">✕</button>
-                  </div>
-                ))}
+              <div className="space-y-2 mt-3">
+                <div className="pf-variant-thumbs">
+                  {variantForm.images.map((image, index) => {
+                    const isMain = Boolean(image.isMain || index === 0);
+                    const isDragging = draggedImageIndex === index;
+                    const isDragOver = dragOverImageIndex === index;
+
+                    return (
+                      <div
+                        key={image.id || image.url || `img-${index}`}
+                        draggable
+                        onDragStart={(e) => handleImageDragStart(e, index)}
+                        onDragOver={(e) => handleImageDragOver(e, index)}
+                        onDragEnd={handleImageDragEnd}
+                        onDrop={(e) => handleImageDrop(e, index)}
+                        className={`pf-variant-thumb${isMain ? ' is-main' : ''}${isDragging ? ' is-dragging' : ''}${isDragOver ? ' is-drag-over' : ''}`}
+                        title="Drag to change sequence order"
+                      >
+                        {/* Sequence number badge */}
+                        <span className="pf-variant-thumb__seq">
+                          #{index + 1}
+                        </span>
+
+                        <img src={image.url} alt={`Product image ${index + 1}`} draggable={false} />
+
+                        {/* Top action buttons */}
+                        <div className="pf-variant-thumb__actions">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setVariantMainImage(image.id || image.url);
+                            }}
+                            className={`pf-variant-thumb__star${isMain ? ' is-active' : ''}`}
+                            title={isMain ? "Primary Image (Thumbnail)" : "Set as Primary Image"}
+                            aria-label={isMain ? "Primary Image" : "Set as Primary Image"}
+                          >
+                            ★
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeVariantImage(image.id || image.url);
+                            }}
+                            className="pf-variant-thumb__remove"
+                            title="Remove image"
+                            aria-label="Remove image"
+                          >
+                            ✕
+                          </button>
+                        </div>
+
+                        {/* Primary Banner / Make Primary Button */}
+                        {isMain ? (
+                          <div className="pf-variant-thumb__primary-tag">
+                            ★ PRIMARY
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setVariantMainImage(image.id || image.url);
+                            }}
+                            className="pf-variant-thumb__set-primary"
+                          >
+                            Make Primary
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex items-center justify-between text-xs text-gray-500 pt-1">
+                  <span className="flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                    </svg>
+                    Drag thumbnails to arrange display sequence
+                  </span>
+                  <span>★ = Primary Thumbnail</span>
+                </div>
               </div>
             ) : null}
           </div>

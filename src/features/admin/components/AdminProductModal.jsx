@@ -219,6 +219,20 @@ export function AdminProductModal({
             const nextForm = productToEditForm(full)
             setFormData(nextForm)
             savedMarketingTagsRef.current = { ...(nextForm.marketingTags || {}) }
+            // If Variant 1 is open and has no images, refresh images from the newly loaded product
+            setVariantForm((prev) => {
+              if (prev && (!prev.images || prev.images.length === 0)) {
+                const refreshedImages = (nextForm.images && nextForm.images.length > 0)
+                  ? nextForm.images
+                  : (nextForm.variants?.[0]?.images && nextForm.variants[0].images.length > 0)
+                    ? nextForm.variants[0].images
+                    : []
+                if (refreshedImages.length > 0) {
+                  return { ...prev, images: refreshedImages }
+                }
+              }
+              return prev
+            })
           }
         } catch {
           // List row hydration is enough to show the form if detail fetch fails.
@@ -602,12 +616,20 @@ export function AdminProductModal({
         currentForm.variants?.[0]?.attributes?.length > 0
           ? currentForm.variants[0].attributes
           : (currentForm.attributes?.length > 0 ? currentForm.attributes : [])
+      const primaryImages =
+        (currentForm.images && currentForm.images.length > 0)
+          ? currentForm.images
+          : (currentForm.variants?.[0]?.images && currentForm.variants[0].images.length > 0)
+            ? currentForm.variants[0].images
+            : (product?.images && product.images.length > 0)
+              ? product.images
+              : []
       v = {
         ProductCode: currentForm.ProductCode || currentForm.productCode || '',
         attributes: primaryAttrs,
         price: currentForm.price || { base: '', sale: '' },
         inventory: currentForm.inventory || { quantity: '', lowStockThreshold: 0, trackInventory: true },
-        images: currentForm.images || [],
+        images: primaryImages,
         isActive: currentForm.status !== 'inactive',
         wholesale: currentForm.wholesale || false,
         wholesaleBase: currentForm.wholesaleBase || '',
@@ -668,7 +690,7 @@ export function AdminProductModal({
         lowStockThreshold: v.inventory?.lowStockThreshold ?? 0,
         trackInventory: v.inventory?.trackInventory !== false,
       },
-      images: v.images || [],
+      images: (v.images && v.images.length > 0) ? v.images : (isPrimary ? ((currentForm.images && currentForm.images.length > 0) ? currentForm.images : currentForm.variants?.[0]?.images || []) : []),
       isActive: v.isActive !== false,
       wholesale: v.wholesale || false,
       wholesaleBase: v.wholesaleBase || v.price?.wholesaleBase || '',
@@ -887,12 +909,14 @@ export function AdminProductModal({
               variants[0] = {
                 ...variants[0],
                 ...variantToSave,
+                images: variantToSave.images,
                 attributes: variantToSave.attributes,
               }
             }
             return {
               ...p,
               variants,
+              images: variantToSave.images,
               attributes: variantToSave.attributes,
               hsnCode: variantToSave.hsnCode !== undefined ? variantToSave.hsnCode : p.hsnCode,
               taxRate: variantToSave.taxRate !== undefined ? variantToSave.taxRate : p.taxRate,
