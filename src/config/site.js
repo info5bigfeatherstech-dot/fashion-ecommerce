@@ -11,7 +11,7 @@ export const SITE_TAGLINE = 'Artificial jewelry for everyday shine.'
 export const SITE_CONTACT = CONTACT
 
 export const TOP_BANNER = {
-  headline: 'Get Every Gift with Every Purchase',
+  headline: 'FREE GIFT WITH EVERY ORDER',
   message: 'Free Shipping on orders above ₹1099',
   href: '/product-all',
   cta: 'Shop now',

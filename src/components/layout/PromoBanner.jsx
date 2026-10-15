@@ -5,7 +5,7 @@ import { TOP_BANNER } from '@/config/site'
 import giftIcon from '@/assets/6664427.ico'
 
 function BannerPromoItem() {
-  const headlineMatch = TOP_BANNER.headline.match(/^(.*?\b)(every\s+purchase)(.*)$/i)
+  const headlineMatch = TOP_BANNER.headline.match(/^(.*?\b)(every\s+order)(.*)$/i)
   const headlinePrefix = headlineMatch ? headlineMatch[1] : TOP_BANNER.headline
   const headlineHighlight = headlineMatch ? headlineMatch[2] : ''
   const headlineSuffix = headlineMatch ? headlineMatch[3] : ''

@@ -530,6 +530,9 @@ function ProductDetailPage() {
     (row) => !otherKeys.has(String(row.key).toLowerCase())
   )
 
+  /** All non-picker attributes under one Details block (plating, color, etc.). */
+  const allDetailRows = [...otherVariantAttributes, ...filteredDetailLines]
+
   const effectiveGstRate =
     selectedVariant?.gstRate ??
     selectedVariant?.taxRate ??
@@ -547,7 +550,7 @@ function ProductDetailPage() {
 
   const hasDescriptionContent = Boolean(
     product.description ||
-    otherVariantAttributes.length > 0 ||
+    allDetailRows.length > 0 ||
     hasGstRate
   )
 
@@ -562,10 +565,11 @@ function ProductDetailPage() {
               <div className="pdp-description-text">{product.description}</div>
             ) : null}
 
-            {otherVariantAttributes.length > 0 && (
+            {allDetailRows.length > 0 && (
               <div className="pdp-description-section">
+                <h4 className="pdp-description-subheading">Details</h4>
                 <dl className="pdp-details-list">
-                  {otherVariantAttributes.map((row) => (
+                  {allDetailRows.map((row) => (
                     <div key={row.key} className="pdp-details-list__row">
                       <dt>{row.label}</dt>
                       <dd>{row.value || '—'}</dd>
@@ -577,32 +581,12 @@ function ProductDetailPage() {
 
             {hasGstRate && (
               <div className="pdp-description-section">
-                <h4 className="pdp-description-subheading">GST</h4>
-                <dl className="pdp-details-list">
-                  <div className="pdp-details-list__row">
-                    <dt>GST Rate</dt>
-                    <dd>{Number(effectiveGstRate)}%</dd>
-                  </div>
-                </dl>
+                <h4 className="pdp-description-subheading">
+                  GST {Number(effectiveGstRate)}%
+                </h4>
               </div>
             )}
           </div>
-        ),
-      }]
-      : []),
-    ...(filteredDetailLines.length
-      ? [{
-        value: 'details',
-        title: 'Details',
-        content: (
-          <dl className="pdp-details-list">
-            {filteredDetailLines.map((row) => (
-              <div key={row.key} className="pdp-details-list__row">
-                <dt>{row.label}</dt>
-                <dd>{row.value || '—'}</dd>
-              </div>
-            ))}
-          </dl>
         ),
       }]
       : []),
