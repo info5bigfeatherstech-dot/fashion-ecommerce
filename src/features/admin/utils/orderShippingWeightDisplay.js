@@ -69,6 +69,7 @@ export function resolveLineShippingWeightMeta(line, weightByVariantId, displayQt
       lineWeightKg: null,
       lineDimWeightKg: null,
       metaParts: [],
+      metaSegments: [],
     }
   }
 
@@ -105,12 +106,18 @@ export function resolveLineShippingWeightMeta(line, weightByVariantId, displayQt
     lineDimWeightKg = Math.round(unitDimWeightKg * qty * 100) / 100
   }
 
-  const metaParts = []
+  /** @type {Array<{ label: string|null, value: string }>} */
+  const metaSegments = []
   const dead = formatKg(lineWeightKg)
-  if (dead) metaParts.push(dead)
-  if (dimsLabel) metaParts.push(dimsLabel)
-  const dim = formatKg(lineDimWeightKg)
-  if (dim) metaParts.push(`dim ${dim}`)
+  if (dead) metaSegments.push({ label: 'Wt', value: dead })
+  if (dimsLabel) metaSegments.push({ label: null, value: dimsLabel })
+  // Hide near-zero volumetric (tiny jewellery dims often round to 0.00 kg)
+  if (lineDimWeightKg != null && Number.isFinite(lineDimWeightKg) && lineDimWeightKg >= 0.01) {
+    const dim = formatKg(lineDimWeightKg)
+    if (dim) metaSegments.push({ label: 'Vol', value: dim })
+  }
+
+  const metaParts = metaSegments.map((s) => (s.label ? `${s.label} ${s.value}` : s.value))
 
   return {
     weightRow,
@@ -118,6 +125,7 @@ export function resolveLineShippingWeightMeta(line, weightByVariantId, displayQt
     lineWeightKg,
     lineDimWeightKg,
     metaParts,
+    metaSegments,
   }
 }
 
@@ -131,6 +139,7 @@ export function resolvePackageShippingWeightMeta(order) {
       dimWeightLabel: null,
       catalogFallback: false,
       headerParts: [],
+      headerSegments: [],
     }
   }
 
@@ -147,10 +156,20 @@ export function resolvePackageShippingWeightMeta(order) {
   const dimWeightLabel = formatKg(packageDimKg)
   const catalogFallback = String(weightSnap.source || '') === 'catalog_fallback'
 
-  const headerParts = []
-  if (weightLabel) headerParts.push(weightLabel)
-  if (dimsLabel) headerParts.push(dimsLabel)
-  if (dimWeightLabel) headerParts.push(`dim ${dimWeightLabel}`)
+  /** @type {Array<{ label: string|null, value: string }>} */
+  const headerSegments = []
+  if (weightLabel) headerSegments.push({ label: 'Wt', value: weightLabel })
+  if (dimsLabel) headerSegments.push({ label: null, value: dimsLabel })
+  if (
+    packageDimKg != null &&
+    Number.isFinite(packageDimKg) &&
+    packageDimKg >= 0.01 &&
+    dimWeightLabel
+  ) {
+    headerSegments.push({ label: 'Vol', value: dimWeightLabel })
+  }
+
+  const headerParts = headerSegments.map((s) => (s.label ? `${s.label} ${s.value}` : s.value))
 
   return {
     weightSnap,
@@ -159,5 +178,6 @@ export function resolvePackageShippingWeightMeta(order) {
     dimWeightLabel,
     catalogFallback,
     headerParts,
+    headerSegments,
   }
 }

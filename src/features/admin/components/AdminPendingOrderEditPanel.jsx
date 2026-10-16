@@ -4,6 +4,7 @@ import {
   useAdminApplyPendingOrderEdit,
   useAdminPreviewPendingOrderEdit,
 } from '@/features/admin/hooks'
+import { ShippingWeightMetaText } from '@/features/admin/components/ShippingWeightMetaText'
 import {
   buildWeightByVariantId,
   resolveLineShippingWeightMeta,
@@ -171,9 +172,12 @@ export function AdminPendingOrderEditPanel({ order, orderId, disabled, onApplied
             correct.
           </p>
         </div>
-        {packageWeightMeta.headerParts.length > 0 ? (
+        {packageWeightMeta.headerSegments.length > 0 ? (
           <div className="od-items-meta od-items-meta--pending">
-            <p>{packageWeightMeta.headerParts.join(' · ')}</p>
+            <ShippingWeightMetaText
+              segments={packageWeightMeta.headerSegments}
+              className="od-items-meta__line"
+            />
             {packageWeightMeta.catalogFallback ? (
               <p className="od-items-meta__hint">Estimated from catalog (legacy order)</p>
             ) : null}
@@ -204,12 +208,13 @@ export function AdminPendingOrderEditPanel({ order, orderId, disabled, onApplied
               <div className="od-pending-item__info">
                 <p className="od-pending-item__name">{name}</p>
                 <p className="od-pending-item__sku">
-                  SKU <span>{sku}</span>
-                  {shipMeta.metaParts.length > 0
-                    ? ` · ${shipMeta.metaParts.join(' · ')}`
-                    : null}
+                  <span className="od-pending-item__sku-code">{sku}</span>
                   {removed ? <span className="od-pending-item__removed">Will be removed</span> : null}
                 </p>
+                <ShippingWeightMetaText
+                  segments={shipMeta.metaSegments}
+                  className="od-pending-item__ship"
+                />
               </div>
               <div className="od-pending-item__controls">
                 <div className="od-qty">

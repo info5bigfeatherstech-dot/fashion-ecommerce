@@ -21,6 +21,7 @@ import {
   resolveCarrierStatusDisplay,
   unwrapTrackingPayload,
 } from '@/features/admin/utils/orderTrackingDisplay'
+import { ShippingWeightMetaText } from '@/features/admin/components/ShippingWeightMetaText'
 import {
   buildWeightByVariantId,
   resolveLineShippingWeightMeta,
@@ -724,9 +725,12 @@ export function AdminOrderDetailView({
           <section className="od-card od-card--items">
             <div className="od-card__head od-card__head--items">
               <h3 className="od-card__title">Items in this order</h3>
-              {packageWeightMeta.headerParts.length > 0 ? (
+              {packageWeightMeta.headerSegments.length > 0 ? (
                 <div className="od-items-meta">
-                  <p>{packageWeightMeta.headerParts.join(' · ')}</p>
+                  <ShippingWeightMetaText
+                    segments={packageWeightMeta.headerSegments}
+                    className="od-items-meta__line"
+                  />
                   {packageWeightMeta.catalogFallback ? (
                     <p className="od-items-meta__hint">Estimated from catalog (legacy order)</p>
                   ) : null}
@@ -755,11 +759,16 @@ export function AdminOrderDetailView({
                       <div className="od-item__body">
                         <p className="od-item__name">{name}</p>
                         <p className="od-item__meta">
-                          Qty {qty} · SKU <span className="od-item__sku">{sku}</span>
-                          {shipMeta.metaParts.length > 0
-                            ? ` · ${shipMeta.metaParts.join(' · ')}`
-                            : null}
+                          <span>Qty {qty}</span>
+                          <span className="od-item__dot" aria-hidden>
+                            ·
+                          </span>
+                          <span className="od-item__sku">{sku}</span>
                         </p>
+                        <ShippingWeightMetaText
+                          segments={shipMeta.metaSegments}
+                          className="od-item__ship"
+                        />
                       </div>
                       <p className="od-item__price">{formatInr(lineTotal)}</p>
                     </div>
