@@ -4843,6 +4843,7 @@ div.auth-google-btn {
 .header__nav {
   display: flex;
   align-items: center;
+  flex-wrap: nowrap;
   gap: clamp(var(--space-1), 1.5vw, var(--space-3));
   overflow: visible;
 }
@@ -4876,6 +4877,7 @@ div.auth-google-btn {
   font-size: var(--text-xs);
   letter-spacing: 0.06em;
   font-weight: var(--weight-bold);
+  padding-inline: 6px;
 }
 
 /* ─── Nav "More Categories" Button & Dropdown ─── */
@@ -4884,6 +4886,12 @@ div.auth-google-btn {
   position: relative;
   display: inline-flex;
   align-items: center;
+  z-index: 1;
+}
+
+.header__nav-more-wrapper:hover,
+.header__nav-more-wrapper:focus-within {
+  z-index: 50;
 }
 
 .header__nav-more-btn {
@@ -4939,12 +4947,39 @@ div.auth-google-btn {
   box-shadow:
     0 16px 40px rgba(0, 0, 0, 0.6),
     0 0 0 1px rgba(255, 255, 255, 0.04) inset;
-  z-index: var(--z-dropdown, 100);
+  z-index: 1200;
   opacity: 0;
   visibility: hidden;
   transform: translateY(8px) scale(0.98);
   transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
   pointer-events: none;
+}
+
+/* 100% zoom / mid desktop: keep live clustered layout, only tighten spacing so badges don't clip */
+@media (max-width: 1535px) {
+  .header__nav {
+    gap: clamp(4px, 0.9vw, 10px);
+  }
+
+  .header__nav-link--category {
+    letter-spacing: 0.04em;
+    padding-inline: 5px;
+  }
+
+  .header__nav-more-btn {
+    padding: 5px 11px;
+  }
+
+  .header__nav .sale-live-badge {
+    gap: 8px;
+    margin-left: clamp(4px, 0.7vw, 10px);
+    padding: 5px 12px 5px 8px;
+  }
+
+  .header__nav .sale-live-badge__text {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+  }
 }
 
 .header__nav-more-dropdown::before {

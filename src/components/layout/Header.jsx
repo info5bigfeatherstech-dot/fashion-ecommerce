@@ -308,16 +308,6 @@ export function Header() {
                   </Link>
                 </div>
               )}
-              <div>
-                {/* <Link
-                  to="/product-all"
-                  className={`product-all-nav-btn${location.pathname === '/product-all' ? ' product-all-nav-btn--active' : ''}`}
-                  aria-label="Product All — browse every category"
-                >
-                  <LayoutGrid size={13} aria-hidden="true" />
-                  <span>Product All</span>
-                </Link> */}
-              </div>
               {categoryNavItems.map((item) => (
                 <div key={item.slug}>
                   <Link
