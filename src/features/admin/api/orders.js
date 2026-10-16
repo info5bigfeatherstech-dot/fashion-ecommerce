@@ -1,5 +1,14 @@
 import { API_ENDPOINTS } from '@/api/endpoints'
-import { adminGet, adminPost, adminPut, adminDelete, adminPostBlob, downloadBlob, unwrapAdmin } from './client'
+import {
+  adminGet,
+  adminGetBlob,
+  adminPost,
+  adminPut,
+  adminDelete,
+  adminPostBlob,
+  downloadBlob,
+  unwrapAdmin,
+} from './client'
 
 /** Maps UI tab labels → backend `bucket` query param (same as fabFE). */
 export const ORDER_TAB_LABEL_TO_BUCKET = Object.freeze({
