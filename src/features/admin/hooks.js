@@ -627,8 +627,8 @@ export function usePrintAdminOrderInvoice() {
 
 export function useDownloadAdminOrderShippingLabel() {
   return useMutation({
-    mutationFn: ({ orderId, provider }) =>
-      downloadAdminOrderShippingLabelFile(orderId, { provider }),
+    mutationFn: ({ orderId, provider, source }) =>
+      downloadAdminOrderShippingLabelFile(orderId, { provider, source }),
   })
 }
 

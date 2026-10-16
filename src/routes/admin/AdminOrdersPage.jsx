@@ -390,16 +390,27 @@ export default function AdminOrdersPage() {
     )
   }
 
-  const runZipDownload = async (mutation, label, ids) => {
-    const orderIds = (Array.isArray(ids) ? ids : selectedOrders).filter(Boolean)
+  const runZipDownload = async (mutation, label, idsOrOpts) => {
+    const optsPayload =
+      idsOrOpts && typeof idsOrOpts === 'object' && !Array.isArray(idsOrOpts) ? idsOrOpts : null
+    const orderIds = (
+      Array.isArray(idsOrOpts)
+        ? idsOrOpts
+        : Array.isArray(optsPayload?.orderIds)
+          ? optsPayload.orderIds
+          : selectedOrders
+    ).filter(Boolean)
     if (!orderIds.length) {
       setBulkInlineError(`No eligible orders for ${label}.`)
       return
     }
+    const mutateArg = optsPayload?.source
+      ? { orderIds, source: optsPayload.source }
+      : orderIds
     setBulkBusy(true)
     setBulkInlineError(null)
     try {
-      const result = await mutation.mutateAsync(orderIds)
+      const result = await mutation.mutateAsync(mutateArg)
       const failedN = Number(result?.failed)
       const okN = Number(result?.succeeded)
       if (Number.isFinite(failedN) && failedN > 0 && Number.isFinite(okN)) {
@@ -819,6 +830,24 @@ export default function AdminOrdersPage() {
                     }
                   >
                     Bulk shipping labels (PDF)
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-bulk-menu__item"
+                    disabled={bulkPending || !eligibleBulkLabelIds.length}
+                    title={
+                      !eligibleBulkLabelIds.length
+                        ? 'No selected orders can download custom label (needs AWB).'
+                        : 'One multi-page PDF: store 4×6 custom label per selected order'
+                    }
+                    onClick={() =>
+                      runZipDownload(shippingLabelsZip, 'Custom labels PDF', {
+                        orderIds: eligibleBulkLabelIds,
+                        source: 'custom',
+                      })
+                    }
+                  >
+                    Bulk custom labels (PDF)
                   </button>
                   {noFulfillmentHint ? (
                     <p className="admin-bulk-menu__hint">

@@ -587,8 +587,19 @@ export function AdminOrderDetailView({
 
   const handleDownloadLabel = async () => {
     try {
-      await downloadLabel.mutateAsync({ orderId, provider: shippingProviderKey })
-      toast.success('Shipping label downloaded')
+      const isShipmozo = String(shippingProviderKey || '').toLowerCase() === 'shipmozo'
+      let source
+      if (!isShipmozo) {
+        // Shiprocket: ask Custom (4×6 store) vs provider label
+        const useCustom = window.confirm(
+          'Download label type?\n\nOK = Custom 4×6 store label\nCancel = Shiprocket label'
+        )
+        source = useCustom ? 'custom' : 'provider'
+      }
+      await downloadLabel.mutateAsync({ orderId, provider: shippingProviderKey, source })
+      toast.success(
+        source === 'custom' ? 'Custom shipping label downloaded' : 'Shipping label downloaded'
+      )
       await refreshOrder()
     } catch (e) {
       toast.error(errText(e, 'Label download failed.'))

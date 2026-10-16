@@ -210,14 +210,33 @@ export async function downloadBulkTaxInvoicesZip(orderIds) {
 
 /**
  * Bulk shipping labels — server returns one multi-page PDF (legacy ZIP endpoint path).
+ * @param {string[]|{ orderIds?: string[], source?: 'custom'|'provider'|'auto' }} orderIdsOrOpts
+ * @param {{ source?: 'custom'|'provider'|'auto' }} [opts]
+ *   source=custom → store 4×6 labels for all selected orders (one page each)
  */
-export async function downloadBulkShippingLabelsZip(orderIds) {
-  const ids = Array.isArray(orderIds) ? orderIds : (orderIds?.orderIds || [])
+export async function downloadBulkShippingLabelsZip(orderIdsOrOpts, opts = {}) {
+  const fromObj =
+    orderIdsOrOpts && typeof orderIdsOrOpts === 'object' && !Array.isArray(orderIdsOrOpts)
+      ? orderIdsOrOpts
+      : null
+  const ids = Array.isArray(orderIdsOrOpts)
+    ? orderIdsOrOpts
+    : Array.isArray(fromObj?.orderIds)
+      ? fromObj.orderIds
+      : []
+  const sourceRaw = String(fromObj?.source || opts?.source || '')
+    .trim()
+    .toLowerCase()
+  const source =
+    sourceRaw === 'custom' || sourceRaw === 'provider' || sourceRaw === 'auto'
+      ? sourceRaw
+      : undefined
   const response = await adminPostBlob(
     API_ENDPOINTS.admin.bulkShippingLabelsPdf || API_ENDPOINTS.admin.bulkShippingLabelsZip,
     {
       orderIds: ids,
       concurrency: 4,
+      ...(source ? { source } : {}),
     }
   )
   const ct = String(response.headers?.['content-type'] || '')
@@ -238,11 +257,16 @@ export async function downloadBulkShippingLabelsZip(orderIds) {
     ct.includes('application/pdf') || response.data.type === 'application/pdf'
       ? response.data
       : new Blob([response.data], { type: 'application/pdf' })
-  downloadBlob(pdfBlob, `shipping-labels-bulk-${Date.now()}.pdf`)
+  const filename =
+    source === 'custom'
+      ? `shipping-labels-custom-bulk-${Date.now()}.pdf`
+      : `shipping-labels-bulk-${Date.now()}.pdf`
+  downloadBlob(pdfBlob, filename)
   return {
     succeeded: Number(response.headers?.['x-bulk-labels-succeeded']) || null,
     failed: Number(response.headers?.['x-bulk-labels-failed']) || null,
     pages: Number(response.headers?.['x-bulk-labels-pages']) || null,
+    source: response.headers?.['x-bulk-labels-source'] || source || 'auto',
   }
 }
 
@@ -405,8 +429,20 @@ export async function fetchAdminOrderInvoiceHtml(orderId) {
   return response.data
 }
 
-export async function downloadAdminOrderShippingLabelFile(orderId, { provider = 'shiprocket' } = {}) {
-  const response = await adminGetBlob(API_ENDPOINTS.admin.orderShippingLabelFile(orderId))
+/**
+ * @param {string} orderId
+ * @param {{ provider?: string, source?: 'custom'|'provider' }} [opts]
+ *   source=custom → store 4×6 PDF (Shiprocket). Shipmozo always prefers custom server-side.
+ */
+export async function downloadAdminOrderShippingLabelFile(
+  orderId,
+  { provider = 'shiprocket', source } = {}
+) {
+  const params = {}
+  if (source === 'custom' || source === 'provider') params.source = source
+  const response = await adminGetBlob(API_ENDPOINTS.admin.orderShippingLabelFile(orderId), {
+    params,
+  })
   const ct = String(response.headers?.['content-type'] || '')
   if (ct.includes('application/json')) {
     const text = await response.data.text()
@@ -418,7 +454,9 @@ export async function downloadAdminOrderShippingLabelFile(orderId, { provider = 
     }
     throw new Error(message)
   }
-  const prefix = String(provider).toLowerCase() === 'shipmozo' ? 'Shipmozo' : 'Shiprocket'
+  const p = String(provider).toLowerCase()
+  const prefix =
+    source === 'custom' ? 'Custom' : p === 'shipmozo' ? 'Shipmozo' : 'Shiprocket'
   let filename = `${prefix}-label-${String(orderId).replace(/[^\w.-]+/g, '_').slice(0, 80)}.pdf`
   const dispo = response.headers?.['content-disposition']
   if (dispo) {

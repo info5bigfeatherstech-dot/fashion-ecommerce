@@ -196,7 +196,7 @@ export default function LabelSettingsSection() {
 
   const lockedNote = useMemo(
     () =>
-      `Applies only to ${storefrontLabel} Shipmozo orders. Shiprocket labels are unchanged. Print size is 4×6 inch.`,
+      `Custom 4×6 labels for ${storefrontLabel}: Shipmozo downloads use this layout by default; Shiprocket offers Custom vs provider when you download. Print size is 4×6 inch.`,
     [storefrontLabel]
   )
 
@@ -225,7 +225,7 @@ export default function LabelSettingsSection() {
     <div className="admin-label-settings">
       <div className="admin-label-settings__head">
         <div>
-          <h1 className="admin-label-settings__title">Shipmozo label settings</h1>
+          <h1 className="admin-label-settings__title">Shipping label settings</h1>
           <p className="admin-label-settings__desc">{lockedNote}</p>
           <p className="admin-label-settings__storefront">Storefront: {storefrontLabel}</p>
         </div>
@@ -437,7 +437,7 @@ export default function LabelSettingsSection() {
                 max={40}
                 className="admin-label-settings__input"
                 placeholder="10"
-                value={s.products?.trimProductNameUpto ?? 10}
+                value={s.products?.trimProductNameUpto ?? 18}
                 onChange={(e) => patch('products', 'trimProductNameUpto', e.target.value)}
               />
             </label>
@@ -485,6 +485,11 @@ export default function LabelSettingsSection() {
               checked={s.products?.showHsn}
               label="HSN"
               onChange={(v) => patch('products', 'showHsn', v)}
+            />
+            <Toggle
+              checked={s.products?.showGst}
+              label="GST (per item; added to line total)"
+              onChange={(v) => patch('products', 'showGst', v)}
             />
             <Toggle
               checked={s.products?.showShippingCharges}
@@ -579,7 +584,7 @@ export default function LabelSettingsSection() {
             <div className="admin-label-settings__preview-paper">
               <iframe
                 ref={iframeRef}
-                title="Shipmozo label preview"
+                title="Custom shipping label preview"
                 scrolling="no"
                 srcDoc={
                   previewHtml ||
