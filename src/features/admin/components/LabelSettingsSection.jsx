@@ -425,7 +425,7 @@ export default function LabelSettingsSection() {
                 max={40}
                 className="admin-label-settings__input"
                 placeholder="10"
-                value={s.products?.trimSkuUpto ?? 10}
+                value={s.products?.trimSkuUpto ?? 15}
                 onChange={(e) => patch('products', 'trimSkuUpto', e.target.value)}
               />
             </label>
