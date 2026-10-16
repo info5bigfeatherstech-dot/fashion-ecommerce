@@ -401,3 +401,34 @@ export function mergeOrderWithDetail(order, detail) {
     items: getOrderItems(detail).length > 0 ? getOrderItems(detail) : getOrderItems(order),
   }
 }
+
+/** Aggregator brands must never appear on customer-facing order UI. */
+const AGGREGATOR_NAME_RE = /\b(ship\s*rocket|shiprocket|ship\s*mozo|shipmozo)\b/i
+
+export function textMentionsShippingAggregator(value) {
+  return AGGREGATOR_NAME_RE.test(String(value || ''))
+}
+
+/**
+ * Customer-safe courier label. Hides aggregator / provider keys; keeps real carriers (Delhivery, etc.).
+ * Never fall back to shippingProvider — that field is shiprocket|shipmozo.
+ */
+export function getCustomerSafeCourierName(trackingOrShipment) {
+  const raw = String(
+    trackingOrShipment?.courier ||
+      trackingOrShipment?.courierName ||
+      ''
+  ).trim()
+  if (!raw) return null
+  if (textMentionsShippingAggregator(raw)) return null
+  if (/^(shiprocket|shipmozo)$/i.test(raw)) return null
+  return raw
+}
+
+/** Hide raw providerStatus strings that leak aggregator names. */
+export function getCustomerSafeProviderStatus(value) {
+  const raw = String(value || '').trim()
+  if (!raw) return null
+  if (textMentionsShippingAggregator(raw)) return null
+  return raw
+}

@@ -2,19 +2,20 @@ import { useState } from 'react'
 import {
   AlertCircle,
   CheckCircle2,
-  Clock,
   Copy,
-  ExternalLink,
   Loader2,
-  MapPin,
-  Package,
   RefreshCw,
   Truck,
 } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { useOrderTracking } from '../hooks'
-import { formatOrderDateTime, getOrderStatusLabel } from '../utils'
+import {
+  formatOrderDateTime,
+  getCustomerSafeCourierName,
+  getCustomerSafeProviderStatus,
+  getOrderStatusLabel,
+} from '../utils'
 
 const DEFAULT_STAGES = [
   { key: 'placed', label: 'Order Placed' },
@@ -42,27 +43,18 @@ export function OrderTrackingModal({ open, onClose, orderId, initialTracking = n
   }
 
   const currentStatus = String(tracking?.currentStatus || '').toLowerCase()
-  const rawCourier = tracking?.courier || tracking?.shippingProvider || ''
-  const courier =
-    rawCourier && !/^(shiprocket|shipmozo)$/i.test(rawCourier.trim())
-      ? rawCourier
-      : null
+  // Never use shippingProvider as display courier (that field is aggregator key).
+  const courier = getCustomerSafeCourierName(tracking)
   const trackingNumber = tracking?.trackingNumber || tracking?.awbCode || null
-  const providerStatus =
-    tracking?.providerStatus || tracking?.statusSummary?.status || null
+  const providerStatus = getCustomerSafeProviderStatus(
+    tracking?.providerStatus || tracking?.statusSummary?.headline
+  )
   const estimatedDelivery = tracking?.estimatedDelivery || null
-  const timeline = Array.isArray(tracking?.timeline) ? tracking.timeline : []
-  const courierTimeline = Array.isArray(tracking?.courierTimeline) ? tracking.courierTimeline : []
 
-  // Determine active stage index for simple visual progress
   const stageOrder = ['pending', 'confirmed', 'processing', 'shipped', 'out_for_delivery', 'delivered']
   let activeIndex = stageOrder.indexOf(currentStatus)
   if (activeIndex === -1) {
-    if (timeline.length > 0) {
-      activeIndex = timeline.filter((t) => t.completed).length - 1
-    } else {
-      activeIndex = 1
-    }
+    activeIndex = 1
   }
 
   return (
@@ -77,7 +69,7 @@ export function OrderTrackingModal({ open, onClose, orderId, initialTracking = n
         {isLoading && !tracking && (
           <div className="account-orders-state" style={{ minHeight: '220px' }}>
             <Loader2 size={24} className="account-orders-state__spin" aria-hidden="true" />
-            <p className="body-sm text-muted">Fetching real-time tracking updates…</p>
+            <p className="body-sm text-muted">Fetching tracking updates…</p>
           </div>
         )}
 
@@ -102,7 +94,6 @@ export function OrderTrackingModal({ open, onClose, orderId, initialTracking = n
 
         {tracking && (
           <>
-            {/* Top Overview Card */}
             <div className="order-tracking-hero">
               <div className="order-tracking-hero__header">
                 <div>
@@ -110,9 +101,9 @@ export function OrderTrackingModal({ open, onClose, orderId, initialTracking = n
                     <Truck size={14} />
                     {getOrderStatusLabel(tracking.currentStatus || 'Processing')}
                   </span>
-                  {providerStatus && (
+                  {providerStatus ? (
                     <p className="order-tracking-hero__provider-status">{providerStatus}</p>
-                  )}
+                  ) : null}
                 </div>
 
                 <Button
@@ -129,14 +120,14 @@ export function OrderTrackingModal({ open, onClose, orderId, initialTracking = n
               </div>
 
               <div className="order-tracking-details-grid">
-                {courier && (
+                {courier ? (
                   <div className="order-tracking-detail-item">
                     <span className="order-tracking-detail-item__label">Courier</span>
                     <span className="order-tracking-detail-item__val">{courier}</span>
                   </div>
-                )}
+                ) : null}
 
-                {trackingNumber && (
+                {trackingNumber ? (
                   <div className="order-tracking-detail-item">
                     <span className="order-tracking-detail-item__label">Tracking / AWB #</span>
                     <span className="order-tracking-detail-item__val order-tracking-awb">
@@ -152,20 +143,19 @@ export function OrderTrackingModal({ open, onClose, orderId, initialTracking = n
                       </button>
                     </span>
                   </div>
-                )}
+                ) : null}
 
-                {estimatedDelivery && (
+                {estimatedDelivery ? (
                   <div className="order-tracking-detail-item">
                     <span className="order-tracking-detail-item__label">Est. Delivery</span>
                     <span className="order-tracking-detail-item__val">
                       {formatOrderDateTime(estimatedDelivery)}
                     </span>
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
 
-            {/* Stages Stepper */}
             <div className="order-tracking-section">
               <h4 className="order-tracking-section__title">Milestones</h4>
               <div className="order-stepper">
@@ -191,58 +181,6 @@ export function OrderTrackingModal({ open, onClose, orderId, initialTracking = n
                 })}
               </div>
             </div>
-
-            {/* Timeline scans */}
-            {courierTimeline.length > 0 ? (
-              <div className="order-tracking-section">
-                <h4 className="order-tracking-section__title">Live Courier Updates</h4>
-                <div className="order-timeline-scans">
-                  {courierTimeline.map((entry, i) => (
-                    <div key={i} className="order-timeline-scan-item">
-                      <div className="order-timeline-scan-item__pin">
-                        <MapPin size={13} />
-                      </div>
-                      <div className="order-timeline-scan-item__info">
-                        <p className="order-timeline-scan-item__activity">
-                          {entry.activity || entry.status || entry.location}
-                        </p>
-                        {entry.location && entry.activity && (
-                          <p className="order-timeline-scan-item__location">{entry.location}</p>
-                        )}
-                        <span className="order-timeline-scan-item__time">
-                          {formatOrderDateTime(entry.date || entry.timestamp)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : timeline.length > 0 ? (
-              <div className="order-tracking-section">
-                <h4 className="order-tracking-section__title">Activity Timeline</h4>
-                <div className="order-timeline-scans">
-                  {timeline.map((entry, i) => (
-                    <div key={i} className="order-timeline-scan-item">
-                      <div className="order-timeline-scan-item__pin">
-                        <Clock size={13} />
-                      </div>
-                      <div className="order-timeline-scan-item__info">
-                        <p className="order-timeline-scan-item__activity">{entry.status}</p>
-                        <span className="order-timeline-scan-item__time">
-                          {formatOrderDateTime(entry.timestamp)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            {tracking.lastSyncedAt && (
-              <p className="order-tracking-sync-time">
-                Last synced: {formatOrderDateTime(tracking.lastSyncedAt)}
-              </p>
-            )}
           </>
         )}
       </div>
