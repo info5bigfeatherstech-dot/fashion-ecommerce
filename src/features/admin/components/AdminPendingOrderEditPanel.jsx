@@ -4,6 +4,11 @@ import {
   useAdminApplyPendingOrderEdit,
   useAdminPreviewPendingOrderEdit,
 } from '@/features/admin/hooks'
+import {
+  buildWeightByVariantId,
+  resolveLineShippingWeightMeta,
+  resolvePackageShippingWeightMeta,
+} from '@/features/admin/utils/orderShippingWeightDisplay'
 import { RemovedOrderItemsSection } from '@/features/orders/components'
 import { getRemovedItemsArchive } from '@/features/orders/removedItemsArchive'
 
@@ -142,6 +147,11 @@ export function AdminPendingOrderEditPanel({ order, orderId, disabled, onApplied
   }
 
   const removedArchive = useMemo(() => getRemovedItemsArchive(order), [order])
+  const packageWeightMeta = useMemo(() => resolvePackageShippingWeightMeta(order), [order])
+  const weightByVariantId = useMemo(
+    () => buildWeightByVariantId(packageWeightMeta.weightSnap),
+    [packageWeightMeta.weightSnap]
+  )
 
   if (!items.length && !removedArchive.length) return null
 
@@ -154,11 +164,21 @@ export function AdminPendingOrderEditPanel({ order, orderId, disabled, onApplied
   return (
     <section className="od-card od-card--pending-items">
       <div className="od-pending-items__head">
-        <h3 className="od-card__title">Edit items before confirm</h3>
-        <p className="od-pending-items__sub">
-          Change quantity or remove a product, then Preview and Apply. Confirm the order only after stock looks
-          correct.
-        </p>
+        <div className="od-pending-items__head-main">
+          <h3 className="od-card__title">Edit items before confirm</h3>
+          <p className="od-pending-items__sub">
+            Change quantity or remove a product, then Preview and Apply. Confirm the order only after stock looks
+            correct.
+          </p>
+        </div>
+        {packageWeightMeta.headerParts.length > 0 ? (
+          <div className="od-items-meta od-items-meta--pending">
+            <p>{packageWeightMeta.headerParts.join(' · ')}</p>
+            {packageWeightMeta.catalogFallback ? (
+              <p className="od-items-meta__hint">Estimated from catalog (legacy order)</p>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       <div className="od-pending-items__list">
@@ -172,6 +192,7 @@ export function AdminPendingOrderEditPanel({ order, orderId, disabled, onApplied
           const img = lineImage(line)
           const lineTotal = Number(line?.lineTotal ?? line?.priceSnapshot?.total ?? line?.price) || 0
           const removed = qty === 0
+          const shipMeta = resolveLineShippingWeightMeta(line, weightByVariantId, qty)
           return (
             <div
               key={key || idx}
@@ -184,6 +205,9 @@ export function AdminPendingOrderEditPanel({ order, orderId, disabled, onApplied
                 <p className="od-pending-item__name">{name}</p>
                 <p className="od-pending-item__sku">
                   SKU <span>{sku}</span>
+                  {shipMeta.metaParts.length > 0
+                    ? ` · ${shipMeta.metaParts.join(' · ')}`
+                    : null}
                   {removed ? <span className="od-pending-item__removed">Will be removed</span> : null}
                 </p>
               </div>

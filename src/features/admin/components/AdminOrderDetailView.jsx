@@ -21,6 +21,11 @@ import {
   resolveCarrierStatusDisplay,
   unwrapTrackingPayload,
 } from '@/features/admin/utils/orderTrackingDisplay'
+import {
+  buildWeightByVariantId,
+  resolveLineShippingWeightMeta,
+  resolvePackageShippingWeightMeta,
+} from '@/features/admin/utils/orderShippingWeightDisplay'
 import { isPostConfirmOrderStatus } from '@/features/admin/api/orders'
 import {
   useAdminOrderTracking,
@@ -121,21 +126,6 @@ function DeliveryTotalValue({ order }) {
       ) : null}
     </div>
   )
-}
-
-function formatKg(kg) {
-  const n = Number(kg)
-  if (!Number.isFinite(n)) return null
-  return `${n.toFixed(2)} kg`
-}
-
-function formatPackageDims(dims) {
-  if (!dims || typeof dims !== 'object') return null
-  const l = Number(dims.lengthCm ?? dims.length)
-  const w = Number(dims.widthCm ?? dims.width)
-  const h = Number(dims.heightCm ?? dims.height)
-  if (![l, w, h].every((n) => Number.isFinite(n) && n > 0)) return null
-  return `${l} × ${w} × ${h} cm`
 }
 
 function formatDateHeader(iso) {
@@ -366,11 +356,11 @@ export function AdminOrderDetailView({
     downloadManifest.isPending
 
   const items = order?.items || order?.orderItems || []
-  const weightSnap = order?.packageWeightSnapshot || order?.weightSnapshot || null
-  const packageDimsLabel = formatPackageDims(
-    weightSnap?.packageDims || weightSnap?.dimensions || order?.packageDimensions
+  const packageWeightMeta = resolvePackageShippingWeightMeta(order)
+  const weightByVariantId = useMemo(
+    () => buildWeightByVariantId(packageWeightMeta.weightSnap),
+    [packageWeightMeta.weightSnap]
   )
-  const weightLabel = formatKg(weightSnap?.totalWeightKg ?? order?.totalWeightKg)
 
   const trackingData = unwrapTrackingPayload(tracking)
   const lastSyncedAt = trackingData?.lastSyncedAt || ship?.lastSyncAt || null
@@ -734,10 +724,13 @@ export function AdminOrderDetailView({
           <section className="od-card od-card--items">
             <div className="od-card__head od-card__head--items">
               <h3 className="od-card__title">Items in this order</h3>
-              {(weightLabel || packageDimsLabel) ? (
-                <p className="od-items-meta">
-                  {[weightLabel, packageDimsLabel].filter(Boolean).join(' · ')}
-                </p>
+              {packageWeightMeta.headerParts.length > 0 ? (
+                <div className="od-items-meta">
+                  <p>{packageWeightMeta.headerParts.join(' · ')}</p>
+                  {packageWeightMeta.catalogFallback ? (
+                    <p className="od-items-meta__hint">Estimated from catalog (legacy order)</p>
+                  ) : null}
+                </div>
               ) : null}
             </div>
             <div className="od-items">
@@ -752,6 +745,7 @@ export function AdminOrderDetailView({
                 const sku = line?.sku || line?.productCode || '—'
                 const qty = line?.quantity ?? 1
                 const lineTotal = Number(line?.lineTotal ?? line?.priceSnapshot?.total ?? line?.price) || 0
+                const shipMeta = resolveLineShippingWeightMeta(line, weightByVariantId, qty)
                 return (
                   <div key={line.id || line._id || idx} className="od-item">
                     <div className="od-item__thumb">
@@ -762,6 +756,9 @@ export function AdminOrderDetailView({
                         <p className="od-item__name">{name}</p>
                         <p className="od-item__meta">
                           Qty {qty} · SKU <span className="od-item__sku">{sku}</span>
+                          {shipMeta.metaParts.length > 0
+                            ? ` · ${shipMeta.metaParts.join(' · ')}`
+                            : null}
                         </p>
                       </div>
                       <p className="od-item__price">{formatInr(lineTotal)}</p>

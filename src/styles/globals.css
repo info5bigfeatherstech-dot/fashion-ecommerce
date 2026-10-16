@@ -31774,6 +31774,16 @@ select.pf-spec-input {
   text-align: right;
 }
 
+.od-items-meta p {
+  margin: 0;
+}
+
+.od-items-meta__hint {
+  margin: 2px 0 0;
+  font-size: 10px;
+  color: #b45309;
+}
+
 .od-items__empty {
   margin: 0;
   padding: 16px;
@@ -31961,8 +31971,23 @@ select.pf-spec-input {
 }
 
 .od-card--pending-items .od-pending-items__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px 16px;
   padding: 14px 16px;
   border-bottom: 1px solid #f1f5f9;
+}
+
+.od-pending-items__head-main {
+  min-width: 0;
+  flex: 1 1 12rem;
+}
+
+.od-items-meta--pending {
+  flex: 0 1 auto;
+  max-width: 20rem;
 }
 
 .od-pending-items__sub {
