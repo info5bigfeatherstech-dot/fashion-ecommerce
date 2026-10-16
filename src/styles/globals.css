@@ -25036,6 +25036,17 @@ a.cart-item__name:hover {
   color: var(--color-muted);
 }
 
+.admin-inline-note {
+  margin: 0 0 var(--space-3);
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #bae6fd;
+  background: #f0f9ff;
+  color: #0c4a6e;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
 .admin-toolbar__search {
   display: flex;
   gap: var(--space-1);

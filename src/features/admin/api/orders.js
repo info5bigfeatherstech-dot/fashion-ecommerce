@@ -42,7 +42,8 @@ export const ORDER_TAB_ORDER = Object.freeze([
 ])
 
 function toApiBucket(bucket) {
-  if (!bucket || bucket === 'all') return null
+  if (!bucket) return null
+  if (bucket === 'all' || bucket === 'All') return 'all'
   return ORDER_TAB_LABEL_TO_BUCKET[bucket] ?? bucket
 }
 
@@ -74,9 +75,13 @@ export async function getAdminOrdersList({
   to,
 } = {}) {
   const params = { page, limit, sortBy, sortOrder }
-  const apiBucket = toApiBucket(bucket)
-  if (apiBucket) params.bucket = apiBucket
-  if (String(search || '').trim()) params.search = String(search).trim()
+  const searchTrim = String(search || '').trim()
+  // Global search: omit status bucket so hits across tabs (incl. cancelled) work.
+  if (!searchTrim) {
+    const apiBucket = toApiBucket(bucket)
+    if (apiBucket) params.bucket = apiBucket
+  }
+  if (searchTrim) params.search = searchTrim
   if (from && to) {
     params.from = from
     params.to = to
@@ -203,9 +208,42 @@ export async function downloadBulkTaxInvoicesZip(orderIds) {
   return downloadBulkOrderZip(API_ENDPOINTS.admin.bulkTaxInvoicesZip, ids, 'tax-invoices-bulk')
 }
 
+/**
+ * Bulk shipping labels — server returns one multi-page PDF (legacy ZIP endpoint path).
+ */
 export async function downloadBulkShippingLabelsZip(orderIds) {
   const ids = Array.isArray(orderIds) ? orderIds : (orderIds?.orderIds || [])
-  return downloadBulkOrderZip(API_ENDPOINTS.admin.bulkShippingLabelsZip, ids, 'shipping-labels-bulk')
+  const response = await adminPostBlob(
+    API_ENDPOINTS.admin.bulkShippingLabelsPdf || API_ENDPOINTS.admin.bulkShippingLabelsZip,
+    {
+      orderIds: ids,
+      concurrency: 4,
+    }
+  )
+  const ct = String(response.headers?.['content-type'] || '')
+  if (ct.includes('application/json')) {
+    const text = await response.data.text()
+    let message = 'Download failed'
+    try {
+      message = JSON.parse(text)?.message || message
+    } catch {
+      message = text || message
+    }
+    throw new Error(message)
+  }
+  if (!(response.data instanceof Blob) || response.data.size === 0) {
+    throw new Error('Unexpected empty response from server')
+  }
+  const pdfBlob =
+    ct.includes('application/pdf') || response.data.type === 'application/pdf'
+      ? response.data
+      : new Blob([response.data], { type: 'application/pdf' })
+  downloadBlob(pdfBlob, `shipping-labels-bulk-${Date.now()}.pdf`)
+  return {
+    succeeded: Number(response.headers?.['x-bulk-labels-succeeded']) || null,
+    failed: Number(response.headers?.['x-bulk-labels-failed']) || null,
+    pages: Number(response.headers?.['x-bulk-labels-pages']) || null,
+  }
 }
 
 export async function downloadBulkManifestsZip(orderIds) {

@@ -255,7 +255,7 @@ export function useAdminOrdersList({
   bucket = 'Pending',
   page = 1,
   search = '',
-  rangePreset = 'last30',
+  rangePreset = 'all',
   from,
   to,
   enabled = true,

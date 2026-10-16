@@ -130,7 +130,7 @@ export default function AdminOrdersPage() {
   const [bulkInlineError, setBulkInlineError] = useState(null)
   const bulkMenuRef = useRef(null)
   const [viewMode, setViewMode] = useState('list') // 'list' or 'detail'
-  const [datePreset, setDatePreset] = useState('last30')
+  const [datePreset, setDatePreset] = useState('all')
   const [customDateFrom, setCustomDateFrom] = useState('')
   const [customDateTo, setCustomDateTo] = useState('')
   const [draftDateFrom, setDraftDateFrom] = useState('')
@@ -145,16 +145,32 @@ export default function AdminOrdersPage() {
       const fromIso = localDateStrToStartIso(customDateFrom)
       const toIso = localDateStrToEndIso(customDateTo)
       if (fromIso && toIso) return { from: fromIso, to: toIso }
-      return { rangePreset: 'last30' }
+      // Incomplete custom → keep all-time (never silently shrink to 30d).
+      return { rangePreset: 'all' }
     }
+    if (datePreset === 'today') return { rangePreset: 'today' }
     if (datePreset === 'last7') return { rangePreset: 'last7' }
     if (datePreset === 'last30') return { rangePreset: 'last30' }
-    return { rangePreset: 'last30' }
+    return { rangePreset: 'all' }
   }, [searchActive, datePreset, customDateFrom, customDateTo])
+
+  /** Date filter on → mixed list (all statuses); All time → respect active tab. */
+  const dateRangeNarrowed = useMemo(() => {
+    if (searchActive) return false
+    if (datePreset === 'all') return false
+    if (datePreset === 'custom') {
+      return Boolean(
+        localDateStrToStartIso(customDateFrom) && localDateStrToEndIso(customDateTo)
+      )
+    }
+    return datePreset === 'today' || datePreset === 'last7' || datePreset === 'last30'
+  }, [searchActive, datePreset, customDateFrom, customDateTo])
+
+  const listBucket = dateRangeNarrowed ? 'All' : bucket
 
   const { data: summary, refetch: refetchSummary } = useAdminOrdersSummary()
   const { data: listData, isLoading, isError, error, refetch } = useAdminOrdersList({
-    bucket,
+    bucket: listBucket,
     page,
     search,
     ...dateQueryArgs,
@@ -182,8 +198,8 @@ export default function AdminOrdersPage() {
     [orders]
   )
 
-  const showBulkPendingActions = bucket === 'Pending'
-  const showBulkTaxInvoicesZip = bucket === 'Confirmed'
+  const showBulkPendingActions = bucket === 'Pending' || dateRangeNarrowed
+  const showBulkTaxInvoicesZip = bucket === 'Confirmed' || dateRangeNarrowed
 
   const eligibleBulkConfirmIds = useMemo(
     () => selectedOrders.filter((id) => canAdminBulkConfirmOrderRow(orderById.get(id))),
@@ -383,8 +399,14 @@ export default function AdminOrdersPage() {
     setBulkBusy(true)
     setBulkInlineError(null)
     try {
-      await mutation.mutateAsync(orderIds)
-      toast.success(`${label} downloaded`)
+      const result = await mutation.mutateAsync(orderIds)
+      const failedN = Number(result?.failed)
+      const okN = Number(result?.succeeded)
+      if (Number.isFinite(failedN) && failedN > 0 && Number.isFinite(okN)) {
+        toast.success(`${label} downloaded (${okN} ok, ${failedN} skipped)`)
+      } else {
+        toast.success(`${label} downloaded`)
+      }
       setShowBulkMenu(false)
     } catch (err) {
       toast.error(err?.message || `${label} failed`)
@@ -474,7 +496,7 @@ export default function AdminOrdersPage() {
               title={
                 searchActive
                   ? 'Date range paused while searching — clear search to filter by date'
-                  : undefined
+                  : 'All time = no date filter (tabs still apply). Date filters show every status in one list.'
               }
               onChange={(e) => {
                 const v = e.target.value
@@ -499,6 +521,8 @@ export default function AdminOrdersPage() {
                 }
               }}
             >
+              <option value="all">All time</option>
+              <option value="today">Today</option>
               <option value="last7">Last 7 days</option>
               <option value="last30">Last 30 days</option>
               <option value="custom">Custom</option>
@@ -595,6 +619,13 @@ export default function AdminOrdersPage() {
         ))}
       </div>
 
+      {dateRangeNarrowed ? (
+        <div className="admin-inline-note" role="status">
+          Date filter on — showing <strong>all statuses</strong> in one list (20 per page). Tab badges
+          stay all-time counts. Choose <strong>All time</strong> to filter by tab again.
+        </div>
+      ) : null}
+
       <div className="admin-orders-filters">
         <div className="admin-tabs admin-tabs--scroll">
           {tabs.map((tab) => (
@@ -603,6 +634,13 @@ export default function AdminOrdersPage() {
               type="button"
               className={`admin-tabs__btn${bucket === tab.label ? ' is-active' : ''}`}
               onClick={() => {
+                if (dateRangeNarrowed) {
+                  setDatePreset('all')
+                  setCustomDateFrom('')
+                  setCustomDateTo('')
+                  setDraftDateFrom('')
+                  setDraftDateTo('')
+                }
                 setBucket(tab.label)
                 setPage(1)
                 setSelectedOrderId(null)
@@ -773,10 +811,14 @@ export default function AdminOrdersPage() {
                         : undefined
                     }
                     onClick={() =>
-                      runZipDownload(shippingLabelsZip, 'Shipping labels ZIP', eligibleBulkLabelIds)
+                      runZipDownload(
+                        shippingLabelsZip,
+                        'Shipping labels PDF',
+                        eligibleBulkLabelIds
+                      )
                     }
                   >
-                    Bulk shipping labels (ZIP)
+                    Bulk shipping labels (PDF)
                   </button>
                   {noFulfillmentHint ? (
                     <p className="admin-bulk-menu__hint">
@@ -817,7 +859,7 @@ export default function AdminOrdersPage() {
                 {' · '}
                 Manifest (ZIP): <strong>{eligibleBulkManifestIds.length}</strong>
                 {' · '}
-                Shipping label (ZIP): <strong>{eligibleBulkLabelIds.length}</strong>
+                Shipping label (PDF): <strong>{eligibleBulkLabelIds.length}</strong>
                 {eligibleBulkShipIds.length === 0 && eligibleBulkPickupIds.length === 0 ? (
                   <span className="admin-bulk-bar__muted">
                     {' '}
@@ -861,7 +903,13 @@ export default function AdminOrdersPage() {
           {isLoading && <AdminLoading label="Loading orders…" />}
           {isError && <AdminError message={error?.message} onRetry={refetch} />}
           {!isLoading && !isError && orders.length === 0 && (
-            <AdminEmpty message={`No orders in ${bucket}.`} />
+            <AdminEmpty
+              message={
+                dateRangeNarrowed
+                  ? 'No orders in this date range.'
+                  : `No orders in ${bucket}.`
+              }
+            />
           )}
           {!isLoading && orders.length > 0 && (
             <div className="admin-table-wrap">

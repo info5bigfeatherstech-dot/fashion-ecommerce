@@ -100,7 +100,9 @@ export const API_ENDPOINTS = {
     bulkSchedulePickup: '/orders/admin/items/bulk-fulfillment/schedule-pickup',
     bulkSyncShiprocket: '/orders/admin/items/bulk-fulfillment/sync-shiprocket',
     bulkTaxInvoicesZip: '/orders/admin/items/bulk-documents/tax-invoices-zip',
-    bulkShippingLabelsZip: '/orders/admin/items/bulk-documents/shipping-labels-zip',
+    /** Legacy path — returns multi-page PDF (not ZIP). */
+    bulkShippingLabelsZip: '/orders/admin/items/bulk-documents/shipping-labels-pdf',
+    bulkShippingLabelsPdf: '/orders/admin/items/bulk-documents/shipping-labels-pdf',
     bulkManifestsZip: '/orders/admin/items/bulk-documents/manifests-zip',
     orderInvoiceHtml: (orderId) =>
       `/orders/admin/items/${encodeURIComponent(String(orderId))}/invoice-html`,
