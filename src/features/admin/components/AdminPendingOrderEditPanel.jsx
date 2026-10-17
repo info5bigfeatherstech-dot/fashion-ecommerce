@@ -157,9 +157,10 @@ export function AdminPendingOrderEditPanel({ order, orderId, disabled, onApplied
   if (!items.length && !removedArchive.length) return null
 
   const displaySubtotal = preview?.after?.subtotal ?? order?.subtotal
+  const displayTax = preview?.after?.tax ?? order?.tax
   const displayDelivery = preview?.shipping?.customerDelivery ?? order?.deliveryCharges
   const displayTotal = preview?.after?.totalAmount ?? order?.totalAmount ?? order?.amountInr
-  const displayDiscount = order?.discount
+  const displayDiscount = preview?.after?.discount ?? order?.discount
   const couponCode = order?.appliedCoupon?.code
 
   return (
@@ -276,6 +277,10 @@ export function AdminPendingOrderEditPanel({ order, orderId, disabled, onApplied
               <span>{formatInr(displaySubtotal)}</span>
             </div>
             <div className="od-pending-items__row">
+              <span>Taxes & Others</span>
+              <span>{formatInr(displayTax)}</span>
+            </div>
+            <div className="od-pending-items__row">
               <span>Shipping</span>
               <span>
                 {Number(displayDelivery) === 0 ? (
@@ -336,6 +341,10 @@ export function AdminPendingOrderEditPanel({ order, orderId, disabled, onApplied
               <div>
                 <p className="od-field-label">New subtotal</p>
                 <p className="od-field-value">{formatInr(preview.after?.subtotal)}</p>
+              </div>
+              <div>
+                <p className="od-field-label">Taxes & Others</p>
+                <p className="od-field-value">{formatInr(preview.after?.tax)}</p>
               </div>
               <div>
                 <p className="od-field-label">Shipping (on bill now)</p>
