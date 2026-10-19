@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Download, Sparkles, Smartphone, Share, PlusSquare, Zap, ShieldCheck, Tag } from 'lucide-react'
 import { useAppStore } from '@/store'
 import { stopLenis, startLenis } from '@/lib/lenis'
+import { isRunningAsInstalledPwa, reportPwaInstall } from '@/utils/pushNotifications'
 import fabUniqoLogo from '@/assets/FabUniqo-logo-install.png'
 import '@/styles/app-install-notification.css'
 
@@ -83,6 +84,20 @@ export function AppInstallNotification() {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstall)
     }
   }, [])
+
+  // When already running as installed PWA + logged in, confirm install on server (idempotent).
+  useEffect(() => {
+    if (!authReady || !isAuthenticated) return undefined
+    if (!isRunningAsInstalledPwa()) return undefined
+    let cancelled = false
+    ;(async () => {
+      if (cancelled) return
+      await reportPwaInstall({ platform: 'standalone' })
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [authReady, isAuthenticated])
 
   const timerRef = useRef(null)
   const dismissedThisSessionRef = useRef(false)
@@ -213,6 +228,9 @@ export function AppInstallNotification() {
         await deferredPromptRef.current.prompt()
         const choice = await deferredPromptRef.current.userChoice
         if (choice.outcome === 'accepted') {
+          if (isAuthenticated) {
+            void reportPwaInstall({ platform: 'install-prompt' })
+          }
           handleMaybeLater()
         }
       } catch (err) {

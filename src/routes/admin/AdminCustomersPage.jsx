@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Download, Eye, Heart, Mail, Search, ShoppingBag } from 'lucide-react'
+import { Bell, Download, Eye, Heart, Mail, Search, ShoppingBag, Smartphone } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   AdminEmpty,
@@ -15,9 +15,19 @@ import { CartReminderEmailModal } from '@/features/admin/components/CartReminder
 import { CartReminderPushModal } from '@/features/admin/components/CartReminderPushModal'
 import { LeadsAutoPushToggle } from '@/features/admin/components/LeadsAutoPushToggle'
 import {
+  useAdminEngagementSummary,
   useAdminUsers,
   useExportAdminUsers,
 } from '@/features/admin/hooks'
+
+const ENGAGEMENT_FILTERS = [
+  { id: 'all', label: 'All' },
+  { id: 'push_on', label: 'Notifications on' },
+  { id: 'push_off', label: 'Notifications off' },
+  { id: 'pwa_on', label: 'App installed' },
+  { id: 'pwa_off', label: 'App not installed' },
+  { id: 'push_and_pwa', label: 'App + Notifications' },
+]
 
 function formatJoinedDate(iso) {
   if (!iso) return '—'
@@ -46,11 +56,57 @@ function snapshotUser(user) {
   }
 }
 
+function NotificationsCell({ user }) {
+  const on = Boolean(user?.notificationsEnabled)
+  const count = Number(user?.pushDeviceCount) || 0
+  if (!on) {
+    return (
+      <div className="admin-leads__notify">
+        <span className="admin-leads__badge admin-leads__badge--off">Off</span>
+      </div>
+    )
+  }
+  return (
+    <div className="admin-leads__notify">
+      <span className="admin-leads__badge admin-leads__badge--on">
+        On{count > 0 ? ` · ${count} device${count === 1 ? '' : 's'}` : ''}
+      </span>
+      {user?.pushSubscribedAt ? (
+        <small className="admin-leads__badge-meta">
+          Since {formatJoinedDate(user.pushSubscribedAt)}
+        </small>
+      ) : null}
+    </div>
+  )
+}
+
+function AppInstallCell({ user }) {
+  const installed = Boolean(user?.pwaInstalled)
+  if (!installed) {
+    return (
+      <div className="admin-leads__notify">
+        <span className="admin-leads__badge admin-leads__badge--off">Not installed</span>
+      </div>
+    )
+  }
+  return (
+    <div className="admin-leads__notify">
+      <span className="admin-leads__badge admin-leads__badge--app">Installed</span>
+      {user?.pwaInstalledAt ? (
+        <small className="admin-leads__badge-meta">
+          {formatJoinedDate(user.pwaInstalledAt)}
+        </small>
+      ) : null}
+    </div>
+  )
+}
+
 export default function AdminCustomersPage() {
   const [page, setPage] = useState(1)
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [role, setRole] = useState('')
+  const [engagement, setEngagement] = useState('all')
   const [selectedIds, setSelectedIds] = useState([])
   const [selectedMeta, setSelectedMeta] = useState({})
   const [cartUser, setCartUser] = useState(null)
@@ -73,7 +129,14 @@ export default function AdminCustomersPage() {
     limit: 10,
     search,
     role,
+    engagement,
   })
+  const {
+    data: summary,
+    isLoading: summaryLoading,
+    isError: summaryError,
+    refetch: refetchSummary,
+  } = useAdminEngagementSummary()
   const exportUsers = useExportAdminUsers()
 
   const { items: users, pagination } = useMemo(() => {
@@ -85,6 +148,24 @@ export default function AdminCustomersPage() {
 
   const totalPages = Math.max(1, Number(pagination?.totalPages) || 1)
   const allSelected = users.length > 0 && users.every((u) => selectedIds.includes(userIdOf(u)))
+
+  const stats = useMemo(
+    () => ({
+      total: Number(summary?.total) || 0,
+      notificationsOn: Number(summary?.notificationsOn) || 0,
+      notificationsOff: Number(summary?.notificationsOff) || 0,
+      pwaInstalled: Number(summary?.pwaInstalled) || 0,
+      pwaNotInstalled: Number(summary?.pwaNotInstalled) || 0,
+      appAndNotifications: Number(summary?.appAndNotifications) || 0,
+    }),
+    [summary]
+  )
+
+  const setEngagementFilter = (next) => {
+    const value = String(next || 'all')
+    setEngagement(value)
+    setPage(1)
+  }
 
   const handleSelectAll = (checked) => {
     if (checked) {
@@ -164,9 +245,91 @@ export default function AdminCustomersPage() {
     }
   }
 
+  const handleRetry = () => {
+    refetch()
+    refetchSummary()
+  }
+
   return (
     <div className="admin-page admin-leads">
       <AdminPageHeader title="Leads" />
+
+      <div className="admin-leads__stats" role="group" aria-label="Customer engagement summary">
+        <button
+          type="button"
+          className={`admin-leads__stat${engagement === 'all' ? ' is-active' : ''}`}
+          onClick={() => setEngagementFilter('all')}
+        >
+          <span className="admin-leads__stat-label">Total</span>
+          <strong className="admin-leads__stat-value">
+            {summaryLoading ? '…' : stats.total}
+          </strong>
+        </button>
+        <button
+          type="button"
+          className={`admin-leads__stat${engagement === 'push_on' ? ' is-active' : ''}`}
+          onClick={() => setEngagementFilter('push_on')}
+        >
+          <span className="admin-leads__stat-label">
+            <Bell size={12} aria-hidden="true" /> Notifications on
+          </span>
+          <strong className="admin-leads__stat-value">
+            {summaryLoading ? '…' : stats.notificationsOn}
+          </strong>
+          <small className="admin-leads__stat-sub">
+            {stats.notificationsOff} off
+          </small>
+        </button>
+        <button
+          type="button"
+          className={`admin-leads__stat${engagement === 'pwa_on' ? ' is-active' : ''}`}
+          onClick={() => setEngagementFilter('pwa_on')}
+        >
+          <span className="admin-leads__stat-label">
+            <Smartphone size={12} aria-hidden="true" /> App installed
+          </span>
+          <strong className="admin-leads__stat-value">
+            {summaryLoading ? '…' : stats.pwaInstalled}
+          </strong>
+          <small className="admin-leads__stat-sub">
+            {stats.pwaNotInstalled} not installed
+          </small>
+        </button>
+        <button
+          type="button"
+          className={`admin-leads__stat${engagement === 'push_and_pwa' ? ' is-active' : ''}`}
+          onClick={() => setEngagementFilter('push_and_pwa')}
+        >
+          <span className="admin-leads__stat-label">App + Notifications</span>
+          <strong className="admin-leads__stat-value">
+            {summaryLoading ? '…' : stats.appAndNotifications}
+          </strong>
+        </button>
+      </div>
+
+      {summaryError ? (
+        <p className="admin-leads__summary-error">
+          Could not load engagement summary.{' '}
+          <button type="button" className="admin-leads__summary-retry" onClick={refetchSummary}>
+            Retry
+          </button>
+        </p>
+      ) : null}
+
+      <div className="admin-leads__filters" role="tablist" aria-label="Engagement filters">
+        {ENGAGEMENT_FILTERS.map((f) => (
+          <button
+            key={f.id}
+            type="button"
+            role="tab"
+            aria-selected={engagement === f.id}
+            className={`admin-leads__filter${engagement === f.id ? ' is-active' : ''}`}
+            onClick={() => setEngagementFilter(f.id)}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
 
       <div className="admin-leads__toolbar">
         <div className="admin-leads__search">
@@ -223,7 +386,7 @@ export default function AdminCustomersPage() {
         ) : null}
 
         {isLoading && <AdminLoading label="Loading customers…" />}
-        {isError && <AdminError message={error?.message} onRetry={refetch} />}
+        {isError && <AdminError message={error?.message} onRetry={handleRetry} />}
         {!isLoading && !isError && users.length === 0 && (
           <AdminEmpty message="No customers found." />
         )}
@@ -242,7 +405,9 @@ export default function AdminCustomersPage() {
                     />
                   </th>
                   <th>Customer</th>
-                  <th>Engagement</th>
+                  <th>Notifications</th>
+                  <th>App</th>
+                  <th>Cart / Wish</th>
                   <th>Joined</th>
                   <th className="admin-leads__actions-col">Actions</th>
                 </tr>
@@ -272,6 +437,12 @@ export default function AdminCustomersPage() {
                             </span>
                           </div>
                         </div>
+                      </td>
+                      <td>
+                        <NotificationsCell user={user} />
+                      </td>
+                      <td>
+                        <AppInstallCell user={user} />
                       </td>
                       <td>
                         <div className="admin-leads__engage">

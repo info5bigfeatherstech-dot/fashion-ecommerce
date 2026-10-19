@@ -194,6 +194,7 @@ export {
 export {
   getAdminUsers,
   getAdminUserDetail,
+  getAdminEngagementSummary,
   exportAdminUsers,
   sendBulkCartReminderEmail,
   sendBulkCartReminderPush,

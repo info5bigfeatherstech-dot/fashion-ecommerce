@@ -89,6 +89,7 @@ import {
   getAdminStaleWishlists,
   getAdminUserDetail,
   getAdminUsers,
+  getAdminEngagementSummary,
   exportAdminUsers,
   sendBulkCartReminderEmail,
   sendBulkCartReminderPush,
@@ -1096,11 +1097,30 @@ export function useBulkUpdateAdminProductFlags() {
   })
 }
 
-export function useAdminUsers({ page = 1, limit = 10, search = '', role = '', enabled = true } = {}) {
+export function useAdminUsers({
+  page = 1,
+  limit = 10,
+  search = '',
+  role = '',
+  engagement = 'all',
+  enabled = true,
+} = {}) {
+  const queryEnabled = useAdminQueryEnabled(enabled)
+  const eng = String(engagement || 'all').trim().toLowerCase() || 'all'
+  return useQuery({
+    queryKey: adminKeys.users(page, search, role, eng),
+    queryFn: ({ signal }) =>
+      getAdminUsers({ signal, page, limit, search, role, engagement: eng }),
+    enabled: queryEnabled,
+    staleTime: 1000 * 30,
+  })
+}
+
+export function useAdminEngagementSummary({ enabled = true } = {}) {
   const queryEnabled = useAdminQueryEnabled(enabled)
   return useQuery({
-    queryKey: adminKeys.users(page, search, role),
-    queryFn: ({ signal }) => getAdminUsers({ signal, page, limit, search, role }),
+    queryKey: adminKeys.usersEngagementSummary(),
+    queryFn: ({ signal }) => getAdminEngagementSummary({ signal }),
     enabled: queryEnabled,
     staleTime: 1000 * 30,
   })

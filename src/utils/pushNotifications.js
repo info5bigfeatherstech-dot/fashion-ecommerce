@@ -99,3 +99,29 @@ export async function syncPushSubscriptionIfGranted() {
     return { synced: false, reason: 'sync_failed' }
   }
 }
+
+export function isRunningAsInstalledPwa() {
+  if (typeof window === 'undefined') return false
+  try {
+    if (window.matchMedia?.('(display-mode: standalone)')?.matches) return true
+    if (window.navigator?.standalone === true) return true
+  } catch {
+    // ignore
+  }
+  return false
+}
+
+/**
+ * Tell the backend this authenticated user has the PWA installed.
+ * Fail-soft — never throws to callers (install UX must not break).
+ */
+export async function reportPwaInstall({ platform = null } = {}) {
+  try {
+    await http.post(API_ENDPOINTS.push.pwaInstall, {
+      platform: platform || (isRunningAsInstalledPwa() ? 'standalone' : 'prompt'),
+    })
+    return { ok: true }
+  } catch {
+    return { ok: false }
+  }
+}

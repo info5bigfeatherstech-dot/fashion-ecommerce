@@ -169,6 +169,35 @@ export function AdminCustomerDetailsModal({
                     {wishlistCount} item{wishlistCount !== 1 ? 's' : ''}
                   </span>
                 </DetailRow>
+                <DetailRow label="Notifications">
+                  {user?.notificationsEnabled || initialUser?.notificationsEnabled ? (
+                    <span>
+                      On
+                      {(user?.pushDeviceCount ?? initialUser?.pushDeviceCount) > 0
+                        ? ` · ${user?.pushDeviceCount ?? initialUser?.pushDeviceCount} device${
+                            Number(user?.pushDeviceCount ?? initialUser?.pushDeviceCount) === 1
+                              ? ''
+                              : 's'
+                          }`
+                        : ''}
+                      {(user?.pushSubscribedAt || initialUser?.pushSubscribedAt) && (
+                        <span className="admin-customer-modal__muted">
+                          {' '}
+                          · since {formatDate(user?.pushSubscribedAt || initialUser?.pushSubscribedAt)}
+                        </span>
+                      )}
+                    </span>
+                  ) : (
+                    <span className="admin-customer-modal__muted">Off</span>
+                  )}
+                </DetailRow>
+                <DetailRow label="App installed">
+                  {user?.pwaInstalled || initialUser?.pwaInstalled ? (
+                    <DateTimeValue iso={user?.pwaInstalledAt || initialUser?.pwaInstalledAt} />
+                  ) : (
+                    <span className="admin-customer-modal__muted">Not installed</span>
+                  )}
+                </DetailRow>
                 {user?.registrationMethod ? (
                   <DetailRow label="Registered via">
                     <span className="admin-customer-modal__cap">{user.registrationMethod}</span>

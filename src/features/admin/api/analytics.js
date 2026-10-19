@@ -1,12 +1,46 @@
 import { API_ENDPOINTS } from '@/api/endpoints'
 import { adminGet, adminGetBlob, adminPost, adminPut, downloadBlob, unwrapAdmin } from './client'
 
-export async function getAdminUsers({ signal, page = 1, limit = 20, search = '', role = '' } = {}) {
+export async function getAdminUsers({
+  signal,
+  page = 1,
+  limit = 20,
+  search = '',
+  role = '',
+  engagement = 'all',
+} = {}) {
   const params = { page, limit }
   if (String(search || '').trim()) params.search = String(search).trim()
   if (role) params.role = role
+  const eng = String(engagement || 'all').trim().toLowerCase()
+  if (eng && eng !== 'all') params.engagement = eng
   const payload = await adminGet(API_ENDPOINTS.admin.users, { signal, params })
   return payload
+}
+
+/**
+ * GET /api/admin/analytics/engagement/summary
+ * Stat cards: total, notificationsOn, pwaInstalled, appAndNotifications
+ */
+export async function getAdminEngagementSummary({ signal } = {}) {
+  const payload = await adminGet(API_ENDPOINTS.admin.usersEngagementSummary, { signal })
+  const unwrapped = unwrapAdmin(payload)
+  const raw =
+    unwrapped && typeof unwrapped === 'object' && !Array.isArray(unwrapped)
+      ? unwrapped.data && typeof unwrapped.data === 'object'
+        ? unwrapped.data
+        : unwrapped
+      : payload?.data && typeof payload.data === 'object'
+        ? payload.data
+        : {}
+  return {
+    total: Number(raw.total) || 0,
+    notificationsOn: Number(raw.notificationsOn) || 0,
+    notificationsOff: Number(raw.notificationsOff) || 0,
+    pwaInstalled: Number(raw.pwaInstalled) || 0,
+    pwaNotInstalled: Number(raw.pwaNotInstalled) || 0,
+    appAndNotifications: Number(raw.appAndNotifications) || 0,
+  }
 }
 
 export async function getAdminUserDetail(userId, { signal } = {}) {

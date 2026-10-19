@@ -159,6 +159,7 @@ export const API_ENDPOINTS = {
     users: '/admin/analytics/users',
     userById: (userId) => `/admin/analytics/users/${encodeURIComponent(String(userId))}`,
     usersExport: '/admin/analytics/users/export',
+    usersEngagementSummary: '/admin/analytics/engagement/summary',
     usersBulkCartReminderEmail: '/admin/analytics/users/bulk-cart-reminder-email',
     usersBulkCartReminderPush: '/admin/analytics/users/bulk-cart-reminder-push',
     leadsPushSettings: '/admin/analytics/push-settings',
@@ -279,6 +280,7 @@ export const API_ENDPOINTS = {
     status: '/push/status',
     subscribe: '/push/subscribe',
     unsubscribe: '/push/unsubscribe',
+    pwaInstall: '/push/pwa-install',
   },
   notifications: {
     unreadCount: '/notifications/unread-count',

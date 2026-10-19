@@ -28,7 +28,15 @@ export const adminKeys = {
   productsActive: () => [...adminKeys.all, 'products-active'],
   productsLowStock: () => [...adminKeys.all, 'products-low-stock'],
   productsArchived: (page) => [...adminKeys.all, 'products-archived', page],
-  users: (page, search, role) => [...adminKeys.all, 'users', page, search || '', role || ''],
+  users: (page, search, role, engagement = 'all') => [
+    ...adminKeys.all,
+    'users',
+    page,
+    search || '',
+    role || '',
+    engagement || 'all',
+  ],
+  usersEngagementSummary: () => [...adminKeys.all, 'users-engagement-summary'],
   userDetail: (userId) => [...adminKeys.all, 'user', String(userId || '')],
   leadsPushSettings: () => [...adminKeys.all, 'leads-push-settings'],
   carts: (variant, page, hours, minAmount) => [
