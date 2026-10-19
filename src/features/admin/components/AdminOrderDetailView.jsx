@@ -474,9 +474,23 @@ export function AdminOrderDetailView({
           if (code === 'AWB_ALREADY_ASSIGNED') {
             setActionMsg({ type: 'ok', text: 'Shipment already has an AWB. Refreshing…', surface: 'ship' })
             await refreshOrder()
+            refetchTracking()
             return
           }
           if (code === 'QUOTED_COURIER_UNAVAILABLE') {
+            const msg = String(data?.message || '')
+            // SR already has AWB (auto label/pickup) — never offer substitute.
+            if (/already\s+assigned/i.test(msg) && /awb/i.test(msg)) {
+              setActionMsg({
+                type: 'ok',
+                surface: 'ship',
+                text: 'AWB already on Shiprocket. Refreshing local shipment…',
+              })
+              toast.success('AWB already on Shiprocket — syncing…')
+              await refreshOrder()
+              refetchTracking()
+              return
+            }
             const suggested = data.suggestedCourier
             const quoted = data.quotedCourier
             const confirmMsg = suggested
@@ -508,9 +522,11 @@ export function AdminOrderDetailView({
         srFinal.awb_code ||
         srFinal.awbCode ||
         srFinal.tracking_number
-      const text = awbDisp
-        ? `Courier booked. AWB / tracking: ${awbDisp}.`
-        : 'Shipment updated. Details will refresh shortly.'
+      const text = assignResult?.alreadyAssigned
+        ? `AWB already on Shiprocket${awbDisp ? `: ${awbDisp}` : ''}. Local shipment restored.`
+        : awbDisp
+          ? `Courier booked. AWB / tracking: ${awbDisp}.`
+          : 'Shipment updated. Details will refresh shortly.'
       setActionMsg({ type: 'ok', surface: 'ship', text })
       toast.success(text)
       await refreshOrder()
