@@ -42,6 +42,8 @@ import {
   getAdminFreeShippingOffers,
   getAdminFestiveOfferSettings,
   updateAdminFestiveOfferSettings,
+  getAdminSaleLiveSettings,
+  updateAdminSaleLiveSettings,
   getAdminCheckoutSettings,
   getAdminProductCodePrefixSettings,
   getAdminCoupons,
@@ -1298,6 +1300,27 @@ export function useUpdateAdminFestiveOfferSettings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminKeys.festiveOfferSettings() })
       queryClient.invalidateQueries({ queryKey: ['marketing', 'festive-offer'] })
+    },
+  })
+}
+
+export function useAdminSaleLiveSettings({ enabled = true } = {}) {
+  const queryEnabled = useAdminQueryEnabled(enabled)
+  return useQuery({
+    queryKey: adminKeys.saleLiveSettings(),
+    queryFn: ({ signal }) => getAdminSaleLiveSettings({ signal }),
+    enabled: queryEnabled,
+    staleTime: 1000 * 30,
+  })
+}
+
+export function useUpdateAdminSaleLiveSettings() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: updateAdminSaleLiveSettings,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.saleLiveSettings() })
+      queryClient.invalidateQueries({ queryKey: ['marketing', 'sale-live'] })
     },
   })
 }

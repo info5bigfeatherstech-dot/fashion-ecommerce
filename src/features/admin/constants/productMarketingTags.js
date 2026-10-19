@@ -5,7 +5,8 @@ export const ADMIN_PRODUCT_MARKETING_TAGS = [
     label: 'On Sale',
     shortLabel: 'On Sale',
     bulkLabel: 'On Sale',
-    description: 'Shows on the website Sale is live / shop sale listing.',
+    description:
+      'Shows under the header On Sale badge (/shop/sale). Badge name is set in Settings → Header badges.',
   },
   {
     id: 'today-arrival',
@@ -34,7 +35,7 @@ export const ADMIN_PRODUCT_MARKETING_TAGS = [
     shortLabel: 'Festive',
     bulkLabel: 'Festive offer',
     description:
-      'Shows under the header festive badge (/shop/festive). Badge name is set in Settings → Header badge.',
+      'Shows under the header Festive offer badge (/shop/festive). Badge name is set in Settings → Header badges.',
   },
 ]
 

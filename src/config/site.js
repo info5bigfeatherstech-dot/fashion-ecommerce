@@ -17,6 +17,7 @@ export const TOP_BANNER = {
   cta: 'Shop now',
 }
 
+/** Sale header badge — label/visibility come from GET /marketing/sale-live */
 export const SALE_LIVE = {
   label: 'Sale is live',
   /** Listing loads GET /api/products/all?tags=on-sale */

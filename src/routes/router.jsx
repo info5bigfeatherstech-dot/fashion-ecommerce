@@ -49,6 +49,8 @@ const AdminWebsiteBlogsPage = lazy(() => import('./admin/AdminWebsiteBlogsPage')
 const AdminReviewsSubmissionsPage = lazy(() => import('./admin/AdminReviewsSubmissionsPage'))
 const AdminReviewsGeneratedPage = lazy(() => import('./admin/AdminReviewsGeneratedPage'))
 const AdminSettingsSectionPage = lazy(() => import('./admin/AdminSettingsSectionPage'))
+const AdminHeaderBadgesPage = lazy(() => import('./admin/AdminHeaderBadgesPage'))
+const AdminHeaderBadgeEditPage = lazy(() => import('./admin/AdminHeaderBadgeEditPage'))
 const AdminShell = lazy(() => import('@/features/admin/components/AdminShell').then((m) => ({ default: m.AdminShell })))
 import { useAdminStore } from '@/features/admin/store'
 import { getSettingsDefaultPath } from '@/features/admin/config/nav'
@@ -126,7 +128,8 @@ export const router = createBrowserRouter([
       { path: 'settings/profile', element: <AdminSettingsSectionPage section="profile" /> },
       { path: 'settings/controls', element: <AdminSettingsSectionPage section="controls" /> },
       { path: 'settings/product-display', element: <AdminSettingsSectionPage section="product-display" /> },
-      { path: 'settings/header-badge', element: <AdminSettingsSectionPage section="header-badge" /> },
+      { path: 'settings/header-badge', element: <AdminHeaderBadgesPage /> },
+      { path: 'settings/header-badge/:badgeId', element: <AdminHeaderBadgeEditPage /> },
       { path: 'settings/product-code-prefix', element: <AdminProductCodePrefixSettingsPage /> },
       { path: 'settings/delivery', element: <AdminDeliverySettingsPage /> },
       { path: 'settings/label', element: <AdminSettingsSectionPage section="label" /> },

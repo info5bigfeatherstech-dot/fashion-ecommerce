@@ -241,6 +241,11 @@ export {
 } from './api/festiveOfferSettings'
 
 export {
+  getAdminSaleLiveSettings,
+  updateAdminSaleLiveSettings,
+} from './api/saleLiveSettings'
+
+export {
   getAdminCheckoutSettings,
   updateAdminCheckoutSettings,
   getAdminProductCodePrefixSettings,

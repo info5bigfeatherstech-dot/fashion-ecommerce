@@ -65,6 +65,7 @@ export const API_ENDPOINTS = {
   },
   marketing: {
     festiveOffer: '/marketing/festive-offer',
+    saleLive: '/marketing/sale-live',
   },
   orders: {
     items: '/orders/items',
@@ -208,6 +209,7 @@ export const API_ENDPOINTS = {
     freeShippingOfferById: (id) => `/admin/free-shipping-offers/${encodeURIComponent(String(id))}`,
     freeShippingOfferToggle: (id) => `/admin/free-shipping-offers/${encodeURIComponent(String(id))}/toggle`,
     festiveOfferSettings: '/admin/marketing/festive-offer',
+    saleLiveSettings: '/admin/marketing/sale-live',
     staff: '/admin/staff',
     staffProfile: '/admin/staff/profile/me',
     staffProfilePasswordResetInit: '/admin/staff/profile/me/initiate-password-reset',

@@ -51,6 +51,7 @@ export const adminKeys = {
     search || '',
   ],
   festiveOfferSettings: () => [...adminKeys.all, 'festive-offer-settings'],
+  saleLiveSettings: () => [...adminKeys.all, 'sale-live-settings'],
   staff: (page, search, role) => [...adminKeys.all, 'staff', page, search || '', role || ''],
   staffProfile: () => [...adminKeys.all, 'staff-profile'],
   returns: (page, status) => [...adminKeys.all, 'returns', page, status || ''],
