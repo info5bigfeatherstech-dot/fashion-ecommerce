@@ -54,7 +54,11 @@ import { PaymentErrorOverlay } from '@/features/checkout/razorpay/PaymentErrorOv
 import { PaymentLoadingOverlay } from '@/features/checkout/razorpay/PaymentLoadingOverlay'
 import { getCart } from '@/features/cart/api'
 import { useAvailableCoupons, useValidateCoupon } from '@/features/coupon/hooks'
-import { calculateCartCouponDiscounts } from '@/features/coupon/utils'
+import {
+  couponApiErrorMessage,
+  evaluateCouponForCart,
+  normalizeCouponCode,
+} from '@/features/coupon/utils'
 import { updateProfile } from '@/features/auth/api'
 import { useAppStore } from '@/store'
 import { useCartCouponSummary, useCartTotal } from '@/store/selectors'
@@ -72,10 +76,6 @@ const STEPS = [
   { id: 'delivery', label: 'Delivery', icon: Truck },
   { id: 'payment', label: 'Payment', icon: CreditCard },
 ]
-
-function normalizeCouponCode(code) {
-  return String(code || '').trim().toUpperCase()
-}
 
 /** Display-only; Razorpay charge is computed on the server from the locked quote. */
 function suggestedAdvanceFromQuote(quote, percent) {
@@ -131,8 +131,12 @@ export default function Checkout() {
     return CHECKOUT_STEP.REVIEW
   })
   const [addressModalOpen, setAddressModalOpen] = useState(false)
-  const [couponInput, setCouponInput] = useState(() => appliedCoupon?.code || '')
-  const [appliedCouponCode, setAppliedCouponCode] = useState(() => appliedCoupon?.code || '')
+  const [couponInput, setCouponInput] = useState(
+    () => appliedCoupon?.code || appliedCoupon?.couponCode || ''
+  )
+  const [appliedCouponCode, setAppliedCouponCode] = useState(
+    () => appliedCoupon?.code || appliedCoupon?.couponCode || ''
+  )
   const [loyaltyPointsToRedeem, setLoyaltyPointsToRedeem] = useState(0)
   const [loyaltyPointsInput, setLoyaltyPointsInput] = useState('')
   const [placedOrder, setPlacedOrder] = useState(null)
@@ -147,11 +151,12 @@ export default function Checkout() {
   })
 
   useEffect(() => {
-    if (appliedCoupon?.code && appliedCoupon.code !== appliedCouponCode) {
-      setAppliedCouponCode(appliedCoupon.code)
-      setCouponInput(appliedCoupon.code)
+    const storedCode = appliedCoupon?.code || appliedCoupon?.couponCode || ''
+    if (storedCode && storedCode !== appliedCouponCode) {
+      setAppliedCouponCode(storedCode)
+      setCouponInput(storedCode)
     }
-  }, [appliedCoupon?.code])
+  }, [appliedCoupon?.code, appliedCoupon?.couponCode, appliedCouponCode])
   const [showRazorpay, setShowRazorpay] = useState(false)
   const [razorpayOrderData, setRazorpayOrderData] = useState(null)
   const [razorpayKey, setRazorpayKey] = useState(null)
@@ -165,6 +170,7 @@ export default function Checkout() {
   const gatewayDismissRecoveryInFlight = useRef(false)
   const gatewayDismissHandlerRef = useRef(null)
   const lastQuoteErrorToastRef = useRef('')
+  const couponHydratedRef = useRef(false)
 
   const cartKey = useMemo(() => buildCheckoutCartKey(cartItems), [cartItems])
 
@@ -768,6 +774,45 @@ export default function Checkout() {
     [focusCheckoutEmailField, setSearchParams, syncHiddenCheckoutFieldsFromAddress],
   )
 
+  // Re-validate persisted PDP coupons that were stored without discount fields.
+  // Must stay above empty-cart / success early returns — hooks cannot be conditional.
+  useEffect(() => {
+    if (couponHydratedRef.current) return
+    if (!isAuthenticated || !cartItems.length) return
+    const stored = appliedCoupon
+    const code = normalizeCouponCode(stored?.code || stored?.couponCode)
+    if (!code) {
+      couponHydratedRef.current = true
+      return
+    }
+    const hasDiscountShape =
+      Boolean(stored?.discountType) ||
+      Number(stored?.discountValue) > 0 ||
+      Number(stored?.discountAmount) > 0
+    couponHydratedRef.current = true
+    if (hasDiscountShape) return
+
+    void (async () => {
+      try {
+        const result = await validateCoupon.mutateAsync({
+          couponCode: code,
+          useServercart: true,
+        })
+        if (!result.valid) return
+        const evaluated = evaluateCouponForCart(cartItems, result, code)
+        if (!evaluated.ok) return
+        applyCoupon(evaluated.coupon)
+        setAppliedCouponCode(evaluated.coupon.code)
+        setCouponInput(evaluated.coupon.code)
+        await removeCachedCheckoutQuotes(queryClient)
+      } catch {
+        // Keep stored code; user can retry Apply.
+      }
+    })()
+    // Intentional: once when checkout + cart are ready.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, cartItems.length])
+
   if (cartItems.length === 0 && !orderPlaced && !placedOrder && !isRecoveringCheckout) {
     return (
       <div className="container empty-state">
@@ -1020,10 +1065,10 @@ export default function Checkout() {
     setValue('paymentMethod', method, { shouldValidate: true })
   }
 
-  const handleApplyCoupon = async (code) => {
-    const couponCode = String(code || couponInput || '').trim().toUpperCase()
+  const handleApplyCoupon = async (code, { silent = false } = {}) => {
+    const couponCode = normalizeCouponCode(code || couponInput)
     if (!couponCode) {
-      toast.error('Enter a coupon code')
+      if (!silent) toast.error('Enter a coupon code')
       return
     }
 
@@ -1034,32 +1079,33 @@ export default function Checkout() {
         subtotal: cartSubtotal,
       })
       if (!result.valid) {
-        toast.error(result.message || 'Invalid coupon')
+        if (!silent) toast.error(result.message || 'Invalid coupon')
         return
       }
 
-      const calculation = calculateCartCouponDiscounts(cartItems, result)
-      if (!calculation.isMinOrderSatisfied) {
-        toast.error(calculation.errorMessage || `Minimum order value of ₹${result.minOrderAmount} required`)
-        return
-      }
-      if (calculation.totalDiscount <= 0 && !result.freeShipping) {
-        toast.error(calculation.errorMessage || 'This coupon does not apply to any items in your bag')
+      const evaluated = evaluateCouponForCart(cartItems, result, couponCode)
+      if (!evaluated.ok) {
+        if (!silent) {
+          toast.error(
+            evaluated.errorMessage || 'This coupon does not apply to any items in your bag'
+          )
+        }
         return
       }
 
-      applyCoupon({
-        ...result,
-        code: result.couponCode || couponCode,
-        discountAmount: calculation.totalDiscount || result.discountAmount || 0,
-      })
+      applyCoupon(evaluated.coupon)
 
       // Quote locks the discount on server — validation updates immediate client display
       await removeCachedCheckoutQuotes(queryClient)
-      setAppliedCouponCode(result.couponCode || couponCode)
-      setCouponInput(result.couponCode || couponCode)
-      const savingsMsg = calculation.totalDiscount > 0 ? ` Saved ${formatPrice(calculation.totalDiscount)}!` : ''
-      toast.success(result.message || `Coupon applied!${savingsMsg}`)
+      setAppliedCouponCode(evaluated.coupon.code)
+      setCouponInput(evaluated.coupon.code)
+      if (!silent) {
+        const savingsMsg =
+          evaluated.calculation.totalDiscount > 0
+            ? ` Saved ${formatPrice(evaluated.calculation.totalDiscount)}!`
+            : ''
+        toast.success(result.message || `Coupon applied!${savingsMsg}`)
+      }
 
       if (
         checkoutStep >= CHECKOUT_STEP.DELIVERY
@@ -1069,7 +1115,7 @@ export default function Checkout() {
         refetchQuote()
       }
     } catch (err) {
-      toast.error(err?.message || 'Could not validate coupon')
+      if (!silent) toast.error(couponApiErrorMessage(err, 'Could not validate coupon'))
     }
   }
 

@@ -77,7 +77,18 @@ export const cartSlice = (set, get) => ({
       set({ appliedCoupon: null })
       return
     }
-    set({ appliedCoupon: coupon })
+    const code = String(coupon.code || coupon.couponCode || '').trim().toUpperCase()
+    if (!code) {
+      set({ appliedCoupon: null })
+      return
+    }
+    set({
+      appliedCoupon: {
+        ...coupon,
+        code,
+        couponCode: code,
+      },
+    })
   },
 
   removeCoupon: () => set({ appliedCoupon: null }),

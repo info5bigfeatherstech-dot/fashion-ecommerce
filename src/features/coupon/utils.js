@@ -6,6 +6,103 @@ export function normalizeCouponCode(code) {
   return String(code || '').trim().toUpperCase()
 }
 
+export function getCouponCode(coupon) {
+  return normalizeCouponCode(coupon?.code || coupon?.couponCode)
+}
+
+/** Stable shape for zustand / checkout quote — always has `code` and `couponCode`. */
+export function normalizeAppliedCoupon(coupon, fallbackCode = '') {
+  if (!coupon || typeof coupon !== 'object') return null
+  const code = getCouponCode(coupon) || normalizeCouponCode(fallbackCode)
+  if (!code) return null
+  return {
+    ...coupon,
+    code,
+    couponCode: code,
+  }
+}
+
+export function couponApiErrorMessage(err, fallback = 'Could not validate coupon') {
+  return (
+    err?.response?.data?.message ||
+    err?.data?.message ||
+    err?.message ||
+    fallback
+  )
+}
+
+/**
+ * Shared apply gate used by PDP, bag coupon box, and checkout.
+ * Returns { ok, coupon, calculation, errorMessage }.
+ */
+export function evaluateCouponForCart(cartItems = [], validation, fallbackCode = '') {
+  const coupon = normalizeAppliedCoupon(validation, fallbackCode)
+  if (!coupon) {
+    return {
+      ok: false,
+      coupon: null,
+      calculation: null,
+      errorMessage: 'Please enter a coupon code',
+    }
+  }
+
+  if (validation && validation.valid === false) {
+    return {
+      ok: false,
+      coupon,
+      calculation: null,
+      errorMessage: validation.message || 'Invalid coupon code',
+    }
+  }
+
+  const calculation = calculateCartCouponDiscounts(cartItems, coupon)
+  if (!calculation.isMinOrderSatisfied) {
+    return {
+      ok: false,
+      coupon,
+      calculation,
+      errorMessage:
+        calculation.errorMessage ||
+        `Minimum order value of ₹${calculation.minOrderAmount || coupon.minOrderAmount} required`,
+    }
+  }
+
+  if (calculation.totalDiscount <= 0 && !coupon.freeShipping) {
+    return {
+      ok: false,
+      coupon,
+      calculation,
+      errorMessage:
+        calculation.errorMessage || 'This coupon does not apply to any items in your bag',
+    }
+  }
+
+  return {
+    ok: true,
+    coupon: {
+      ...coupon,
+      discountAmount: calculation.totalDiscount || coupon.discountAmount || 0,
+    },
+    calculation,
+    errorMessage: null,
+  }
+}
+
+export function productAsCouponCartItem(product, currentPrice = 0) {
+  if (!product) return null
+  return {
+    productId: product.id || product._id || product.productId || '',
+    id: product.id || product._id || '',
+    slug: product.slug || '',
+    variantId: product.variantId || '',
+    productCode: product.productCode || product.sku || '',
+    category: product.category || product.categorySlug || '',
+    categorySlug: product.categorySlug || product.category || '',
+    price: Number(currentPrice) || Number(product.price) || 0,
+    quantity: 1,
+  }
+}
+
 /**
  * Check if a specific cart item is eligible for the given coupon.
  */
@@ -53,7 +150,8 @@ export function calculateCartCouponDiscounts(cartItems = [], coupon = null) {
     0
   )
 
-  if (!coupon || !coupon.code || safeItems.length === 0) {
+  const couponCode = getCouponCode(coupon)
+  if (!coupon || !couponCode || safeItems.length === 0) {
     return {
       cartSubtotal,
       totalDiscount: 0,
@@ -228,6 +326,8 @@ export function calculateCartCouponDiscounts(cartItems = [], coupon = null) {
     hasCoupon: totalDiscount > 0,
     appliedCoupon: {
       ...coupon,
+      code: couponCode,
+      couponCode,
       calculatedDiscount: totalDiscount,
     },
     isMinOrderSatisfied: true,

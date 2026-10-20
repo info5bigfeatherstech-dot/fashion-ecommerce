@@ -4,7 +4,13 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { useAvailableCoupons, useValidateCoupon } from '@/features/coupon/hooks'
-import { isItemEligibleForCoupon, normalizeCouponCode } from '@/features/coupon/utils'
+import {
+  couponApiErrorMessage,
+  evaluateCouponForCart,
+  isItemEligibleForCoupon,
+  normalizeCouponCode,
+  productAsCouponCartItem,
+} from '@/features/coupon/utils'
 import { formatPrice } from '@/lib/utils'
 import { useAppStore } from '@/store'
 import { useAppliedCoupon } from '@/store/selectors'
@@ -21,6 +27,7 @@ export function ProductCouponSection({
   const appliedCoupon = useAppliedCoupon()
   const applyCoupon = useAppStore((s) => s.applyCoupon)
   const removeCoupon = useAppStore((s) => s.removeCoupon)
+  const cartItems = useAppStore((s) => s.cartItems)
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
 
   const validateCoupon = useValidateCoupon()
@@ -77,56 +84,53 @@ export function ProductCouponSection({
         return
       }
 
-      // Check product eligibility
-      if (!isItemEligibleForCoupon(product, result)) {
+      const previewItem = productAsCouponCartItem(product, currentPrice)
+      if (previewItem && !isItemEligibleForCoupon(previewItem, result) && !isItemEligibleForCoupon(product, result)) {
         toast.error('This coupon is not applicable to this product')
         return
       }
 
-      // Calculate discount amount for this product
-      const type = String(result.discountType || '').toLowerCase()
-      const val = Number(result.discountValue ?? result.discount ?? 0)
-      let discount = 0
+      const itemsForCalc =
+        Array.isArray(cartItems) && cartItems.length > 0
+          ? cartItems
+          : previewItem
+            ? [previewItem]
+            : []
 
-      if (type === 'percentage' || type === 'percent') {
-        discount = val > 0 ? Math.round((currentPrice * val) / 100) : 0
-      } else if (result.discountAmount > 0) {
-        discount = Math.min(currentPrice, Number(result.discountAmount))
-      } else if (val > 0) {
-        discount = Math.min(currentPrice, val)
+      const evaluated = evaluateCouponForCart(itemsForCalc, result, code)
+      if (!evaluated.ok) {
+        const minOrder = Number(result.minOrderAmount ?? result.minOrderValue ?? 0)
+        const previewSubtotal = Number(currentPrice) || 0
+        if (minOrder > 0 && previewSubtotal < minOrder) {
+          applyCoupon(evaluated.coupon || { ...result, code, couponCode: code })
+          setCouponInput('')
+          toast.info(
+            `Coupon "${code}" saved! Min order is ₹${minOrder}. Add more to your bag to activate full discount.`
+          )
+          onCouponApplied?.(result, 0)
+          return
+        }
+        toast.error(
+          evaluated.errorMessage || 'This coupon does not apply to any items in your bag'
+        )
+        return
       }
 
-      const maxDiscount = Number(result.maxDiscountAmount)
-      if (Number.isFinite(maxDiscount) && maxDiscount > 0) {
-        discount = Math.min(discount, maxDiscount)
-      }
-      discount = Math.min(discount, currentPrice)
-
-      const minOrder = Number(result.minOrderAmount ?? result.minOrderValue ?? 0)
-      const isBelowMin = minOrder > 0 && currentPrice < minOrder
-
-      applyCoupon({
-        ...result,
-        code: result.couponCode || code,
-        discountAmount: discount,
-      })
+      applyCoupon(evaluated.coupon)
+      const discount = evaluated.calculation?.totalDiscount || 0
 
       setCouponInput('')
-      if (isBelowMin) {
-        toast.info(
-          `Coupon "${code}" saved! Min order is ₹${minOrder}. Add more to your bag to activate full discount.`
-        )
-      } else if (discount > 0) {
+      if (discount > 0) {
         toast.success(
-          `Coupon "${code}" applied! You save ${formatPrice(discount)} on this item!`
+          `Coupon "${evaluated.coupon.code}" applied! You save ${formatPrice(discount)}!`
         )
       } else {
-        toast.success(result.message || `Coupon "${code}" applied!`)
+        toast.success(result.message || `Coupon "${evaluated.coupon.code}" applied!`)
       }
 
-      onCouponApplied?.(result, discount)
+      onCouponApplied?.(evaluated.coupon, discount)
     } catch (err) {
-      toast.error(err?.message || 'Could not validate coupon. Please try again.')
+      toast.error(couponApiErrorMessage(err, 'Could not validate coupon. Please try again.'))
     }
   }
 
