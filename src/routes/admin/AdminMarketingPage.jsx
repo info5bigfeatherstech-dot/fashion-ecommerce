@@ -37,6 +37,16 @@ const CUSTOMER_CARDS = [
     href: '/admin/coupons',
   },
   {
+    id: 'referrals',
+    title: 'Customer referrals',
+    desc: 'RF codes, friend discount, and referrer points.',
+    btn: 'MANAGE',
+    tone: 'indigo',
+    Icon: Users,
+    href: '/admin/marketing/referrals',
+    isNew: true,
+  },
+  {
     id: 'google-shop',
     title: 'Manage your Google Shop',
     desc: 'Start selling on Google',

@@ -49,6 +49,7 @@ export function mapCheckoutQuote(payload) {
     originalCodFeeInr: toNumber(raw?.originalCodFeeInr, 0),
     includesShippingAndHandling: Boolean(raw?.includesShippingAndHandling),
     couponApplied: raw?.couponApplied || raw?.couponCode || null,
+    referralApplied: raw?.referralApplied || null,
     quoteExpiresAt: raw?.quoteExpiresAt || null,
     cartFingerprint: raw?.cartFingerprint || null,
     demoMockShipping: Boolean(raw?.demoMockShipping),

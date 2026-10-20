@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { NavLink, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { ChevronRight, Coins, Heart, LogOut, MapPin, Package, ShoppingBag, UserRound } from 'lucide-react'
+import { ChevronRight, Coins, Gift, Heart, LogOut, MapPin, Package, ShoppingBag, UserRound } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Input, InputGroup } from '@/components/ui/Input'
@@ -14,10 +14,12 @@ import { useMyLoyaltyPoints } from '@/features/loyaltyPoints/hooks'
 import { AccountAddressesTab } from '@/routes/account/AccountAddressesTab'
 import { AccountCartTab } from '@/routes/account/AccountCartTab'
 import { AccountLoyaltyPointsTab } from '@/routes/account/AccountLoyaltyPointsTab'
+import { AccountReferralTab } from '@/routes/account/AccountReferralTab'
+import { useMyReferral } from '@/features/referral/hooks'
 import { AccountOrdersTab } from '@/routes/account/AccountOrdersTab'
 import { AccountWishlistTab } from '@/routes/account/AccountWishlistTab'
 
-const ACCOUNT_SECTIONS = new Set(['orders', 'wishlist', 'cart', 'profile', 'addresses', 'points'])
+const ACCOUNT_SECTIONS = new Set(['orders', 'wishlist', 'cart', 'profile', 'addresses', 'points', 'referral'])
 
 const ACCOUNT_QUICK_LINKS = [
   { id: 'orders', label: 'Orders', icon: Package, to: '/account/orders' },
@@ -29,6 +31,7 @@ const ACCOUNT_MENU_LINKS = [
   { id: 'profile', label: 'Profile information', icon: UserRound, to: '/account/profile' },
   { id: 'addresses', label: 'Saved addresses', icon: MapPin, to: '/account/addresses' },
   { id: 'points', label: 'Loyalty points', icon: Coins, to: '/account/points' },
+  { id: 'referral', label: 'Referral code', icon: Gift, to: '/account/referral' },
 ]
 
 function getAccountDisplayName(user) {
@@ -52,8 +55,11 @@ export default function Account() {
   const [profileEmail, setProfileEmail] = useState('')
   const [profileSaving, setProfileSaving] = useState(false)
   const { data: loyaltyPointsData } = useMyLoyaltyPoints()
+  const { data: referralData } = useMyReferral()
   const pointsBalance = Math.max(0, Math.floor(Number(loyaltyPointsData?.points?.balance) || 0))
   const pointsEnabled = Boolean(loyaltyPointsData?.points?.settings?.enabled)
+  const referralEnabled = Boolean(referralData?.settings?.enabled)
+  const referralCode = referralData?.code?.code || ''
 
   const activeTab = ACCOUNT_SECTIONS.has(section) ? section : null
   const savedProfileName = normalizePersonName(getAccountDisplayName(user))
@@ -303,6 +309,18 @@ export default function Account() {
                     </NavLink>
                   </div>
                 ) : null}
+                {referralEnabled ? (
+                  <div className="account-loyalty-points-card">
+                    <p className="account-loyalty-points-card__eyebrow">Referral code</p>
+                    <p className="account-loyalty-points-card__value">
+                      {referralCode || 'Get yours'}
+                      <span>{referralCode ? 'share & earn' : 'generate once'}</span>
+                    </p>
+                    <NavLink to="/account/referral" className="account-loyalty-points-card__link">
+                      {referralCode ? 'Share code' : 'Generate code'}
+                    </NavLink>
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -392,6 +410,17 @@ export default function Account() {
               </div>
             </div>
             <AccountLoyaltyPointsTab />
+          </div>
+        )}
+        {activeTab === 'referral' && (
+          <div className="account-section">
+            <div className="account-section__header">
+              <div>
+                <p className="heading-sm text-accent">Referrals</p>
+                <h2 className="display-md">Your Code</h2>
+              </div>
+            </div>
+            <AccountReferralTab />
           </div>
         )}
       </div>

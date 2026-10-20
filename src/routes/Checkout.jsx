@@ -21,6 +21,7 @@ import {
   Truck,
   Wallet,
   Coins,
+  Gift,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input, InputGroup } from '@/components/ui/Input'
@@ -59,6 +60,8 @@ import {
   evaluateCouponForCart,
   normalizeCouponCode,
 } from '@/features/coupon/utils'
+import { usePublicReferralSettings, useValidateReferral } from '@/features/referral/hooks'
+import { isReferralCodeFormat } from '@/features/referral/utils'
 import { updateProfile } from '@/features/auth/api'
 import { useAppStore } from '@/store'
 import { useCartCouponSummary, useCartTotal } from '@/store/selectors'
@@ -139,6 +142,7 @@ export default function Checkout() {
   )
   const [loyaltyPointsToRedeem, setLoyaltyPointsToRedeem] = useState(0)
   const [loyaltyPointsInput, setLoyaltyPointsInput] = useState('')
+  const [promoApplying, setPromoApplying] = useState(false)
   const [placedOrder, setPlacedOrder] = useState(null)
   const [orderIntent, setOrderIntent] = useState({
     type: 'my_order',
@@ -345,7 +349,7 @@ export default function Checkout() {
   /** Ignore cached quotes that still carry a coupon/points after the user removed them. */
   const activeQuote = useMemo(() => {
     if (!quote) return null
-    const quoteCoupon = normalizeCouponCode(quote.couponApplied)
+    const quoteCoupon = normalizeCouponCode(quote.couponApplied || quote.referralApplied)
     const desiredCoupon = normalizeCouponCode(appliedCouponCode)
     if (quoteCoupon !== desiredCoupon) return null
     const quotePts = Math.max(0, Math.floor(Number(quote.loyaltyPointsRequested) || 0))
@@ -376,6 +380,12 @@ export default function Checkout() {
     enabled: isAuthenticated && isReviewStep && couponsEnabled,
   })
   const validateCoupon = useValidateCoupon()
+  const validateReferral = useValidateReferral()
+  const { data: referralSettingsData } = usePublicReferralSettings({
+    enabled: isAuthenticated,
+  })
+  const referralsEnabled = Boolean(referralSettingsData?.settings?.enabled)
+  const isReferralPromo = isReferralCodeFormat(appliedCouponCode)
 
   const itemsSubtotal = activeQuote ? activeQuote.itemsSubtotal : cartSubtotal
   const promotionDiscount = activeQuote ? activeQuote.promotionDiscount : couponTotalDiscount
@@ -781,7 +791,7 @@ export default function Checkout() {
     if (!isAuthenticated || !cartItems.length) return
     const stored = appliedCoupon
     const code = normalizeCouponCode(stored?.code || stored?.couponCode)
-    if (!code) {
+    if (!code || isReferralCodeFormat(code)) {
       couponHydratedRef.current = true
       return
     }
@@ -1068,43 +1078,65 @@ export default function Checkout() {
   const handleApplyCoupon = async (code, { silent = false } = {}) => {
     const couponCode = normalizeCouponCode(code || couponInput)
     if (!couponCode) {
-      if (!silent) toast.error('Enter a coupon code')
+      if (!silent) toast.error(referralsEnabled ? 'Enter a coupon or referral code' : 'Enter a coupon code')
       return
     }
 
+    setPromoApplying(true)
     try {
-      const result = await validateCoupon.mutateAsync({
-        couponCode,
-        useServercart: true,
-        subtotal: cartSubtotal,
-      })
-      if (!result.valid) {
-        if (!silent) toast.error(result.message || 'Invalid coupon')
-        return
-      }
-
-      const evaluated = evaluateCouponForCart(cartItems, result, couponCode)
-      if (!evaluated.ok) {
+      if (isReferralCodeFormat(couponCode)) {
+        const result = await validateReferral.mutateAsync({
+          code: couponCode,
+          useServercart: true,
+          subtotal: cartSubtotal,
+        })
+        if (!result.valid) {
+          if (!silent) toast.error(result.message || 'Invalid referral code')
+          return
+        }
+        if (appliedCoupon) removeCoupon()
+        await removeCachedCheckoutQuotes(queryClient)
+        setAppliedCouponCode(result.code)
+        setCouponInput(result.code)
         if (!silent) {
-          toast.error(
-            evaluated.errorMessage || 'This coupon does not apply to any items in your bag'
+          toast.success(
+            result.message
+            || `Referral ${result.code} applied${result.discount > 0 ? ` · saved ${formatPrice(result.discount)}` : ''}`
           )
         }
-        return
-      }
+      } else {
+        const result = await validateCoupon.mutateAsync({
+          couponCode,
+          useServercart: true,
+          subtotal: cartSubtotal,
+        })
+        if (!result.valid) {
+          if (!silent) toast.error(result.message || 'Invalid coupon')
+          return
+        }
 
-      applyCoupon(evaluated.coupon)
+        const evaluated = evaluateCouponForCart(cartItems, result, couponCode)
+        if (!evaluated.ok) {
+          if (!silent) {
+            toast.error(
+              evaluated.errorMessage || 'This coupon does not apply to any items in your bag'
+            )
+          }
+          return
+        }
 
-      // Quote locks the discount on server — validation updates immediate client display
-      await removeCachedCheckoutQuotes(queryClient)
-      setAppliedCouponCode(evaluated.coupon.code)
-      setCouponInput(evaluated.coupon.code)
-      if (!silent) {
-        const savingsMsg =
-          evaluated.calculation.totalDiscount > 0
-            ? ` Saved ${formatPrice(evaluated.calculation.totalDiscount)}!`
-            : ''
-        toast.success(result.message || `Coupon applied!${savingsMsg}`)
+        applyCoupon(evaluated.coupon)
+
+        await removeCachedCheckoutQuotes(queryClient)
+        setAppliedCouponCode(evaluated.coupon.code)
+        setCouponInput(evaluated.coupon.code)
+        if (!silent) {
+          const savingsMsg =
+            evaluated.calculation.totalDiscount > 0
+              ? ` Saved ${formatPrice(evaluated.calculation.totalDiscount)}!`
+              : ''
+          toast.success(result.message || `Coupon applied!${savingsMsg}`)
+        }
       }
 
       if (
@@ -1115,7 +1147,16 @@ export default function Checkout() {
         refetchQuote()
       }
     } catch (err) {
-      if (!silent) toast.error(couponApiErrorMessage(err, 'Could not validate coupon'))
+      if (!silent) {
+        toast.error(
+          couponApiErrorMessage(
+            err,
+            isReferralCodeFormat(couponCode) ? 'Could not apply referral code' : 'Could not validate coupon'
+          )
+        )
+      }
+    } finally {
+      setPromoApplying(false)
     }
   }
 
@@ -1131,7 +1172,7 @@ export default function Checkout() {
     ) {
       refetchQuote()
     }
-    toast.success('Coupon removed')
+    toast.success(isReferralPromo ? 'Referral removed' : 'Coupon removed')
   }
 
   const handleApplyLoyaltyPoints = () => {
@@ -1454,16 +1495,16 @@ export default function Checkout() {
                     </div>
                     <div className="checkout-coupon checkout-coupon--inline">
                       <div className="checkout-coupon__head">
-                        <Tag size={14} />
-                        <span>Coupon Code</span>
+                        {isReferralPromo ? <Gift size={14} /> : <Tag size={14} />}
+                        <span>{referralsEnabled ? 'Coupon or referral' : 'Coupon Code'}</span>
                       </div>
                       <div className="checkout-coupon__row">
                         <Input
                           value={couponInput}
                           onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
                           onFocus={() => setCouponsEnabled(true)}
-                          placeholder="Enter code"
-                          aria-label="Coupon code"
+                          placeholder={referralsEnabled ? 'Coupon or RF-001' : 'Enter code'}
+                          aria-label={referralsEnabled ? 'Coupon or referral code' : 'Coupon code'}
                           disabled={Boolean(appliedCouponCode)}
                         />
                         {appliedCouponCode ? (
@@ -1476,18 +1517,23 @@ export default function Checkout() {
                             variant="secondary"
                             size="sm"
                             onClick={() => handleApplyCoupon()}
-                            disabled={validateCoupon.isPending}
+                            disabled={promoApplying || validateCoupon.isPending || validateReferral.isPending}
                           >
-                            {validateCoupon.isPending ? '…' : 'Apply'}
+                            {promoApplying || validateCoupon.isPending || validateReferral.isPending ? '…' : 'Apply'}
                           </Button>
                         )}
                       </div>
                       {appliedCouponCode && (
                         <p className="checkout-coupon__ok" style={{ color: '#16a34a', display: 'flex', alignItems: 'center', gap: 5 }}>
-                          <Check size={14} /> Coupon <strong>{appliedCouponCode}</strong> applied
+                          <Check size={14} /> {isReferralPromo ? 'Referral' : 'Coupon'} <strong>{appliedCouponCode}</strong> applied
                           {promotionDiscount > 0 && ` · Saved ${formatPrice(promotionDiscount)}`}
                         </p>
                       )}
+                      {referralsEnabled && !appliedCouponCode ? (
+                        <p className="body-sm text-muted" style={{ marginTop: 6 }}>
+                          One offer at a time — coupon or referral. Loyalty points still work separately.
+                        </p>
+                      ) : null}
                       {availableCoupons.length > 0 && !appliedCouponCode && (
                         <div className="checkout-coupon__list">
                           {availableCoupons.slice(0, 4).map((coupon) => (
@@ -1753,8 +1799,8 @@ export default function Checkout() {
             <div className="checkout-summary__rows">
               {appliedCouponCode && (
                 <p className="checkout-coupon__ok" style={{ marginBottom: 8, color: '#16a34a', display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <Tag size={13} />
-                  <span>Coupon <strong>{appliedCouponCode}</strong></span>
+                  {isReferralPromo ? <Gift size={13} /> : <Tag size={13} />}
+                  <span>{isReferralPromo ? 'Referral' : 'Coupon'} <strong>{appliedCouponCode}</strong></span>
                   {promotionDiscount > 0 ? <span> · −{formatPrice(promotionDiscount)}</span> : ''}
                 </p>
               )}

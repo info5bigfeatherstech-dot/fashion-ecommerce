@@ -575,16 +575,24 @@ export function AccountOrderDetail({ orderId, onBack }) {
                 })()}
               </>
             )}
-            {order.appliedCoupon && (
+            {(typeof order.appliedCoupon === 'string' ? order.appliedCoupon : order.appliedCoupon?.code) && (
               <p className="body-sm text-muted">
                 Coupon:{' '}
                 {typeof order.appliedCoupon === 'string'
                   ? order.appliedCoupon
-                  : `${order.appliedCoupon.code || 'Applied'}${
+                  : `${order.appliedCoupon.code}${
                       Number(order.appliedCoupon.discount) > 0
                         ? ` (${formatPrice(order.appliedCoupon.discount)} off)`
                         : ''
                     }`}
+              </p>
+            )}
+            {order.appliedReferral?.code && (
+              <p className="body-sm text-muted">
+                Referral: {order.appliedReferral.code}
+                {Number(order.appliedReferral.discount) > 0
+                  ? ` (${formatPrice(order.appliedReferral.discount)} off)`
+                  : ''}
               </p>
             )}
           </div>

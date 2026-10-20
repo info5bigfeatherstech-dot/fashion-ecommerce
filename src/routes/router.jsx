@@ -35,6 +35,7 @@ const AdminWishlistsPage = lazy(() => import('./admin/AdminWishlistsPage'))
 const AdminCouponsPage = lazy(() => import('./admin/AdminCouponsPage'))
 const AdminLoyaltyBadgesPage = lazy(() => import('./admin/AdminLoyaltyBadgesPage'))
 const AdminLoyaltyPointsPage = lazy(() => import('./admin/AdminLoyaltyPointsPage'))
+const AdminReferralPage = lazy(() => import('./admin/AdminReferralPage'))
 const AdminOffersPage = lazy(() => import('./admin/AdminOffersPage'))
 const AdminStaffPage = lazy(() => import('./admin/AdminStaffPage'))
 const AdminPaymentSettingsPage = lazy(() => import('./admin/AdminPaymentSettingsPage'))
@@ -119,6 +120,7 @@ export const router = createBrowserRouter([
       { path: 'marketing/offers', element: <AdminOffersPage /> },
       { path: 'marketing/loyalty', element: <AdminLoyaltyBadgesPage /> },
       { path: 'marketing/loyalty-points', element: <AdminLoyaltyPointsPage /> },
+      { path: 'marketing/referrals', element: <AdminReferralPage /> },
       { path: 'coupons', element: <AdminCouponsPage /> },
       { path: 'reviews/submissions', element: <AdminReviewsSubmissionsPage /> },
       { path: 'reviews/generated', element: <AdminReviewsGeneratedPage /> },

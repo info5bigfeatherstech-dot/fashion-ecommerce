@@ -16,6 +16,8 @@ const TYPE_META = {
   redeem: { label: 'Used at checkout', Icon: ArrowUpRight, tone: 'redeem' },
   redeem_restore: { label: 'Points restored', Icon: RotateCcw, tone: 'restore' },
   earn_clawback: { label: 'Points reversed', Icon: RotateCcw, tone: 'clawback' },
+  referral_reward: { label: 'Referral reward', Icon: Sparkles, tone: 'earn' },
+  referral_clawback: { label: 'Referral reversed', Icon: RotateCcw, tone: 'clawback' },
   expire: { label: 'Expired', Icon: Coins, tone: 'expire' },
   adjust: { label: 'Adjusted', Icon: Sparkles, tone: 'adjust' },
 }

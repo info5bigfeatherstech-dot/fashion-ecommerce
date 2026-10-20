@@ -79,6 +79,52 @@ export async function adjustAdminLoyaltyPoints(body) {
   return payload
 }
 
+export async function getAdminReferralSettings({ signal, storefront = 'ecomm' } = {}) {
+  const payload = await adminGet(API_ENDPOINTS.admin.referralSettings, {
+    signal,
+    params: { storefront },
+  })
+  return payload
+}
+
+export async function updateAdminReferralSettings(body) {
+  const payload = await adminPut(API_ENDPOINTS.admin.referralSettings, body)
+  return unwrapAdmin(payload) || payload
+}
+
+export async function getAdminReferralCodes({
+  signal,
+  storefront = 'ecomm',
+  page = 1,
+  limit = 20,
+  search = '',
+} = {}) {
+  const params = { storefront, page, limit }
+  if (String(search || '').trim()) params.search = String(search).trim()
+  return adminGet(API_ENDPOINTS.admin.referralCodes, { signal, params })
+}
+
+export async function getAdminReferralCodeDetail(code, { signal, storefront = 'ecomm' } = {}) {
+  return adminGet(API_ENDPOINTS.admin.referralCodeByCode(code), {
+    signal,
+    params: { storefront },
+  })
+}
+
+export async function getAdminReferralRedemptions({
+  signal,
+  storefront = 'ecomm',
+  page = 1,
+  limit = 20,
+  status = '',
+  search = '',
+} = {}) {
+  const params = { storefront, page, limit }
+  if (status && status !== 'all') params.status = status
+  if (String(search || '').trim()) params.search = String(search).trim()
+  return adminGet(API_ENDPOINTS.admin.referralRedemptions, { signal, params })
+}
+
 export async function getAdminLoyaltyBadgeMembers(
   id,
   { signal, page = 1, limit = 20, search = '' } = {}

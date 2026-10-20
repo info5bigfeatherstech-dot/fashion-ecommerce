@@ -162,6 +162,7 @@ export function AdminPendingOrderEditPanel({ order, orderId, disabled, onApplied
   const displayTotal = preview?.after?.totalAmount ?? order?.totalAmount ?? order?.amountInr
   const displayDiscount = preview?.after?.discount ?? order?.discount
   const couponCode = order?.appliedCoupon?.code
+  const referralCode = order?.appliedReferral?.code
 
   return (
     <section className="od-card od-card--pending-items">
@@ -292,7 +293,10 @@ export function AdminPendingOrderEditPanel({ order, orderId, disabled, onApplied
             </div>
             {Number(displayDiscount) > 0 ? (
               <div className="od-pending-items__row od-pending-items__row--discount">
-                <span>Discount{couponCode ? ` (${couponCode})` : ''}</span>
+                <span>
+                  Discount
+                  {couponCode ? ` (${couponCode})` : referralCode ? ` (${referralCode})` : ''}
+                </span>
                 <span>−{formatInr(displayDiscount)}</span>
               </div>
             ) : null}

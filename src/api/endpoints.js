@@ -60,6 +60,12 @@ export const API_ENDPOINTS = {
     ledger: '/loyalty-points/me/ledger',
     settings: '/loyalty-points/settings',
   },
+  referral: {
+    settings: '/referral/settings',
+    me: '/referral/me',
+    generate: '/referral/generate',
+    validate: '/referral/validate',
+  },
   public: {
     razorpayKey: '/public/razorpay-key',
   },
@@ -206,6 +212,10 @@ export const API_ENDPOINTS = {
     loyaltyPointsAdjust: '/admin/loyalty-points/adjust',
     loyaltyPointsUser: (userId) =>
       `/admin/loyalty-points/users/${encodeURIComponent(String(userId))}`,
+    referralSettings: '/admin/referral/settings',
+    referralCodes: '/admin/referral/codes',
+    referralCodeByCode: (code) => `/admin/referral/codes/${encodeURIComponent(String(code))}`,
+    referralRedemptions: '/admin/referral/redemptions',
     freeShippingOffers: '/admin/free-shipping-offers',
     freeShippingOfferById: (id) => `/admin/free-shipping-offers/${encodeURIComponent(String(id))}`,
     freeShippingOfferToggle: (id) => `/admin/free-shipping-offers/${encodeURIComponent(String(id))}/toggle`,
