@@ -25,7 +25,7 @@ import {
   getAdminReferralSettings,
   updateAdminReferralSettings,
 } from '@/features/admin/api/marketing'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 const EMPTY = {
   enabled: true,
@@ -34,6 +34,31 @@ const EMPTY = {
   maxDiscountAmount: '',
   minOrderValue: 0,
   rewardPoints: 80,
+  redeemRupeePerPoint: '',
+}
+
+const MAX_REDEEM_RUPEE_PER_POINT = 1000
+
+function parseRedeemRupeePerPoint(raw) {
+  if (raw === '' || raw == null) {
+    return { ok: false, message: 'Enter ₹ per point (for example 0.25)' }
+  }
+  const n = Number(raw)
+  if (!Number.isFinite(n) || n < 0) {
+    return { ok: false, message: '₹ per point must be 0 or more' }
+  }
+  if (n > MAX_REDEEM_RUPEE_PER_POINT) {
+    return { ok: false, message: `₹ per point cannot exceed ₹${MAX_REDEEM_RUPEE_PER_POINT}` }
+  }
+  return { ok: true, value: Math.round((n + Number.EPSILON) * 100) / 100 }
+}
+
+function readLoyaltyRedeemRate(loyaltyPayload) {
+  const n = Number(
+    loyaltyPayload?.settings?.redeemRupeePerPoint
+      ?? loyaltyPayload?.data?.settings?.redeemRupeePerPoint
+  )
+  return Number.isFinite(n) && n >= 0 ? n : null
 }
 
 function ToggleRow({ id, checked, onChange, title, description }) {
@@ -119,6 +144,7 @@ function statusLabel(status) {
 }
 
 export default function AdminReferralPage() {
+  const queryClient = useQueryClient()
   const [form, setForm] = useState(EMPTY)
   const [saving, setSaving] = useState(false)
   const [codeSearch, setCodeSearch] = useState('')
@@ -172,7 +198,9 @@ export default function AdminReferralPage() {
   useEffect(() => {
     const s = data?.settings || data?.data?.settings
     if (!s) return
-    setForm({
+    const fromReferral = Number(s.redeemRupeePerPoint)
+    const hasReferralRate = s.redeemRupeePerPoint != null && Number.isFinite(fromReferral)
+    setForm((prev) => ({
       enabled: s.enabled !== false,
       discountType: s.discountType === 'fixed' ? 'fixed' : 'percentage',
       discountValue: Number(s.discountValue) || 0,
@@ -182,11 +210,29 @@ export default function AdminReferralPage() {
           : '',
       minOrderValue: Number(s.minOrderValue) || 0,
       rewardPoints: Math.max(0, Math.floor(Number(s.rewardPoints) || 0)),
-    })
+      redeemRupeePerPoint: hasReferralRate
+        ? Math.max(0, fromReferral)
+        : (prev.redeemRupeePerPoint !== '' && prev.redeemRupeePerPoint != null
+            ? prev.redeemRupeePerPoint
+            : ''),
+    }))
   }, [data])
 
-  const redeemRate = Number(loyaltyQ.data?.settings?.redeemRupeePerPoint
-    || loyaltyQ.data?.data?.settings?.redeemRupeePerPoint) || 0
+  useEffect(() => {
+    const fromLoyalty = readLoyaltyRedeemRate(loyaltyQ.data)
+    if (fromLoyalty == null) return
+    setForm((prev) => {
+      if (prev.redeemRupeePerPoint !== '' && prev.redeemRupeePerPoint != null) return prev
+      return { ...prev, redeemRupeePerPoint: fromLoyalty }
+    })
+  }, [loyaltyQ.data])
+
+  const parsedRate = parseRedeemRupeePerPoint(form.redeemRupeePerPoint)
+  const rewardPtsPreview = Math.max(0, Math.floor(Number(form.rewardPoints) || 0))
+  const ratePreview = parsedRate.ok ? parsedRate.value : 0
+  const rupeePreview = ratePreview > 0
+    ? Math.round(rewardPtsPreview * ratePreview * 100) / 100
+    : null
 
   const example = useMemo(() => {
     const bag = 1000
@@ -197,16 +243,24 @@ export default function AdminReferralPage() {
       off = Math.min(off, cap)
     }
     off = Math.round((Math.min(off, bag) + Number.EPSILON) * 100) / 100
-    const pts = Math.max(0, Math.floor(Number(form.rewardPoints) || 0))
-    const rupees = redeemRate > 0 ? Math.round(pts * redeemRate * 100) / 100 : null
-    return `On a ₹1,000 bag the friend saves ₹${off.toLocaleString('en-IN')}. You award the referrer ${pts} loyalty points${
-      rupees != null ? ` (≈ ₹${rupees.toLocaleString('en-IN')} at the current loyalty ₹/point rate)` : ''
+    return `On a ₹1,000 bag the friend saves ₹${off.toLocaleString('en-IN')}. You award the referrer ${rewardPtsPreview} loyalty points${
+      rupeePreview != null ? ` (≈ ₹${rupeePreview.toLocaleString('en-IN')} at ₹${ratePreview} / point)` : ''
     }.`
-  }, [form, redeemRate])
+  }, [form, rewardPtsPreview, rupeePreview, ratePreview])
 
   const setField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }))
 
   const handleSave = async () => {
+    const parsedRate = parseRedeemRupeePerPoint(form.redeemRupeePerPoint)
+    if (!parsedRate.ok) {
+      toast.error(parsedRate.message)
+      return
+    }
+    const rewardPoints = Math.max(0, Math.floor(Number(form.rewardPoints) || 0))
+    if (!Number.isFinite(Number(form.rewardPoints)) || Number(form.rewardPoints) < 0) {
+      toast.error('Reward points must be 0 or more')
+      return
+    }
     setSaving(true)
     try {
       await updateAdminReferralSettings({
@@ -219,10 +273,14 @@ export default function AdminReferralPage() {
             ? null
             : Number(form.maxDiscountAmount),
         minOrderValue: Number(form.minOrderValue) || 0,
-        rewardPoints: Math.max(0, Math.floor(Number(form.rewardPoints) || 0)),
+        rewardPoints,
+        redeemRupeePerPoint: parsedRate.value,
       })
       toast.success('Referral settings saved')
-      refetch()
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['admin', 'referral', 'settings'] }),
+        queryClient.invalidateQueries({ queryKey: ['admin', 'loyalty-points', 'settings'] }),
+      ])
     } catch (err) {
       toast.error(err?.message || 'Could not save settings')
     } finally {
@@ -244,8 +302,11 @@ export default function AdminReferralPage() {
             type="button"
             variant="secondary"
             size="sm"
-            disabled={isFetching}
-            onClick={() => refetch()}
+            disabled={isFetching || loyaltyQ.isFetching}
+            onClick={() => {
+              refetch()
+              loyaltyQ.refetch()
+            }}
           >
             <RefreshCw size={14} className={isFetching ? 'admin-settings-profile__spin' : undefined} />
             Refresh
@@ -260,8 +321,9 @@ export default function AdminReferralPage() {
       <p className="body-sm text-muted admin-loyalty-points__intro">
         Each customer generates one unique RF-001+ code from their profile and can share it with anyone.
         A friend uses one referral once at checkout (not together with a coupon). Loyalty redeem stays
-        separate. After a complete paid / COD-delivered order, the code owner gets the points below into
-        the existing loyalty wallet. ₹ per point is the Loyalty points redeem rate — do not set a second rate here.
+        separate. The code owner gets the points below after prepaid or partial payment at checkout, or
+        when a full COD referred order is delivered. ₹ per point is the same Loyalty redeem rate — changing
+        it here also updates Loyalty points.
       </p>
 
       {isLoading ? (
@@ -345,25 +407,44 @@ export default function AdminReferralPage() {
             </div>
           </SectionCard>
 
-          <SectionCard icon={Gift} title="Referrer reward" subtitle="Loyalty points credited after a complete referred order">
-            <FieldWithExample
-              label="Points awarded"
-              htmlFor="rf-points"
-              example={
-                redeemRate > 0
-                  ? `Wallet rupee value uses Loyalty points redeem rate (currently ₹${redeemRate} / point).`
-                  : 'Wallet rupee value uses the Loyalty points redeem rate.'
-              }
-            >
-              <Input
-                id="rf-points"
-                type="number"
-                min="0"
-                step="1"
-                value={form.rewardPoints}
-                onChange={(e) => setField('rewardPoints', e.target.value)}
-              />
-            </FieldWithExample>
+          <SectionCard icon={Gift} title="Referrer reward" subtitle="Prepaid/partial at checkout · COD when delivered">
+            <div className="admin-loyalty-points__grid">
+              <FieldWithExample
+                label="Points awarded"
+                htmlFor="rf-points"
+                example="How many wallet points the code owner receives for one successful referred order."
+              >
+                <Input
+                  id="rf-points"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={form.rewardPoints}
+                  onChange={(e) => setField('rewardPoints', e.target.value)}
+                />
+              </FieldWithExample>
+              <FieldWithExample
+                label="₹ per point"
+                htmlFor="rf-rate"
+                example={
+                  parsedRate.ok
+                    ? `Same Loyalty redeem rate. ${rewardPtsPreview} pts × ₹${ratePreview} = ₹${(
+                        rupeePreview ?? 0
+                      ).toLocaleString('en-IN')} at checkout.`
+                    : 'Same Loyalty redeem rate. Example: 0.25 means 1 point = 25 paise.'
+                }
+              >
+                <Input
+                  id="rf-rate"
+                  type="number"
+                  min="0"
+                  max={MAX_REDEEM_RUPEE_PER_POINT}
+                  step="0.01"
+                  value={form.redeemRupeePerPoint}
+                  onChange={(e) => setField('redeemRupeePerPoint', e.target.value)}
+                />
+              </FieldWithExample>
+            </div>
           </SectionCard>
 
           <SectionCard icon={Users} title="Codes" subtitle="Every generated RF code and how often it converted">

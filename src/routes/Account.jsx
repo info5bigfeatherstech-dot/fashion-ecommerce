@@ -27,11 +27,9 @@ const ACCOUNT_QUICK_LINKS = [
   { id: 'cart', label: 'Cart', icon: ShoppingBag, badge: 'cart', to: '/account/cart' },
 ]
 
-const ACCOUNT_MENU_LINKS = [
+const ACCOUNT_MENU_BASE = [
   { id: 'profile', label: 'Profile information', icon: UserRound, to: '/account/profile' },
   { id: 'addresses', label: 'Saved addresses', icon: MapPin, to: '/account/addresses' },
-  { id: 'points', label: 'Loyalty points', icon: Coins, to: '/account/points' },
-  { id: 'referral', label: 'Referral code', icon: Gift, to: '/account/referral' },
 ]
 
 function getAccountDisplayName(user) {
@@ -54,12 +52,34 @@ export default function Account() {
   const [profileName, setProfileName] = useState('')
   const [profileEmail, setProfileEmail] = useState('')
   const [profileSaving, setProfileSaving] = useState(false)
-  const { data: loyaltyPointsData } = useMyLoyaltyPoints()
-  const { data: referralData } = useMyReferral()
-  const pointsBalance = Math.max(0, Math.floor(Number(loyaltyPointsData?.points?.balance) || 0))
+  const loyaltyQuery = useMyLoyaltyPoints()
+  const referralQuery = useMyReferral()
+  const loyaltyPointsData = loyaltyQuery.data
+  const referralData = referralQuery.data
+  const pointsBalance = Math.max(
+    0,
+    Math.floor(
+      Number(loyaltyPointsData?.points?.balance ?? referralData?.wallet?.balance) || 0
+    )
+  )
   const pointsEnabled = Boolean(loyaltyPointsData?.points?.settings?.enabled)
   const referralEnabled = Boolean(referralData?.settings?.enabled)
   const referralCode = referralData?.code?.code || ''
+  const walletVisible = pointsEnabled || referralEnabled || pointsBalance > 0
+  const rewardsReady = Boolean(loyaltyQuery.isFetched && referralQuery.isFetched)
+
+  const menuLinks = useMemo(() => {
+    const links = [...ACCOUNT_MENU_BASE]
+    if (!rewardsReady) return links
+    if (referralEnabled || referralCode) {
+      links.push({ id: 'referral', label: 'Referral code', icon: Gift, to: '/account/referral' })
+    } else if (pointsEnabled) {
+      links.push({ id: 'points', label: 'Loyalty points', icon: Coins, to: '/account/points' })
+    }
+    return links
+  }, [rewardsReady, referralEnabled, referralCode, pointsEnabled])
+
+  const rewardsHome = referralEnabled || referralCode ? '/account/referral' : '/account/points'
 
   const activeTab = ACCOUNT_SECTIONS.has(section) ? section : null
   const savedProfileName = normalizePersonName(getAccountDisplayName(user))
@@ -154,6 +174,15 @@ export default function Account() {
     return <Navigate to="/account/orders" replace />
   }
 
+  if (rewardsReady && activeTab === 'points') {
+    if (referralEnabled) return <Navigate to="/account/referral" replace />
+    if (!pointsEnabled && loyaltyQuery.isSuccess) return <Navigate to="/account/orders" replace />
+  }
+
+  if (rewardsReady && activeTab === 'referral' && !referralEnabled && referralQuery.isSuccess) {
+    return <Navigate to={pointsEnabled ? '/account/points' : '/account/orders'} replace />
+  }
+
   return (
     <div className="container account-layout">
       <aside className="account-sidebar">
@@ -208,7 +237,7 @@ export default function Account() {
         </div>
 
         <nav className="account-menu" aria-label="Account settings">
-          {ACCOUNT_MENU_LINKS.map((link) => {
+          {menuLinks.map((link) => {
             const Icon = link.icon
             return (
               <NavLink
@@ -297,15 +326,15 @@ export default function Account() {
                     {Number(user.loyalty.lifetimeOrderCount || 0) === 1 ? '' : 's'}
                   </p>
                 ) : null}
-                {pointsEnabled ? (
+                {walletVisible ? (
                   <div className="account-loyalty-points-card">
-                    <p className="account-loyalty-points-card__eyebrow">Loyalty points</p>
+                    <p className="account-loyalty-points-card__eyebrow">Your points</p>
                     <p className="account-loyalty-points-card__value">
                       {pointsBalance}
                       <span>available</span>
                     </p>
-                    <NavLink to="/account/points" className="account-loyalty-points-card__link">
-                      View history
+                    <NavLink to={rewardsHome} className="account-loyalty-points-card__link">
+                      {referralEnabled ? 'View & redeem' : 'View history'}
                     </NavLink>
                   </div>
                 ) : null}
@@ -409,7 +438,13 @@ export default function Account() {
                 <h2 className="display-md">Your Points</h2>
               </div>
             </div>
-            <AccountLoyaltyPointsTab />
+            {rewardsReady ? <AccountLoyaltyPointsTab /> : (
+              <div className="account-panel account-loyalty-points">
+                <div className="account-empty">
+                  <p className="body-sm text-muted">Loading…</p>
+                </div>
+              </div>
+            )}
           </div>
         )}
         {activeTab === 'referral' && (

@@ -57,6 +57,7 @@ import { getCart } from '@/features/cart/api'
 import { useAvailableCoupons, useValidateCoupon } from '@/features/coupon/hooks'
 import {
   couponApiErrorMessage,
+  couponOfferLabel,
   evaluateCouponForCart,
   normalizeCouponCode,
 } from '@/features/coupon/utils'
@@ -168,7 +169,6 @@ export default function Checkout() {
   const [isRecoveringCheckout, setIsRecoveringCheckout] = useState(false)
   const [paymentError, setPaymentError] = useState(null)
   const [showPaymentError, setShowPaymentError] = useState(false)
-  const [couponsEnabled, setCouponsEnabled] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(true)
   const checkoutAttemptKeyRef = useRef(null)
   const gatewayDismissRecoveryInFlight = useRef(false)
@@ -377,7 +377,7 @@ export default function Checkout() {
   const partialPaymentPercent = policy?.partialPaymentPercent || 0
 
   const { data: availableCoupons = [] } = useAvailableCoupons({
-    enabled: isAuthenticated && isReviewStep && couponsEnabled,
+    enabled: isAuthenticated && isReviewStep,
   })
   const validateCoupon = useValidateCoupon()
   const validateReferral = useValidateReferral()
@@ -405,9 +405,13 @@ export default function Checkout() {
   const loyaltyMaxInr =
     redeemRupeePerPoint > 0 ? Math.floor(loyaltyMaxPts * redeemRupeePerPoint * 100) / 100 : 0
   const showLoyaltyRedeem =
-    Boolean(loyaltyQuote?.loyaltyEnabled)
-    && loyaltyBalancePts > 0
+    loyaltyBalancePts > 0
     && checkoutStep >= CHECKOUT_STEP.DELIVERY
+    && (
+      Boolean(loyaltyQuote?.loyaltyEnabled)
+      || Boolean(loyaltyQuote?.loyaltyRedeemAvailable)
+      || redeemRupeePerPoint > 0
+    )
   const deliveryCharges = activeQuote ? activeQuote.deliveryCharges : null
   const taxes = activeQuote ? activeQuote.taxes : 0
   const total = activeQuote ? activeQuote.amountPayable : Math.max(0, itemsSubtotal - promotionDiscount)
@@ -1496,14 +1500,13 @@ export default function Checkout() {
                     <div className="checkout-coupon checkout-coupon--inline">
                       <div className="checkout-coupon__head">
                         {isReferralPromo ? <Gift size={14} /> : <Tag size={14} />}
-                        <span>{referralsEnabled ? 'Coupon or referral' : 'Coupon Code'}</span>
+                        <span>{referralsEnabled ? 'Coupon or Referral Code' : 'Coupon Code'}</span>
                       </div>
                       <div className="checkout-coupon__row">
                         <Input
                           value={couponInput}
                           onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                          onFocus={() => setCouponsEnabled(true)}
-                          placeholder={referralsEnabled ? 'Coupon or RF-001' : 'Enter code'}
+                          placeholder={referralsEnabled ? 'Coupon or Referral Code' : 'Enter code'}
                           aria-label={referralsEnabled ? 'Coupon or referral code' : 'Coupon code'}
                           disabled={Boolean(appliedCouponCode)}
                         />
@@ -1536,19 +1539,26 @@ export default function Checkout() {
                       ) : null}
                       {availableCoupons.length > 0 && !appliedCouponCode && (
                         <div className="checkout-coupon__list">
-                          {availableCoupons.slice(0, 4).map((coupon) => (
-                            <button
-                              key={coupon.id}
-                              type="button"
-                              className="checkout-coupon__chip"
-                              onClick={() => {
-                                setCouponInput(coupon.code)
-                                handleApplyCoupon(coupon.code)
-                              }}
-                            >
-                              {coupon.code}
-                            </button>
-                          ))}
+                          {availableCoupons.slice(0, 4).map((coupon) => {
+                            const offer = couponOfferLabel(coupon)
+                            return (
+                              <button
+                                key={coupon.id || coupon.code}
+                                type="button"
+                                className="checkout-coupon__chip"
+                                title={offer ? `${coupon.code} · ${offer}` : coupon.code}
+                                onClick={() => {
+                                  setCouponInput(coupon.code)
+                                  handleApplyCoupon(coupon.code)
+                                }}
+                              >
+                                <span className="checkout-coupon__chip-code">{coupon.code}</span>
+                                {offer ? (
+                                  <span className="checkout-coupon__chip-off">{offer}</span>
+                                ) : null}
+                              </button>
+                            )
+                          })}
                         </div>
                       )}
                     </div>

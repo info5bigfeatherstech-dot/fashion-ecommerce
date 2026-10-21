@@ -389,7 +389,8 @@ export default function AdminLoyaltyPointsPage() {
       <p className="body-sm text-muted admin-loyalty-points__intro">
         Separate from badges. Turn on to let customers earn points after payment and use them at
         checkout. COD and partial pay also use the final discounted total. On RTO / return refund,
-        earned points are taken back and used points are returned. Examples under each field update
+        earned points are taken back and used points are returned. Redeem value (₹ per point) is also
+        the rupee value of referral reward points — one shared rate. Examples under each field update
         live as you type.
       </p>
 

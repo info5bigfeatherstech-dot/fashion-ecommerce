@@ -37,7 +37,7 @@ function fmtDate(d) {
   }
 }
 
-export function AccountLoyaltyPointsTab() {
+export function AccountLoyaltyPointsTab({ hideWhenDisabled = false } = {}) {
   const { data: meData, isLoading: meLoading, isError: meError, error: meErr, refetch: refetchMe } =
     useMyLoyaltyPoints()
   const {
@@ -82,6 +82,7 @@ export function AccountLoyaltyPointsTab() {
   }
 
   if (!enabled) {
+    if (hideWhenDisabled) return null
     return (
       <div className="account-panel account-loyalty-points">
         <div className="account-empty">

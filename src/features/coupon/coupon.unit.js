@@ -6,6 +6,7 @@ import assert from 'node:assert/strict'
 import { mapCouponValidation, mapAvailableCoupons } from './mappers.js'
 import {
   calculateCartCouponDiscounts,
+  couponOfferLabel,
   evaluateCouponForCart,
   getCouponCode,
 } from './utils.js'
@@ -102,5 +103,9 @@ const available = mapAvailableCoupons({
 assert.equal(available.length, 2)
 assert.equal(available[0].code, 'BABA10')
 assert.equal(available[0].minOrderAmount, 199)
+assert.equal(couponOfferLabel(available[0]), '10% off')
+assert.equal(couponOfferLabel(available[1]), '₹50 off')
+assert.equal(couponOfferLabel({ discountType: 'percentage', discountValue: 0 }), '')
+assert.equal(couponOfferLabel(null), '')
 
 console.log('coupon mapping + apply gate OK')

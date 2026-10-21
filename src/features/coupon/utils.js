@@ -10,6 +10,21 @@ export function getCouponCode(coupon) {
   return normalizeCouponCode(coupon?.code || coupon?.couponCode)
 }
 
+/** Chip/label: "10% off" or "₹50 off". Empty if the offer value is missing. */
+export function couponOfferLabel(coupon) {
+  const type = String(coupon?.discountType || '').toLowerCase()
+  const value = Number(coupon?.discountValue)
+  if (!Number.isFinite(value) || value <= 0) return ''
+  if (type === 'percentage' || type === 'percent') {
+    const pct = Number.isInteger(value) ? String(value) : String(Math.round(value * 100) / 100)
+    return `${pct}% off`
+  }
+  if (type === 'fixed' || type === 'flat' || type === 'amount') {
+    return `₹${Math.round(value).toLocaleString('en-IN')} off`
+  }
+  return ''
+}
+
 /** Stable shape for zustand / checkout quote — always has `code` and `couponCode`. */
 export function normalizeAppliedCoupon(coupon, fallbackCode = '') {
   if (!coupon || typeof coupon !== 'object') return null

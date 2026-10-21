@@ -30,7 +30,8 @@ export function useMyReferral({ enabled = true } = {}) {
     queryKey: referralKeys.me(),
     queryFn: ({ signal }) => getMyReferral({ signal }),
     enabled: enabled && isAuthenticated && Boolean(accessToken),
-    staleTime: 1000 * 30,
+    staleTime: 1000 * 15,
+    refetchOnMount: 'always',
   })
 }
 

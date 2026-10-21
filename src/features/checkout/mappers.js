@@ -59,6 +59,7 @@ export function mapCheckoutQuote(payload) {
     loyaltyMaxRedeemable: Math.max(0, Math.floor(toNumber(raw?.loyaltyMaxRedeemable, 0))),
     loyaltyBalance: Math.max(0, Math.floor(toNumber(raw?.loyaltyBalance, 0))),
     loyaltyEnabled: Boolean(raw?.loyaltyEnabled),
+    loyaltyRedeemAvailable: Boolean(raw?.loyaltyRedeemAvailable),
     loyaltyRedeemReason: raw?.loyaltyRedeemReason || null,
     redeemRupeePerPoint: Math.max(0, toNumber(raw?.redeemRupeePerPoint, 0)),
     earnPointsPerRupee: Math.max(0, toNumber(raw?.earnPointsPerRupee, 0)),

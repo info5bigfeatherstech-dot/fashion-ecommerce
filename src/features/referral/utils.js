@@ -22,7 +22,7 @@ export function buildReferralShareText({ code, settings, siteName, origin }) {
   const shop = origin ? ` Shop here: ${origin}` : ''
   const reward =
     points > 0
-      ? ` After they complete their order, I earn ${points} loyalty points.`
+      ? ` After they pay prepaid/partial, or their COD order is delivered, I earn ${points} loyalty points.`
       : ''
   return `Use my ${siteName || 'store'} referral code ${code} at checkout and get ${discount}.${reward}${shop}`
 }
