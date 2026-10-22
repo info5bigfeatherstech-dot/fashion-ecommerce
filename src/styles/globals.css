@@ -27947,6 +27947,241 @@ button.admin-stats-chip:hover {
   gap: 14px;
 }
 
+.pf-variation-body {
+  gap: 16px;
+}
+
+.pf-variation-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pf-variation-preset {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #d6d3d1;
+  background: #fff;
+  color: #44403c;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pf-variation-preset.is-on {
+  border-color: #4f46e5;
+  background: #eef2ff;
+  color: #3730a3;
+}
+
+.pf-variation-preset:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pf-variation-add-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pf-variation-add-row .pf-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.pf-variation-axis {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #f0ece4;
+  border-radius: 10px;
+  background: #fafaf9;
+}
+
+.pf-variation-axis__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pf-variation-axis__name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1c1917;
+}
+
+.pf-variation-axis__count {
+  font-size: 11px;
+  color: #78716c;
+}
+
+.pf-variation-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pf-variation-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 4px 6px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid #e7e5e4;
+  font-size: 12px;
+  font-weight: 600;
+  color: #292524;
+}
+
+.pf-variation-chip__swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid #d6d3d1;
+  cursor: pointer;
+}
+
+.pf-variation-chip__swatch input {
+  opacity: 0;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+}
+
+.pf-variation-chip__remove {
+  border: 0;
+  background: transparent;
+  color: #78716c;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.pf-variation-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pf-variation-preview__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pf-variation-preview__head p {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #44403c;
+}
+
+.pf-variation-preview__all {
+  border: 0;
+  background: transparent;
+  color: #4f46e5;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pf-variation-combos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.pf-variation-combo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #f0ece4;
+  font-size: 12px;
+  color: #1c1917;
+  cursor: pointer;
+}
+
+.pf-variation-summary,
+.pf-variation-empty {
+  margin: 0;
+  font-size: 12px;
+  color: #57534e;
+  line-height: 1.45;
+}
+
+.pf-variation-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.pf-variant-group {
+  border: 1px solid #e7e2d8;
+  border-radius: 12px;
+  background: #faf8f5;
+  overflow: hidden;
+}
+
+.pf-variant-group__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #f5f1ea;
+  border-bottom: 1px solid #eee8de;
+}
+
+.pf-variant-group__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pf-variant-group__title strong {
+  font-size: 13px;
+  color: #1c1917;
+}
+
+.pf-variant-group__count {
+  font-size: 11px;
+  color: #78716c;
+  font-weight: 600;
+}
+
+.pf-variant-group__swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 1px solid #d6d3d1;
+  flex-shrink: 0;
+}
+
+.pf-variant-group__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+}
+
+.pf-variant-row-card--child {
+  box-shadow: none;
+}
+
 .pf-toggle {
   position: relative;
   display: inline-flex;
@@ -29723,11 +29958,19 @@ button.admin-stats-chip:hover {
 }
 
 .pf-variant-attr-row--color {
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(88px, 0.7fr) minmax(160px, 1.4fr) 36px minmax(92px, 110px) auto;
+  flex-wrap: nowrap;
+  align-items: center;
 }
 
 .pf-variant-attr-row .pf-variant-input {
   flex: 1;
+  min-width: 0;
+}
+
+.pf-variant-attr-row--color .pf-variant-input {
+  width: 100%;
   min-width: 0;
 }
 
@@ -29744,16 +29987,19 @@ button.admin-stats-chip:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 }
 
 .pf-variant-swatch-picker input[type='color'] {
-  width: 48px;
-  height: 48px;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   border: 0;
   padding: 0;
   background: transparent;
   cursor: pointer;
-  transform: scale(1.35);
+  transform: none;
 }
 
 .pf-variant-hex-input {

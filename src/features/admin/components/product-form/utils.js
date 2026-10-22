@@ -2,6 +2,11 @@ import {
   emptyMarketingTagsState,
   marketingTagsFromProductTags,
 } from '@/features/admin/constants/productMarketingTags'
+import {
+  defaultVariationOptions,
+  inferVariationOptions,
+  mergeInferredOptions,
+} from './variationCombinations'
 
 export const MAX_VARIANT_IMAGES = 10
 
@@ -157,6 +162,7 @@ export function emptyProductForm() {
       { id: 'attr-default-color', key: 'Color', value: '' },
       { id: 'attr-default-plating', key: 'Plating', value: '' },
     ],
+    variationOptions: defaultVariationOptions(),
     hsnCode: '',
     taxRate: '',
     isFragile: false,
@@ -338,6 +344,7 @@ export function productToEditForm(product) {
     wholesaleBase: main.price?.wholesaleBase ?? '',
     wholesaleSale: main.price?.wholesaleSale ?? '',
     minimumOrderQuantity: main.minimumOrderQuantity || 1,
+    variationOptions: mergeInferredOptions(inferVariationOptions(variants)),
   }
 }
 

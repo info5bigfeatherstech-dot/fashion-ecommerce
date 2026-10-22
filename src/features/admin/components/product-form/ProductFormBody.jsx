@@ -7,6 +7,16 @@ import { useAdminProductCodePrefixSettings } from '@/features/admin/hooks'
 import VariantModal from './VariantModal'
 import { parseQuantityInput, quantityFieldValue, nextVariantProductCode, TAX_RATE_OPTIONS } from './utils'
 import {
+  childTypeLabel,
+  formatVariantAxisLabel,
+  getEnabledAxisKeys,
+  getSelectedOptionKeys,
+  groupVariantsByParent,
+  normalizeKey,
+  resolveParentAxisKey,
+} from './variationCombinations'
+import {
+  isColorAttributeKey,
   isPlatingAttributeKey,
   PLATING_OPTIONS,
   COLOR_KEY_RE,
@@ -64,6 +74,7 @@ export default function ProductFormBody({
   onOpenCustomMessage,
   onOpenAddVariant,
   onGenerateVariant,
+  onAddVariantType,
   onOpenEditVariant,
   onDeleteVariant,
   onToggleVariantActive,
@@ -87,6 +98,8 @@ export default function ProductFormBody({
   const { data: prefixSettings } = useAdminProductCodePrefixSettings({ enabled: !isEditMode })
   const listingPrefix = prefixSettings?.configured ? String(prefixSettings.prefix || '').toUpperCase() : ''
   const variantDropdownRef = useRef(null);
+  const freezeEditKeyRef = useRef('')
+  const frozenGroupAttrsRef = useRef(new Map())
 
   // Specifications (Attributes) state
   const [newSpecName, setNewSpecName] = useState('');
@@ -154,6 +167,10 @@ export default function ProductFormBody({
     const k = newSpecName.trim();
     const v = newSpecValue.trim();
     if (!k || !v) return;
+    const axisKeys = new Set(getSelectedOptionKeys(formData.variationOptions).map((key) => normalizeKey(key)))
+    if (axisKeys.has(normalizeKey(k))) {
+      return
+    }
 
     const isNewColor = COLOR_KEY_RE.test(k);
     const suggested = isNewColor ? (newSpecHex || suggestHexForColorName(v)) : undefined;
@@ -274,12 +291,20 @@ export default function ProductFormBody({
 
   const primaryVariant = isEditMode ? (formData.variants?.[0] ?? null) : null;
   const displayedAttributes = isEditMode ? (primaryVariant?.attributes || []) : (formData.attributes || []);
+  const variationAxisKeys = getSelectedOptionKeys(formData.variationOptions)
+  const variationAxisKeySet = new Set(variationAxisKeys.map((key) => normalizeKey(key)))
+  const variationLabelKeys = getEnabledAxisKeys(formData.variationOptions)
+  const specAttributes = displayedAttributes.filter(
+    (attr) => !variationAxisKeySet.has(normalizeKey(attr?.key))
+  )
 
   const primaryBase = formData.price?.base ?? "";
   const primarySale = formData.price?.sale ?? "";
   const primaryQty = formData.inventory?.quantity;
 
   const formatAttributesSummary = (attrs) => {
+    const axisLabel = formatVariantAxisLabel(attrs, variationLabelKeys)
+    if (axisLabel) return axisLabel
     if (!attrs || !attrs.length) return ''
     const parts = attrs
       .filter((a) => a && (String(a.key || '').trim() || String(a.value || '').trim()))
@@ -299,6 +324,9 @@ export default function ProductFormBody({
         formData.variants.forEach((v, i) => {
           const isPrimary = i === 0
           const isThisEditing = showVariantForm && editingVariantIndex === i
+          const savedAttributes = isPrimary
+            ? (displayedAttributes.length > 0 ? displayedAttributes : (v.attributes || []))
+            : (v.attributes || [])
           list.push({
             isPrimary,
             realIndex: i,
@@ -306,9 +334,10 @@ export default function ProductFormBody({
             code: isThisEditing
               ? (variantForm?.ProductCode || v.ProductCode || v.productCode || (isPrimary ? (formData.ProductCode || formData.productCode) : ''))
               : (v.ProductCode || v.productCode || (isPrimary ? (formData.ProductCode || formData.productCode) : '')),
+            savedAttributes,
             attributes: isThisEditing
-              ? (variantForm?.attributes || (isPrimary ? displayedAttributes : (v.attributes || [])))
-              : (isPrimary ? (displayedAttributes.length > 0 ? displayedAttributes : (v.attributes || [])) : (v.attributes || [])),
+              ? (variantForm?.attributes || savedAttributes)
+              : savedAttributes,
             price: isThisEditing
               ? (variantForm?.price?.sale || variantForm?.price?.base || (isPrimary ? (v.price?.sale || v.price?.base || primarySale || primaryBase) : (v.price?.sale || v.price?.base || '')))
               : (isPrimary ? (v.price?.sale || v.price?.base || primarySale || primaryBase) : (v.price?.sale || v.price?.base || '')),
@@ -329,6 +358,7 @@ export default function ProductFormBody({
         code: isV1ActiveEditing
           ? (variantForm?.ProductCode || formData.ProductCode || formData.productCode || '')
           : (formData.ProductCode || formData.productCode || ''),
+        savedAttributes: formData.attributes || [],
         attributes: isV1ActiveEditing
           ? (variantForm?.attributes || formData.attributes || [])
           : (formData.attributes || []),
@@ -347,6 +377,7 @@ export default function ProductFormBody({
             realIndex: i,
             displayIndex: i + 2,
             code: isThisEditing ? (variantForm?.ProductCode || v.ProductCode || v.productCode || '') : (v.ProductCode || v.productCode || ''),
+            savedAttributes: v.attributes || [],
             attributes: isThisEditing ? (variantForm?.attributes || v.attributes || []) : (v.attributes || []),
             price: isThisEditing ? (variantForm?.price?.sale || variantForm?.price?.base || v.price?.sale || v.price?.base || '') : (v.price?.sale || v.price?.base || ''),
             stock: isThisEditing ? (variantForm?.inventory?.quantity ?? v.inventory?.quantity ?? 0) : (v.inventory?.quantity ?? 0),
@@ -357,6 +388,33 @@ export default function ProductFormBody({
     }
     return list
   })()
+
+  const editKey = showVariantForm && editingVariantIndex != null ? String(editingVariantIndex) : ''
+  if (editKey !== freezeEditKeyRef.current) {
+    freezeEditKeyRef.current = editKey
+    frozenGroupAttrsRef.current = new Map()
+    if (editKey) {
+      const item = allVariantsList.find((variant) => String(variant.realIndex) === editKey)
+      const source = item?.raw?.attributes || item?.attributes || []
+      frozenGroupAttrsRef.current.set(editKey, source.map((attr) => ({ ...attr })))
+    }
+  }
+
+  const attrsForGrouping = (variant) => {
+    const frozen = frozenGroupAttrsRef.current.get(String(variant.realIndex))
+    if (frozen) return frozen
+    return variant.raw?.attributes || variant.attributes || []
+  }
+
+  const parentAxisKey = resolveParentAxisKey(allVariantsList.map((variant) => attrsForGrouping(variant)))
+  const variantGroups = groupVariantsByParent(
+    allVariantsList.map((variant) => ({
+      ...variant,
+      attributes: attrsForGrouping(variant),
+    })),
+    parentAxisKey
+  )
+  const isColorParent = isColorAttributeKey(parentAxisKey)
 
   const handleVariantToggleActive = (variant) => {
     if (variant.realIndex === 'primary' || variant.realIndex === -1) {
@@ -730,13 +788,13 @@ export default function ProductFormBody({
           <div className="pf-card__head">
             <div>
               <h3>Product Attributes</h3>
-              <p className="text-xs text-gray-500 mt-0.5">Specifications like Color, Plating, Material, etc.</p>
+              <p className="text-xs text-gray-500 mt-0.5">Extra details only. Colors and types are managed in Product Variants below.</p>
             </div>
           </div>
           <div className="pf-card__body space-y-2.5">
-            {displayedAttributes.length > 0 && (
+            {specAttributes.length > 0 && (
               <div className="space-y-1.5">
-                {displayedAttributes.map((attr, idx) => {
+                {specAttributes.map((attr, idx) => {
                   const isPlating = isPlatingAttributeKey(attr.key);
                   const isColor = COLOR_KEY_RE.test(String(attr.key || '').trim());
                   return (
@@ -1046,8 +1104,12 @@ export default function ProductFormBody({
         <div className="pf-card w-full">
           <div className="pf-card__head pf-card__head--row w-full">
             <div>
-              <h3>{isEditMode ? 'Additional Variants' : 'Product Variants'}</h3>
-              <p>{isEditMode ? 'variants[1+] · each has its own ProductCode, price, images' : 'e.g., different colors or sizes — each needs a unique ProductCode'}</p>
+              <h3>Product Variants</h3>
+              <p>
+                {isColorParent
+                  ? 'Add a color, then add types under that color only. One color can have 3 types, another can have 1.'
+                  : 'Add a variant, then add extra types under it if needed.'}
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -1055,9 +1117,9 @@ export default function ProductFormBody({
                 onClick={onOpenAddVariant || onGenerateVariant}
                 disabled={actionLoading && isEditMode}
                 className="pf-chip-btn pf-chip-btn--indigo inline-flex items-center gap-1.5 font-medium cursor-pointer"
-                title="Create and add another variant in sequence"
+                title={isColorParent ? 'Add another color' : 'Add another variant'}
               >
-                <span>+ Add Variant</span>
+                <span>{isColorParent ? '+ Add color' : '+ Add variant'}</span>
               </button>
             </div>
           </div>
@@ -1085,6 +1147,7 @@ export default function ProductFormBody({
                   isEditMode={isEditMode}
                   setFormData={setFormData}
                   formData={formData}
+                  axisKeys={variationAxisKeys}
                 />
               </div>
             )}
@@ -1095,140 +1158,170 @@ export default function ProductFormBody({
               </div>
             ) : (
               <div className="space-y-3 w-full">
-                {allVariantsList.map((variant) => {
-                  const summary = formatAttributesSummary(variant.attributes)
-                  const isExpanded = showVariantForm && editingVariantIndex === variant.realIndex
-
+                {variantGroups.map((group) => {
+                  const typeCount = group.items.length
+                  const swatch = isColorParent
+                    ? resolveSwatchBackground(group.value, group.hex)
+                    : null
                   return (
-                    <div
-                      key={variant.isPrimary ? 'primary-variant' : (variant.code || `v-${variant.realIndex}`)}
-                      className={`pf-variant-card pf-variant-row-card w-full ${!variant.isActive ? 'is-inactive' : ''}`}
-                    >
-                      <div
-                        className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap w-full cursor-pointer select-none"
-                        onClick={() => handleVariantChevronClick(variant)}
-                      >
-                        {/* Left: Badge + Title + Attributes */}
-                        <div className="flex items-center gap-3 min-w-0">
-                          <span className="pf-variant-num-badge">
-                            {variant.displayIndex}
-                          </span>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-bold text-gray-900 text-sm tracking-tight">
-                                Variant {variant.displayIndex}
-                              </span>
-                              {variant.isPrimary && (
-                                <span className="pf-variant-primary-badge">
-                                  PRIMARY
-                                </span>
-                              )}
-                              {variant.code ? (
-                                <span className="pf-variant-code-badge">
-                                  {variant.code}
-                                </span>
-                              ) : null}
-                            </div>
-                            {summary ? (
-                              <p className="text-xs text-gray-500 mt-0.5 truncate">
-                                {summary}
-                              </p>
-                            ) : null}
-                          </div>
-                        </div>
-
-                        {/* Right: Price + Stock + Active + Chevron + Delete */}
-                        <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0 text-sm">
-                          <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                            <span>Price:</span>
-                            <span className="font-bold text-gray-900 text-sm">
-                              {variant.price && Number(variant.price) > 0
-                                ? formatIndianRupee(variant.price)
-                                : '—'}
-                            </span>
-                            <span className="text-gray-300 mx-1">|</span>
-                            <span>Stock:</span>
-                            <span className="font-bold text-gray-900 text-sm">
-                              {variant.stock !== '' && variant.stock != null ? variant.stock : '0'}
-                            </span>
-                          </div>
-
-                          <label
-                            className="pf-variant-active-check"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={Boolean(variant.isActive)}
-                              onChange={() => handleVariantToggleActive(variant)}
-                              disabled={actionLoading && isEditMode}
+                    <div key={group.id} className="pf-variant-group">
+                      <div className="pf-variant-group__head">
+                        <div className="pf-variant-group__title">
+                          {swatch ? (
+                            <span
+                              className="pf-variant-group__swatch"
+                              style={{ background: swatch }}
+                              aria-hidden
                             />
-                            <span>Active</span>
-                          </label>
-
+                          ) : null}
+                          <strong>{group.value}</strong>
+                          <span className="pf-variant-group__count">
+                            {typeCount} type{typeCount === 1 ? '' : 's'}
+                          </span>
+                        </div>
+                        {group.value !== 'Other' ? (
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleVariantChevronClick(variant)
-                            }}
+                            className="pf-chip-btn pf-chip-btn--secondary"
                             disabled={actionLoading && isEditMode}
-                            className="pf-variant-chevron-btn"
-                            title={isExpanded ? 'Collapse variant details' : 'Expand variant details'}
-                            aria-label={isExpanded ? 'Collapse variant details' : 'Expand variant details'}
+                            onClick={() => onAddVariantType?.(group)}
                           >
-                            <svg
-                              className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
+                            + Add type
                           </button>
-
-                          {!variant.isPrimary ? (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setVariantToDelete(variant)
-                              }}
-                              disabled={actionLoading && isEditMode}
-                              title="Delete variant"
-                              aria-label="Delete variant"
-                              className="pf-spec-delete-btn"
-                            >
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          ) : (
-                            <div className="w-7 h-7 shrink-0 hidden sm:block" />
-                          )}
-                        </div>
+                        ) : null}
                       </div>
+                      <div className="pf-variant-group__body">
+                        {group.items.map((variant) => {
+                          const typeLabel = childTypeLabel(variant.attributes, parentAxisKey)
+                          const summary = typeLabel || formatAttributesSummary(variant.attributes) || 'Default'
+                          const isExpanded = showVariantForm && editingVariantIndex === variant.realIndex
+                          return (
+                            <div
+                              key={variant.isPrimary ? 'primary-variant' : (variant.code || `v-${variant.realIndex}`)}
+                              className={`pf-variant-card pf-variant-row-card pf-variant-row-card--child w-full ${!variant.isActive ? 'is-inactive' : ''}`}
+                            >
+                              <div
+                                className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap w-full cursor-pointer select-none"
+                                onClick={() => handleVariantChevronClick(variant)}
+                              >
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <span className="pf-variant-num-badge">
+                                    {variant.displayIndex}
+                                  </span>
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="font-bold text-gray-900 text-sm tracking-tight">
+                                        {summary}
+                                      </span>
+                                      {variant.isPrimary && (
+                                        <span className="pf-variant-primary-badge">
+                                          PRIMARY
+                                        </span>
+                                      )}
+                                      {variant.code ? (
+                                        <span className="pf-variant-code-badge">
+                                          {variant.code}
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                  </div>
+                                </div>
 
-                      {/* Expanded inline editor for this variant */}
-                      {isExpanded && (
-                        <div className="mt-3.5 pt-3.5 border-t border-gray-100 w-full" ref={variantDropdownRef}>
-                          <VariantModal
-                            inline
-                            listingPrefix={listingPrefix}
-                            variantForm={variantForm}
-                            setVariantForm={setVariantForm}
-                            editingVariantIndex={editingVariantIndex}
-                            onSave={onSaveVariant}
-                            onClose={onCloseVariantForm}
-                            getDiscountPercentage={getDiscountPercentage}
-                            isSaving={variantSaving}
-                            saveError={variantSaveError}
-                            isEditMode={isEditMode}
-                            setFormData={setFormData}
-                            formData={formData}
-                          />
-                        </div>
-                      )}
+                                <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0 text-sm">
+                                  <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                                    <span>Price:</span>
+                                    <span className="font-bold text-gray-900 text-sm">
+                                      {variant.price && Number(variant.price) > 0
+                                        ? formatIndianRupee(variant.price)
+                                        : '—'}
+                                    </span>
+                                    <span className="text-gray-300 mx-1">|</span>
+                                    <span>Stock:</span>
+                                    <span className="font-bold text-gray-900 text-sm">
+                                      {variant.stock !== '' && variant.stock != null ? variant.stock : '0'}
+                                    </span>
+                                  </div>
+
+                                  <label
+                                    className="pf-variant-active-check"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={Boolean(variant.isActive)}
+                                      onChange={() => handleVariantToggleActive(variant)}
+                                      disabled={actionLoading && isEditMode}
+                                    />
+                                    <span>Active</span>
+                                  </label>
+
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleVariantChevronClick(variant)
+                                    }}
+                                    disabled={actionLoading && isEditMode}
+                                    className="pf-variant-chevron-btn"
+                                    title={isExpanded ? 'Collapse variant details' : 'Expand variant details'}
+                                    aria-label={isExpanded ? 'Collapse variant details' : 'Expand variant details'}
+                                  >
+                                    <svg
+                                      className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                  </button>
+
+                                  {!variant.isPrimary ? (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setVariantToDelete(variant)
+                                      }}
+                                      disabled={actionLoading && isEditMode}
+                                      title="Delete variant"
+                                      aria-label="Delete variant"
+                                      className="pf-spec-delete-btn"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                    </button>
+                                  ) : (
+                                    <div className="w-7 h-7 shrink-0 hidden sm:block" />
+                                  )}
+                                </div>
+                              </div>
+
+                              {isExpanded && (
+                                <div className="mt-3.5 pt-3.5 border-t border-gray-100 w-full" ref={variantDropdownRef}>
+                                  <VariantModal
+                                    inline
+                                    listingPrefix={listingPrefix}
+                                    variantForm={variantForm}
+                                    setVariantForm={setVariantForm}
+                                    editingVariantIndex={editingVariantIndex}
+                                    onSave={onSaveVariant}
+                                    onClose={onCloseVariantForm}
+                                    getDiscountPercentage={getDiscountPercentage}
+                                    isSaving={variantSaving}
+                                    saveError={variantSaveError}
+                                    isEditMode={isEditMode}
+                                    setFormData={setFormData}
+                                    formData={formData}
+                                    axisKeys={variationAxisKeys}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
                     </div>
                   )
                 })}

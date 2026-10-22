@@ -58,6 +58,7 @@ const VariantModal = ({
   isEditMode = false,
   setFormData,
   formData = null,
+  axisKeys = [],
 }) => {
   const [variantImageDragging, setVariantImageDragging] = useState(false);
   const [draggedImageIndex, setDraggedImageIndex] = useState(null);
@@ -83,34 +84,28 @@ const VariantModal = ({
     }
   }, [isPrimary, formData?.images, formData?.variants]);
 
-  // Ensure Color and Plating fields are always present in the attributes list
+  const requiredAxisKeys = (Array.isArray(axisKeys) && axisKeys.length > 0)
+    ? axisKeys.map((k) => String(k || '').trim()).filter(Boolean)
+    : ['Color', 'Plating']
+  const requiredAxisKeySet = new Set(requiredAxisKeys.map((k) => k.toLowerCase()))
+
+  // Keep variation-axis keys present so SKUs stay matchable on the storefront.
   useEffect(() => {
-    const attrs = variantForm?.attributes || []
-    const hasColor = attrs.some((a) => (a?.key || '').trim().toLowerCase() === 'color')
-    const hasPlating = attrs.some((a) => (a?.key || '').trim().toLowerCase() === 'plating')
-
-    if (!hasColor || !hasPlating) {
-      setVariantForm?.((prev) => {
-        const curAttrs = (prev?.attributes || []).filter((a) => (a?.key || '').trim() || (a?.value || '').trim())
-        const curHasColor = curAttrs.some((a) => (a?.key || '').trim().toLowerCase() === 'color')
-        const curHasPlating = curAttrs.some((a) => (a?.key || '').trim().toLowerCase() === 'plating')
-
-        const next = [...curAttrs]
-        if (!curHasColor) {
-          next.unshift({ key: 'Color', value: '', hex: '' })
+    setVariantForm?.((prev) => {
+      const curAttrs = (prev?.attributes || []).filter((a) => (a?.key || '').trim() || (a?.value || '').trim())
+      const next = [...curAttrs]
+      let changed = false
+      for (const key of requiredAxisKeys) {
+        const has = next.some((a) => (a?.key || '').trim().toLowerCase() === key.toLowerCase())
+        if (!has) {
+          next.push({ key, value: '', hex: '' })
+          changed = true
         }
-        if (!curHasPlating) {
-          const colorIdx = next.findIndex((a) => (a?.key || '').trim().toLowerCase() === 'color')
-          if (colorIdx !== -1) {
-            next.splice(colorIdx + 1, 0, { key: 'Plating', value: '', hex: '' })
-          } else {
-            next.push({ key: 'Plating', value: '', hex: '' })
-          }
-        }
-        return { ...prev, attributes: next }
-      })
-    }
-  }, [editingVariantIndex]);
+      }
+      if (!changed) return prev
+      return { ...prev, attributes: next }
+    })
+  }, [editingVariantIndex, requiredAxisKeys.join('|')]);
 
   const syncAttrsToParentForm = (nextAttrs) => {
     if (!setFormData) return
@@ -158,10 +153,9 @@ const VariantModal = ({
         if (i !== index) return attr
         const next = { ...attr, [field]: value }
         if (field === 'value' && isColorAttributeKey(next.key)) {
-          const existingHex = normalizeHexColor(next.hex)
-          if (!existingHex) {
-            const suggested = suggestHexForColorName(value)
-            if (suggested) next.hex = suggested
+          const suggested = suggestHexForColorName(value)
+          if (suggested) {
+            next.hex = suggested
           }
         }
         if (field === 'hex') {
@@ -505,6 +499,7 @@ const VariantModal = ({
               {variantForm.attributes.map((attr, index) => {
                 const isColor = isColorAttributeKey(attr.key)
                 const isPlating = isPlatingAttributeKey(attr.key)
+                const isAxisAttr = requiredAxisKeySet.has(String(attr.key || '').trim().toLowerCase())
                 const pickerHex =
                   normalizeHexColor(attr.hex) ||
                   suggestHexForColorName(attr.value) ||
@@ -520,6 +515,7 @@ const VariantModal = ({
                       onChange={(e) => updateVariantAttribute(index, 'key', e.target.value)}
                       className="pf-variant-input"
                       placeholder="Key (e.g., Color)"
+                      disabled={isAxisAttr}
                     />
                     {isPlating ? (
                       <select
@@ -547,6 +543,7 @@ const VariantModal = ({
                           className="pf-variant-swatch-picker"
                           title="Swatch color"
                           aria-label={`Swatch for ${attr.value || 'color'}`}
+                          style={{ background: pickerHex }}
                         >
                           <input
                             type="color"
@@ -569,7 +566,7 @@ const VariantModal = ({
                         />
                       </>
                     ) : null}
-                    {variantForm.attributes.length > 1 ? (
+                    {variantForm.attributes.length > 1 && !isAxisAttr ? (
                       <button
                         type="button"
                         onClick={() => removeVariantAttribute(index)}
@@ -584,7 +581,7 @@ const VariantModal = ({
               })}
             </div>
             <p className="pf-variant-attr-hint">
-              For Color / Shade, set the swatch hex so the storefront palette matches the real color.
+              Variation options (Color, Size, …) identify this SKU. Extra specs are optional. Set a Color hex so the storefront swatch matches.
             </p>
           </div>
 

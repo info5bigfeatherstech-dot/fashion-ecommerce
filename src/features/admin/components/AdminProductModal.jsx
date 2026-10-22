@@ -28,6 +28,14 @@ import {
   writeCreateProductDraft,
 } from '@/features/admin/components/product-form/createDraft'
 import { shippingFormFromVariant } from '@/lib/variantCatalogForm'
+import { isColorAttributeKey, normalizeHexColor } from '@/features/product/colorSwatch'
+import {
+  applyPlanToFormData,
+  getAttrHex,
+  getSelectedOptionKeys,
+  persistableImages,
+  planCombinationApply,
+} from '@/features/admin/components/product-form/variationCombinations'
 import {
   addAdminProductVariant,
   buildCreateProductFormData,
@@ -143,6 +151,8 @@ export function AdminProductModal({
   const createHydratedRef = useRef(false)
   const draftQuotaWarnedRef = useRef(false)
   const [hasCreateDraft, setHasCreateDraft] = useState(false)
+  const [variationApplying, setVariationApplying] = useState(false)
+  const [pendingVariationApply, setPendingVariationApply] = useState(null)
   const modalBodyRef = useRef(null)
 
   useEffect(() => {
@@ -262,6 +272,8 @@ export function AdminProductModal({
       setVariantSaveError(null)
       setError('')
       setLoadedProduct(null)
+      setPendingVariationApply(null)
+      setVariationApplying(false)
       createHydratedRef.current = false
       clearCreateProductDraft()
       setHasCreateDraft(false)
@@ -399,7 +411,7 @@ export function AdminProductModal({
     return { valid: true }
   }
 
-  const handleGenerateVariant = async () => {
+  const handleGenerateVariant = async (addOptions = {}) => {
     const check = validateVariantBeforeAdd()
     if (!check.valid) {
       toast.error(check.message)
@@ -488,8 +500,22 @@ export function AdminProductModal({
       return
     }
 
-    // Collect candidate attribute keys (Color and Plating always included by default)
-    const candidateKeys = ['Color', 'Plating']
+    const presetAttributes = Array.isArray(addOptions?.presetAttributes) ? addOptions.presetAttributes : []
+    const axisKeys = getSelectedOptionKeys(formData.variationOptions)
+    const candidateKeys = axisKeys.length ? [...axisKeys] : ['Color', 'Plating']
+    if (presetAttributes.length) {
+      ;['Size', 'Plating'].forEach((key) => {
+        if (!candidateKeys.some((k) => String(k).toLowerCase() === key.toLowerCase())) {
+          candidateKeys.push(key)
+        }
+      })
+      presetAttributes.forEach((attr) => {
+        const key = String(attr?.key || '').trim()
+        if (key && !candidateKeys.some((k) => String(k).toLowerCase() === key.toLowerCase())) {
+          candidateKeys.push(key)
+        }
+      })
+    }
     const addKey = (rawKey) => {
       const trimmed = String(rawKey || '').trim()
       if (trimmed && !candidateKeys.some((k) => k.toLowerCase() === trimmed.toLowerCase())) {
@@ -517,7 +543,22 @@ export function AdminProductModal({
       }
     })
 
-    const initialAttributes = candidateKeys.map((key) => ({ key, value: '', hex: '' }))
+    const initialAttributes = candidateKeys.map((key) => {
+      const preset = presetAttributes.find(
+        (attr) => String(attr?.key || '').trim().toLowerCase() === String(key).toLowerCase()
+      )
+      const attr = { key, value: String(preset?.value || '').trim(), hex: '' }
+      if (isColorAttributeKey(key)) {
+        const hex = normalizeHexColor(preset?.hex)
+        if (hex) attr.hex = hex
+      }
+      return attr
+    })
+
+    const copiedPrice = addOptions?.copyPrice && typeof addOptions.copyPrice === 'object'
+      ? addOptions.copyPrice
+      : null
+    const copiedImages = persistableImages(addOptions?.copyImages || [])
 
     const newVariant = {
       ...defaultVariant,
@@ -532,8 +573,8 @@ export function AdminProductModal({
         ? { ...variantForm.shipping }
         : (formData.shipping ? { ...formData.shipping } : emptyVariantShippingForm()),
       price: {
-        base: '',
-        sale: '',
+        base: copiedPrice?.base ?? '',
+        sale: copiedPrice?.sale ?? '',
         wholesaleBase: '',
         wholesaleSale: '',
       },
@@ -545,7 +586,7 @@ export function AdminProductModal({
       title: formData.title || formData.name || '',
       description: formData.description || '',
       attributes: initialAttributes,
-      images: [],
+      images: copiedImages,
       isActive: true,
       wholesale: false,
       minimumOrderQuantity: 1,
@@ -567,11 +608,161 @@ export function AdminProductModal({
     setEditingVariantIndex(nextIdx)
     setVariantForm(newVariant)
     setShowVariantModal(true)
-    toast.success(`Added variant ${nextCode}`)
+    toast.success(addOptions?.toastLabel || `Added variant ${nextCode}`)
   }
 
   const openAddVariant = () => {
     handleGenerateVariant()
+  }
+
+  const openAddVariantType = (group) => {
+    const parentKey = String(group?.parentKey || 'Color').trim() || 'Color'
+    const parentValue = group?.value && group.value !== 'Other' ? group.value : ''
+    if (!parentValue) {
+      toast.error('Add a color first, then add types under it.')
+      return
+    }
+    const source = group?.items?.[0]
+    const sourceAttrs = source?.attributes || []
+    const hex = getAttrHex(sourceAttrs, parentKey) || group?.hex
+    const copyPrice = source?.raw?.price
+      ? { base: source.raw.price.base ?? '', sale: source.raw.price.sale ?? '' }
+      : (source?.isPrimary
+        ? { base: formData.price?.base ?? '', sale: formData.price?.sale ?? '' }
+        : null)
+    const copyImages = source?.raw?.images?.length
+      ? source.raw.images
+      : (source?.isPrimary ? formData.images : [])
+    handleGenerateVariant({
+      presetAttributes: [
+        { key: parentKey, value: parentValue, hex },
+        { key: 'Size', value: '' },
+        { key: 'Plating', value: '' },
+      ],
+      copyPrice,
+      copyImages,
+      toastLabel: `Added a type under ${parentValue}. Fill Size or Plating, then save.`,
+    })
+  }
+
+  const persistEditCombinationPlan = async (nextForm, plan, createdDrafts) => {
+    const slug = product?.slug
+    if (!slug) throw new Error('Product slug is missing — cannot save generated variants.')
+
+    const persistedUpdates = (plan.updates || []).filter((item) => !item.rec.isLocalNew && item.rec.productCode)
+    let lastProduct = loadedProduct
+    for (let i = 0; i < persistedUpdates.length; i++) {
+      const item = persistedUpdates[i]
+      const variant = typeof item.rec.index === 'number' ? nextForm.variants[item.rec.index] : null
+      const result = await updateAdminProductVariant({
+        slug,
+        barcode: item.rec.productCode,
+        attributes: variant?.attributes || item.combo.attributes,
+      })
+      if (result?.product) lastProduct = result.product
+    }
+
+    for (let i = 0; i < (createdDrafts || []).length; i++) {
+      try {
+        const result = await addAdminProductVariant(slug, createdDrafts[i])
+        if (result?.product) lastProduct = result.product
+      } catch (err) {
+        if (lastProduct?.variants) {
+          const normalised = normaliseVariantsForEdit(lastProduct.variants)
+          const leftoverDrafts = createdDrafts.slice(i).map((draft) => ({ ...draft, isLocalNew: true }))
+          setLoadedProduct(lastProduct)
+          setFormData((prev) => ({
+            ...prev,
+            variants: [...normalised, ...leftoverDrafts],
+            attributes: normalised[0]?.attributes?.length ? normalised[0].attributes : prev.attributes,
+          }))
+        }
+        throw new Error(
+          `Added ${i}/${createdDrafts.length} new SKUs, then stopped: ${err?.message || 'Add variant failed'}`
+        )
+      }
+    }
+
+    if (lastProduct?.variants) {
+      setLoadedProduct(lastProduct)
+      applyProductVariants(lastProduct)
+    } else {
+      setFormData(nextForm)
+    }
+    return lastProduct
+  }
+
+  const commitVariationCombinations = async (selectedSignatures, { confirmedSplit = false } = {}) => {
+    const isPrimaryEditorOpen =
+      showVariantModal &&
+      (editingVariantIndex === 'primary' ||
+        editingVariantIndex === -1 ||
+        (isEdit && editingVariantIndex === 0))
+    if (showVariantModal && !isPrimaryEditorOpen) {
+      toast.error('Save or close the open variant before generating combinations.')
+      return
+    }
+
+    const check = validateVariantBeforeAdd()
+    if (!check.valid) {
+      toast.error(check.message)
+      return
+    }
+
+    const plan = planCombinationApply({
+      formData,
+      isEdit,
+      options: formData.variationOptions,
+      selectedSignatures,
+    })
+    if (!plan.ok) {
+      toast.error(plan.error || 'Could not generate combinations.')
+      return
+    }
+    if (plan.summary.create === 0 && plan.summary.update === 0) {
+      toast.message('Nothing to add — those combinations already exist.')
+      return
+    }
+    if (plan.needsSplitConfirm && !confirmedSplit) {
+      setPendingVariationApply({ signatures: selectedSignatures, plan })
+      return
+    }
+
+    const applied = applyPlanToFormData({ formData, isEdit, plan })
+    if (!applied.ok) {
+      toast.error(applied.error || 'Could not apply combinations.')
+      return
+    }
+
+    setVariationApplying(true)
+    setPendingVariationApply(null)
+    try {
+      if (isEdit) {
+        const savedProduct = await persistEditCombinationPlan(applied.formData, plan, applied.createdDrafts)
+        if (isPrimaryEditorOpen) {
+          setVariantForm((prev) => ({
+            ...prev,
+            attributes: savedProduct?.variants?.[0]?.attributes || applied.formData.variants?.[0]?.attributes || prev.attributes,
+          }))
+        }
+      } else {
+        setFormData(applied.formData)
+        if (isPrimaryEditorOpen) {
+          setVariantForm((prev) => ({
+            ...prev,
+            attributes: applied.formData.attributes || prev.attributes,
+          }))
+        }
+      }
+      const parts = []
+      if (plan.summary.create) parts.push(`${plan.summary.create} new`)
+      if (plan.summary.update) parts.push(`${plan.summary.update} updated`)
+      toast.success(`Variants ready${parts.length ? `: ${parts.join(', ')}` : ''}. Fill price and stock on each SKU.`)
+    } catch (err) {
+      toast.error(err?.message || 'Could not save generated variants.')
+    } finally {
+      setVariationApplying(false)
+    }
   }
 
   // Keep open "Add Variant" or primary form's ProductCode automatically in sync
@@ -1325,7 +1516,7 @@ export function AdminProductModal({
   const subtitle = isEdit
     ? (product?.name ? `Editing “${product.name}”` : undefined)
     : 'Top fields = main variant (variants[0]) · "Add Variant" = extra variants'
-  const busy = saving || loadingProduct || variantSaving
+  const busy = saving || loadingProduct || variantSaving || variationApplying
 
   return (
     <Dialog.Root open={open} onOpenChange={handleOpenChange}>
@@ -1386,6 +1577,7 @@ export function AdminProductModal({
                   onOpenCustomMessage={() => setShowCustomMessageModal(true)}
                   onOpenAddVariant={openAddVariant}
                   onGenerateVariant={handleGenerateVariant}
+                  onAddVariantType={openAddVariantType}
                   onOpenEditVariant={openEditVariant}
                   onRemoveAttribute={removeAttribute}
                   onDeleteVariant={deleteVariant}
@@ -1451,6 +1643,42 @@ export function AdminProductModal({
               onSave={(msg) => setFormData((p) => ({ ...p, fomo: { ...p.fomo, customMessage: msg } }))}
               onClose={() => setShowCustomMessageModal(false)}
             />
+          ) : null}
+
+          {pendingVariationApply ? (
+            <div className="pf-confirm-overlay" role="presentation">
+              <div className="pf-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="variation-split-title">
+                <h3 id="variation-split-title" className="pf-confirm-title">Add options to existing SKUs?</h3>
+                <p className="text-sm text-gray-600" style={{ margin: '0 0 12px' }}>
+                  {pendingVariationApply.plan.summary.update} existing variant
+                  {pendingVariationApply.plan.summary.update === 1 ? '' : 's'} will keep the same Product Code
+                  and receive the first missing option value
+                  {pendingVariationApply.plan.updates?.[0]?.combo?.label
+                    ? ` (e.g. ${pendingVariationApply.plan.updates[0].combo.label})`
+                    : ''}
+                  . {pendingVariationApply.plan.summary.create} new SKU
+                  {pendingVariationApply.plan.summary.create === 1 ? '' : 's'} will be created. Nothing is deleted.
+                </p>
+                <div className="flex items-center justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={variationApplying}
+                    onClick={() => setPendingVariationApply(null)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    disabled={variationApplying}
+                    onClick={() => commitVariationCombinations(pendingVariationApply.signatures, { confirmedSplit: true })}
+                  >
+                    Apply
+                  </Button>
+                </div>
+              </div>
+            </div>
           ) : null}
         </Dialog.Content>
       </Dialog.Portal>
