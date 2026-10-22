@@ -390,13 +390,13 @@ export default function AdminArchivedPage() {
       <AdminConfirmDialog
         open={Boolean(deleteTarget)}
         tone="danger"
-        title="Permanently delete this product?"
+        title="Permanently Delete this Product?"
         description={
           deleteTarget
-            ? `“${deleteTarget.name || deleteTarget.title}” will be deleted forever. This cannot be undone.`
+            ? `“${deleteTarget.name || deleteTarget.title}” will be Deleted Forever. This cannot be undone.`
             : undefined
         }
-        confirmLabel="Delete forever"
+        confirmLabel="Delete Forever"
         cancelLabel="Cancel"
         busy={hardDelete.isPending}
         onCancel={() => {
