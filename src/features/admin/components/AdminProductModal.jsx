@@ -1290,6 +1290,16 @@ export function AdminProductModal({
     e.preventDefault()
     setError('')
 
+    if (showVariantModal) {
+      const buttonName = editingVariantIndex !== null ? 'Update Variant' : 'Save Variant'
+      const msg = `Click on "${buttonName}" before clicking Save Changes.`
+      setError(msg)
+      toast.warning(msg, { duration: 5000 })
+      const el = document.querySelector('.pf-variant-dropdown-panel, .pf-variant-row-card.is-expanded, .pf-variant-card__footer')
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
+
     if (isEdit) {
       if (!formData.name?.trim()) {
         setError('Product name is required')
@@ -1597,26 +1607,65 @@ export function AdminProductModal({
                   modalOpen={open}
                 />
               </div>
-              <div className="product-modal-form__footer">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  fullWidth
-                  disabled={busy}
-                  onClick={() => {
-                    if (!isEdit) {
-                      clearCreateProductDraft()
-                      setHasCreateDraft(false)
-                      setFormData(emptyProductForm())
-                    }
-                    onOpenChange(false)
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" variant="primary" fullWidth disabled={busy} className="product-modal-submit">
-                  {saving ? (isEdit ? 'Saving…' : 'Creating…') : (isEdit ? 'Save changes' : 'Create Product')}
-                </Button>
+              <div className="product-modal-form__footer flex-col gap-2.5">
+                {showVariantModal && (
+                  <div className="w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs">
+                    <span className="font-semibold flex items-center gap-1.5">
+                      <span>⚠️</span>
+                      <span>A variant is currently open. Click &ldquo;{editingVariantIndex !== null ? 'Update Variant' : 'Save Variant'}&rdquo; before saving changes.</span>
+                    </span>
+                    <button
+                      type="button"
+                      className="text-indigo-600 underline hover:text-indigo-800 font-bold shrink-0 cursor-pointer text-xs"
+                      onClick={() => {
+                        const el = document.querySelector('.pf-variant-dropdown-panel, .pf-variant-row-card.is-expanded, .pf-variant-card__footer')
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                      }}
+                    >
+                      Jump to variant →
+                    </button>
+                  </div>
+                )}
+                <div className="flex items-center gap-3 w-full">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    fullWidth
+                    disabled={busy}
+                    onClick={() => {
+                      if (!isEdit) {
+                        clearCreateProductDraft()
+                        setHasCreateDraft(false)
+                        setFormData(emptyProductForm())
+                      }
+                      onOpenChange(false)
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    fullWidth
+                    disabled={busy}
+                    className={`product-modal-submit ${showVariantModal ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    title={showVariantModal ? `Click on "${editingVariantIndex !== null ? 'Update Variant' : 'Save Variant'}" before clicking Save Changes` : undefined}
+                    onClick={(e) => {
+                      if (showVariantModal) {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        const buttonName = editingVariantIndex !== null ? 'Update Variant' : 'Save Variant'
+                        const msg = `Click on "${buttonName}" before clicking Save Changes.`
+                        setError(msg)
+                        toast.warning(msg, { duration: 5000 })
+                        const el = document.querySelector('.pf-variant-dropdown-panel, .pf-variant-row-card.is-expanded, .pf-variant-card__footer')
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                      }
+                    }}
+                  >
+                    {saving ? (isEdit ? 'Saving…' : 'Creating…') : (isEdit ? 'Save changes' : 'Create Product')}
+                  </Button>
+                </div>
               </div>
             </form>
           </div>

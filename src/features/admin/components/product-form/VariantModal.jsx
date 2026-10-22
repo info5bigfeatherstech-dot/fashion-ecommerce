@@ -60,17 +60,12 @@ const VariantModal = ({
   formData = null,
   axisKeys = [],
 }) => {
-  const [activeTab, setActiveTab] = useState('basic'); // 'basic' | 'media' | 'advanced'
   const [variantImageDragging, setVariantImageDragging] = useState(false);
   const [draggedImageIndex, setDraggedImageIndex] = useState(null);
   const [dragOverImageIndex, setDragOverImageIndex] = useState(null);
   const isEditing = editingVariantIndex !== null;
   const isCodeLocked = Boolean(isEditMode && isEditing && editingVariantIndex !== 'primary');
   const isPrimary = editingVariantIndex === 'primary' || editingVariantIndex === -1 || (isEditMode && editingVariantIndex === 0);
-
-  useEffect(() => {
-    setActiveTab('basic');
-  }, [editingVariantIndex]);
 
   // If editing Variant 1 and variantForm.images is empty, ensure it receives images from formData
   useEffect(() => {
@@ -431,79 +426,14 @@ const VariantModal = ({
           <h3>{isEditing ? (isPrimary ? 'Variant 1 (Primary)' : `Edit Variant #${typeof editingVariantIndex === 'number' ? editingVariantIndex + 2 : ''}`) : 'Add New Variant'}</h3>
           <p>Configure option attributes, pricing, stock, photos, and shipping</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving}
-            className="pf-variant-btn pf-variant-btn--save !min-h-[36px] !py-1.5 !px-3.5 text-xs shadow-sm flex items-center gap-1.5 font-semibold"
-            title="Save changes to this variant"
-          >
-            {isSaving ? (
-              <span>Saving...</span>
-            ) : (
-              <>
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>{isEditing ? 'Update Variant' : 'Save Variant'}</span>
-              </>
-            )}
-          </button>
-          <button type="button" onClick={onClose} className="pf-variant-close" aria-label="Close" title="Close variant editor">
-            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-        </div>
-      </div>
-
-      {/* Clean Tabbed Navigation */}
-      <div className="pf-variant-tabs">
-        <button
-          type="button"
-          className={`pf-variant-tab ${activeTab === 'basic' ? 'is-active' : ''}`}
-          onClick={() => setActiveTab('basic')}
-        >
-          <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-          </svg>
-          <span>Basic &amp; Pricing</span>
-        </button>
-
-        <button
-          type="button"
-          className={`pf-variant-tab ${activeTab === 'media' ? 'is-active' : ''}`}
-          onClick={() => setActiveTab('media')}
-        >
-          <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <span>Photos</span>
-          {variantForm.images?.length > 0 && (
-            <span className="pf-variant-tab__badge">{variantForm.images.length}</span>
-          )}
-        </button>
-
-        <button
-          type="button"
-          className={`pf-variant-tab ${activeTab === 'advanced' ? 'is-active' : ''}`}
-          onClick={() => setActiveTab('advanced')}
-        >
-          <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-          </svg>
-          <span>Wholesale &amp; Shipping</span>
-          {variantForm.wholesale && (
-            <span className="pf-variant-tab__badge pf-variant-tab__badge--purple">Wholesale</span>
-          )}
+        <button type="button" onClick={onClose} className="pf-variant-close" aria-label="Close" title="Close variant editor">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
       </div>
 
       <div className="pf-variant-card__body">
-        {/* TAB 1: BASIC & PRICING */}
-        {activeTab === 'basic' && (
-          <>
-            {/* Product Code */}
-            <div className="pf-variant-section">
+        {/* Product Code */}
+        <div className="pf-variant-section">
               <div className="pf-variant-field">
                 <div className="flex items-center justify-between mb-1">
                   <label className="pf-variant-label mb-0">
@@ -806,12 +736,9 @@ const VariantModal = ({
                 <span className="pf-toggle__knob" />
               </button>
             </div>
-          </>
-        )}
 
-        {/* TAB 2: PHOTOS & MEDIA */}
-        {activeTab === 'media' && (
-          <div className="pf-variant-section">
+            {/* Photos & Media */}
+            <div className="pf-variant-section">
             <div className="flex items-center justify-between mb-2">
               <div>
                 <label className="pf-variant-label mb-0">Variant Photos (up to {MAX_VARIANT_IMAGES})</label>
@@ -942,13 +869,9 @@ const VariantModal = ({
               </div>
             ) : null}
           </div>
-        )}
 
-        {/* TAB 3: WHOLESALE & SHIPPING */}
-        {activeTab === 'advanced' && (
-          <>
-            {/* Wholesale Pricing */}
-            <div className="pf-variant-section">
+          {/* Wholesale Pricing */}
+          <div className="pf-variant-section">
               <div className="pf-variant-row">
                 <div>
                   <label className="pf-variant-label">Wholesale Bulk Pricing</label>
@@ -1084,8 +1007,6 @@ const VariantModal = ({
               onTitleChange={(value) => setVariantForm((prev) => ({ ...prev, title: value }))}
               onDescriptionChange={(value) => setVariantForm((prev) => ({ ...prev, description: value }))}
             />
-          </>
-        )}
       </div>
 
       <div className="pf-variant-card__footer">
@@ -1094,24 +1015,6 @@ const VariantModal = ({
         ) : null}
         <div className="pf-variant-card__actions">
           <button type="button" onClick={onClose} disabled={isSaving} className="pf-variant-btn pf-variant-btn--cancel">Cancel</button>
-          {activeTab === 'basic' && (
-            <button
-              type="button"
-              onClick={() => setActiveTab('media')}
-              className="pf-variant-btn border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
-            >
-              Next: Photos ({variantForm.images?.length || 0}) →
-            </button>
-          )}
-          {activeTab === 'media' && (
-            <button
-              type="button"
-              onClick={() => setActiveTab('advanced')}
-              className="pf-variant-btn border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
-            >
-              Next: Advanced →
-            </button>
-          )}
           <button type="button" onClick={handleSave} disabled={isSaving} className="pf-variant-btn pf-variant-btn--save">
             {isSaving ? 'Saving...' : (isEditing ? 'Update Variant' : 'Save Variant')}
           </button>
