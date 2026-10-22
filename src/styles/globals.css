@@ -28042,17 +28042,10 @@ button.admin-stats-chip:hover {
   height: 16px;
   border-radius: 999px;
   overflow: hidden;
-  border: 1px solid #d6d3d1;
-  cursor: pointer;
-}
-
-.pf-variation-chip__swatch input {
-  opacity: 0;
-  width: 16px;
-  height: 16px;
-  padding: 0;
-  border: 0;
-  cursor: pointer;
+  border: 1px solid #cbd5e1;
+  display: inline-block;
+  flex-shrink: 0;
+  cursor: default;
 }
 
 .pf-variation-chip__remove {
@@ -30120,9 +30113,23 @@ button.admin-stats-chip:hover {
 
 .pf-variant-attr-row--color {
   display: grid;
-  grid-template-columns: minmax(88px, 0.7fr) minmax(160px, 1.4fr) 36px minmax(92px, 110px) auto;
+  grid-template-columns: minmax(88px, 0.7fr) minmax(160px, 1.4fr) 36px auto;
+  gap: 8px;
   flex-wrap: nowrap;
   align-items: center;
+}
+
+.pf-variant-swatch-preview {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .pf-variant-attr-row .pf-variant-input {

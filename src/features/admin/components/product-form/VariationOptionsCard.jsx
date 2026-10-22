@@ -5,6 +5,7 @@ import {
   normalizeHexColor,
   suggestHexForColorName,
   UNKNOWN_SWATCH_HEX,
+  resolveSwatchBackground,
 } from '@/features/product/colorSwatch'
 import {
   MAX_VARIATION_AXES,
@@ -101,12 +102,16 @@ export default function VariationOptionsCard({
   const addValue = (option) => {
     const raw = String(draftValueByOption[option.id] || '').trim()
     if (!raw) return
+    const isColor = isColorAttributeKey(option.key)
+    const suggestedHex = isColor
+      ? (suggestHexForColorName(raw) || (resolveSwatchBackground(raw).startsWith('#') ? resolveSwatchBackground(raw) : ''))
+      : ''
     const nextValues = uniqueOptionValues([
       ...(option.values || []),
       {
         key: option.key,
         value: raw,
-        hex: isColorAttributeKey(option.key) ? (suggestHexForColorName(raw) || '') : '',
+        hex: suggestedHex,
       },
     ])
     if (nextValues.length === (option.values || []).length) {
@@ -242,23 +247,19 @@ export default function VariationOptionsCard({
                   </span>
                 </div>
                 <div className="pf-variation-values">
-                  {(opt.values || []).map((val) => {
-                    const pickerHex = normalizeHexColor(val.hex) || suggestHexForColorName(val.value) || UNKNOWN_SWATCH_HEX
+                    const pickerHex =
+                      normalizeHexColor(val.hex) ||
+                      suggestHexForColorName(val.value) ||
+                      resolveSwatchBackground(val.value) ||
+                      UNKNOWN_SWATCH_HEX
                     return (
                       <span key={val.id} className="pf-variation-chip">
                         {isColor ? (
-                          <label
+                          <span
                             className="pf-variation-chip__swatch"
-                            title="Swatch color"
+                            title={`Color: ${val.value}`}
                             style={{ background: pickerHex }}
-                          >
-                            <input
-                              type="color"
-                              value={pickerHex}
-                              disabled={disabled || applying}
-                              onChange={(e) => updateValueHex(opt, val.id, e.target.value)}
-                            />
-                          </label>
+                          />
                         ) : null}
                         <span>{val.value}</span>
                         <button

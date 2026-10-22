@@ -823,98 +823,26 @@ export default function ProductFormBody({
                           ))}
                         </select>
                       ) : isColor ? (
-                        <div className={`pf-spec-color-wrap${activeColorPaletteId === attr.id ? ' is-open' : ''}`}>
-                          <button
-                            type="button"
-                            onClick={(e) => handleToggleColorPalette(attr.id, e)}
-                            className="pf-spec-swatch-btn"
-                            title="Click to open color palette"
-                            aria-label={`Color palette for ${attr.value || 'color'}`}
-                          >
-                            <span
-                              className="pf-spec-swatch-circle"
-                              style={{ background: resolveSwatchBackground(attr.value, attr.hex) }}
-                            />
-                            <svg className="w-2.5 h-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                            </svg>
-                          </button>
+                        <div className="pf-spec-color-wrap flex items-center gap-2 flex-1 min-w-0">
+                          <span
+                            className="pf-spec-swatch-circle shrink-0"
+                            style={{ background: resolveSwatchBackground(attr.value, attr.hex) }}
+                            title={`Color: ${attr.value || 'None'}`}
+                          />
                           <input
                             type="text"
                             value={attr.value || ''}
                             onChange={(e) => {
                               const val = e.target.value;
-                              const suggested = suggestHexForColorName(val);
+                              const suggested = suggestHexForColorName(val) || (resolveSwatchBackground(val).startsWith('#') ? resolveSwatchBackground(val) : undefined);
                               updateAttribute(attr.id, {
                                 value: val,
                                 ...(suggested ? { hex: suggested } : {}),
                               });
                             }}
                             className="pf-spec-input flex-1 min-w-0 text-gray-800"
-                            placeholder="Color (e.g. Black, Maroon, Gold)"
+                            placeholder="Color (e.g. Blue, Maroon, Gold)"
                           />
-
-                          {/* Color Palette Popover */}
-                          {activeColorPaletteId === attr.id && (
-                            <div
-                              className={`pf-color-popover${popoverPlacement === 'top' ? ' pf-color-popover--top' : ''}`}
-                              ref={colorPaletteRef}
-                            >
-                              <div className="pf-color-popover-header">
-                                <span className="pf-color-popover-title">Color Palette</span>
-                                <button
-                                  type="button"
-                                  onClick={() => setActiveColorPaletteId(null)}
-                                  className="pf-color-popover-close"
-                                  aria-label="Close palette"
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                              <div className="pf-color-grid">
-                                {POPULAR_COLOR_PALETTE.map((color) => {
-                                  const isSelected = String(attr.value || '').trim().toLowerCase() === color.name.toLowerCase();
-                                  return (
-                                    <button
-                                      key={color.name}
-                                      type="button"
-                                      onClick={() => {
-                                        updateAttribute(attr.id, {
-                                          value: color.name,
-                                          hex: color.hex.startsWith('#') ? color.hex : undefined,
-                                        });
-                                        setActiveColorPaletteId(null);
-                                      }}
-                                      className={`pf-color-swatch-item${isSelected ? ' is-selected' : ''}`}
-                                      style={{ background: color.hex }}
-                                      title={color.name}
-                                      aria-label={color.name}
-                                    />
-                                  );
-                                })}
-                              </div>
-                              <div className="pf-color-custom-section">
-                                <label className="pf-color-native-picker" title="Pick custom color">
-                                  <input
-                                    type="color"
-                                    value={normalizeHexColor(attr.hex) || suggestHexForColorName(attr.value) || '#14120F'}
-                                    onChange={(e) => {
-                                      const hexVal = e.target.value;
-                                      updateAttribute(attr.id, { hex: hexVal });
-                                    }}
-                                  />
-                                </label>
-                                <input
-                                  type="text"
-                                  value={attr.hex || ''}
-                                  onChange={(e) => updateAttribute(attr.id, { hex: e.target.value })}
-                                  placeholder="#HEX"
-                                  className="pf-spec-input pf-color-hex-input"
-                                  maxLength={7}
-                                />
-                              </div>
-                            </div>
-                          )}
                         </div>
                       ) : (
                         <input
@@ -979,29 +907,19 @@ export default function ProductFormBody({
                     ))}
                   </select>
                 ) : COLOR_KEY_RE.test(String(newSpecName || '').trim()) ? (
-                  <div className={`pf-spec-color-wrap${activeColorPaletteId === 'new-spec' ? ' is-open' : ''}`}>
-                    <button
-                      type="button"
-                      onClick={(e) => handleToggleColorPalette('new-spec', e)}
-                      className="pf-spec-swatch-btn"
-                      title="Click to open color palette"
-                      aria-label="Color palette for new specification"
-                    >
-                      <span
-                        className="pf-spec-swatch-circle"
-                        style={{ background: resolveSwatchBackground(newSpecValue, newSpecHex) }}
-                      />
-                      <svg className="w-2.5 h-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
+                  <div className="pf-spec-color-wrap flex items-center gap-2 flex-1 min-w-0">
+                    <span
+                      className="pf-spec-swatch-circle shrink-0"
+                      style={{ background: resolveSwatchBackground(newSpecValue, newSpecHex) }}
+                      title={`Color: ${newSpecValue || 'None'}`}
+                    />
                     <input
                       type="text"
                       value={newSpecValue}
                       onChange={(e) => {
                         const val = e.target.value;
                         setNewSpecValue(val);
-                        const suggested = suggestHexForColorName(val);
+                        const suggested = suggestHexForColorName(val) || (resolveSwatchBackground(val).startsWith('#') ? resolveSwatchBackground(val) : undefined);
                         if (suggested) setNewSpecHex(suggested);
                       }}
                       onKeyDown={(e) => {
@@ -1010,63 +928,9 @@ export default function ProductFormBody({
                           handleAddNewSpec();
                         }
                       }}
-                      placeholder="Color (e.g. Black, Maroon)"
+                      placeholder="Color (e.g. Blue, Maroon)"
                       className="pf-spec-input flex-1 min-w-0"
                     />
-
-                    {/* Color Palette Popover for new spec */}
-                    {activeColorPaletteId === 'new-spec' && (
-                      <div
-                        className={`pf-color-popover${popoverPlacement === 'top' ? ' pf-color-popover--top' : ''}`}
-                        ref={colorPaletteRef}
-                      >
-                        <div className="pf-color-popover-header">
-                          <span className="pf-color-popover-title">Color Palette</span>
-                          <button
-                            type="button"
-                            onClick={() => setActiveColorPaletteId(null)}
-                            className="pf-color-popover-close"
-                            aria-label="Close palette"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                        <div className="pf-color-grid">
-                          {POPULAR_COLOR_PALETTE.map((color) => (
-                            <button
-                              key={color.name}
-                              type="button"
-                              onClick={() => {
-                                setNewSpecValue(color.name);
-                                if (color.hex.startsWith('#')) setNewSpecHex(color.hex);
-                                setActiveColorPaletteId(null);
-                              }}
-                              className="pf-color-swatch-item"
-                              style={{ background: color.hex }}
-                              title={color.name}
-                              aria-label={color.name}
-                            />
-                          ))}
-                        </div>
-                        <div className="pf-color-custom-section">
-                          <label className="pf-color-native-picker" title="Pick custom color">
-                            <input
-                              type="color"
-                              value={normalizeHexColor(newSpecHex) || suggestHexForColorName(newSpecValue) || '#14120F'}
-                              onChange={(e) => setNewSpecHex(e.target.value)}
-                            />
-                          </label>
-                          <input
-                            type="text"
-                            value={newSpecHex}
-                            onChange={(e) => setNewSpecHex(e.target.value)}
-                            placeholder="#HEX"
-                            className="pf-spec-input pf-color-hex-input"
-                            maxLength={7}
-                          />
-                        </div>
-                      </div>
-                    )}
                   </div>
                 ) : (
                   <input

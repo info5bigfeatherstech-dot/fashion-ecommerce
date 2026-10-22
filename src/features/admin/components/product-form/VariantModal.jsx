@@ -12,6 +12,7 @@ import {
   normalizeHexColor,
   suggestHexForColorName,
   UNKNOWN_SWATCH_HEX,
+  resolveSwatchBackground,
 } from '@/features/product/colorSwatch'
 
 export const TAX_RATE_OPTIONS = [
@@ -152,15 +153,16 @@ const VariantModal = ({
       const nextAttrs = prev.attributes.map((attr, i) => {
         if (i !== index) return attr
         const next = { ...attr, [field]: value }
-        if (field === 'value' && isColorAttributeKey(next.key)) {
-          const suggested = suggestHexForColorName(value)
+        if ((field === 'value' || field === 'key') && isColorAttributeKey(next.key)) {
+          const suggested = suggestHexForColorName(next.value)
           if (suggested) {
             next.hex = suggested
+          } else {
+            const bg = resolveSwatchBackground(next.value)
+            if (bg && typeof bg === 'string' && bg.startsWith('#')) {
+              next.hex = bg
+            }
           }
-        }
-        if (field === 'hex') {
-          const normalized = normalizeHexColor(value)
-          next.hex = normalized || String(value || '').trim()
         }
         return next
       })
@@ -513,6 +515,7 @@ const VariantModal = ({
                   const pickerHex =
                     normalizeHexColor(attr.hex) ||
                     suggestHexForColorName(attr.value) ||
+                    resolveSwatchBackground(attr.value) ||
                     UNKNOWN_SWATCH_HEX
                   return (
                     <div
@@ -548,33 +551,12 @@ const VariantModal = ({
                         />
                       )}
                       {isColor ? (
-                        <>
-                          <label
-                            className="pf-variant-swatch-picker"
-                            title="Swatch color"
-                            aria-label={`Swatch for ${attr.value || 'color'}`}
-                            style={{ background: pickerHex }}
-                          >
-                            <input
-                              type="color"
-                              value={pickerHex}
-                              onChange={(e) =>
-                                updateVariantAttribute(index, 'hex', e.target.value)
-                              }
-                            />
-                          </label>
-                          <input
-                            type="text"
-                            value={attr.hex || ''}
-                            onChange={(e) =>
-                              updateVariantAttribute(index, 'hex', e.target.value)
-                            }
-                            className="pf-variant-input pf-variant-hex-input"
-                            placeholder="#CC7722"
-                            spellCheck={false}
-                            aria-label="Color hex"
-                          />
-                        </>
+                        <span
+                          className="pf-variant-swatch-preview"
+                          style={{ background: pickerHex }}
+                          title={`Color: ${attr.value || 'None'}`}
+                          aria-label={`Color swatch for ${attr.value || 'color'}`}
+                        />
                       ) : null}
                       {variantForm.attributes.length > 1 && !isAxisAttr ? (
                         <button
@@ -591,7 +573,7 @@ const VariantModal = ({
                 })}
               </div>
               <p className="pf-variant-attr-hint">
-                Options (Color, Size, Plating) identify this SKU on your storefront. Set a Color hex so the storefront swatch matches.
+                Options (Color, Size, Plating) identify this SKU on your storefront. Color swatches update automatically from the color name.
               </p>
             </div>
 
