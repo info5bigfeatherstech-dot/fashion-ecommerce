@@ -1,6 +1,6 @@
 import { useLayoutEffect, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, Link, useNavigate, useNavigationType, useLocation } from 'react-router-dom'
-import { Heart, Minus, Plus } from 'lucide-react'
+import { Heart, Minus, Plus, Bell } from 'lucide-react'
 import { ProductGallery } from '@/features/product/components/ProductGallery'
 import { PriceBlock } from '@/features/product/components/PriceBlock'
 import {
@@ -309,21 +309,54 @@ function ProductDetailPage() {
     )
   }
 
+  const handleNotifyUsClick = () => {
+    const oosEl = document.getElementById('pdp-oos-form')
+    if (oosEl) {
+      oosEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      const emailInput = oosEl.querySelector('input[type="email"]')
+      if (emailInput) {
+        setTimeout(() => emailInput.focus(), 300)
+      }
+    }
+  }
+
   const handleAttrSelect = (key, value) => {
     setSelectedAttrs((prev) => {
       const next = { ...prev, [key]: value }
-      // Keep the chosen value; align other axes to a matching variant
-      // (including out-of-stock ones) so Red OOS stays selected as Red.
-      const matched = resolveVariant(product, { attrs: next })
-      if (!matched) return next
-      for (const attr of matched.attributes || []) {
-        if (!attr?.key) continue
-        if (String(attr.key).toLowerCase() === String(key).toLowerCase()) {
-          next[attr.key] = value
-          continue
+
+      // 1. Find all variants matching the newly selected attribute
+      const matchingVariants = (product?.variants || []).filter((v) => {
+        return (v.attributes || []).some(
+          (a) => a.key?.toLowerCase() === key.toLowerCase() &&
+                 String(a.value || '').toLowerCase() === String(value || '').toLowerCase()
+        )
+      })
+
+      if (matchingVariants.length > 0) {
+        // 2. Try to find if any variant matches both the new value and existing other attribute selections
+        const fullMatch = matchingVariants.find((v) => {
+          return Object.entries(next).every(([k, vVal]) => {
+            if (k.toLowerCase() === key.toLowerCase() || !vVal) return true
+            return (v.attributes || []).some(
+              (a) => a.key?.toLowerCase() === k.toLowerCase() &&
+                     String(a.value || '').toLowerCase() === String(vVal).toLowerCase()
+            )
+          })
+        })
+
+        // 3. If there is a full match, use it.
+        // Otherwise, the previous other attributes (e.g. XL or Rhodium Plated) do not exist for the new selection.
+        // Auto-switch to the best available variant for this option (prefer in-stock, else first variant).
+        const bestVariant = fullMatch || matchingVariants.find((v) => v.inStock) || matchingVariants[0]
+
+        const alignedAttrs = { [key]: value }
+        for (const attr of bestVariant.attributes || []) {
+          if (!attr?.key) continue
+          alignedAttrs[attr.key] = attr.value
         }
-        next[attr.key] = attr.value
+        return alignedAttrs
       }
+
       return next
     })
   }
@@ -414,15 +447,47 @@ function ProductDetailPage() {
         : []),
     ]
 
-  // Show pickers when there is more than one choice, or for the first attribute axis.
-  const choosableGroups = optionGroups.filter((group, index) => {
-    if ((group.values?.length || 0) > 1) return true
-    // Only show the first attribute axis when there's a single value (e.g. Color)
-    if (index === 0 && (group.values?.length || 0) > 0) return true
-    // Do not show the second or subsequent single-value attributes as pickers
-    return false
-  })
-  const detailOnlyGroups = optionGroups.filter((group) => !choosableGroups.includes(group))
+  // Filter option group values dynamically based on selected Color / primary attribute
+  const primaryGroup = optionGroups.find((g) => g.isColor) || optionGroups[0]
+  const primaryKey = primaryGroup?.key
+  const activePrimaryVal = primaryKey
+    ? (selectedAttrs[primaryKey] ?? primaryGroup?.values?.[0])
+    : null
+
+  const choosableGroups = (!optionGroups.length) ? [] : optionGroups
+    .map((group) => {
+      // The primary group (e.g. Color) shows all its values
+      if (group === primaryGroup || !activePrimaryVal) {
+        return group
+      }
+
+      // For secondary groups (e.g. Plating, Size), filter variants that match the active primary selection
+      const variantsForPrimary = (product?.variants || []).filter((v) => {
+        return (v.attributes || []).some(
+          (a) => a.key?.toLowerCase() === primaryKey.toLowerCase() &&
+                 String(a.value || '').toLowerCase() === String(activePrimaryVal).toLowerCase()
+        )
+      })
+
+      if (!variantsForPrimary.length) {
+        return group
+      }
+
+      // Only include values that actually exist under this primary selection
+      const validValues = Array.from(new Set(
+        variantsForPrimary
+          .map((v) => (v.attributes || []).find((a) => a.key?.toLowerCase() === group.key?.toLowerCase())?.value)
+          .filter((val) => val != null && String(val).trim() !== '')
+      ))
+
+      return {
+        ...group,
+        values: validValues,
+      }
+    })
+    .filter((group) => (group.values?.length || 0) > 0)
+
+  const detailOnlyGroups = optionGroups.filter((group) => !choosableGroups.some((cg) => cg.key === group.key))
 
   const currentVariantAttrs = selectedVariant?.attributes || product?.variants?.[0]?.attributes || product?.attributes || []
   const currentVariantAttrMap = new Map(
@@ -694,15 +759,16 @@ function ProductDetailPage() {
           />
 
           {!isAvailable ? (
-            <div className="pdp-oos">
+            <div id="pdp-oos-form" className="pdp-oos">
               <div className="pdp-info__actions pdp-info__actions--oos">
                 <Button
-                  variant="secondary"
+                  variant="primary"
                   size="md"
-                  className="pdp-info__cta"
-                  disabled
+                  className="pdp-info__cta pdp-info__cta--notify flex items-center justify-center gap-2"
+                  onClick={handleNotifyUsClick}
                 >
-                  Out of Stock
+                  <Bell size={18} />
+                  <span>Notify Us</span>
                 </Button>
                 <Button
                   variant="secondary"
@@ -723,8 +789,8 @@ function ProductDetailPage() {
               </div>
               <OutOfStockInquiryForm
                 productId={product.id}
-                variantId={selectedVariant?.id}
-                disabled={!product.id || !selectedVariant?.id}
+                variantId={selectedVariant?.id || product?.variants?.[0]?.id}
+                disabled={!product.id || (!selectedVariant?.id && !product?.variants?.[0]?.id)}
               />
             </div>
           ) : (
@@ -866,8 +932,17 @@ function ProductDetailPage() {
             </button>
           </div>
         ) : (
-          <Button variant="primary" size="md" onClick={handleAddToCart} disabled={!isAvailable}>
-            {isAvailable ? 'Add to Bag' : 'Not available'}
+          <Button
+            variant={isAvailable ? 'primary' : 'secondary'}
+            size="md"
+            onClick={isAvailable ? handleAddToCart : handleNotifyUsClick}
+          >
+            {isAvailable ? 'Add to Bag' : (
+              <span className="flex items-center justify-center gap-1.5">
+                <Bell size={16} />
+                <span>Notify Us</span>
+              </span>
+            )}
           </Button>
         )}
       </div>

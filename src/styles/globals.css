@@ -27619,7 +27619,7 @@ button.admin-stats-chip:hover {
 }
 
 .modal-content--product-full {
-  width: min(860px, calc(100vw - 32px));
+  width: min(1040px, calc(100vw - 40px));
   max-width: none;
   max-height: min(92vh, 960px);
   padding: 0;
@@ -28129,10 +28129,11 @@ button.admin-stats-chip:hover {
 }
 
 .pf-variant-group {
-  border: 1px solid #e7e2d8;
-  border-radius: 12px;
-  background: #faf8f5;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #ffffff;
   overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
 }
 
 .pf-variant-group__head {
@@ -28140,46 +28141,72 @@ button.admin-stats-chip:hover {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 10px 12px;
-  background: #f5f1ea;
-  border-bottom: 1px solid #eee8de;
+  padding: 10px 16px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .pf-variant-group__title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
 }
 
 .pf-variant-group__title strong {
-  font-size: 13px;
-  color: #1c1917;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
 }
 
 .pf-variant-group__count {
   font-size: 11px;
-  color: #78716c;
+  color: #64748b;
   font-weight: 600;
+  background: #e2e8f0;
+  padding: 2px 8px;
+  border-radius: 999px;
 }
 
 .pf-variant-group__swatch {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 999px;
-  border: 1px solid #d6d3d1;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px #cbd5e1, 0 1px 2px rgba(0, 0, 0, 0.08);
   flex-shrink: 0;
 }
 
 .pf-variant-group__body {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px;
+  padding: 0;
+  background: #ffffff;
 }
 
+/* Transform nested variant cards into clean, sleek table-like rows */
 .pf-variant-row-card--child {
-  box-shadow: none;
+  border: none !important;
+  border-radius: 0 !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  padding: 12px 16px !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  background: #ffffff;
+  transition: background-color 0.15s ease;
+}
+
+.pf-variant-row-card--child:last-child {
+  border-bottom: none !important;
+}
+
+.pf-variant-row-card--child:hover {
+  background: #f8fafc !important;
+}
+
+.pf-variant-row-card--child.is-expanded {
+  background: #fafbfd !important;
+  border-left: 3px solid #4f46e5 !important;
 }
 
 .pf-toggle {
@@ -29799,6 +29826,132 @@ button.admin-stats-chip:hover {
   color: #111827;
 }
 
+/* Tabs inside Variant Modal / Dropdown */
+.pf-variant-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  overflow-x: auto;
+}
+
+.pf-variant-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pf-variant-tab:hover {
+  color: #0f172a;
+  background: rgba(241, 245, 249, 0.8);
+}
+
+.pf-variant-tab.is-active {
+  background: #ffffff;
+  color: #4f46e5;
+  border-color: #cbd5e1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.pf-variant-tab__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.pf-variant-tab.is-active .pf-variant-tab__badge {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+.pf-variant-tab__badge--purple {
+  background: #f3e8ff;
+  color: #7e22ce;
+}
+
+/* Variant Row Summary Attribute Pills */
+.pf-attr-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.pf-attr-pill__key {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.pf-attr-pill__val {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+/* Variant Edit / Chevron Action Button */
+.pf-variant-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.pf-variant-edit-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.pf-variant-edit-btn.is-expanded {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #4f46e5;
+}
+
+/* Variant Row Thumbnail */
+.pf-variant-row-thumb {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid #e2e8f0;
+  flex-shrink: 0;
+  background: #f8fafc;
+}
+
 .pf-variant-card__body {
   display: flex;
   flex-direction: column;
@@ -30290,8 +30443,13 @@ button.admin-stats-chip:hover {
 }
 
 .pf-variant-card__footer {
-  padding: 16px 20px 20px;
-  border-top: 1px solid #f3f4f6;
+  position: sticky;
+  bottom: 0;
+  background: #ffffff;
+  z-index: 20;
+  padding: 14px 20px 16px;
+  border-top: 1px solid #e2e8f0;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .pf-variant-error {

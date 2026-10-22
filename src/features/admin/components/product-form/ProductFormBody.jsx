@@ -1101,14 +1101,18 @@ export default function ProductFormBody({
         </div>
 
         {/* Additional Variants - with inline dropdown form */}
+        {/* Product Variants Section */}
         <div className="pf-card w-full">
           <div className="pf-card__head pf-card__head--row w-full">
             <div>
-              <h3>Product Variants</h3>
-              <p>
-                {isColorParent
-                  ? 'Add a color, then add types under that color only. One color can have 3 types, another can have 1.'
-                  : 'Add a variant, then add extra types under it if needed.'}
+              <div className="flex items-center gap-2.5">
+                <h3 className="text-base font-bold text-slate-900 m-0">Product Variants</h3>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                  {allVariantsList.length} {allVariantsList.length === 1 ? 'variant' : 'variants'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Manage colors, sizes, stock, and pricing for each purchasable SKU.
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -1116,10 +1120,13 @@ export default function ProductFormBody({
                 type="button"
                 onClick={onOpenAddVariant || onGenerateVariant}
                 disabled={actionLoading && isEditMode}
-                className="pf-chip-btn pf-chip-btn--indigo inline-flex items-center gap-1.5 font-medium cursor-pointer"
-                title={isColorParent ? 'Add another color' : 'Add another variant'}
+                className="pf-chip-btn pf-chip-btn--indigo inline-flex items-center gap-1.5 font-medium cursor-pointer shadow-sm"
+                title="Add a new variant (color, size, or finish)"
               >
-                <span>{isColorParent ? '+ Add color' : '+ Add variant'}</span>
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                </svg>
+                <span>Add Variant</span>
               </button>
             </div>
           </div>
@@ -1174,31 +1181,47 @@ export default function ProductFormBody({
                               aria-hidden
                             />
                           ) : null}
-                          <strong>{group.value}</strong>
+                          <strong>{isColorParent ? `Color: ${group.value}` : group.value}</strong>
                           <span className="pf-variant-group__count">
-                            {typeCount} type{typeCount === 1 ? '' : 's'}
+                            {typeCount} {typeCount === 1 ? 'option' : 'options'}
                           </span>
                         </div>
                         {group.value !== 'Other' ? (
                           <button
                             type="button"
-                            className="pf-chip-btn pf-chip-btn--secondary"
+                            className="pf-chip-btn pf-chip-btn--secondary inline-flex items-center gap-1 text-xs"
                             disabled={actionLoading && isEditMode}
                             onClick={() => onAddVariantType?.(group)}
+                            title={`Add another size or plating under ${group.value}`}
                           >
-                            + Add type
+                            <svg className="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                            </svg>
+                            <span>Add to {group.value}</span>
                           </button>
                         ) : null}
                       </div>
                       <div className="pf-variant-group__body">
                         {group.items.map((variant) => {
                           const typeLabel = childTypeLabel(variant.attributes, parentAxisKey)
-                          const summary = typeLabel || formatAttributesSummary(variant.attributes) || 'Default'
+                          const summary = typeLabel || formatAttributesSummary(variant.attributes) || 'Default Option'
                           const isExpanded = showVariantForm && editingVariantIndex === variant.realIndex
+
+                          // Extract secondary attributes (Size, Plating, etc.) to show as clean pills
+                          const childAttrs = (variant.attributes || []).filter((a) => {
+                            const k = (a?.key || '').trim().toLowerCase()
+                            const parentNorm = (parentAxisKey || 'color').trim().toLowerCase()
+                            return k && k !== parentNorm && String(a?.value || '').trim()
+                          })
+
+                          const variantThumb = variant.isPrimary
+                            ? (formData.images?.[0]?.url || formData.variants?.[0]?.images?.[0]?.url || '')
+                            : (variant.raw?.images?.[0]?.url || '')
+
                           return (
                             <div
                               key={variant.isPrimary ? 'primary-variant' : (variant.code || `v-${variant.realIndex}`)}
-                              className={`pf-variant-card pf-variant-row-card pf-variant-row-card--child w-full ${!variant.isActive ? 'is-inactive' : ''}`}
+                              className={`pf-variant-row-card pf-variant-row-card--child w-full ${!variant.isActive ? 'is-inactive' : ''} ${isExpanded ? 'is-expanded' : ''}`}
                             >
                               <div
                                 className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap w-full cursor-pointer select-none"
@@ -1208,18 +1231,38 @@ export default function ProductFormBody({
                                   <span className="pf-variant-num-badge">
                                     {variant.displayIndex}
                                   </span>
+                                  {variantThumb ? (
+                                    <img
+                                      src={variantThumb}
+                                      alt="Variant thumb"
+                                      className="pf-variant-row-thumb"
+                                      onError={(e) => { e.target.style.display = 'none' }}
+                                    />
+                                  ) : null}
                                   <div className="min-w-0">
                                     <div className="flex items-center gap-2 flex-wrap">
-                                      <span className="font-bold text-gray-900 text-sm tracking-tight">
-                                        {summary}
-                                      </span>
+                                      {childAttrs.length > 0 ? (
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                          {childAttrs.map((ca, idx) => (
+                                            <span key={idx} className="pf-attr-pill">
+                                              <span className="pf-attr-pill__key">{ca.key}:</span>
+                                              <span className="pf-attr-pill__val">{ca.value}</span>
+                                            </span>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        <span className="font-bold text-gray-900 text-sm tracking-tight">
+                                          {summary}
+                                        </span>
+                                      )}
+
                                       {variant.isPrimary && (
                                         <span className="pf-variant-primary-badge">
                                           PRIMARY
                                         </span>
                                       )}
                                       {variant.code ? (
-                                        <span className="pf-variant-code-badge">
+                                        <span className="pf-variant-code-badge font-mono">
                                           {variant.code}
                                         </span>
                                       ) : null}
@@ -1262,12 +1305,13 @@ export default function ProductFormBody({
                                       handleVariantChevronClick(variant)
                                     }}
                                     disabled={actionLoading && isEditMode}
-                                    className="pf-variant-chevron-btn"
-                                    title={isExpanded ? 'Collapse variant details' : 'Expand variant details'}
-                                    aria-label={isExpanded ? 'Collapse variant details' : 'Expand variant details'}
+                                    className={`pf-variant-edit-btn ${isExpanded ? 'is-expanded' : ''}`}
+                                    title={isExpanded ? 'Collapse variant details' : 'Edit variant details'}
+                                    aria-label={isExpanded ? 'Collapse variant details' : 'Edit variant details'}
                                   >
+                                    <span className="hidden sm:inline">{isExpanded ? 'Close' : 'Edit Details'}</span>
                                     <svg
-                                      className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                                      className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
                                       fill="none"
                                       stroke="currentColor"
                                       viewBox="0 0 24 24"
@@ -1299,7 +1343,7 @@ export default function ProductFormBody({
                               </div>
 
                               {isExpanded && (
-                                <div className="mt-3.5 pt-3.5 border-t border-gray-100 w-full" ref={variantDropdownRef}>
+                                <div className="mt-3 pt-3.5 border-t border-indigo-100 bg-slate-50/60 -mx-4 -mb-3 px-4 pb-4 w-[calc(100%+2rem)]" ref={variantDropdownRef}>
                                   <VariantModal
                                     inline
                                     listingPrefix={listingPrefix}
