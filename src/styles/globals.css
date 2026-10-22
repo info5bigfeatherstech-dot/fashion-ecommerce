@@ -29780,7 +29780,9 @@ button.admin-stats-chip:hover {
 }
 
 .pf-variant-card__head {
-  position: static;
+  position: sticky;
+  top: -22px;
+  z-index: 35;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -29789,6 +29791,7 @@ button.admin-stats-chip:hover {
   border-bottom: 1px solid #c7d2fe;
   background: #eef2ff;
   border-radius: 12px 12px 0 0;
+  box-shadow: 0 4px 12px -2px rgba(99, 102, 241, 0.15);
 }
 
 .pf-variant-card__head h3 {
@@ -30456,7 +30459,7 @@ button.admin-stats-chip:hover {
 
 .pf-variant-card__footer {
   position: sticky;
-  bottom: 0;
+  bottom: -8px;
   background: #ffffff;
   z-index: 30;
   padding: 14px 20px 16px;
