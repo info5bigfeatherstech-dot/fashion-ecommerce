@@ -35,11 +35,14 @@ export function useInfiniteProductListing(filters = {}) {
       }
       const loadedCount = allPages.reduce((acc, p) => acc + (p?.products?.length || 0), 0)
       const total = lastPage?.pagination?.total ?? lastPage?.total ?? 0
+      if (total > 0 && loadedCount >= total) {
+        return undefined
+      }
       if (total > loadedCount && (lastPage?.products?.length || 0) > 0) {
         return allPages.length + 1
       }
-      // If a full batch of 50 products was returned, allow loading next page
-      if ((lastPage?.products?.length || 0) >= 50) {
+      // Infer another page only when the server did not send a total
+      if (!total && (lastPage?.products?.length || 0) >= 50) {
         return (lastPage?.pagination?.page || allPages.length) + 1
       }
       return undefined

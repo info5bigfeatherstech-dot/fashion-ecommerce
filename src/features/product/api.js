@@ -6,6 +6,7 @@ import {
   shuffleProducts,
   shouldShuffleStorefrontList,
   diversifyProductsByCategory,
+  getStorefrontShuffleSeed,
 } from '@/lib/shuffleProducts'
 import { extractProduct, extractProductList, mapPagination, mapProductList } from './mappers'
 
@@ -31,9 +32,18 @@ const SPECIAL_CATEGORIES = new Set([
   'footwear',
   'bags',
   'jewellery-spotted',
+  'today-arrival',
   'bestsellers',
   'bestselling-jewelry',
 ])
+/** Collections that must never mix in untagged catalog products. */
+const TAG_ONLY_SLUGS = new Set([
+  'on-sale',
+  'festive-offer',
+  'jewellery-spotted',
+  'today-arrival',
+])
+const TAG_ONLY_CATEGORIES = new Set(['sale', 'festive', 'jewellery-spotted', 'today-arrival'])
 const CATALOG_TTL_MS = 1000 * 60
 const FEATURED_TTL_MS = 1000 * 60
 
@@ -160,6 +170,35 @@ function hasServerFilterParams(params = {}) {
   )
 }
 
+function storefrontRandomQuery(filters = {}) {
+  if (!shouldShuffleStorefrontList(filters)) {
+    return filters.sort ? { sort: filters.sort } : {}
+  }
+  return {
+    sort: 'random',
+    shuffleSeed: getStorefrontShuffleSeed(),
+  }
+}
+
+function emptyProductListing(page, limit) {
+  return {
+    products: [],
+    total: 0,
+    pagination: {
+      total: 0,
+      page,
+      limit,
+      totalPages: 0,
+      hasNextPage: false,
+      hasPrevPage: page > 1,
+    },
+  }
+}
+
+function isTagOnlyListing(category, tag) {
+  return TAG_ONLY_CATEGORIES.has(category) || TAG_ONLY_SLUGS.has(tag)
+}
+
 function applyProductFilters(products, filters = {}) {
   let results = products
 
@@ -167,13 +206,18 @@ function applyProductFilters(products, filters = {}) {
     results = results.filter((product) => BEAUTY_CATEGORIES.has(product.category))
   } else if (filters.category === 'sale') {
     results = results.filter((product) => {
-      const tags = Array.isArray(product.tags) ? product.tags : []
-      return tags.includes('on-sale') || product.badge === 'sale' || Boolean(product.originalPrice)
+      const tags = Array.isArray(product.tags) ? product.tags.map((t) => String(t).toLowerCase()) : []
+      return tags.includes('on-sale')
     })
   } else if (filters.category === 'festive') {
     results = results.filter((product) => {
       const tags = Array.isArray(product.tags) ? product.tags.map((t) => String(t).toLowerCase()) : []
       return tags.includes('festive-offer')
+    })
+  } else if (filters.category === 'today-arrival') {
+    results = results.filter((product) => {
+      const tags = Array.isArray(product.tags) ? product.tags.map((t) => String(t).toLowerCase()) : []
+      return tags.includes('today-arrival')
     })
   } else if (filters.category === 'new-arrivals') {
     results = results.filter((product) => Boolean(product.isFeatured))
@@ -290,13 +334,12 @@ function applyProductFilters(products, filters = {}) {
       return bTime - aTime
     })
   } else if (shouldShuffleStorefrontList(filters)) {
-    // Default storefront order: randomize so listing order ≠ admin queue order
+    // Shuffle the full filtered set once (do not include page — Load More slices this order).
     const scopeParts = [
       'plp',
       filters.category || '',
       filters.subcategory || '',
       filters.tags || filters.discountTag || '',
-      filters.page || 1,
       filters.search || '',
     ]
     results = shuffleProducts(results, scopeParts.join(':'))
@@ -324,7 +367,7 @@ export async function fetchProductsPage(
  * Products belonging to a category slug.
  * GET /api/products/category/:slug
  */
-export async function getProductsByCategory(slug, { page = 1, limit = 50, signal, sort, ...params } = {}) {
+export async function getProductsByCategory(slug, { page = 1, limit = 50, signal, sort, shuffleSeed, ...params } = {}) {
   if (!slug) {
     return { products: [], total: 0, pagination: mapPagination(null) }
   }
@@ -332,13 +375,27 @@ export async function getProductsByCategory(slug, { page = 1, limit = 50, signal
   try {
     const effectiveSort =
       sort || (shouldShuffleStorefrontList({ sort }) ? 'random' : undefined)
+    const effectiveSeed =
+      shuffleSeed != null && shuffleSeed !== ''
+        ? shuffleSeed
+        : effectiveSort === 'random'
+          ? getStorefrontShuffleSeed()
+          : undefined
     const payload = await http.get(API_ENDPOINTS.products.byCategory(slug), {
-      params: { page, limit, ...(effectiveSort ? { sort: effectiveSort } : {}), ...params },
+      params: {
+        ...params,
+        page,
+        limit,
+        ...(effectiveSort ? { sort: effectiveSort } : {}),
+        ...(effectiveSort === 'random' && effectiveSeed != null
+          ? { shuffleSeed: Number(effectiveSeed) >>> 0 }
+          : {}),
+      },
       signal,
     })
 
     let products = extractProductList(payload)
-    if (shouldShuffleStorefrontList({ sort: effectiveSort === 'random' ? undefined : sort })) {
+    if (effectiveSort !== 'random' && shouldShuffleStorefrontList({ sort })) {
       products = shuffleProducts(products, `category:${slug}:s${effectiveSort || 'default'}`)
     }
     let pagination = mapPagination(payload?.pagination ?? payload?.data?.pagination ?? payload, products.length)
@@ -519,25 +576,34 @@ export async function searchProducts(query, { page = 1, limit = 12, signal } = {
  * Products filtered by marketing tag (ProductTag collection on backend).
  * GET /api/products/all?tags=today-arrival&page=1&limit=25
  */
-export async function getProductsByTag(tag, { page = 1, limit = 25, signal, cacheBust = false, sort, ...params } = {}) {
+export async function getProductsByTag(tag, { page = 1, limit = 25, signal, cacheBust = false, sort, shuffleSeed, ...params } = {}) {
   const normalized = String(tag || '').trim().toLowerCase().replace(/_/g, '-')
   if (!normalized) {
     return { products: [], total: 0, pagination: mapPagination(null) }
   }
 
   try {
-    // Default showcase lists: sample across the full match set (not newest-first page).
+    // Default showcase lists: seeded shuffle of the full tag match set, then paginate.
     // Explicit sorts (price, etc.) keep deterministic order.
     const effectiveSort =
       sort ||
       (shouldShuffleStorefrontList({ sort }) ? 'random' : undefined)
+    const effectiveSeed =
+      shuffleSeed != null && shuffleSeed !== ''
+        ? shuffleSeed
+        : effectiveSort === 'random'
+          ? getStorefrontShuffleSeed()
+          : undefined
 
     const requestParams = {
+      ...params,
       page,
       limit,
       tags: normalized,
       ...(effectiveSort ? { sort: effectiveSort } : {}),
-      ...params,
+      ...(effectiveSort === 'random' && effectiveSeed != null
+        ? { shuffleSeed: Number(effectiveSeed) >>> 0 }
+        : {}),
     }
     if (cacheBust) requestParams._cb = '1'
 
@@ -546,13 +612,7 @@ export async function getProductsByTag(tag, { page = 1, limit = 25, signal, cach
       signal,
     })
 
-    let products = mapProductList(payload.products)
-    if (shouldShuffleStorefrontList({ sort: effectiveSort === 'random' ? undefined : sort })) {
-      products = shuffleProducts(
-        products,
-        `tag:${normalized}:p${page}:l${limit}:s${effectiveSort || 'default'}`
-      )
-    }
+    const products = mapProductList(payload.products)
     const pagination = mapPagination(payload?.pagination ?? payload, products.length)
 
     return {
@@ -566,6 +626,7 @@ export async function getProductsByTag(tag, { page = 1, limit = 25, signal, cach
       products: [],
       total: 0,
       pagination: mapPagination(null),
+      unavailable: true,
     }
   }
 }
@@ -696,17 +757,18 @@ export async function getProducts(filters = {}) {
     }
   }
 
-  // Sale / tagged collections — server-side tags filter
+  // Sale / tagged collections — server-side tags filter (never mix other labels)
   if (tag) {
     try {
       const shuffleOk = shouldShuffleStorefrontList(filters)
-      const { products, pagination, total } = await getProductsByTag(tag, {
+      const randomQuery = storefrontRandomQuery(filters)
+      const { products, pagination, total, unavailable } = await getProductsByTag(tag, {
         page,
         limit,
-        sort: shuffleOk ? 'random' : filters.sort,
         ...queryParams,
+        ...randomQuery,
       })
-      if (products.length > 0) {
+      if (!unavailable && products.length > 0) {
         const filtered = applyProductFilters(products, {
           ...filters,
           category: undefined,
@@ -715,7 +777,7 @@ export async function getProducts(filters = {}) {
           onSale: undefined,
           skipShuffle: true,
         })
-        let totalCount = total || filtered.length
+        let totalCount = total || pagination?.total || filtered.length
         let paginated = filtered
         if (isBestsellers && shuffleOk) {
           paginated = diversifyProductsByCategory(filtered, {
@@ -724,11 +786,11 @@ export async function getProducts(filters = {}) {
             scope: `shop-bestsellers-tagged:p${page}`,
           })
         }
-        if (paginated.length > limit) {
-          totalCount = paginated.length
-          paginated = paginated.slice((page - 1) * limit, page * limit)
-        }
         const totalPages = Math.ceil(totalCount / limit) || 1
+        const hasNextPage =
+          pagination?.hasNextPage != null
+            ? Boolean(pagination.hasNextPage)
+            : page < totalPages
         return {
           products: paginated,
           total: totalCount,
@@ -738,15 +800,15 @@ export async function getProducts(filters = {}) {
             page,
             limit,
             totalPages,
-            hasNextPage: pagination?.hasNextPage != null ? Boolean(pagination.hasNextPage) : page < totalPages,
+            hasNextPage,
             hasPrevPage: page > 1,
           },
         }
       }
 
       // Bestselling Jewelry: no admin tags → random from full live catalog
-      if (isBestsellers && shuffleOk) {
-        const pageParams = { page, limit, sort: 'random' }
+      if (!unavailable && isBestsellers && shuffleOk) {
+        const pageParams = { page, limit, ...storefrontRandomQuery(filters) }
         const { products: catalogProducts, pagination: catalogPagination } =
           await fetchProductsPage(pageParams)
         const diversified = diversifyProductsByCategory(catalogProducts, {
@@ -773,8 +835,14 @@ export async function getProducts(filters = {}) {
           },
         }
       }
+
+      if (!unavailable && isTagOnlyListing(category, tag)) {
+        return emptyProductListing(page, limit)
+      }
     } catch {
-      // Fall back to catalog filter if tags route is unavailable
+      if (isTagOnlyListing(category, tag)) {
+        return emptyProductListing(page, limit)
+      }
     }
   }
 
@@ -785,6 +853,7 @@ export async function getProducts(filters = {}) {
         page,
         limit,
         ...queryParams,
+        ...storefrontRandomQuery(filters),
       })
       const filtered = applyProductFilters(products, { ...filters, category: undefined })
       let totalCount = total || pagination?.total || filtered.length
@@ -797,7 +866,7 @@ export async function getProducts(filters = {}) {
       const hasNextPage =
         pagination?.hasNextPage != null
           ? Boolean(pagination.hasNextPage)
-          : page < totalPages || products.length >= limit
+          : page < totalPages
       return {
         products: paginated,
         total: totalCount,
