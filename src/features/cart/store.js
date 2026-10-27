@@ -30,6 +30,8 @@ function buildLocalLine(product, options = {}) {
   const productCode = product.productCode || variant?.productCode || null
   const price = variant?.price ?? product.price
   const originalPrice = variant?.originalPrice ?? product.originalPrice ?? null
+  const salePrice = variant?.salePrice ?? product.salePrice ?? null
+  const isPromoActive = Boolean(variant?.isPromoActive || product.isPromoActive)
   const image = variant?.images?.[0] || product.images?.[0] || product.image
 
   return {
@@ -42,6 +44,8 @@ function buildLocalLine(product, options = {}) {
     name: product.name,
     price,
     originalPrice,
+    salePrice,
+    isPromoActive: Boolean(isPromoActive && salePrice != null && salePrice > price),
     image,
     productCode,
     size: size ?? null,

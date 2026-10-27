@@ -68,6 +68,9 @@ import { useAppStore } from '@/store'
 import { useCartCouponSummary, useCartTotal } from '@/store/selectors'
 import { formatPrice } from '@/lib/utils'
 import { SITE_NAME } from '@/config/site'
+import { summarizeCartProductPricing } from '@/features/cart/pricing'
+import { CartLinePriceStack } from '@/features/cart/components/CartLinePriceStack'
+import { CartValueBreakdown } from '@/features/cart/components/CartValueBreakdown'
 
 const CHECKOUT_STEP = {
   REVIEW: 0,
@@ -387,6 +390,10 @@ export default function Checkout() {
   const referralsEnabled = Boolean(referralSettingsData?.settings?.enabled)
   const isReferralPromo = isReferralCodeFormat(appliedCouponCode)
 
+  const productTotals = useMemo(
+    () => summarizeCartProductPricing(cartItems),
+    [cartItems]
+  )
   const itemsSubtotal = activeQuote ? activeQuote.itemsSubtotal : cartSubtotal
   const promotionDiscount = activeQuote ? activeQuote.promotionDiscount : couponTotalDiscount
   const loyaltyDiscount = activeQuote ? Number(activeQuote.loyaltyDiscount) || 0 : 0
@@ -1425,7 +1432,6 @@ export default function Checkout() {
                       {discountedItems.map((item) => {
                         const isMutating = cartMutatingId === item.id
                         const rowBusy = Boolean(cartMutatingId)
-                        const hasItemDisc = Boolean(item.hasDiscount && item.itemDiscount > 0)
                         return (
                           <div
                             key={item.id}
@@ -1477,21 +1483,7 @@ export default function Checkout() {
                               </div>
                             </div>
                             <div className="checkout-summary__item-price">
-                              {hasItemDisc ? (
-                                <div style={{ textAlign: 'right' }}>
-                                  <span style={{ textDecoration: 'line-through', color: 'var(--color-muted)', fontSize: 13, display: 'block' }}>
-                                    {formatPrice(item.originalLineTotal)}
-                                  </span>
-                                  <span style={{ color: '#16a34a', fontWeight: 700, fontSize: 15 }}>
-                                    {formatPrice(item.discountedLineTotal)}
-                                  </span>
-                                  <span style={{ display: 'block', fontSize: 11, color: '#16a34a', fontWeight: 500 }}>
-                                    Saved {formatPrice(item.itemDiscount)}
-                                  </span>
-                                </div>
-                              ) : (
-                                formatPrice(item.price * item.quantity)
-                              )}
+                              <CartLinePriceStack item={item} />
                             </div>
                           </div>
                         )
@@ -1807,14 +1799,6 @@ export default function Checkout() {
             </div>
 
             <div className="checkout-summary__rows">
-              {appliedCouponCode && (
-                <p className="checkout-coupon__ok" style={{ marginBottom: 8, color: '#16a34a', display: 'flex', alignItems: 'center', gap: 5 }}>
-                  {isReferralPromo ? <Gift size={13} /> : <Tag size={13} />}
-                  <span>{isReferralPromo ? 'Referral' : 'Coupon'} <strong>{appliedCouponCode}</strong></span>
-                  {promotionDiscount > 0 ? <span> · −{formatPrice(promotionDiscount)}</span> : ''}
-                </p>
-              )}
-
               {showLoyaltyRedeem && loyaltyMaxPts > 0 ? (
                 <div className="checkout-loyalty" style={{ marginBottom: 12 }}>
                   {loyaltyPointsToRedeem > 0 && (loyaltyDiscount > 0 || loyaltyPointsRedeemed > 0) ? (
@@ -1864,16 +1848,13 @@ export default function Checkout() {
                 </div>
               ) : null}
 
-              <div className="checkout-summary__row">
-                <span>Total Cart Value</span>
-                <span>{formatPrice(itemsSubtotal)}</span>
-              </div>
-              {promotionDiscount > 0 && (
-                <div className="checkout-summary__row">
-                  <span>Discount</span>
-                  <span style={{ color: '#1a7a40' }}>−{formatPrice(promotionDiscount)}</span>
-                </div>
-              )}
+              <CartValueBreakdown
+                mrpTotal={productTotals.mrpTotal || itemsSubtotal}
+                productDiscount={productTotals.productDiscount}
+                promotionDiscount={promotionDiscount}
+                promotionKind={isReferralPromo ? 'referral' : 'coupon'}
+                appliedCode={appliedCouponCode}
+              />
               {loyaltyDiscount > 0 && (
                 <div className="checkout-summary__row">
                   <span>
@@ -1902,7 +1883,7 @@ export default function Checkout() {
               </div>
               {taxes > 0 && (
                 <div className="checkout-summary__row">
-                  <span>Other Taxes</span>
+                  <span>GST</span>
                   <span>{formatPrice(taxes)}</span>
                 </div>
               )}

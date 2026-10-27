@@ -7,14 +7,20 @@ import { CartItem } from '@/features/cart/components/CartItem'
 import { useCart } from '@/features/cart/hooks'
 import { prefetchCheckoutRoute } from '@/features/checkout/prefetchRoute'
 import { useAppStore } from '@/store'
-import { useCartTotal } from '@/store/selectors'
+import { useCartCouponSummary, useCartTotal } from '@/store/selectors'
 import { formatPrice } from '@/lib/utils'
+import { isReferralCodeFormat } from '@/features/referral/utils'
+import { summarizeCartProductPricing } from '@/features/cart/pricing'
+import { CartValueBreakdown } from '@/features/cart/components/CartValueBreakdown'
 
 export function AccountCartTab() {
   const navigate = useNavigate()
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
   const cartItems = useAppStore((s) => s.cartItems)
   const cartTotal = useCartTotal()
+  const { totalDiscount, finalTotal, appliedCoupon } = useCartCouponSummary()
+  const productTotals = summarizeCartProductPricing(cartItems)
+  const isReferralPromo = isReferralCodeFormat(appliedCoupon?.code || appliedCoupon?.couponCode)
   const [checkoutAddressOpen, setCheckoutAddressOpen] = useState(false)
 
   useCart({ enabled: isAuthenticated })
@@ -82,17 +88,20 @@ export function AccountCartTab() {
             <aside className="account-bag__summary">
               <p className="account-bag__summary-label">Order summary</p>
               <div className="account-bag__summary-rows">
-                <div className="account-bag__summary-row">
-                  <span>Subtotal</span>
-                  <span>{formatPrice(cartTotal)}</span>
-                </div>
+                <CartValueBreakdown
+                  mrpTotal={productTotals.mrpTotal}
+                  productDiscount={productTotals.productDiscount}
+                  promotionDiscount={totalDiscount}
+                  promotionKind={isReferralPromo ? 'referral' : 'coupon'}
+                  appliedCode={appliedCoupon?.code || appliedCoupon?.couponCode}
+                />
                 <div className="account-bag__summary-row account-bag__summary-row--muted">
                   <span>Shipping</span>
                   <span>Calculated at checkout</span>
                 </div>
                 <div className="account-bag__summary-total">
                   <span>Total</span>
-                  <span>{formatPrice(cartTotal)}</span>
+                  <span>{formatPrice(finalTotal || cartTotal)}</span>
                 </div>
               </div>
               <Button

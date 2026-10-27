@@ -105,6 +105,8 @@ export function useCartProducts(cartItems = [], { enabled = true } = {}) {
         slug: live.slug || item.slug,
         price: item.price ?? live.price,
         originalPrice: item.originalPrice ?? live.originalPrice ?? null,
+        salePrice: item.salePrice ?? live.salePrice ?? null,
+        isPromoActive: Boolean(item.isPromoActive || live.isPromoActive),
         image: item.image || live.images?.[0],
         productCode: live.productCode || item.productCode || null,
         _hydrated: true,

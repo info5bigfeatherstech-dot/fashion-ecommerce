@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, ChevronDown, Lock, ShoppingBag, Sparkles, Tag } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ChevronDown, Lock, ShoppingBag, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { CartItem } from '@/features/cart/components/CartItem'
 import { useCart } from '@/features/cart/hooks'
@@ -8,18 +8,22 @@ import { useAppStore } from '@/store'
 import { useCartCouponSummary } from '@/store/selectors'
 import { formatPrice } from '@/lib/utils'
 import { CouponInput } from '@/features/coupon/components/CouponInput'
+import { isReferralCodeFormat } from '@/features/referral/utils'
+import { summarizeCartProductPricing } from '@/features/cart/pricing'
+import { CartValueBreakdown } from '@/features/cart/components/CartValueBreakdown'
 import { CheckoutAddressModal } from '@/components/checkout/CheckoutAddressModal'
 
 export default function Cart() {
   const cartItems = useAppStore((s) => s.cartItems)
   const isAuthenticated = useAppStore((s) => s.isAuthenticated)
   const {
-    cartSubtotal,
     totalDiscount,
     finalTotal,
     items: discountedItems,
     appliedCoupon,
   } = useCartCouponSummary()
+  const productTotals = summarizeCartProductPricing(cartItems)
+  const isReferralPromo = isReferralCodeFormat(appliedCoupon?.code || appliedCoupon?.couponCode)
   const clearCart = useAppStore((s) => s.clearCart)
   const navigate = useNavigate()
   const [checkoutAddressOpen, setCheckoutAddressOpen] = useState(false)
@@ -128,20 +132,13 @@ export default function Cart() {
               <CouponInput className="cart-summary__coupon" />
 
               <div className="checkout-summary__rows">
-                <div className="checkout-summary__row">
-                  <span>Subtotal</span>
-                  <span>{formatPrice(cartSubtotal)}</span>
-                </div>
-                {totalDiscount > 0 && (
-                  <div className="checkout-summary__row" style={{ color: '#16a34a' }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      <Tag size={13} /> Coupon ({appliedCoupon?.code || 'Applied'})
-                    </span>
-                    <span style={{ fontWeight: 'var(--weight-semibold)' }}>
-                      −{formatPrice(totalDiscount)}
-                    </span>
-                  </div>
-                )}
+                <CartValueBreakdown
+                  mrpTotal={productTotals.mrpTotal}
+                  productDiscount={productTotals.productDiscount}
+                  promotionDiscount={totalDiscount}
+                  promotionKind={isReferralPromo ? 'referral' : 'coupon'}
+                  appliedCode={appliedCoupon?.code || appliedCoupon?.couponCode}
+                />
                 <div className="checkout-summary__row">
                   <span>Shipping</span>
                   <span>Calculated at checkout</span>

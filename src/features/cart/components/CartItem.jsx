@@ -1,26 +1,18 @@
-import { Minus, Plus, Tag, Trash2 } from 'lucide-react'
+import { Minus, Plus, Trash2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAppStore } from '@/store'
 import { cn, formatPrice } from '@/lib/utils'
+import { getCartLinePricing } from '@/features/cart/pricing'
+import { CartLinePriceStack } from '@/features/cart/components/CartLinePriceStack'
 
 export function CartItem({ item, showLink = true, layout = 'drawer' }) {
   const updateQuantity = useAppStore((s) => s.updateQuantity)
   const removeItem = useAppStore((s) => s.removeItem)
-  const lineTotal = (item.price || 0) * (item.quantity || 1)
+  const pricing = getCartLinePricing(item)
   const productCode = item.productCode || null
   const isAccount = layout === 'account'
   const isPage = layout === 'page' || isAccount
-
-  const hasItemDiscount = Boolean(
-    (item.itemDiscount && item.itemDiscount > 0) ||
-      (item.discountedLineTotal != null && item.discountedLineTotal < lineTotal)
-  )
-  const finalLineTotal = hasItemDiscount
-    ? (item.discountedLineTotal ?? Math.max(0, lineTotal - item.itemDiscount))
-    : lineTotal
-  const savings = hasItemDiscount
-    ? (item.itemDiscount ?? Math.max(0, lineTotal - item.discountedLineTotal))
-    : 0
+  const hasProductDiscount = pricing.unitBase > pricing.unitPayable
 
   const name = showLink ? (
     <Link to={`/product/${item.slug}`} className="cart-item__name">
@@ -35,8 +27,7 @@ export function CartItem({ item, showLink = true, layout = 'drawer' }) {
       className={cn(
         'cart-item',
         isPage && 'cart-item--page',
-        isAccount && 'cart-item--account',
-        hasItemDiscount && 'cart-item--has-coupon'
+        isAccount && 'cart-item--account'
       )}
     >
       <Link to={`/product/${item.slug}`} className="cart-item__media" tabIndex={-1} aria-hidden="true">
@@ -55,17 +46,7 @@ export function CartItem({ item, showLink = true, layout = 'drawer' }) {
 
           {item.quantity > 1 && (
             <p className="cart-item__unit">
-              {hasItemDiscount ? (
-                <>
-                  <span className="cart-item__unit-old">{formatPrice(item.price)}</span>{' '}
-                  <span className="cart-item__unit-new">
-                    {formatPrice(Math.round(finalLineTotal / item.quantity))}
-                  </span>{' '}
-                  each
-                </>
-              ) : (
-                `${formatPrice(item.price)} each`
-              )}
+              {formatPrice(pricing.unitPayable)} each
             </p>
           )}
         </div>
@@ -106,22 +87,14 @@ export function CartItem({ item, showLink = true, layout = 'drawer' }) {
           </div>
 
           <div className="cart-item__aside">
-            {hasItemDiscount ? (
-              <div className="cart-item__price-group">
-                <span className="cart-item__price-original">{formatPrice(lineTotal)}</span>
-                <p className="cart-item__price cart-item__price--discounted">
-                  {formatPrice(finalLineTotal)}
-                </p>
-                <span className="cart-item__coupon-tag">
-                  <Tag size={10} /> Saved {formatPrice(savings)}
-                </span>
-              </div>
+            {hasProductDiscount ? (
+              <CartLinePriceStack item={item} />
             ) : (
-              <p className="cart-item__price">{formatPrice(lineTotal)}</p>
+              <p className="cart-item__price">{formatPrice(pricing.linePayable)}</p>
             )}
             {item.quantity > 1 && (
               <p className="cart-item__qty-note">
-                {item.quantity} × {formatPrice(hasItemDiscount ? Math.round(finalLineTotal / item.quantity) : item.price)}
+                {item.quantity} × {formatPrice(pricing.unitPayable)}
               </p>
             )}
           </div>
@@ -130,4 +103,3 @@ export function CartItem({ item, showLink = true, layout = 'drawer' }) {
     </article>
   )
 }
-

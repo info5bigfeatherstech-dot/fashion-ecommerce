@@ -42,11 +42,14 @@ export function mapCartItem(raw) {
   const variantId = raw.variantId || raw.variant?._id || raw.variant?.id
   const variant = pickVariant(product, variantId)
   const attributes = asArray(variant?.attributes)
+  const isPromoActive = Boolean(
+    raw.price?.isPromoActive || variant?.price?.isPromoActive || variant?.isPromoActive
+  )
   const price = toNumber(
     raw.price?.current
-    ?? raw.price?.sale
     ?? variant?.finalPrice
     ?? variant?.price?.current
+    ?? (isPromoActive ? raw.price?.promo : raw.price?.sale)
     ?? product.price
   )
   const originalPrice = toNumber(
@@ -55,6 +58,13 @@ export function mapCartItem(raw) {
     ?? product.originalPrice
     ?? 0
   )
+  const catalogSale = isPromoActive
+    ? toNumber(raw.price?.sale ?? variant?.price?.sale ?? variant?.salePrice, NaN)
+    : NaN
+  const salePrice =
+    isPromoActive && Number.isFinite(catalogSale) && catalogSale > price && originalPrice > catalogSale
+      ? catalogSale
+      : null
   const productId = raw.productId || product._id || product.id
   const lineId = raw._id || raw.id || `${productId}-${variantId || 'default'}`
 
@@ -66,6 +76,8 @@ export function mapCartItem(raw) {
     name: product.name || product.title || 'Product',
     price,
     originalPrice: originalPrice > price ? originalPrice : null,
+    salePrice,
+    isPromoActive: Boolean(salePrice),
     image: variantImage(variant) || product.images?.[0]?.url || product.images?.[0] || null,
     productCode: product.productCode || variant?.productCode || variant?.product_code || null,
     size: attributeValue(attributes, SIZE_KEYS) || raw.size || null,
