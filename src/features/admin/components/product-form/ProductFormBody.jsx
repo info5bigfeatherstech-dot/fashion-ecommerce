@@ -2,10 +2,16 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import * as Dialog from '@radix-ui/react-dialog'
 import { Trash2, X } from 'lucide-react'
+import { toast } from 'sonner'
 import { ADMIN_PRODUCT_MARKETING_TAGS } from '@/features/admin/constants/productMarketingTags'
+import {
+  ON_SALE_PRICE_REQUIRED_MESSAGE,
+  formHasOnSalePriceOnAllVariants,
+} from '@/features/admin/utils/onSalePrice'
 import { useAdminProductCodePrefixSettings } from '@/features/admin/hooks'
 import VariantModal from './VariantModal'
-import { parseQuantityInput, quantityFieldValue, nextVariantProductCode, TAX_RATE_OPTIONS } from './utils'
+import { parseQuantityInput, quantityFieldValue, nextVariantProductCode, TAX_RATE_OPTIONS, MAX_VARIANT_IMAGES } from './utils'
+import { applyImagesToImageGroup } from '@/features/product/imageAxis'
 import {
   childTypeLabel,
   formatVariantAxisLabel,
@@ -427,6 +433,43 @@ export default function ProductFormBody({
     onToggleVariantActive?.(variant.realIndex)
   }
 
+  const groupImagesOf = (group) => {
+    for (const item of group?.items || []) {
+      const imgs = item.isPrimary
+        ? (formData.images?.length ? formData.images : item.raw?.images || item.images || [])
+        : (item.raw?.images || item.images || [])
+      if (imgs?.length) return imgs
+    }
+    return []
+  }
+
+  const handleGroupImageUpload = async (group, event) => {
+    const rawFiles = Array.from(event.target?.files || [])
+    if (!rawFiles.length) return
+    const current = groupImagesOf(group)
+    const remaining = MAX_VARIANT_IMAGES - current.length
+    if (remaining <= 0) return
+    const filesToLoad = rawFiles.slice(0, remaining)
+    const loaded = await Promise.all(filesToLoad.map((file, idx) => new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        resolve({
+          id: `gimg-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 7)}`,
+          url: reader.result,
+          file,
+          name: file.name,
+          isMain: false,
+        })
+      }
+      reader.readAsDataURL(file)
+    })))
+    const updated = [...current, ...loaded]
+    if (updated.length && !updated.some((img) => img.isMain)) updated[0] = { ...updated[0], isMain: true }
+    const sourceAttrs = group.items?.[0]?.attributes || [{ key: parentAxisKey, value: group.value }]
+    setFormData((p) => applyImagesToImageGroup(p, sourceAttrs, updated))
+    if (event.target) event.target.value = ''
+  }
+
   const handleVariantChevronClick = (variant) => {
     if (showVariantForm && editingVariantIndex === variant.realIndex) {
       onCloseVariantForm?.()
@@ -639,7 +682,11 @@ export default function ProductFormBody({
                       type="button"
                       aria-pressed={isOn}
                       title={tag.description}
-                      onClick={() =>
+                      onClick={() => {
+                        if (tag.id === 'on-sale' && !isOn && !formHasOnSalePriceOnAllVariants(formData)) {
+                          toast.error(ON_SALE_PRICE_REQUIRED_MESSAGE)
+                          return
+                        }
                         setFormData((p) => ({
                           ...p,
                           marketingTags: {
@@ -647,7 +694,7 @@ export default function ProductFormBody({
                             [tag.id]: !isOn,
                           },
                         }))
-                      }
+                      }}
                       className={`pf-toggle ${toggleClass}${isOn ? ' is-on' : ''}`}
                     >
                       <span className="pf-toggle__knob" />
@@ -1065,6 +1112,37 @@ export default function ProductFormBody({
                           </button>
                         ) : null}
                       </div>
+                      {group.value !== 'Other' ? (
+                        <div className="pf-variant-group__photos">
+                          <div className="pf-variant-group__photos-thumbs">
+                            {groupImagesOf(group).slice(0, 5).map((img, idx) => (
+                              <img
+                                key={img.id || img.url || idx}
+                                src={img.url}
+                                alt=""
+                                className="pf-variant-group__photo"
+                              />
+                            ))}
+                            {!groupImagesOf(group).length ? (
+                              <span className="pf-variant-group__photos-empty">No photos yet</span>
+                            ) : null}
+                          </div>
+                          <label className="pf-chip-btn pf-chip-btn--secondary text-xs cursor-pointer">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              className="sr-only"
+                              disabled={groupImagesOf(group).length >= MAX_VARIANT_IMAGES}
+                              onChange={(e) => handleGroupImageUpload(group, e)}
+                            />
+                            Add photos
+                          </label>
+                          <p className="pf-variant-group__photos-hint">
+                            One gallery for {isColorParent ? 'Color' : parentAxisKey} {group.value} — all sizes share these photos
+                          </p>
+                        </div>
+                      ) : null}
                       <div className="pf-variant-group__body">
                         {group.items.map((variant) => {
                           const typeLabel = childTypeLabel(variant.attributes, parentAxisKey)
@@ -1079,8 +1157,8 @@ export default function ProductFormBody({
                           })
 
                           const variantThumb = variant.isPrimary
-                            ? (formData.images?.[0]?.url || formData.variants?.[0]?.images?.[0]?.url || '')
-                            : (variant.raw?.images?.[0]?.url || '')
+                            ? (formData.images?.[0]?.url || formData.variants?.[0]?.images?.[0]?.url || groupImagesOf(group)[0]?.url || '')
+                            : (variant.raw?.images?.[0]?.url || groupImagesOf(group)[0]?.url || '')
 
                           return (
                             <div

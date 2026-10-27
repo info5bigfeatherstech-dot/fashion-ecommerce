@@ -6,7 +6,7 @@ export const ADMIN_PRODUCT_MARKETING_TAGS = [
     shortLabel: 'On Sale',
     bulkLabel: 'On Sale',
     description:
-      'Shows under the header On Sale badge (/shop/sale). Badge name is set in Settings → Header badges.',
+      'Shows under the header On Sale badge (/shop/sale). Add On-sale price on every variant first. Badge name is set in Settings → Header badges.',
   },
   {
     id: 'today-arrival',

@@ -176,6 +176,12 @@ function ProductDetailPage() {
     selectedVariant?.originalPrice > displayPrice
       ? selectedVariant.originalPrice
       : product?.originalPrice
+  const displayCompare =
+    selectedVariant?.isPromoActive && selectedVariant?.salePrice > displayPrice
+      ? selectedVariant.salePrice
+      : product?.isPromoActive && product?.salePrice > displayPrice
+        ? product.salePrice
+        : null
   const displayCode = selectedVariant?.productCode || product?.productCode
 
   const appliedCoupon = useAppliedCoupon()
@@ -705,6 +711,7 @@ function ProductDetailPage() {
           <PriceBlock
             price={displayPrice}
             originalPrice={displayOriginal}
+            comparePrice={displayCompare}
             couponDiscount={productCouponSavings}
             couponCode={appliedCoupon?.code}
             size="large"
@@ -898,6 +905,9 @@ function ProductDetailPage() {
             </>
           ) : (
             <>
+              {displayCompare ? (
+                <span className="pdp-sticky-bar__sale-label">Sale price</span>
+              ) : null}
               {formatPrice(displayPrice)}
               {displayOriginal && displayOriginal > displayPrice && (
                 <small>{formatPrice(displayOriginal)}</small>

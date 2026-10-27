@@ -4,6 +4,7 @@
  */
 
 import { isColorAttributeKey, normalizeHexColor } from '../../../product/colorSwatch.js'
+import { imageGroupToken, resolveImageAxisKey } from '../../../product/imageAxis.js'
 
 export const MAX_VARIATION_AXES = 3
 export const MAX_VARIATION_COMBINATIONS = 50
@@ -533,21 +534,18 @@ export function persistableImages(images = []) {
     }))
 }
 
-function colorValueOf(attrs) {
-  const hit = (Array.isArray(attrs) ? attrs : []).find((a) => isColorAttributeKey(a?.key) && String(a?.value || '').trim())
-  return hit ? String(hit.value).trim() : ''
-}
-
 export function copyImagesForCombo(comboAttrs, records, primaryImages = []) {
-  const color = colorValueOf(comboAttrs)
-  if (color) {
-    const sameColor = (records || []).find((rec) => {
-      const recColor = colorValueOf(rec.attributes)
-      return recColor && normalizeValue(recColor) === normalizeValue(color) && persistableImages(rec.images).length > 0
-    })
-    if (sameColor) return persistableImages(sameColor.images)
-  }
-  if (color) return []
+  const lists = [
+    ...(Array.isArray(records) ? records.map((rec) => rec?.attributes) : []),
+    comboAttrs,
+  ]
+  const axisKey = resolveImageAxisKey(lists)
+  const token = imageGroupToken(comboAttrs, axisKey)
+  const sameGroup = (records || []).find((rec) => {
+    return imageGroupToken(rec?.attributes, axisKey) === token && persistableImages(rec.images).length > 0
+  })
+  if (sameGroup) return persistableImages(sameGroup.images)
+  if (axisKey && token !== '__ungrouped__') return []
   return persistableImages(primaryImages)
 }
 
@@ -581,6 +579,7 @@ export function buildGeneratedVariantDraft({
     price: {
       base,
       sale,
+      onSale: template.price?.onSale ?? '',
       wholesaleBase: '',
       wholesaleSale: '',
     },
@@ -706,12 +705,8 @@ export function applyPlanToFormData({ formData, isEdit = false, plan }) {
  * Unequal child counts are expected (Red may have 3 types, Green 1).
  */
 export function resolveParentAxisKey(variantAttrLists = []) {
-  for (const attrs of variantAttrLists) {
-    const color = (Array.isArray(attrs) ? attrs : []).find(
-      (attr) => isColorAttributeKey(attr?.key) && String(attr?.value || '').trim()
-    )
-    if (color) return String(color.key).trim()
-  }
+  const imageAxis = resolveImageAxisKey(variantAttrLists)
+  if (imageAxis) return imageAxis
   for (const attrs of variantAttrLists) {
     const first = (Array.isArray(attrs) ? attrs : []).find(
       (attr) => String(attr?.key || '').trim() && String(attr?.value || '').trim()

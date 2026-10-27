@@ -10,6 +10,7 @@ import { BrandModal } from '@/features/admin/components/product-form/BrandModal'
 import { CategoryQuickModal } from '@/features/admin/components/product-form/CategoryQuickModal'
 import CustomMessageModal from '@/features/admin/components/product-form/CustomMessageModal'
 import { marketingTagsFromProductTags } from '@/features/admin/constants/productMarketingTags'
+import { readOnSalePriceValue } from '@/features/admin/utils/onSalePrice'
 import {
   emptyProductForm,
   formatIndianRupee,
@@ -465,6 +466,7 @@ export function AdminProductModal({
               ...p.price,
               base: variantForm.price?.base ?? p.price?.base,
               sale: variantForm.price?.sale ?? p.price?.sale,
+              onSale: variantForm.price?.onSale ?? p.price?.onSale,
             },
             inventory: {
               ...p.inventory,
@@ -575,6 +577,7 @@ export function AdminProductModal({
       price: {
         base: copiedPrice?.base ?? '',
         sale: copiedPrice?.sale ?? '',
+        onSale: copiedPrice?.onSale ?? '',
         wholesaleBase: '',
         wholesaleSale: '',
       },
@@ -626,9 +629,17 @@ export function AdminProductModal({
     const sourceAttrs = source?.attributes || []
     const hex = getAttrHex(sourceAttrs, parentKey) || group?.hex
     const copyPrice = source?.raw?.price
-      ? { base: source.raw.price.base ?? '', sale: source.raw.price.sale ?? '' }
+      ? {
+        base: source.raw.price.base ?? '',
+        sale: source.raw.price.sale ?? '',
+        onSale: readOnSalePriceValue(source.raw.price),
+      }
       : (source?.isPrimary
-        ? { base: formData.price?.base ?? '', sale: formData.price?.sale ?? '' }
+        ? {
+          base: formData.price?.base ?? '',
+          sale: formData.price?.sale ?? '',
+          onSale: readOnSalePriceValue(formData.price),
+        }
         : null)
     const copyImages = source?.raw?.images?.length
       ? source.raw.images
@@ -818,7 +829,7 @@ export function AdminProductModal({
       v = {
         ProductCode: currentForm.ProductCode || currentForm.productCode || '',
         attributes: primaryAttrs,
-        price: currentForm.price || { base: '', sale: '' },
+        price: currentForm.price || { base: '', sale: '', onSale: '' },
         inventory: currentForm.inventory || { quantity: '', lowStockThreshold: 0, trackInventory: true },
         images: primaryImages,
         isActive: currentForm.status !== 'inactive',
@@ -873,6 +884,7 @@ export function AdminProductModal({
       price: {
         base: v.price?.base ?? '',
         sale: v.price?.sale ?? '',
+        onSale: readOnSalePriceValue(v.price),
         wholesaleBase: v.price?.wholesaleBase ?? v.wholesaleBase ?? '',
         wholesaleSale: v.price?.wholesaleSale ?? v.wholesaleSale ?? '',
       },
@@ -974,6 +986,7 @@ export function AdminProductModal({
               ...p.price,
               base: variantToSave.price.base,
               sale: variantToSave.price.sale,
+              onSale: variantToSave.price.onSale ?? null,
             },
             inventory: {
               ...p.inventory,
@@ -1009,6 +1022,9 @@ export function AdminProductModal({
     const pricePayload = {
       base: parseFloat(variantToSave.price.base) || 0,
       sale: variantToSave.price.sale ? parseFloat(variantToSave.price.sale) : null,
+      promo: variantToSave.price.onSale != null && variantToSave.price.onSale !== ''
+        ? parseFloat(variantToSave.price.onSale)
+        : null,
       wholesaleBase: variantToSave.wholesale
         ? (parseFloat(variantToSave.price.wholesaleBase) || 0)
         : undefined,
@@ -1405,9 +1421,17 @@ export function AdminProductModal({
             throw new Error('Wholesale sale price must be less than wholesale base price')
           }
 
+          const rawOnSale = isEditingPrimaryOpen && variantForm.price?.onSale !== undefined
+            ? variantForm.price.onSale
+            : mainVariant.price?.onSale
+          const onSale =
+            rawOnSale !== '' && rawOnSale != null
+              ? parseFloat(rawOnSale)
+              : null
           const pricePayload = {
             base,
             sale: Number.isFinite(sale) ? sale : null,
+            promo: Number.isFinite(onSale) ? onSale : null,
             ...(wholesaleResolved.wholesale
               ? {
                 wholesaleBase: wholesaleResolved.wholesaleBase,
@@ -1467,6 +1491,7 @@ export function AdminProductModal({
       payloadForm.price = {
         base: payloadForm.variants[0].price.base,
         sale: payloadForm.variants[0].price.sale,
+        onSale: payloadForm.variants[0].price.onSale,
       }
     }
     if (!payloadForm.ProductCode && payloadForm.variants?.[0]?.ProductCode) {

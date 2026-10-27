@@ -15,6 +15,20 @@ import {
   unwrapAdmin,
 } from './client'
 import { normalizeHexColor } from '@/features/product/colorSwatch'
+import { imageGroupToken, resolveImageAxisKey } from '@/features/product/imageAxis'
+
+function isFirstOfImageGroup(variants, index, extraAttrLists = []) {
+  const list = Array.isArray(variants) ? variants : []
+  const axis = resolveImageAxisKey([
+    ...extraAttrLists,
+    ...list.map((v) => v?.attributes),
+  ])
+  const token = imageGroupToken(list[index]?.attributes, axis)
+  for (let i = 0; i < index; i += 1) {
+    if (imageGroupToken(list[i]?.attributes, axis) === token) return false
+  }
+  return true
+}
 
 /** Persist optional swatch hex with variant color attributes. */
 function sanitizeAdminAttributes(list) {
@@ -487,6 +501,22 @@ function buildPriceObj(price, label = 'Base price') {
   const saleRaw = toNum(price?.sale)
   const sale = price?.sale !== '' && price?.sale != null && saleRaw !== undefined ? saleRaw : null
   const priceObj = { base, sale }
+  const onSaleRaw = price?.onSale ?? price?.onSalePrice ?? price?.promo
+  if (onSaleRaw !== undefined && onSaleRaw !== '' && onSaleRaw != null) {
+    const onSale = toNum(onSaleRaw)
+    if (onSale === undefined || onSale <= 0) {
+      throw new Error('On-sale price must be a positive number')
+    }
+    if (onSale >= base) {
+      throw new Error('On-sale price must be less than base price')
+    }
+    if (sale == null || onSale >= sale) {
+      throw new Error('On-sale price must be less than sale price. Fill sale price first.')
+    }
+    priceObj.promo = onSale
+  } else if (onSaleRaw === '' || onSaleRaw === null) {
+    priceObj.promo = null
+  }
 
   // wholesaleBase / wholesaleSale must live inside price (backend contract)
   if (price?.wholesaleBase !== undefined && price?.wholesaleBase !== '') {
@@ -570,6 +600,7 @@ export function buildCreateProductFormData(productData) {
   const priceData = {
     base: productData.price?.base,
     sale: productData.price?.sale,
+    onSale: productData.price?.onSale ?? productData.price?.promo,
   }
   if (productData.wholesale) {
     priceData.wholesaleBase = productData.wholesaleBase
@@ -581,7 +612,11 @@ export function buildCreateProductFormData(productData) {
   const normalizedVariantCodes = []
   for (let i = 0; i < (productData.variants || []).length; i++) {
     const v = productData.variants[i]
-    const variantPriceData = { base: v.price?.base, sale: v.price?.sale }
+    const variantPriceData = {
+      base: v.price?.base,
+      sale: v.price?.sale,
+      onSale: v.price?.onSale ?? v.price?.promo,
+    }
     if (v.wholesale) {
       variantPriceData.wholesaleBase = v.wholesaleBase ?? v.price?.wholesaleBase
       variantPriceData.wholesaleSale = v.wholesaleSale ?? v.price?.wholesaleSale
@@ -648,6 +683,7 @@ export function buildCreateProductFormData(productData) {
   fd.append('variants', JSON.stringify([primaryVariant, ...extraVariants]))
   productImageFiles.forEach((img) => fd.append('variantImages_0', img.file))
   ;(productData.variants || []).forEach((variant, vIdx) => {
+    if (!isFirstOfImageGroup(productData.variants, vIdx, [productData.attributes])) return
     const realIndex = vIdx + 1
     ;(variant.images || []).forEach((img) => {
       if (img?.file instanceof File) fd.append(`variantImages_${realIndex}`, img.file)

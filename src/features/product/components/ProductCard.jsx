@@ -173,6 +173,8 @@ export function ProductCard({ product, compact = false }) {
       .reduce((sum, item) => sum + (item.quantity || 0), 0)
   }, [isAuthenticated, cartItems, productId])
 
+  const comparePrice =
+    product.isPromoActive && product.salePrice > product.price ? product.salePrice : null
   const discount = formatDiscount(product.originalPrice, product.price)
   const ratingDisplay = useMemo(() => getProductRatingDisplay(product), [product])
   const colorSwatches = useMemo(() => getCardColorSwatches(product), [product])
@@ -381,15 +383,33 @@ export function ProductCard({ product, compact = false }) {
             ) : null}
           </div>
         ) : null}
-        <div className="product-card__price-row">
-          <span className="product-card__price">{formatPrice(product.price)}</span>
-          {product.originalPrice && (
-            <span className="product-card__original">{formatPrice(product.originalPrice)}</span>
-          )}
-          {discount && (
-            <span className="product-card__discount">{discount}%</span>
-          )}
-        </div>
+        {comparePrice ? (
+          <div className="product-card__price-stack">
+            <div className="product-card__price-row">
+              <span className="product-card__price product-card__price--struck">{formatPrice(comparePrice)}</span>
+              {product.originalPrice ? (
+                <span className="product-card__original">{formatPrice(product.originalPrice)}</span>
+              ) : null}
+              {discount ? (
+                <span className="product-card__discount">{discount}%</span>
+              ) : null}
+            </div>
+            <div className="product-card__price-row product-card__price-row--promo">
+              <span className="product-card__sale-label">Sale price</span>
+              <span className="product-card__price">{formatPrice(product.price)}</span>
+            </div>
+          </div>
+        ) : (
+          <div className="product-card__price-row">
+            <span className="product-card__price">{formatPrice(product.price)}</span>
+            {product.originalPrice && (
+              <span className="product-card__original">{formatPrice(product.originalPrice)}</span>
+            )}
+            {discount && (
+              <span className="product-card__discount">{discount}%</span>
+            )}
+          </div>
+        )}
         {showQuickAdd && (
           <div className="product-card__footer">
             <div

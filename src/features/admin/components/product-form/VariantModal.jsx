@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import VariantCatalogFieldsSection from './VariantCatalogFieldsSection'
 import { emptyVariantShippingForm } from '@/lib/variantCatalogForm'
 import { parseQuantityInput, quantityFieldValue, MAX_VARIANT_IMAGES, SUFFIXED_PRODUCT_CODE_REGEX } from './utils'
+import { applyImagesToImageGroup, collectVariantAttrLists, imageGroupToken, resolveImageAxisKey } from '@/features/product/imageAxis'
 import {
   isColorAttributeKey,
   isPlatingAttributeKey,
@@ -14,6 +15,11 @@ import {
   UNKNOWN_SWATCH_HEX,
   resolveSwatchBackground,
 } from '@/features/product/colorSwatch'
+import {
+  ON_SALE_PRICE_HINT,
+  ON_SALE_PRICE_LABEL,
+  assertOnSalePrice,
+} from '@/features/admin/utils/onSalePrice'
 
 export const TAX_RATE_OPTIONS = [
   { value: 0, label: '0% (Nil Rated)' },
@@ -29,7 +35,7 @@ export const defaultVariant = {
     { key: 'Color', value: '', hex: '' },
     { key: 'Plating', value: '', hex: '' },
   ],
-  price: { base: '', sale: '', wholesaleBase: '', wholesaleSale: '' },
+  price: { base: '', sale: '', onSale: '', wholesaleBase: '', wholesaleSale: '' },
   inventory: { quantity: '', lowStockThreshold: 0, trackInventory: true },
   images: [],
   isActive: true,
@@ -172,19 +178,7 @@ const VariantModal = ({
 
   const syncImagesToParentForm = (nextImages) => {
     if (!setFormData) return;
-    setFormData((p) => {
-      const variants = [...(p?.variants || [])];
-      if (isPrimary) {
-        if (variants[0]) {
-          variants[0] = { ...variants[0], images: nextImages };
-        }
-        return { ...p, images: nextImages, variants };
-      } else if (typeof editingVariantIndex === 'number' && variants[editingVariantIndex]) {
-        variants[editingVariantIndex] = { ...variants[editingVariantIndex], images: nextImages };
-        return { ...p, variants };
-      }
-      return p;
-    });
+    setFormData((p) => applyImagesToImageGroup(p, variantForm?.attributes || p?.attributes, nextImages));
   };
 
   const handleVariantImageUpload = async (e) => {
@@ -355,6 +349,15 @@ const VariantModal = ({
       return;
     }
 
+    let onSale = null;
+    try {
+      onSale = assertOnSalePrice(base, sale, variantForm.price.onSale);
+    } catch (onSaleErr) {
+      setActiveTab('basic');
+      toast.error(onSaleErr.message);
+      return;
+    }
+
     if (variantForm.wholesale) {
       const wholesaleBase = parseFloat(variantForm.price.wholesaleBase) || 0;
       if (wholesaleBase <= 0) {
@@ -410,6 +413,7 @@ const VariantModal = ({
       price: {
         base: base,
         sale: sale,
+        onSale,
         wholesaleBase: variantForm.wholesale ? (parseFloat(variantForm.price.wholesaleBase) || 0) : undefined,
         wholesaleSale: variantForm.wholesale ? (variantForm.price.wholesaleSale ? parseFloat(variantForm.price.wholesaleSale) : null) : undefined,
       },
@@ -584,7 +588,7 @@ const VariantModal = ({
                 <p className="pf-variant-hint">Set variant retail price and available stock</p>
               </div>
 
-              <div className="pf-variant-grid">
+              <div className="pf-variant-grid pf-variant-grid--3">
                 <div className="pf-variant-field">
                   <label>Base Price (₹) <span className="pf-req">*</span></label>
                   <input
@@ -617,15 +621,46 @@ const VariantModal = ({
                     placeholder="19999"
                   />
                 </div>
+                <div className="pf-variant-field">
+                  <label>{ON_SALE_PRICE_LABEL} (₹)</label>
+                  <input
+                    type="number"
+                    value={variantForm.price.onSale ?? ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setVariantForm((prev) => ({ ...prev, price: { ...prev.price, onSale: val } }));
+                      if (editingVariantIndex === 'primary' || editingVariantIndex === -1 || (isEditMode && editingVariantIndex === 0)) {
+                        setFormData?.((prev) => ({ ...prev, price: { ...prev.price, onSale: val } }));
+                      }
+                    }}
+                    className="pf-variant-input"
+                    placeholder="80"
+                  />
+                  <p className="pf-variant-hint">{ON_SALE_PRICE_HINT}</p>
+                </div>
               </div>
               {variantForm.price.base && variantForm.price.sale && (
-                <div className="mt-2.5 p-2.5 bg-blue-50 rounded-lg flex items-center gap-3">
+                <div className="mt-2.5 p-2.5 bg-blue-50 rounded-lg flex items-center gap-3 flex-wrap">
                   <span className="text-gray-400 line-through text-xs font-mono">₹{variantForm.price.base}</span>
-                  <span className="text-sm font-bold text-gray-900 font-mono">₹{variantForm.price.sale}</span>
-                  {Number(variantForm.price.sale) < Number(variantForm.price.base) && (
-                    <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
-                      {Math.round(((Number(variantForm.price.base) - Number(variantForm.price.sale)) / Number(variantForm.price.base)) * 100)}% OFF
-                    </span>
+                  {variantForm.price.onSale !== '' && variantForm.price.onSale != null ? (
+                    <>
+                      <span className="text-gray-500 line-through text-xs font-mono">₹{variantForm.price.sale}</span>
+                      <span className="text-sm font-bold text-gray-900 font-mono">₹{variantForm.price.onSale}</span>
+                      {Number(variantForm.price.onSale) < Number(variantForm.price.base) && (
+                        <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                          {Math.round(((Number(variantForm.price.base) - Number(variantForm.price.onSale)) / Number(variantForm.price.base)) * 100)}% OFF
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-sm font-bold text-gray-900 font-mono">₹{variantForm.price.sale}</span>
+                      {Number(variantForm.price.sale) < Number(variantForm.price.base) && (
+                        <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                          {Math.round(((Number(variantForm.price.base) - Number(variantForm.price.sale)) / Number(variantForm.price.base)) * 100)}% OFF
+                        </span>
+                      )}
+                    </>
                   )}
                 </div>
               )}
@@ -723,8 +758,24 @@ const VariantModal = ({
             <div className="pf-variant-section">
             <div className="flex items-center justify-between mb-2">
               <div>
-                <label className="pf-variant-label mb-0">Variant Photos (up to {MAX_VARIANT_IMAGES})</label>
-                <p className="text-xs text-gray-500 mt-0.5">Photos specific to this option. The primary photo is shown when selected.</p>
+                <label className="pf-variant-label mb-0">Look photos (up to {MAX_VARIANT_IMAGES})</label>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {(() => {
+                    const lists = collectVariantAttrLists(formData)
+                    const axis = resolveImageAxisKey(lists)
+                    const token = imageGroupToken(variantForm?.attributes, axis)
+                    const siblingCount = (formData?.variants || []).filter(
+                      (v) => imageGroupToken(v?.attributes, axis) === token
+                    ).length
+                    const lookValue = axis
+                      ? (variantForm?.attributes || []).find((a) => String(a?.key || '').toLowerCase() === String(axis).toLowerCase())?.value
+                      : ''
+                    if (siblingCount > 1 && lookValue) {
+                      return `These photos apply to every ${axis} ${lookValue} size. Upload once — not per size.`
+                    }
+                    return 'Upload once for this look. Size / capacity rows share the same photos.'
+                  })()}
+                </p>
               </div>
               <span className="text-xs text-gray-500 font-semibold bg-gray-100 px-2 py-1 rounded">
                 {variantForm.images.length}/{MAX_VARIANT_IMAGES} photos

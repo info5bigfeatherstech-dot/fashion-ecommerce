@@ -1029,8 +1029,18 @@ export default function AdminProductsPage() {
     setValue(newValue)
 
     try {
-      await bulkFlags.mutateAsync({ slugs, flagType: normalizedFlag, value: newValue })
-      toast.success('Products updated successfully')
+      const result = await bulkFlags.mutateAsync({ slugs, flagType: normalizedFlag, value: newValue })
+      const skipped = Array.isArray(result?.skipped) ? result.skipped : []
+      if (skipped.length) {
+        const sample = skipped.slice(0, 3).map((row) => row.slug).filter(Boolean).join(', ')
+        toast.error(
+          result?.message ||
+            `${skipped.length} product(s) skipped — add On-sale price first${sample ? `: ${sample}` : ''}`
+        )
+        if (result?.updatedCount) toast.success(`${result.updatedCount} product(s) updated`)
+      } else {
+        toast.success('Products updated successfully')
+      }
       setTimeout(() => setSelectedSlugs(new Set()), 400)
       listRefetch()
     } catch (err) {

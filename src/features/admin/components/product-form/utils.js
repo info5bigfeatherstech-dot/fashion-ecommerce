@@ -7,6 +7,12 @@ import {
   inferVariationOptions,
   mergeInferredOptions,
 } from './variationCombinations'
+import {
+  ON_SALE_PRICE_REQUIRED_MESSAGE,
+  assertOnSalePrice,
+  formHasOnSalePriceOnAllVariants,
+  readOnSalePriceValue,
+} from '@/features/admin/utils/onSalePrice'
 
 export const MAX_VARIANT_IMAGES = 10
 
@@ -153,7 +159,7 @@ export function emptyProductForm() {
     brand: 'Generic',
     category: '',
     ProductCode: '',
-    price: { base: '', sale: '' },
+    price: { base: '', sale: '', onSale: '' },
     // quantity '' = empty UI; API normalize → 0 if left blank
     inventory: { quantity: '', lowStockThreshold: 0, trackInventory: true },
     images: [],
@@ -219,6 +225,7 @@ export function normaliseVariantsForEdit(variants = []) {
     price: {
       base: v.price?.base ?? '',
       sale: v.price?.sale ?? '',
+      onSale: readOnSalePriceValue(v.price),
       wholesaleBase: v.price?.wholesaleBase ?? '',
       wholesaleSale: v.price?.wholesaleSale ?? '',
     },
@@ -334,6 +341,7 @@ export function productToEditForm(product) {
     price: {
       base: main.price?.base ?? '',
       sale: main.price?.sale ?? '',
+      onSale: readOnSalePriceValue(main.price),
     },
     inventory: {
       quantity: main.inventory?.quantity ?? 0,
@@ -368,6 +376,7 @@ export function validateCreateProductForm(formData) {
   if (!formData.price?.base || Number.isNaN(Number(formData.price.base))) {
     throw new Error('Main variant base price is required')
   }
+  assertOnSalePrice(formData.price?.base, formData.price?.sale, formData.price?.onSale)
 
   for (let i = 0; i < (formData.variants || []).length; i++) {
     let bc = String(formData.variants[i].ProductCode ?? '').trim()
@@ -384,6 +393,19 @@ export function validateCreateProductForm(formData) {
     if (!formData.variants[i].price?.base || Number.isNaN(Number(formData.variants[i].price.base))) {
       throw new Error(`Variant ${i + 1}: base price is required`)
     }
+    try {
+      assertOnSalePrice(
+        formData.variants[i].price?.base,
+        formData.variants[i].price?.sale,
+        formData.variants[i].price?.onSale
+      )
+    } catch (onSaleErr) {
+      throw new Error(`Variant ${i + 1}: ${onSaleErr.message}`)
+    }
+  }
+
+  if (formData.marketingTags?.['on-sale'] && !formHasOnSalePriceOnAllVariants(formData)) {
+    throw new Error(ON_SALE_PRICE_REQUIRED_MESSAGE)
   }
 
   const allBarcodes = [bc0, ...(formData.variants || []).map((v) => String(v.ProductCode).trim())]

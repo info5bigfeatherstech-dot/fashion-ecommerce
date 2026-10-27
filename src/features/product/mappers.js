@@ -1,4 +1,5 @@
 import { normalizeHexColor, COLOR_KEY_RE } from '@/features/product/colorSwatch'
+import { imagesForImageGroup } from '@/features/product/imageAxis'
 
 const SIZE_KEYS = /size|capacity|fit/i
 const COLOR_KEYS = COLOR_KEY_RE
@@ -178,22 +179,42 @@ function deriveBadge(dto) {
   return null
 }
 
+function mapPromoFields(variant) {
+  const payable = toNumber(variant?.finalPrice ?? variant?.price?.current)
+  const originalPrice = toNumber(variant?.price?.base)
+  const catalogSale = toNumber(variant?.price?.sale, NaN)
+  const isPromoActive = Boolean(variant?.isPromoActive || variant?.price?.isPromoActive)
+  const salePrice =
+    isPromoActive && Number.isFinite(catalogSale) && catalogSale > payable
+      ? catalogSale
+      : null
+  return {
+    price: payable,
+    originalPrice,
+    salePrice,
+    isPromoActive: Boolean(isPromoActive && salePrice != null),
+  }
+}
+
 function mapVariant(variant, fallbackImages = []) {
   if (!variant) return null
 
   const quantity = toNumber(variant.availability?.quantity ?? variant.inventory?.quantity)
   const variantImages = asArray(variant.images).map((image) => image.url).filter(Boolean)
+  const promoFields = mapPromoFields(variant)
 
   return {
     id: variant.id || variant._id,
     sku: variant.sku,
     productCode: variant.productCode || variant.product_code || null,
     title: variant.title || null,
-    price: toNumber(variant.finalPrice ?? variant.price?.current),
-    originalPrice: toNumber(variant.price?.base),
+    price: promoFields.price,
+    originalPrice: promoFields.originalPrice,
+    salePrice: promoFields.salePrice,
+    isPromoActive: promoFields.isPromoActive,
     inStock: resolveVariantInStock(variant),
     quantity,
-    images: variantImages.length > 0 ? variantImages : fallbackImages,
+    images: variantImages.length > 0 ? variantImages : [],
     gstRate: variant.gstRate ?? variant.taxRate ?? null,
     taxRate: variant.taxRate ?? variant.gstRate ?? null,
     hsnCode: variant.hsnCode || null,
@@ -216,6 +237,7 @@ export function mapProduct(dto) {
   const primaryVariant = pickPrimaryVariant(variants)
   const images = collectImages(dto, variants)
   const mappedVariants = variants.map((v) => mapVariant(v, images)).filter(Boolean)
+  const primaryPromo = mapPromoFields(primaryVariant || {})
   const price = toNumber(
     primaryVariant?.finalPrice ??
     primaryVariant?.price?.current ??
@@ -225,6 +247,8 @@ export function mapProduct(dto) {
     primaryVariant?.price?.base ??
     dto.maxPrice
   )
+  const salePrice = primaryPromo.salePrice
+  const isPromoActive = primaryPromo.isPromoActive
   const categorySlug = dto.category?.slug || 'uncategorized'
   const categoryName = dto.category?.name || ''
 
@@ -247,6 +271,8 @@ export function mapProduct(dto) {
     subcategory: null,
     price,
     originalPrice: originalPrice > price ? originalPrice : null,
+    salePrice,
+    isPromoActive,
     badge: deriveBadge(dto),
     tags: asArray(dto.appliedTags),
     isTodayDeal:
@@ -449,27 +475,20 @@ export function resolveVariant(product, { size, color, variantId, attrs } = {}) 
   return fallback()
 }
 
-/** Gallery URLs for the active selection — never mix other colors' images. */
+/** Gallery URLs for the active selection — share within the image group, never mix other looks. */
 export function resolveDisplayImages(product, selectedVariant, selectedAttrs = {}) {
-  if (selectedVariant?.images?.length) return selectedVariant.images
-
-  const colorGroup = asArray(product?.optionGroups).find((g) => g.isColor)
-  const selectedColor = colorGroup ? selectedAttrs[colorGroup.key] : null
-  if (selectedColor) {
-    const sameColor = asArray(product?.variants).find((variant) => {
-      const hasColor = asArray(variant.attributes).some(
-        (a) => COLOR_KEYS.test(a.key) && attrValueEquals(a.value, selectedColor)
-      )
-      return hasColor && asArray(variant.images).length > 0
-    })
-    if (sameColor?.images?.length) return sameColor.images
-  }
-
-  // Fall back to product-level gallery or image if variant does not specify images
-  const productImages = asArray(product?.images).filter(Boolean)
-  if (productImages.length > 0) return productImages
+  const groupImages = imagesForImageGroup({
+    variants: asArray(product?.variants),
+    attrs: selectedVariant?.attributes || [],
+    selectedAttrs,
+    productImages: asArray(product?.images),
+    currentImages: selectedVariant?.images,
+  })
+  const urls = asArray(groupImages)
+    .map((img) => (typeof img === 'string' ? img : img?.url))
+    .filter(Boolean)
+  if (urls.length) return urls
   if (product?.image) return [product.image]
-
   return []
 }
 
