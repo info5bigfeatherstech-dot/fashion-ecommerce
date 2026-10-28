@@ -140,7 +140,7 @@ export function CartDrawer() {
         <CheckoutAddressModal
           open={checkoutAddressOpen}
           onOpenChange={setCheckoutAddressOpen}
-          onProceed={() => navigate('/checkout')}
+          onProceed={() => navigate('/checkout', { flushSync: true })}
         />
       )}
     </>

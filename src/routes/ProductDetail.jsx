@@ -439,7 +439,7 @@ function ProductDetailPage() {
       })
       if (ok === false) return
     }
-    navigate('/checkout')
+    navigate('/checkout', { flushSync: true })
   }
 
 

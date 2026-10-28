@@ -172,7 +172,7 @@ export default function Cart() {
         <CheckoutAddressModal
           open={checkoutAddressOpen}
           onOpenChange={setCheckoutAddressOpen}
-          onProceed={() => navigate('/checkout')}
+          onProceed={() => navigate('/checkout', { flushSync: true })}
         />
       )}
     </div>
