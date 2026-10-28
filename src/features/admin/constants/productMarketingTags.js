@@ -46,6 +46,13 @@ export const ADMIN_PRODUCT_MARKETING_TAGS = [
 
 export const ADMIN_PRODUCT_MARKETING_TAG_IDS = ADMIN_PRODUCT_MARKETING_TAGS.map((t) => t.id)
 
+/** Product-list chips + filter tabs: header badges only (On Sale, Festive). */
+export const ADMIN_PRODUCT_LIST_CHIP_IDS = ['on-sale', 'festive-offer']
+
+export const ADMIN_PRODUCT_LIST_CHIPS = ADMIN_PRODUCT_MARKETING_TAGS.filter((tag) =>
+  ADMIN_PRODUCT_LIST_CHIP_IDS.includes(tag.id)
+)
+
 export function emptyMarketingTagsState() {
   return Object.fromEntries(ADMIN_PRODUCT_MARKETING_TAG_IDS.map((id) => [id, false]))
 }

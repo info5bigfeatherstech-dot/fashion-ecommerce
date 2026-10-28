@@ -28,7 +28,10 @@ import { AdminConfirmDialog } from '@/features/admin/components/AdminConfirmDial
 import { AdminProductModal } from '@/features/admin/components/AdminProductModal'
 import { AdminProductStatsBar } from '@/features/admin/components/AdminProductStatsBar'
 import { CategoryQuickModal } from '@/features/admin/components/product-form/CategoryQuickModal'
-import { ADMIN_PRODUCT_MARKETING_TAGS } from '@/features/admin/constants/productMarketingTags'
+import {
+  ADMIN_PRODUCT_LIST_CHIPS,
+  ADMIN_PRODUCT_MARKETING_TAGS,
+} from '@/features/admin/constants/productMarketingTags'
 import {
   ON_SALE_PRICE_REQUIRED_MESSAGE,
   onSaleBulkWarningText,
@@ -767,6 +770,13 @@ export default function AdminProductsPage() {
     return () => clearTimeout(timer)
   }, [searchInput])
 
+  useEffect(() => {
+    if (tagFilter && !ADMIN_PRODUCT_MARKETING_TAGS.some((tag) => tag.id === tagFilter)) {
+      setTagFilter('')
+      setPage(1)
+    }
+  }, [tagFilter])
+
   const { data, isLoading, isFetching, isError, error, refetch } = useAdminProductsAll({
     page,
     search,
@@ -919,7 +929,8 @@ export default function AdminProductsPage() {
 
   const applyTagFilter = (nextTag) => {
     const normalized = String(nextTag || '').trim()
-    setTagFilter(normalized)
+    const allowed = ADMIN_PRODUCT_MARKETING_TAGS.some((tag) => tag.id === normalized)
+    setTagFilter(allowed ? normalized : '')
     setPage(1)
     setShowLowStockOnly(false)
     setSelectedSlugs(new Set())
@@ -1455,7 +1466,7 @@ export default function AdminProductsPage() {
                             ) : null}
                             {Array.isArray(product.tags) && product.tags.length > 0 ? (
                               <span className="admin-product-tags">
-                                {ADMIN_PRODUCT_MARKETING_TAGS.filter((tag) => product.tags.includes(tag.id)).map((tag) => (
+                                {ADMIN_PRODUCT_LIST_CHIPS.filter((tag) => product.tags.includes(tag.id)).map((tag) => (
                                   <span
                                     key={tag.id}
                                     className={`admin-product-tags__chip ${tag.chipClass || ''}`.trim()}
