@@ -1,5 +1,5 @@
-import { normalizeHexColor, COLOR_KEY_RE } from '@/features/product/colorSwatch'
-import { imagesForImageGroup } from '@/features/product/imageAxis'
+import { normalizeHexColor, COLOR_KEY_RE } from './colorSwatch.js'
+import { imagesForImageGroup } from './imageAxis.js'
 
 const SIZE_KEYS = /size|capacity|fit/i
 const COLOR_KEYS = COLOR_KEY_RE
@@ -349,24 +349,24 @@ function scoreVariantAgainstAttrs(variant, entries) {
 }
 
 /**
- * Whether any in-stock variant can satisfy this attribute value
- * together with the rest of the current selection.
+ * Whether this attribute value exists on any in-stock variant.
+ *
+ * Independent of other selected axes so paired SKUs (red + silver vs maroon + rose gold)
+ * do not slash the unselected color/plating as unavailable. A swatch is OOS only when
+ * no in-stock variant carries that value.
+ *
+ * `selectedAttrs` is unused; kept so PDP call sites stay positional-stable.
  */
-export function isAttrValueInStock(product, selectedAttrs = {}, key, value) {
+export function isAttrValueInStock(product, _selectedAttrs = {}, key, value) {
   const variants = asArray(product?.variants)
   if (!variants.length || key == null || value == null) return false
-
-  const trial = { ...(selectedAttrs || {}), [key]: value }
-  const entries = Object.entries(trial).filter(([, v]) => v != null && String(v).trim() !== '')
+  if (String(value).trim() === '') return false
 
   return variants.some((variant) => {
     if (!variant?.inStock) return false
-    const hasValue = asArray(variant.attributes).some(
+    return asArray(variant.attributes).some(
       (a) => attrKeyEquals(a.key, key) && attrValueEquals(a.value, value)
     )
-    if (!hasValue) return false
-    const { ok, score } = scoreVariantAgainstAttrs(variant, entries)
-    return ok && score > 0
   })
 }
 

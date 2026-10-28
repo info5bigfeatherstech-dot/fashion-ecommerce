@@ -16,7 +16,7 @@ export const adminKeys = {
   ],
   orderDetail: (orderId) => [...adminKeys.all, 'order', String(orderId || '')],
   orderTracking: (orderId) => [...adminKeys.all, 'order-tracking', String(orderId || '')],
-  productsAll: (page, search, limit = 50, status = '', category = '') => [
+  productsAll: (page, search, limit = 50, status = '', category = '', tags = '') => [
     ...adminKeys.all,
     'products-all',
     page,
@@ -24,6 +24,7 @@ export const adminKeys = {
     limit,
     status || '',
     category || '',
+    tags || '',
   ],
   productsActive: () => [...adminKeys.all, 'products-active'],
   productsLowStock: () => [...adminKeys.all, 'products-low-stock'],

@@ -5,6 +5,7 @@ export const ADMIN_PRODUCT_MARKETING_TAGS = [
     label: 'On Sale',
     shortLabel: 'On Sale',
     bulkLabel: 'On Sale',
+    chipClass: 'admin-product-tags__chip--on-sale',
     description:
       'Shows under the header On Sale badge (/shop/sale). Add On-sale price on every variant first. Badge name is set in Settings → Header badges.',
   },
@@ -13,6 +14,7 @@ export const ADMIN_PRODUCT_MARKETING_TAGS = [
     label: "Today's Deal",
     shortLabel: 'Today Deal',
     bulkLabel: "Today's Deal",
+    chipClass: 'admin-product-tags__chip--today-arrival',
     description: 'Shows in the homepage Today’s Deal section.',
   },
   {
@@ -20,6 +22,7 @@ export const ADMIN_PRODUCT_MARKETING_TAGS = [
     label: 'Jewellery Spotted',
     shortLabel: 'Spotted',
     bulkLabel: 'Jewellery Spotted',
+    chipClass: 'admin-product-tags__chip--jewellery-spotted',
     description: 'Shows in the Jewellery Spotted homepage gallery.',
   },
   {
@@ -27,6 +30,7 @@ export const ADMIN_PRODUCT_MARKETING_TAGS = [
     label: 'Bestselling Jewelry',
     shortLabel: 'Bestseller',
     bulkLabel: 'Bestselling Jewelry',
+    chipClass: 'admin-product-tags__chip--bestselling-jewelry',
     description: 'Shows in the Bestselling Jewelry homepage carousel.',
   },
   {
@@ -34,6 +38,7 @@ export const ADMIN_PRODUCT_MARKETING_TAGS = [
     label: 'Festive offer',
     shortLabel: 'Festive',
     bulkLabel: 'Festive offer',
+    chipClass: 'admin-product-tags__chip--festive-offer',
     description:
       'Shows under the header Festive offer badge (/shop/festive). Badge name is set in Settings → Header badges.',
   },

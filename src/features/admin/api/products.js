@@ -83,11 +83,13 @@ function rethrowBulkImportError(err) {
   })
 }
 
-export async function getAdminProductsAll({ signal, page = 1, limit = 50, search = '', status = '', category = '' } = {}) {
+export async function getAdminProductsAll({ signal, page = 1, limit = 50, search = '', status = '', category = '', tags = '' } = {}) {
   const params = { page, limit }
   if (String(search || '').trim()) params.search = String(search).trim()
   if (String(status || '').trim() && status !== 'all') params.status = String(status).trim()
   if (String(category || '').trim() && category !== 'all') params.category = String(category).trim()
+  const tag = String(tags || '').trim().replace(/_/g, '-')
+  if (tag) params.tags = tag
   const payload = await adminGet(API_ENDPOINTS.admin.productsAll, { signal, params })
   return payload
 }

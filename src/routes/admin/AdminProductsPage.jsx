@@ -30,6 +30,11 @@ import { AdminProductStatsBar } from '@/features/admin/components/AdminProductSt
 import { CategoryQuickModal } from '@/features/admin/components/product-form/CategoryQuickModal'
 import { ADMIN_PRODUCT_MARKETING_TAGS } from '@/features/admin/constants/productMarketingTags'
 import {
+  ON_SALE_PRICE_REQUIRED_MESSAGE,
+  onSaleBulkWarningText,
+  splitSelectedOnSaleEligibility,
+} from '@/features/admin/utils/onSalePrice'
+import {
   useAdminCategories,
   useAdminProductsAll,
   useAdminProductsLowStock,
@@ -696,36 +701,6 @@ export function ProductViewModal({ open, onOpenChange, product }) {
   )
 }
 
-function BulkFlagToggle({ label, checked, indeterminate, loading, onChange }) {
-  const checkboxRef = useRef(null)
-
-  useEffect(() => {
-    if (checkboxRef.current) {
-      checkboxRef.current.indeterminate = indeterminate
-    }
-  }, [indeterminate])
-
-  const className = [
-    'admin-bulk-flag',
-    checked ? 'is-checked' : '',
-    indeterminate ? 'is-indeterminate' : '',
-    loading ? 'is-disabled' : '',
-  ].filter(Boolean).join(' ')
-
-  return (
-    <label className={className}>
-      <input
-        ref={checkboxRef}
-        type="checkbox"
-        checked={checked}
-        onChange={onChange}
-        disabled={loading}
-      />
-      <span>{label}</span>
-    </label>
-  )
-}
-
 function BulkChannelDropdown({ label, tone, open, onToggle, disabled, children }) {
   const wrapRef = useRef(null)
 
@@ -777,19 +752,12 @@ export default function AdminProductsPage() {
   const [dateFilter, setDateFilter] = useState('all')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-  const [todayArrival, setTodayArrival] = useState(false)
-  const [jewellerySpotted, setJewellerySpotted] = useState(false)
-  const [bestsellingJewelry, setBestsellingJewelry] = useState(false)
-  const [onSale, setOnSale] = useState(false)
-  const [festiveOffer, setFestiveOffer] = useState(false)
-  const [todayIndeterminate, setTodayIndeterminate] = useState(false)
-  const [spottedIndeterminate, setSpottedIndeterminate] = useState(false)
-  const [bestsellingIndeterminate, setBestsellingIndeterminate] = useState(false)
-  const [onSaleIndeterminate, setOnSaleIndeterminate] = useState(false)
-  const [festiveIndeterminate, setFestiveIndeterminate] = useState(false)
   const [flagLoading, setFlagLoading] = useState(false)
   const [showEcomMenu, setShowEcomMenu] = useState(false)
   const [showWholesaleMenu, setShowWholesaleMenu] = useState(false)
+  const [showAddMenu, setShowAddMenu] = useState(false)
+  const [showRemoveMenu, setShowRemoveMenu] = useState(false)
+  const [tagFilter, setTagFilter] = useState('')
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -805,6 +773,7 @@ export default function AdminProductsPage() {
     limit: 20,
     status: statusFilter !== 'all' ? statusFilter : '',
     category: categoryFilter !== 'all' ? categoryFilter : '',
+    tags: showLowStockOnly ? '' : tagFilter,
   })
   const lowStockListQuery = useAdminProductsLowStock({
     page,
@@ -842,6 +811,7 @@ export default function AdminProductsPage() {
   const totalPages =
     pagination?.totalPages ??
     pagination?.pages ??
+    listData?.totalPages ??
     (listTotal != null && listTotal > 0 ? Math.ceil(listTotal / 20) : undefined)
 
   const categories = useMemo(() => {
@@ -909,7 +879,21 @@ export default function AdminProductsPage() {
     { label: 'Total Products', value: totalProducts, icon: Package, tone: 'blue' },
     { label: 'Active Products (Ecom)', value: activeCount, icon: CheckCircle2, tone: 'green' },
     { label: 'Featured (Ecom)', value: featuredCount, icon: Star, tone: 'amber' },
-    { label: 'Low Stock', value: lowStockCount, icon: AlertTriangle, tone: 'red', onClick: () => setShowLowStockOnly((v) => !v), active: showLowStockOnly },
+    {
+      label: 'Low Stock',
+      value: lowStockCount,
+      icon: AlertTriangle,
+      tone: 'red',
+      onClick: () => {
+        setShowLowStockOnly((v) => {
+          const next = !v
+          if (next) setTagFilter('')
+          return next
+        })
+        setPage(1)
+      },
+      active: showLowStockOnly,
+    },
   ]
 
   const toggleSelect = (slug) => {
@@ -931,50 +915,31 @@ export default function AdminProductsPage() {
 
   useEffect(() => {
     setSelectedSlugs(new Set())
-  }, [page])
+  }, [page, tagFilter])
+
+  const applyTagFilter = (nextTag) => {
+    const normalized = String(nextTag || '').trim()
+    setTagFilter(normalized)
+    setPage(1)
+    setShowLowStockOnly(false)
+    setSelectedSlugs(new Set())
+  }
+
+  const onSaleEligibility = useMemo(
+    () => splitSelectedOnSaleEligibility(products, selectedSlugs),
+    [products, selectedSlugs]
+  )
+  const onSaleWarning = onSaleBulkWarningText(onSaleEligibility)
+  const activeTagLabel =
+    ADMIN_PRODUCT_MARKETING_TAGS.find((tag) => tag.id === tagFilter)?.label || ''
 
   useEffect(() => {
-    try {
-      if (selectedSlugs.size === 0) {
-        setTodayArrival(false)
-        setJewellerySpotted(false)
-        setBestsellingJewelry(false)
-        setOnSale(false)
-        setFestiveOffer(false)
-        setTodayIndeterminate(false)
-        setSpottedIndeterminate(false)
-        setBestsellingIndeterminate(false)
-        setOnSaleIndeterminate(false)
-        setFestiveIndeterminate(false)
-        setShowEcomMenu(false)
-        setShowWholesaleMenu(false)
-        return
-      }
-
-      const selected = products.filter((p) => selectedSlugs.has(p.slug))
-      const total = selected.length
-      if (!total) return
-
-      const todayCount = selected.filter((p) => p.tags?.includes('today-arrival')).length
-      const spottedCount = selected.filter((p) => p.tags?.includes('jewellery-spotted')).length
-      const bestsellingCount = selected.filter((p) => p.tags?.includes('bestselling-jewelry')).length
-      const onSaleCount = selected.filter((p) => p.tags?.includes('on-sale')).length
-      const festiveCount = selected.filter((p) => p.tags?.includes('festive-offer')).length
-
-      setTodayArrival(todayCount === total)
-      setTodayIndeterminate(todayCount > 0 && todayCount < total)
-      setJewellerySpotted(spottedCount === total)
-      setSpottedIndeterminate(spottedCount > 0 && spottedCount < total)
-      setBestsellingJewelry(bestsellingCount === total)
-      setBestsellingIndeterminate(bestsellingCount > 0 && bestsellingCount < total)
-      setOnSale(onSaleCount === total)
-      setOnSaleIndeterminate(onSaleCount > 0 && onSaleCount < total)
-      setFestiveOffer(festiveCount === total)
-      setFestiveIndeterminate(festiveCount > 0 && festiveCount < total)
-    } catch {
-      /* keep previous bulk-flag UI state if selection math fails */
-    }
-  }, [selectedSlugs, products])
+    if (selectedSlugs.size !== 0) return
+    setShowEcomMenu(false)
+    setShowWholesaleMenu(false)
+    setShowAddMenu(false)
+    setShowRemoveMenu(false)
+  }, [selectedSlugs])
 
   const handleExport = async () => {
     try {
@@ -990,6 +955,8 @@ export default function AdminProductsPage() {
     if (!slugs.length) return
     setShowEcomMenu(false)
     setShowWholesaleMenu(false)
+    setShowAddMenu(false)
+    setShowRemoveMenu(false)
     try {
       await bulkStatus.mutateAsync({ slugs, channel, status })
       toast.success('Bulk status updated')
@@ -1000,7 +967,7 @@ export default function AdminProductsPage() {
     }
   }
 
-  const handleBulkFlagUpdate = async (flagType) => {
+  const handleBulkFlagUpdate = async (flagType, add) => {
     const slugs = [...selectedSlugs]
     if (!slugs.length) {
       toast.error('No products selected')
@@ -1009,46 +976,53 @@ export default function AdminProductsPage() {
     if (flagLoading) return
 
     const normalizedFlag = String(flagType || '').trim().replace(/_/g, '-')
-    const stateMap = {
-      'on-sale': [onSale, setOnSale, onSaleIndeterminate],
-      'today-arrival': [todayArrival, setTodayArrival, todayIndeterminate],
-      'jewellery-spotted': [jewellerySpotted, setJewellerySpotted, spottedIndeterminate],
-      'bestselling-jewelry': [bestsellingJewelry, setBestsellingJewelry, bestsellingIndeterminate],
-      'festive-offer': [festiveOffer, setFestiveOffer, festiveIndeterminate],
-    }
-    const stateEntry = stateMap[normalizedFlag]
-    if (!stateEntry) {
+    const known = ADMIN_PRODUCT_MARKETING_TAGS.some((tag) => tag.id === normalizedFlag)
+    if (!known) {
       toast.error('Unknown marketing tag')
       return
     }
 
-    const [currentValue, setValue, isIndeterminate] = stateEntry
-    const newValue = isIndeterminate ? true : !currentValue
+    const newValue = Boolean(add)
+    if (newValue && normalizedFlag === 'on-sale' && onSaleEligibility.withPriceCount === 0) {
+      toast.error(ON_SALE_PRICE_REQUIRED_MESSAGE)
+      return
+    }
 
+    const tagLabel =
+      ADMIN_PRODUCT_MARKETING_TAGS.find((tag) => tag.id === normalizedFlag)?.label || normalizedFlag
+
+    setShowAddMenu(false)
+    setShowRemoveMenu(false)
     setFlagLoading(true)
-    setValue(newValue)
 
     try {
       const result = await bulkFlags.mutateAsync({ slugs, flagType: normalizedFlag, value: newValue })
       const skipped = Array.isArray(result?.skipped) ? result.skipped : []
-      if (skipped.length) {
+      const updatedCount = Number(result?.updatedCount) || 0
+
+      if (newValue && updatedCount > 0 && skipped.length) {
+        toast.success(
+          `${updatedCount} product(s) added to ${tagLabel}. ${skipped.length} without On-sale price were not listed.`
+        )
+      } else if (skipped.length && updatedCount === 0) {
         const sample = skipped.slice(0, 3).map((row) => row.slug).filter(Boolean).join(', ')
         toast.error(
           result?.message ||
             `${skipped.length} product(s) skipped — add On-sale price first${sample ? `: ${sample}` : ''}`
         )
-        if (result?.updatedCount) toast.success(`${result.updatedCount} product(s) updated`)
+      } else if (newValue) {
+        toast.success(`${updatedCount || slugs.length} product(s) added to ${tagLabel}`)
       } else {
-        toast.success('Products updated successfully')
+        toast.success(`${updatedCount || slugs.length} product(s) removed from ${tagLabel}`)
       }
-      setTimeout(() => setSelectedSlugs(new Set()), 400)
-      listRefetch()
+
+      if (skipped.length && updatedCount === 0) {
+        listRefetch()
+      } else {
+        setSelectedSlugs(new Set())
+        listRefetch()
+      }
     } catch (err) {
-      try {
-        setValue(currentValue)
-      } catch {
-        /* ignore rollback UI errors */
-      }
       toast.error(err?.message || 'Failed to update flags')
     } finally {
       setFlagLoading(false)
@@ -1159,33 +1133,72 @@ export default function AdminProductsPage() {
               </button>
             </div>
             <div className="admin-bulk-bar__actions">
-              {ADMIN_PRODUCT_MARKETING_TAGS.map((tag) => {
-                const stateById = {
-                  'on-sale': [onSale, onSaleIndeterminate],
-                  'today-arrival': [todayArrival, todayIndeterminate],
-                  'jewellery-spotted': [jewellerySpotted, spottedIndeterminate],
-                  'bestselling-jewelry': [bestsellingJewelry, bestsellingIndeterminate],
-                  'festive-offer': [festiveOffer, festiveIndeterminate],
-                }
-                const [checked, indeterminate] = stateById[tag.id] || [false, false]
-                return (
-                  <BulkFlagToggle
-                    key={tag.id}
-                    label={tag.bulkLabel}
-                    checked={checked}
-                    indeterminate={indeterminate}
-                    loading={flagLoading}
-                    onChange={() => handleBulkFlagUpdate(tag.id)}
-                  />
-                )
-              })}
+              <BulkChannelDropdown
+                label="Add to"
+                tone="add"
+                open={showAddMenu}
+                onToggle={(v) => {
+                  setShowAddMenu(v)
+                  if (v) {
+                    setShowRemoveMenu(false)
+                    setShowEcomMenu(false)
+                    setShowWholesaleMenu(false)
+                  }
+                }}
+                disabled={flagLoading}
+              >
+                {ADMIN_PRODUCT_MARKETING_TAGS.map((tag) => (
+                  <button
+                    key={`add-${tag.id}`}
+                    type="button"
+                    className="admin-bulk-channel__option"
+                    disabled={flagLoading}
+                    title={tag.id === 'on-sale' && onSaleWarning ? onSaleWarning : tag.description}
+                    onClick={() => handleBulkFlagUpdate(tag.id, true)}
+                  >
+                    <span className={`admin-bulk-channel__dot admin-bulk-channel__dot--${tag.id}`} />
+                    {tag.bulkLabel}
+                  </button>
+                ))}
+              </BulkChannelDropdown>
+              <BulkChannelDropdown
+                label="Remove from"
+                tone="remove"
+                open={showRemoveMenu}
+                onToggle={(v) => {
+                  setShowRemoveMenu(v)
+                  if (v) {
+                    setShowAddMenu(false)
+                    setShowEcomMenu(false)
+                    setShowWholesaleMenu(false)
+                  }
+                }}
+                disabled={flagLoading}
+              >
+                {ADMIN_PRODUCT_MARKETING_TAGS.map((tag) => (
+                  <button
+                    key={`remove-${tag.id}`}
+                    type="button"
+                    className="admin-bulk-channel__option"
+                    disabled={flagLoading}
+                    onClick={() => handleBulkFlagUpdate(tag.id, false)}
+                  >
+                    <span className={`admin-bulk-channel__dot admin-bulk-channel__dot--${tag.id}`} />
+                    {tag.bulkLabel}
+                  </button>
+                ))}
+              </BulkChannelDropdown>
               <BulkChannelDropdown
                 label="Set as Ecom"
                 tone="ecom"
                 open={showEcomMenu}
                 onToggle={(v) => {
                   setShowEcomMenu(v)
-                  if (v) setShowWholesaleMenu(false)
+                  if (v) {
+                    setShowWholesaleMenu(false)
+                    setShowAddMenu(false)
+                    setShowRemoveMenu(false)
+                  }
                 }}
                 disabled={bulkStatus.isPending}
               >
@@ -1214,7 +1227,11 @@ export default function AdminProductsPage() {
                 open={showWholesaleMenu}
                 onToggle={(v) => {
                   setShowWholesaleMenu(v)
-                  if (v) setShowEcomMenu(false)
+                  if (v) {
+                    setShowEcomMenu(false)
+                    setShowAddMenu(false)
+                    setShowRemoveMenu(false)
+                  }
                 }}
                 disabled={bulkStatus.isPending}
               >
@@ -1239,8 +1256,40 @@ export default function AdminProductsPage() {
               </BulkChannelDropdown>
             </div>
           </div>
-        ) : (
-          <div className="admin-products__toolbar">
+        ) : null}
+
+        {selectedSlugs.size > 0 && onSaleWarning ? (
+          <div className="admin-bulk-onsale-warn" role="status">
+            <AlertTriangle size={16} aria-hidden />
+            <p>{onSaleWarning}</p>
+          </div>
+        ) : null}
+
+        <div className="admin-products__tag-tabs" role="tablist" aria-label="Filter by marketing tag">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={!tagFilter}
+            className={`admin-tabs__btn${!tagFilter ? ' is-active' : ''}`}
+            onClick={() => applyTagFilter('')}
+          >
+            All
+          </button>
+          {ADMIN_PRODUCT_MARKETING_TAGS.map((tag) => (
+            <button
+              key={tag.id}
+              type="button"
+              role="tab"
+              aria-selected={tagFilter === tag.id}
+              className={`admin-tabs__btn admin-tabs__btn--${tag.id}${tagFilter === tag.id ? ' is-active' : ''}`}
+              onClick={() => applyTagFilter(tag.id)}
+            >
+              {tag.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="admin-products__toolbar">
             <div className="admin-products__search">
               <Search size={18} aria-hidden />
               <input
@@ -1339,7 +1388,6 @@ export default function AdminProductsPage() {
               {exportProducts.isPending ? 'Exporting…' : 'Export Excel'}
             </button>
           </div>
-        )}
       </div>
 
       <div className="admin-card admin-card--flush admin-products__table-card">
@@ -1348,7 +1396,15 @@ export default function AdminProductsPage() {
         )}
         {listError && <AdminError message={listErr?.message} onRetry={listRefetch} />}
         {!listLoading && !listFetching && !listError && products.length === 0 && (
-          <AdminEmpty message={showLowStockOnly ? 'No low stock products.' : 'No products found.'} />
+          <AdminEmpty
+            message={
+              showLowStockOnly
+                ? 'No low stock products.'
+                : activeTagLabel
+                  ? `No products in ${activeTagLabel}.`
+                  : 'No products found.'
+            }
+          />
         )}
         {!listLoading && !listError && products.length > 0 && (
           <div className="admin-table-wrap">
@@ -1400,7 +1456,12 @@ export default function AdminProductsPage() {
                             {Array.isArray(product.tags) && product.tags.length > 0 ? (
                               <span className="admin-product-tags">
                                 {ADMIN_PRODUCT_MARKETING_TAGS.filter((tag) => product.tags.includes(tag.id)).map((tag) => (
-                                  <span key={tag.id} className="admin-product-tags__chip">{tag.shortLabel}</span>
+                                  <span
+                                    key={tag.id}
+                                    className={`admin-product-tags__chip ${tag.chipClass || ''}`.trim()}
+                                  >
+                                    {tag.shortLabel}
+                                  </span>
                                 ))}
                               </span>
                             ) : null}

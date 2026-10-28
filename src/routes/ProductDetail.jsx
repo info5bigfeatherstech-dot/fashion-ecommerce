@@ -1,6 +1,7 @@
 import { useLayoutEffect, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, Link, useNavigate, useNavigationType, useLocation } from 'react-router-dom'
 import { Heart, Minus, Plus, Bell } from 'lucide-react'
+import { ProductShareButton } from '@/features/product/components/ProductShareButton'
 import { ProductGallery } from '@/features/product/components/ProductGallery'
 import { PriceBlock } from '@/features/product/components/PriceBlock'
 import {
@@ -793,6 +794,7 @@ function ProductDetailPage() {
                 >
                   <Heart size={18} fill={inWishlist ? 'currentColor' : 'none'} />
                 </Button>
+                <ProductShareButton slug={slug} title={displayTitle} />
               </div>
               <OutOfStockInquiryForm
                 productId={product.id}
@@ -858,6 +860,7 @@ function ProductDetailPage() {
               >
                 <Heart size={18} fill={inWishlist ? 'currentColor' : 'none'} />
               </Button>
+              <ProductShareButton slug={slug} title={displayTitle} />
             </div>
           )}
 

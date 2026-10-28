@@ -72,3 +72,51 @@ export function formHasOnSalePriceOnAllVariants(formData) {
   if (!extras.length) return true
   return extras.every((variant) => variantHasOnSalePrice(variant))
 }
+
+/** Matches backend productHasValidOnSalePrice: every variant needs a valid On-sale price. */
+export function productHasValidOnSalePrice(product) {
+  try {
+    const variants = Array.isArray(product?.variants) ? product.variants : []
+    if (!variants.length) return false
+    return variants.every((variant) => variantHasOnSalePrice(variant))
+  } catch {
+    return false
+  }
+}
+
+export function splitSelectedOnSaleEligibility(products = [], selectedSlugs) {
+  const selected = (Array.isArray(products) ? products : []).filter((product) => {
+    const slug = product?.slug
+    if (!slug) return false
+    if (selectedSlugs instanceof Set) return selectedSlugs.has(slug)
+    if (Array.isArray(selectedSlugs)) return selectedSlugs.includes(slug)
+    return false
+  })
+  const withPrice = []
+  const withoutPrice = []
+  for (const product of selected) {
+    if (productHasValidOnSalePrice(product)) withPrice.push(product)
+    else withoutPrice.push(product)
+  }
+  return {
+    selected,
+    withPrice,
+    withoutPrice,
+    selectedCount: selected.length,
+    withPriceCount: withPrice.length,
+    withoutPriceCount: withoutPrice.length,
+    isMixed: withPrice.length > 0 && withoutPrice.length > 0,
+    noneEligible: selected.length > 0 && withPrice.length === 0,
+  }
+}
+
+export function onSaleBulkWarningText(eligibility) {
+  if (!eligibility || !eligibility.selectedCount) return ''
+  if (eligibility.noneEligible) {
+    return `None of the ${eligibility.selectedCount} selected product(s) have On-sale price. Add On-sale price on every variant first — they will not be added to On Sale.`
+  }
+  if (eligibility.isMixed) {
+    return `${eligibility.withPriceCount} of ${eligibility.selectedCount} selected product(s) have On-sale price and will be added to On Sale. ${eligibility.withoutPriceCount} without On-sale price will stay out of this list.`
+  }
+  return ''
+}
