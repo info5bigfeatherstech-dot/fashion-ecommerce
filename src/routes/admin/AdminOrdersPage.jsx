@@ -972,6 +972,7 @@ export default function AdminOrdersPage() {
                     const provider = providerLabel(order)
                     const paymentLabel = order.paymentLabel || order.paymentStatus || '—'
                     const amount = order.amountInr ?? order.totalAmount ?? order.amountPayable ?? 0
+                    const paymentReadyToConfirm = canAdminBulkConfirmOrderRow(order)
 
                     return (
                       <tr
@@ -1055,42 +1056,55 @@ export default function AdminOrdersPage() {
                         <td onClick={(e) => e.stopPropagation()}>
                           {bucket === 'Pending' ? (
                             <div className="admin-row-actions">
-                              <div className="admin-split-button">
-                                <Button
-                                  variant="primary"
-                                  size="sm"
-                                  disabled={confirmOrders.isPending}
-                                  onClick={() => handleConfirm([id])}
-                                  className="admin-split-button__main"
-                                >
-                                  Accept
-                                </Button>
-                                <ActionMenu
-                                  trigger={
-                                    <button
-                                      type="button"
-                                      className="admin-split-button__dropdown"
-                                      disabled={confirmOrders.isPending}
-                                      aria-label="More actions"
-                                    >
-                                      <ChevronDown size={14} />
-                                    </button>
-                                  }
-                                  items={[
-                                    {
-                                      label: 'Reject',
-                                      onClick: () => handleCancel([id]),
-                                    },
-                                    {
-                                      label: 'Open order',
-                                      onClick: () => {
-                                        setSelectedOrderId(id)
-                                        setViewMode('detail')
+                              {paymentReadyToConfirm ? (
+                                <div className="admin-split-button">
+                                  <Button
+                                    variant="primary"
+                                    size="sm"
+                                    disabled={confirmOrders.isPending}
+                                    onClick={() => handleConfirm([id])}
+                                    className="admin-split-button__main"
+                                  >
+                                    Accept
+                                  </Button>
+                                  <ActionMenu
+                                    trigger={
+                                      <button
+                                        type="button"
+                                        className="admin-split-button__dropdown"
+                                        disabled={confirmOrders.isPending}
+                                        aria-label="More actions"
+                                      >
+                                        <ChevronDown size={14} />
+                                      </button>
+                                    }
+                                    items={[
+                                      {
+                                        label: 'Reject',
+                                        onClick: () => handleCancel([id]),
                                       },
-                                    },
-                                  ]}
-                                />
-                              </div>
+                                      {
+                                        label: 'Open order',
+                                        onClick: () => {
+                                          setSelectedOrderId(id)
+                                          setViewMode('detail')
+                                        },
+                                      },
+                                    ]}
+                                  />
+                                </div>
+                              ) : (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedOrderId(id)
+                                    setViewMode('detail')
+                                  }}
+                                >
+                                  Details
+                                </Button>
+                              )}
                             </div>
                           ) : (
                             <Button

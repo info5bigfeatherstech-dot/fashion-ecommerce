@@ -15,9 +15,14 @@ export function isAdminOrderRowPending(row) {
   return String(row?.orderStatus || '').toLowerCase() === 'pending'
 }
 
-/** Bulk confirm: pending and server-evaluated payment gate. */
+/** Confirm: pending order with captured payment and server-evaluated fulfillment gate. */
 export function canAdminBulkConfirmOrderRow(row) {
   if (!isAdminOrderRowPending(row)) return false
+  const paymentStatus = String(row?.paymentStatus || row?.paymentLabel || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_')
+  if (paymentStatus !== 'paid' && paymentStatus !== 'partially_paid') return false
   return row?.canConfirmForFulfillment === true
 }
 

@@ -316,6 +316,8 @@ export function AdminOrderDetailView({
     (orderSt === 'cancelled' || orderSt === 'payment_failed') && !moneyCaptured
   const fulfillmentPaymentGate = order?.fulfillmentPaymentGate
   const paymentReady = carrierPaymentReady(order, fulfillmentPaymentGate)
+  const canConfirmOrder =
+    paymentReady && (paySt === 'paid' || paySt === 'partially_paid')
 
   const ship = order?.shipmentInfo || {}
   const ops = order?.shipmentOps || {}
@@ -687,14 +689,16 @@ export function AdminOrderDetailView({
           </span>
           {isPendingOrder ? (
             <>
-              <Button
-                variant="primary"
-                size="sm"
-                disabled={fulfillmentBusy || !paymentReady}
-                onClick={handleConfirm}
-              >
-                {confirmOrders.isPending ? 'Confirming…' : 'Confirm order'}
-              </Button>
+              {canConfirmOrder ? (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  disabled={fulfillmentBusy}
+                  onClick={handleConfirm}
+                >
+                  {confirmOrders.isPending ? 'Confirming…' : 'Confirm order'}
+                </Button>
+              ) : null}
               <Button variant="ghost" size="sm" disabled={fulfillmentBusy} onClick={handleCancel}>
                 {cancelOrders.isPending ? 'Cancelling…' : 'Cancel'}
               </Button>
