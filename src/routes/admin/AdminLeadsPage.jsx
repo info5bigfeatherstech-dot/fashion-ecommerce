@@ -88,10 +88,12 @@ function formatWhatsAppPhone(phone) {
   return digits
 }
 
+const STORE_URL = 'https://fabuniqo.com/'
+
 function getRandomWhatsAppMessage(name) {
   const cleanName = name && name !== 'Customer' && name !== 'Unnamed' ? name.trim() : ''
   const template = RANDOM_WHATSAPP_MESSAGES[Math.floor(Math.random() * RANDOM_WHATSAPP_MESSAGES.length)]
-  return template(cleanName)
+  return template(cleanName) + '\n\n' + STORE_URL
 }
 
 function LeadRow({ lead, onAction }) {
