@@ -58,13 +58,13 @@ function snapshotUser(user) {
 
 const RANDOM_WHATSAPP_MESSAGES = [
   (name) =>
-    `Hello ${name || 'there'}! 👋 Thank you for checking out our store. How can we assist you with your shopping today?`,
+    `Hello ${name || 'there'}!  Thank you for checking out our store. How can we assist you with your shopping today?`,
   (name) =>
-    `Hi ${name || 'there'}! ✨ We noticed your interest in our collection. Let us know if you need any recommendations or details!`,
+    `Hi ${name || 'there'}!  We noticed your interest in our collection. Let us know if you need any recommendations or details!`,
   (name) =>
-    `Hello ${name || 'there'}! 🛍️ We have special offers running on our top styles today. Feel free to reply if you'd like to explore!`,
+    `Hello ${name || 'there'}!  We have special offers running on our top styles today. Feel free to reply if you'd like to explore!`,
   (name) =>
-    `Hi ${name || 'there'}! 💬 Thanks for visiting us. If you have any questions about sizing, orders, or delivery, we are here to help!`,
+    `Hi ${name || 'there'}!  Thanks for visiting us. If you have any questions about sizing, orders, or delivery, we are here to help!`,
   (name) =>
     `Hello ${name || 'there'}! Hope you're having a wonderful day. Let us know if we can help you find anything special today!`,
 ]
