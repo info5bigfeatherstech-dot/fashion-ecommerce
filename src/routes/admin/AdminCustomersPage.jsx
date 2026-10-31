@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Bell, Download, Eye, Heart, Mail, Search, ShoppingBag, Smartphone } from 'lucide-react'
+import { Bell, Download, Eye, Heart, Mail, Search, Share2, ShoppingBag, Smartphone } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   AdminEmpty,
@@ -54,6 +54,38 @@ function snapshotUser(user) {
     email: user?.email,
     cartItemsCount: user?.cartItemsCount || 0,
   }
+}
+
+const RANDOM_WHATSAPP_MESSAGES = [
+  (name) =>
+    `Hello ${name || 'there'}! 👋 Thank you for checking out our store. How can we assist you with your shopping today?`,
+  (name) =>
+    `Hi ${name || 'there'}! ✨ We noticed your interest in our collection. Let us know if you need any recommendations or details!`,
+  (name) =>
+    `Hello ${name || 'there'}! 🛍️ We have special offers running on our top styles today. Feel free to reply if you'd like to explore!`,
+  (name) =>
+    `Hi ${name || 'there'}! 💬 Thanks for visiting us. If you have any questions about sizing, orders, or delivery, we are here to help!`,
+  (name) =>
+    `Hello ${name || 'there'}! Hope you're having a wonderful day. Let us know if we can help you find anything special today!`,
+]
+
+function formatWhatsAppPhone(phone) {
+  if (!phone) return ''
+  let digits = String(phone).replace(/\D/g, '')
+  if (!digits) return ''
+  if (digits.length === 11 && digits.startsWith('0')) {
+    digits = digits.slice(1)
+  }
+  if (digits.length === 10) {
+    digits = `91${digits}`
+  }
+  return digits
+}
+
+function getRandomWhatsAppMessage(name) {
+  const cleanName = name && name !== 'Customer' && name !== 'Unnamed' ? name.trim() : ''
+  const template = RANDOM_WHATSAPP_MESSAGES[Math.floor(Math.random() * RANDOM_WHATSAPP_MESSAGES.length)]
+  return template(cleanName)
 }
 
 function NotificationsCell({ user }) {
@@ -236,6 +268,17 @@ export default function AdminCustomersPage() {
     openCartReminder([snapshotUser(user)])
   }
 
+  const handleShareWhatsApp = (user) => {
+    const rawPhone = user?.phone || user?.phoneNumber || user?.phone_number
+    const cleanPhone = formatWhatsAppPhone(rawPhone)
+    if (!cleanPhone) {
+      toast.warning('No valid phone number found for this customer.')
+      return
+    }
+    const message = getRandomWhatsAppMessage(user?.name)
+    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
   const handleExport = async () => {
     try {
       await exportUsers.mutateAsync({ search, role })
@@ -487,6 +530,20 @@ export default function AdminCustomersPage() {
                             aria-label="Send cart reminder email"
                           >
                             <Mail size={15} />
+                          </button>
+                          <button
+                            type="button"
+                            className="admin-leads__row-action admin-leads__row-action--share"
+                            onClick={() => handleShareWhatsApp(user)}
+                            disabled={!user.phone}
+                            title={
+                              user.phone
+                                ? `Share via WhatsApp (${user.phone})`
+                                : 'No phone number available'
+                            }
+                            aria-label="Share via WhatsApp"
+                          >
+                            <Share2 size={15} />
                           </button>
                           <button
                             type="button"

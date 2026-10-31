@@ -23790,6 +23790,11 @@ a.cart-item__name:hover {
   color: #4f46e5;
 }
 
+.admin-leads__row-action--share:hover:not(:disabled) {
+  background: #ecfdf5;
+  color: #16a34a;
+}
+
 .admin-leads__row-action:disabled {
   opacity: 0.35;
   cursor: not-allowed;
@@ -24265,7 +24270,7 @@ a.cart-item__name:hover {
 
 .admin-leads__actions-col {
   text-align: right;
-  width: 72px;
+  width: 110px;
 }
 
 .admin-leads__customer {

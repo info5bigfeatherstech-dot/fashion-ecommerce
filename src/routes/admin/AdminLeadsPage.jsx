@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { ActionMenu } from '@/components/ui/DropdownMenu'
+import { toast } from 'sonner'
 
 const ROLE_OPTIONS = [
   { value: 'all', label: 'All Roles' },
@@ -59,6 +60,38 @@ function LeadAvatar({ name, email }) {
       {initials}
     </div>
   )
+}
+
+const RANDOM_WHATSAPP_MESSAGES = [
+  (name) =>
+    `Hello ${name || 'there'}! 👋 Thank you for checking out our store. How can we assist you with your shopping today?`,
+  (name) =>
+    `Hi ${name || 'there'}! ✨ We noticed your interest in our collection. Let us know if you need any recommendations or details!`,
+  (name) =>
+    `Hello ${name || 'there'}! 🛍️ We have special offers running on our top styles today. Feel free to reply if you'd like to explore!`,
+  (name) =>
+    `Hi ${name || 'there'}! 💬 Thanks for visiting us. If you have any questions about sizing, orders, or delivery, we are here to help!`,
+  (name) =>
+    `Hello ${name || 'there'}! Hope you're having a wonderful day. Let us know if we can help you find anything special today!`,
+]
+
+function formatWhatsAppPhone(phone) {
+  if (!phone) return ''
+  let digits = String(phone).replace(/\D/g, '')
+  if (!digits) return ''
+  if (digits.length === 11 && digits.startsWith('0')) {
+    digits = digits.slice(1)
+  }
+  if (digits.length === 10) {
+    digits = `91${digits}`
+  }
+  return digits
+}
+
+function getRandomWhatsAppMessage(name) {
+  const cleanName = name && name !== 'Customer' && name !== 'Unnamed' ? name.trim() : ''
+  const template = RANDOM_WHATSAPP_MESSAGES[Math.floor(Math.random() * RANDOM_WHATSAPP_MESSAGES.length)]
+  return template(cleanName)
 }
 
 function LeadRow({ lead, onAction }) {
@@ -135,7 +168,8 @@ function LeadRow({ lead, onAction }) {
           <button
             type="button"
             className="lead-action-btn"
-            title="Share"
+            title={lead.phone ? `Share via WhatsApp (${lead.phone})` : 'No phone number available'}
+            disabled={!lead.phone}
             onClick={() => onAction('share', lead)}
           >
             <Share2 size={16} />
@@ -171,8 +205,19 @@ export default function AdminLeadsPage() {
   )
 
   const handleAction = (action, lead) => {
+    if (action === 'share') {
+      const rawPhone = lead?.phone || lead?.phoneNumber || lead?.phone_number
+      const cleanPhone = formatWhatsAppPhone(rawPhone)
+      if (!cleanPhone) {
+        toast.warning('No valid phone number found for this lead.')
+        return
+      }
+      const message = getRandomWhatsAppMessage(lead?.name)
+      const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`
+      window.open(url, '_blank', 'noopener,noreferrer')
+      return
+    }
     console.log('Action:', action, 'Lead:', lead)
-    // Implement actions here
   }
 
   const handleExport = () => {

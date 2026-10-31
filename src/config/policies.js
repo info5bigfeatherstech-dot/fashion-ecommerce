@@ -108,7 +108,8 @@ export const policiesData = [
       },
       {
         heading: "12) Policy Changes",
-        content: "FABUNIQO may update this policy at any time for operational reasons.",
+        content:
+          "FABUNIQO may update this policy at any time for operational reasons.",
       },
     ],
   },
@@ -301,8 +302,8 @@ export const policiesData = [
       },
     ],
   },
-]
+];
 
 export function getPolicyBySlug(slug) {
-  return policiesData.find((p) => p.slug === slug) || null
+  return policiesData.find((p) => p.slug === slug) || null;
 }
