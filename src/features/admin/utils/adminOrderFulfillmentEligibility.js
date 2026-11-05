@@ -88,3 +88,10 @@ export function canAdminBulkSyncShiprocketOrderRow(row) {
   if (fromCaps === true) return true
   return Boolean(row.hasShiprocketOrderId || row.hasShipmentId || row.hasAwb)
 }
+
+/** Forward-order pickup retry — only when server shipmentOps exposes the capability (Shiprocket pickup exception). */
+export function canAdminRetryPickupOrderRow(row) {
+  if (!row) return false
+  if (isRowUnpaidTerminalBlocked(row) || isRowRtoBlocked(row)) return false
+  return rowActionEnabled(row, 'retryPickup') === true
+}

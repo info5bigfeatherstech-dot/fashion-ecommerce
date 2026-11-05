@@ -41,6 +41,7 @@ import {
   useEnsureAdminOrderShipment,
   useGenerateAdminOrderManifest,
   usePrintAdminOrderInvoice,
+  useRetryAdminOrderPickup,
   useScheduleAdminOrderPickup,
   useSyncAdminOrderShiprocket,
 } from '@/features/admin/hooks'
@@ -240,7 +241,6 @@ function FulfillmentStepCard({ step, focusStep, done, title, heading, children }
         <div>
           <p className="od-step__eyebrow">
             {done ? 'DONE' : focused ? 'ACTION REQUIRED' : `STEP ${step}`}
-            {focused ? ' — CREATE & ASSIGN' : ''}
           </p>
           <h4 className="od-step__title">{heading || title}</h4>
         </div>
@@ -274,6 +274,7 @@ export function AdminOrderDetailView({
   const syncShiprocket = useSyncAdminOrderShiprocket()
   const generateManifest = useGenerateAdminOrderManifest()
   const cancelShipment = useCancelAdminOrderShipment()
+  const retryPickup = useRetryAdminOrderPickup()
   const printInvoice = usePrintAdminOrderInvoice()
   const downloadLabel = useDownloadAdminOrderShippingLabel()
   const downloadManifest = useDownloadAdminOrderManifest()
@@ -330,20 +331,31 @@ export function AdminOrderDetailView({
   const providerName = shippingProviderKey === 'shipmozo' ? 'Shipmozo' : 'Shiprocket'
   const hasCarrierAwb = Boolean(ship.awbCode || ship.trackingNumber)
   const step1Done = hasCarrierAwb
+  /** Server SSOT — Shiprocket pickup exception only; never invent for Shipmozo. */
+  const needsPickupRetry = caps.retryPickup === true
+  const shiprocketSupportUrl = String(ops?.externalLinks?.shiprocketSupportUrl || '').trim()
   const primaryActionKey = ops.primaryAction || 'openDetail'
-  const primaryActionLabel = ops.primaryActionLabel || (primaryActionKey === 'shipNow' ? 'Ship now' : null)
+  const primaryActionLabel =
+    ops.primaryActionLabel ||
+    (primaryActionKey === 'shipNow'
+      ? 'Ship now'
+      : primaryActionKey === 'retryPickup'
+        ? 'Retry pickup'
+        : null)
   const fulfillmentFocusStep =
     primaryActionKey === 'shipNow' ? 1
-      : primaryActionKey === 'schedulePickup' ? 2
+      : primaryActionKey === 'retryPickup' || primaryActionKey === 'schedulePickup' ? 2
         : primaryActionKey === 'generateManifest' || primaryActionKey === 'downloadManifest' ? 3
           : primaryActionKey === 'downloadLabel' ? 4
             : !step1Done ? 1 : 0
 
+  // Stale pickupDate must not hide Retry when provider reports pickup exception.
   const pickupAlreadyScheduled =
-    ops.opsState === 'PICKUP_SCHEDULED' ||
-    ops.opsState === 'MANIFEST_READY' ||
-    ops.opsState === 'LABEL_READY' ||
-    (Boolean(ship.pickupScheduledAt || ship.pickupDate) && !caps.schedulePickup)
+    !needsPickupRetry &&
+    (ops.opsState === 'PICKUP_SCHEDULED' ||
+      ops.opsState === 'MANIFEST_READY' ||
+      ops.opsState === 'LABEL_READY' ||
+      (Boolean(ship.pickupScheduledAt || ship.pickupDate) && !caps.schedulePickup))
 
   const fulfillmentBusy =
     confirmOrders.isPending ||
@@ -354,6 +366,7 @@ export function AdminOrderDetailView({
     syncShiprocket.isPending ||
     generateManifest.isPending ||
     cancelShipment.isPending ||
+    retryPickup.isPending ||
     printInvoice.isPending ||
     downloadLabel.isPending ||
     downloadManifest.isPending
@@ -615,8 +628,41 @@ export function AdminOrderDetailView({
       await cancelShipment.mutateAsync(orderId)
       toast.success('Shipment cancelled')
       await refreshOrder()
+      refetchTracking()
     } catch (e) {
       toast.error(errText(e, 'Cancel shipment failed.'))
+    }
+  }
+
+  const handleRetryPickup = async () => {
+    setActionMsg(null)
+    try {
+      const r = await retryPickup.mutateAsync(orderId)
+      const text =
+        r?.message ||
+        (r?.pickupDate
+          ? `Pickup retry submitted. Courier day: ${r.pickupDate}.`
+          : 'Pickup retry submitted. Refreshing shipment…')
+      setActionMsg({ type: 'ok', surface: 'pickup', text })
+      toast.success(text)
+      await refreshOrder()
+      refetchTracking()
+    } catch (e) {
+      const data = errPayload(e)
+      const code = String(data?.code || '')
+      let text = errText(e, 'Pickup retry failed.')
+      if (code === 'PICKUP_RETRY_NOT_APPLICABLE') {
+        text =
+          data?.message ||
+          `Shipment was reset on ${providerName}. Use Ship now to re-book — retry pickup does not apply.`
+      } else if (code === 'SHIPMENT_ID_MISSING') {
+        text = data?.message || `No shipment id on order. Refresh ${providerName} sync first.`
+      }
+      setActionMsg({ type: 'err', surface: 'pickup', text })
+      toast.error(text)
+      // Reflect courier / ops / reset state even on failure (server may have synced).
+      await refreshOrder()
+      refetchTracking()
     }
   }
 
@@ -918,11 +964,58 @@ export function AdminOrderDetailView({
                 <FulfillmentStepCard
                   step={2}
                   focusStep={fulfillmentFocusStep}
-                  done={pickupAlreadyScheduled}
+                  done={pickupAlreadyScheduled && !needsPickupRetry}
                   title="Step 2 · Pickup"
-                  heading="Schedule pickup"
+                  heading={needsPickupRetry ? 'Retry pickup' : 'Schedule pickup'}
                 >
-                  {pickupAlreadyScheduled ? (
+                  {needsPickupRetry ? (
+                    <div className="od-step__body-stack">
+                      <p className="od-muted">
+                        Pickup failed on Shiprocket
+                        {ship.courier ? ` (${ship.courier})` : ''}.
+                        Retry with the same shipment, open Shiprocket support, or cancel and Ship now again.
+                      </p>
+                      {ops.nextStepMessage ? (
+                        <p className="od-muted">{ops.nextStepMessage}</p>
+                      ) : null}
+                      {blockReasons.retryPickup ? (
+                        <p className="od-muted">{blockReasons.retryPickup}</p>
+                      ) : null}
+                      <div className="od-row-actions">
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          disabled={fulfillmentBusy || !paymentReady}
+                          title={blockReasons.retryPickup || 'Retry failed pickup on Shiprocket'}
+                          onClick={handleRetryPickup}
+                        >
+                          {retryPickup.isPending ? 'Working…' : 'Retry pickup'}
+                        </Button>
+                        {caps.cancelShipment ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={fulfillmentBusy}
+                            onClick={handleCancelShipment}
+                          >
+                            Cancel shipment
+                          </Button>
+                        ) : null}
+                        {caps.openShiprocketSupport && shiprocketSupportUrl ? (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            disabled={fulfillmentBusy}
+                            onClick={() =>
+                              window.open(shiprocketSupportUrl, '_blank', 'noopener,noreferrer')
+                            }
+                          >
+                            Shiprocket support
+                          </Button>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : pickupAlreadyScheduled ? (
                     <p className="od-step__done">
                       Pickup booked{ship.pickupDate ? ` for ${ship.pickupDate}` : ''}.
                     </p>

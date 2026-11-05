@@ -533,6 +533,9 @@ export function useRetryAdminOrderPickup() {
     mutationFn: retryAdminOrderPickup,
     onSuccess: (_d, orderId) => {
       queryClient.invalidateQueries({ queryKey: adminKeys.orderDetail(orderId) })
+      queryClient.invalidateQueries({ queryKey: adminKeys.orderTracking(orderId) })
+      queryClient.invalidateQueries({ queryKey: adminKeys.ordersSummary() })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'orders-list'] })
     },
   })
 }

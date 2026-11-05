@@ -15,6 +15,7 @@ import {
   canAdminBulkSchedulePickupOrderRow,
   canAdminBulkShipNowOrderRow,
   canAdminBulkSyncShiprocketOrderRow,
+  canAdminRetryPickupOrderRow,
 } from '@/features/admin/utils/adminOrderFulfillmentEligibility'
 import {
   AdminEmpty,
@@ -37,6 +38,7 @@ import {
   useDownloadBulkManifestsZip,
   useDownloadBulkShippingLabelsZip,
   useDownloadBulkTaxInvoicesZip,
+  useRetryAdminOrderPickup,
 } from '@/features/admin/hooks'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -187,6 +189,7 @@ export default function AdminOrdersPage() {
   const shippingLabelsZip = useDownloadBulkShippingLabelsZip()
   const manifestsZip = useDownloadBulkManifestsZip()
   const syncStatuses = useAutoSyncOrderStatuses()
+  const retryPickup = useRetryAdminOrderPickup()
 
   const { items: orders, pagination } = useMemo(
     () => extractListPayload(listData, ['orders']),
@@ -388,6 +391,29 @@ export default function AdminOrdersPage() {
     runBulkMutation('Pickup scheduled', eligibleBulkPickupIds, (ids) =>
       schedulePickup.mutateAsync({ orderIds: ids, pickupDate })
     )
+  }
+
+  const handleRetryPickup = async (orderId) => {
+    const id = String(orderId || '').trim()
+    if (!id) return
+    try {
+      const data = await retryPickup.mutateAsync(id)
+      toast.success(data?.message || 'Pickup retry submitted')
+      refreshList()
+    } catch (err) {
+      const code = String(err?.data?.code || err?.response?.data?.code || '')
+      const msg =
+        err?.data?.message ||
+        err?.response?.data?.message ||
+        err?.message ||
+        'Pickup retry failed'
+      if (code === 'PICKUP_RETRY_NOT_APPLICABLE') {
+        toast.error(msg || 'Retry not applicable — open order and use Ship now')
+      } else {
+        toast.error(msg)
+      }
+      refreshList()
+    }
   }
 
   const runZipDownload = async (mutation, label, idsOrOpts) => {
@@ -1107,16 +1133,29 @@ export default function AdminOrdersPage() {
                               )}
                             </div>
                           ) : (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedOrderId(id)
-                                setViewMode('detail')
-                              }}
-                            >
-                              View
-                            </Button>
+                            <div className="admin-row-actions">
+                              {canAdminRetryPickupOrderRow(order) ? (
+                                <Button
+                                  variant="primary"
+                                  size="sm"
+                                  disabled={retryPickup.isPending || bulkBusy}
+                                  onClick={() => handleRetryPickup(id)}
+                                  title="Retry failed pickup on Shiprocket"
+                                >
+                                  {retryPickup.isPending ? '…' : 'Retry pickup'}
+                                </Button>
+                              ) : null}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedOrderId(id)
+                                  setViewMode('detail')
+                                }}
+                              >
+                                View
+                              </Button>
+                            </div>
                           )}
                         </td>
                         <td className="admin-orders-table__center">

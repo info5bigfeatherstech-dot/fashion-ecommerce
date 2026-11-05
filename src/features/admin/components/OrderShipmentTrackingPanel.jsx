@@ -255,6 +255,17 @@ export function OrderShipmentTrackingPanel({
           </div>
         ) : null}
 
+        {ops?.opsState === 'PICKUP_EXCEPTION' ? (
+          <div className="od-banner od-banner--warn" role="status">
+            Pickup exception — use Retry pickup in Logistics
+            {ops?.actionCapabilities?.retryPickup
+              ? ' (same provider shipment)'
+              : ''}
+            {ops?.courierOpsLine2 ? `, or review: ${ops.courierOpsLine2}` : ''}.
+            Courier / AWB below refresh after sync.
+          </div>
+        ) : null}
+
         <div className="od-tracking__timeline-section">
           <div className="od-tracking__timeline-head">
             <p className="od-field-label">Carrier timeline</p>
