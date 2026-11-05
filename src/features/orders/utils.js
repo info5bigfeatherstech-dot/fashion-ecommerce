@@ -58,6 +58,24 @@ export function getOrderStatusLabel(status) {
   return ORDER_STATUS_LABELS[key] || status || 'Unknown'
 }
 
+/** Storefront tracking badge / milestones — common stages only (no carrier scan strings). */
+const CUSTOMER_TRACKING_STATUS_LABELS = {
+  pending: 'Order Placed',
+  confirmed: 'Confirmed',
+  processing: 'Picked Up',
+  shipped: 'In Transit',
+  out_for_delivery: 'Out for Delivery',
+  delivered: 'Delivered',
+  cancelled: 'Cancelled',
+  payment_failed: 'Payment failed',
+  return_requested: 'Return requested',
+}
+
+export function getCustomerTrackingStatusLabel(status) {
+  const key = String(status || '').toLowerCase()
+  return CUSTOMER_TRACKING_STATUS_LABELS[key] || getOrderStatusLabel(status)
+}
+
 export function getPaymentStatusLabel(status) {
   const key = String(status || '').toLowerCase()
   return PAYMENT_STATUS_LABELS[key] || status || 'Unknown'
@@ -410,13 +428,16 @@ export function textMentionsShippingAggregator(value) {
 }
 
 /**
- * Customer-safe courier label. Hides aggregator / provider keys; keeps real carriers (Delhivery, etc.).
+ * Customer-safe courier label — real assigned courier (matches AWB).
+ * Hides aggregator / provider keys; keeps carriers (Delhivery, etc.).
  * Never fall back to shippingProvider — that field is shiprocket|shipmozo.
+ * Shipping ₹ stay quote-frozen separately on order.deliveryCharges.
  */
 export function getCustomerSafeCourierName(trackingOrShipment) {
   const raw = String(
     trackingOrShipment?.courier ||
       trackingOrShipment?.courierName ||
+      trackingOrShipment?.assignedCourier ||
       ''
   ).trim()
   if (!raw) return null

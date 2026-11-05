@@ -9,14 +9,14 @@ import { useOrderTracking } from '../hooks'
 import {
   formatOrderDate,
   getCustomerSafeCourierName,
-  getCustomerSafeProviderStatus,
-  getOrderStatusLabel,
+  getCustomerTrackingStatusLabel,
 } from '../utils'
 
+/** Common customer milestones only — no raw carrier / provider scan labels. */
 const TRACKING_MILESTONES = [
   { key: 'placed', label: 'Order Placed' },
-  { key: 'confirmed', label: 'Order Confirmed' },
-  { key: 'processing', label: 'Packed & Ready' },
+  { key: 'confirmed', label: 'Confirmed' },
+  { key: 'processing', label: 'Picked Up' },
   { key: 'shipped', label: 'In Transit' },
   { key: 'out_for_delivery', label: 'Out for Delivery' },
   { key: 'delivered', label: 'Delivered' },
@@ -28,7 +28,7 @@ export function OrderTrackerSection({ orderId, order, className = '' }) {
   })
   const [copied, setCopied] = useState(false)
 
-  // Merge API tracking data with order shipment fallback (no detailed timeline for customers)
+  // Merge API tracking with order shipment fallback. Courier = assigned (matches AWB).
   const tracking = trackingData || (order?.shipmentInfo
     ? {
         orderId,
@@ -36,7 +36,6 @@ export function OrderTrackerSection({ orderId, order, className = '' }) {
         trackingNumber: order.shipmentInfo.trackingNumber || order.shipmentInfo.awbCode,
         courier: order.shipmentInfo.courier,
         estimatedDelivery: order.shipmentInfo.estimatedDelivery,
-        providerStatus: order.shipmentInfo.providerStatus,
       }
     : null)
 
@@ -50,12 +49,6 @@ export function OrderTrackerSection({ orderId, order, className = '' }) {
   const currentStatus = String(
     tracking?.currentStatus || order?.orderStatus || 'pending'
   ).toLowerCase()
-
-  const providerStatus = getCustomerSafeProviderStatus(
-    tracking?.providerStatus ||
-      tracking?.statusSummary?.headline ||
-      order?.shipmentInfo?.providerStatus
-  )
 
   const courier = getCustomerSafeCourierName(tracking || order?.shipmentInfo)
 
@@ -103,12 +96,8 @@ export function OrderTrackerSection({ orderId, order, className = '' }) {
             <div className="order-tracker-status-meta">
               <span className="order-tracker-status-badge">
                 <Truck size={14} />
-                {getOrderStatusLabel(currentStatus)}
+                {getCustomerTrackingStatusLabel(currentStatus)}
               </span>
-
-              {providerStatus ? (
-                <span className="order-tracker-provider-badge">{providerStatus}</span>
-              ) : null}
             </div>
 
             <div className="order-tracker-info-grid">

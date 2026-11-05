@@ -899,13 +899,17 @@ export function AdminOrderDetailView({
 
               <div className="od-courier-grid">
                 <div>
-                  <p className="od-field-label">Quoted courier</p>
+                  <p className="od-field-label">Quoted courier (checkout)</p>
                   <p className="od-field-value">
-                    {ship.quotedCourierName || ship.preferredCourier || ship.courier || '—'}
+                    {ship.courierSubstitutedFromName ||
+                      order?.shippingSnapshot?.courierName ||
+                      ship.quotedCourierName ||
+                      ship.preferredCourier ||
+                      '—'}
                   </p>
                 </div>
                 <div>
-                  <p className="od-field-label">Assigned courier</p>
+                  <p className="od-field-label">Assigned courier (label / AWB)</p>
                   <p className="od-field-value">
                     {hasCarrierAwb
                       ? (ship.courier || 'Assigned')
@@ -920,7 +924,31 @@ export function AdminOrderDetailView({
                     </p>
                   </div>
                 ) : null}
+                <div>
+                  <p className="od-field-label">Customer shipping (quote)</p>
+                  <p className="od-field-value">
+                    {Number(order?.customerFacing?.deliveryInr ?? order?.deliveryCharges) === 0
+                      ? 'FREE'
+                      : formatInr(order?.customerFacing?.deliveryInr ?? order?.deliveryCharges)}
+                  </p>
+                </div>
+                {order?.shippingSnapshot?.freightInr != null &&
+                Number.isFinite(Number(order.shippingSnapshot.freightInr)) ? (
+                  <div>
+                    <p className="od-field-label">Quote freight (internal)</p>
+                    <p className="od-field-value">{formatInr(order.shippingSnapshot.freightInr)}</p>
+                  </div>
+                ) : null}
               </div>
+              {ship.courierSubstitutedFromName &&
+              ship.courier &&
+              String(ship.courierSubstitutedFromName).toLowerCase() !==
+                String(ship.courier).toLowerCase() ? (
+                <p className="od-muted" style={{ marginTop: 8 }}>
+                  Courier substituted for booking. Custom label prints assigned courier + AWB;
+                  customer shipping charges stay at checkout quote.
+                </p>
+              ) : null}
 
               {actionMsg?.surface === 'ops' || actionMsg?.surface === 'ship' || actionMsg?.surface === 'pickup' ? (
                 <div className={`od-banner od-banner--${actionMsg.type || 'ok'}`}>{actionMsg.text}</div>

@@ -13,14 +13,14 @@ import { useOrderTracking } from '../hooks'
 import {
   formatOrderDateTime,
   getCustomerSafeCourierName,
-  getCustomerSafeProviderStatus,
-  getOrderStatusLabel,
+  getCustomerTrackingStatusLabel,
 } from '../utils'
 
+/** Common customer milestones only — no raw carrier / provider scan labels. */
 const DEFAULT_STAGES = [
   { key: 'placed', label: 'Order Placed' },
   { key: 'confirmed', label: 'Confirmed' },
-  { key: 'processing', label: 'Processing & Packed' },
+  { key: 'processing', label: 'Picked Up' },
   { key: 'shipped', label: 'In Transit' },
   { key: 'out_for_delivery', label: 'Out for Delivery' },
   { key: 'delivered', label: 'Delivered' },
@@ -46,9 +46,6 @@ export function OrderTrackingModal({ open, onClose, orderId, initialTracking = n
   // Never use shippingProvider as display courier (that field is aggregator key).
   const courier = getCustomerSafeCourierName(tracking)
   const trackingNumber = tracking?.trackingNumber || tracking?.awbCode || null
-  const providerStatus = getCustomerSafeProviderStatus(
-    tracking?.providerStatus || tracking?.statusSummary?.headline
-  )
   const estimatedDelivery = tracking?.estimatedDelivery || null
 
   const stageOrder = ['pending', 'confirmed', 'processing', 'shipped', 'out_for_delivery', 'delivered']
@@ -99,11 +96,8 @@ export function OrderTrackingModal({ open, onClose, orderId, initialTracking = n
                 <div>
                   <span className="order-tracking-hero__badge">
                     <Truck size={14} />
-                    {getOrderStatusLabel(tracking.currentStatus || 'Processing')}
+                    {getCustomerTrackingStatusLabel(tracking.currentStatus || 'processing')}
                   </span>
-                  {providerStatus ? (
-                    <p className="order-tracking-hero__provider-status">{providerStatus}</p>
-                  ) : null}
                 </div>
 
                 <Button
