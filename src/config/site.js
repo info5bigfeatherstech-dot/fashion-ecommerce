@@ -3,6 +3,8 @@ import braceletsImage from '../assets/(6) Bracelets & Bangles.png';
 import chokerNecklaceImage from '../assets/(2) Green Beads Stone Choker Necklace with Earrings Set for Party Wedding Jewellery (1).png';
 import heartPendantNecklaceImage from '../assets/C6-009-1 Best Friend Heart Pendant Necklace Set Matching Friendship Chain for Girls  (2).png';
 import giftBoxImage from '../assets/(10) Build A Gift Box.png';
+import artificialJewelleryStarting29Image from '../assets/Artificial Jewellery Starting 29 rs only  at FabUniqo.png';
+import heavySetImage from '../assets/Heavy Set.png';
 import { SITE_CONTACT as CONTACT } from './contact'
 
 export const SITE_NAME = 'FABUNIQO'
@@ -122,7 +124,7 @@ export const HERO_SLIDES = [
     subtitle: 'From Trendsetting Korean & Western Daily Wear to Gorgeous Ethnic sets — Discover your Perfect Piece.',
     cta: 'Explore New Drops',
     href: '/shop/new-arrivals',
-    video: 'https://res.cloudinary.com/kiqmlqnj/video/upload/v1787745696/web_1.mp4',
+    video: '/web_1.mp4',
     alt: 'FABUNIQO Jewelry Collection — Trendsetting Korean & Western designs',
     // features: [
     //   {
@@ -255,7 +257,7 @@ export const CRAFTSMANSHIP_INSPECTION = {
   body: 'Our jewelry pieces are handcrafted by skilled artisans using high-quality alloys, premium stones, and fine polishes. Every piece is carefully selected to ensure everlasting shine, comfort, and timeless elegance for your special occasion.',
   ctaLabel: 'SHOP COLLECTION',
   ctaHref: '/product-all',
-  image: 'https://res.cloudinary.com/kiqmlqnj/image/upload/v1789715006/Heavy_Set.png',
+  image: heavySetImage,
   alt: 'Luxury handcrafted jewelry set on display',
   specs: [
     {
@@ -306,7 +308,7 @@ export const JEWELRY_ARCHIVE = [
     tagEyebrow: 'EVERYDAY GLAM',
     tagName: 'Trendy Daily Wear Studs',
     tagPrice: 'Starting from ₹29',
-    image: 'https://res.cloudinary.com/kiqmlqnj/image/upload/v1789714783/Artificial_Jewellery_Starting_29_rs_only_at_FabUniqo.png',
+    image: artificialJewelleryStarting29Image,
     alt: 'Artificial Jewellery Starting 29 rs only at FabUniqo',
   },
   // {

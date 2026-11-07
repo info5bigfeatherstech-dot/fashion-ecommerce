@@ -99,7 +99,7 @@ export function CraftsmanshipSection() {
 
           <Reveal delay={0.1}>
             <h3 className="craft-inspect__heading">{data.heading}</h3>
-            <p className="craft-inspect__body">{data.body}</p>
+            <p className="craft-inspect__body ">{data.body}</p>
           </Reveal>
 
           <Reveal delay={0.18} className="craft-inspect__specs">
