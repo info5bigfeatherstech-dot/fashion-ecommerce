@@ -76,7 +76,10 @@ export function CouponInput({
         evaluated.calculation.totalDiscount > 0
           ? ` Saved ${formatPrice(evaluated.calculation.totalDiscount)}!`
           : ''
-      toast.success(result.message || `Coupon "${evaluated.coupon.code}" applied!${savingsText}`)
+      toast.success(
+        (result.message || `Coupon "${evaluated.coupon.code}" applied!${savingsText}`)
+        + ' Free shipping won’t stack with this code.'
+      )
 
       onCouponApplied?.(evaluated.coupon)
     } catch (err) {

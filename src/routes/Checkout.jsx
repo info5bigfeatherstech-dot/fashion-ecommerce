@@ -1110,9 +1110,11 @@ export default function Checkout() {
         setAppliedCouponCode(result.code)
         setCouponInput(result.code)
         if (!silent) {
+          const savings =
+            result.discount > 0 ? ` · saved ${formatPrice(result.discount)}` : ''
           toast.success(
             result.message
-            || `Referral ${result.code} applied${result.discount > 0 ? ` · saved ${formatPrice(result.discount)}` : ''}`
+            || `Referral ${result.code} applied${savings}. Free shipping won’t stack with this code.`
           )
         }
       } else {
@@ -1146,7 +1148,10 @@ export default function Checkout() {
             evaluated.calculation.totalDiscount > 0
               ? ` Saved ${formatPrice(evaluated.calculation.totalDiscount)}!`
               : ''
-          toast.success(result.message || `Coupon applied!${savingsMsg}`)
+          toast.success(
+            (result.message || `Coupon applied!${savingsMsg}`)
+            + ' Free shipping won’t stack with this code.'
+          )
         }
       }
 
@@ -1524,9 +1529,14 @@ export default function Checkout() {
                           {promotionDiscount > 0 && ` · Saved ${formatPrice(promotionDiscount)}`}
                         </p>
                       )}
-                      {referralsEnabled && !appliedCouponCode ? (
+                      {!appliedCouponCode ? (
                         <p className="body-sm text-muted" style={{ marginTop: 6 }}>
-                          One offer at a time — coupon or referral. Loyalty points still work separately.
+                          One offer at a time — {referralsEnabled ? 'coupon, referral, or free-shipping offer' : 'coupon or free-shipping offer'}.
+                          {' '}Loyalty points still work separately.
+                        </p>
+                      ) : activeQuote?.freeShippingBlockedByPromo ? (
+                        <p className="body-sm text-muted" style={{ marginTop: 6 }}>
+                          Free shipping offer is not combined with this {isReferralPromo ? 'referral' : 'coupon'}. Remove the code to use free shipping instead.
                         </p>
                       ) : null}
                       {availableCoupons.length > 0 && !appliedCouponCode && (
@@ -1887,9 +1897,14 @@ export default function Checkout() {
                   <span>{formatPrice(taxes)}</span>
                 </div>
               )}
-              {Number(deliveryCharges) === 0 && activeQuote?.includesShippingAndHandling && (
+              {freeShippingApplied && activeQuote?.includesShippingAndHandling && (
                 <p className="checkout-summary__perk">Complimentary shipping on this order</p>
               )}
+              {!freeShippingApplied && activeQuote?.freeShippingBlockedByPromo && appliedCouponCode ? (
+                <p className="checkout-summary__perk" style={{ color: 'var(--color-muted)' }}>
+                  Free shipping unavailable while a {isReferralPromo ? 'referral' : 'coupon'} is applied
+                </p>
+              ) : null}
             </div>
             <div className="checkout-summary__total">
               <span>You Pay</span>

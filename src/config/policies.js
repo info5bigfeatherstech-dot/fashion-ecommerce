@@ -154,7 +154,7 @@ export const policiesData = [
       {
         heading: "7) Coupons, Promotions, and Abuse Prevention",
         content:
-          "Coupons are subject to eligibility criteria, expiry, usage caps, minimum order value, and account type rules.\n\nFirst-order offers are valid only for genuinely eligible users as per platform checks.\n\nWe reserve the right to revoke discounts or block accounts in case of misuse, fraud, or technical exploitation.",
+          "Coupons are subject to eligibility criteria, expiry, usage caps, minimum order value, and account type rules.\n\nOnly one promotional benefit may apply per checkout: either one coupon/referral code or an automatic campaign offer such as free shipping — not both.\n\nFirst-order offers are valid only for genuinely eligible users as per platform checks.\n\nWe reserve the right to revoke discounts or block accounts in case of misuse, fraud, or technical exploitation.",
       },
       {
         heading: "8) User Conduct",
@@ -243,7 +243,7 @@ export const policiesData = [
       {
         heading: "3) Shipping Charges",
         content:
-          "Shipping charges (if applicable) are shown during checkout before final order placement.\n\nCharges may vary based on order value, package weight/size, destination, and ongoing offers.\n\nAny promotional free-shipping conditions (if active) are applied at checkout as per campaign rules.",
+          "Shipping charges (if applicable) are shown during checkout before final order placement.\n\nCharges may vary based on order value, package weight/size, destination, and ongoing offers.\n\nAny promotional free-shipping conditions (if active) are applied at checkout as per campaign rules and are not combined with a coupon or referral code on the same order.",
       },
       {
         heading: "4) Payment Modes and Shipping Impact",
