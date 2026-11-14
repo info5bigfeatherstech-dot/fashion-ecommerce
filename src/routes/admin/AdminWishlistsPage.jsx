@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Clock, Heart, Star } from 'lucide-react'
+import { Clock, Eye, Heart, Mail, Share2, Star } from 'lucide-react'
+import { toast } from 'sonner'
 import {
   AdminEmpty,
   AdminError,
@@ -7,8 +8,15 @@ import {
   AdminPageHeader,
   extractListPayload,
 } from '@/features/admin/components/AdminUi'
+import { AdminCartDetailsModal } from '@/features/admin/components/AdminCartDetailsModal'
+import { AdminCustomerDetailsModal } from '@/features/admin/components/AdminCustomerDetailsModal'
+import { CartReminderEmailModal } from '@/features/admin/components/CartReminderEmailModal'
 import { LeadsAutoPushToggle } from '@/features/admin/components/LeadsAutoPushToggle'
 import { useAdminPopularWishlistProducts, useAdminWishlists } from '@/features/admin/hooks'
+import {
+  getCustomerPhone,
+  openWhatsAppShare,
+} from '@/features/admin/utils/whatsappShare'
 
 const LIMIT = 10
 const DAYS = 7
@@ -49,6 +57,17 @@ function userIdOfWishlist(row) {
   return row?.user?._id || row?.user?.id || row?.userId
 }
 
+function snapshotWishlistUser(row) {
+  const uid = userIdOfWishlist(row)
+  return {
+    _id: uid,
+    name: row?.user?.name || row?.userName,
+    email: row?.user?.email || row?.userEmail,
+    // Backend validates live cart; allow reminder attempt from wishlist leads.
+    cartItemsCount: row?.user?.cartItemsCount ?? row?.cartItemsCount ?? 1,
+  }
+}
+
 function extractWishlists(data) {
   if (Array.isArray(data?.data)) {
     return { items: data.data, pagination: data.pagination || {} }
@@ -67,6 +86,10 @@ export default function AdminWishlistsPage() {
   const [page, setPage] = useState(1)
   const [variant, setVariant] = useState('all')
   const [selectedIds, setSelectedIds] = useState([])
+  const [detailUser, setDetailUser] = useState(null)
+  const [cartUser, setCartUser] = useState(null)
+  const [cartReminderOpen, setCartReminderOpen] = useState(false)
+  const [cartReminderRecipients, setCartReminderRecipients] = useState([])
 
   const allQuery = useAdminWishlists({
     variant: 'all',
@@ -113,6 +136,43 @@ export default function AdminWishlistsPage() {
   const toggleSelect = (id) => {
     if (!id) return
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  const handleShareWhatsApp = (row) => {
+    const user = row?.user || {
+      name: row?.userName,
+      phone: row?.userPhone || row?.phone,
+    }
+    const result = openWhatsAppShare(user)
+    if (!result.ok) {
+      toast.warning('No valid phone number found for this customer.')
+    }
+  }
+
+  const handleSingleCartEmail = (row) => {
+    const uid = userIdOfWishlist(row)
+    if (!uid) {
+      toast.warning('No customer linked to this wishlist.')
+      return
+    }
+    setCartReminderRecipients([snapshotWishlistUser(row)])
+    setCartReminderOpen(true)
+  }
+
+  const handleViewCustomer = (row) => {
+    const uid = userIdOfWishlist(row)
+    if (!uid) {
+      toast.warning('No customer linked to this wishlist.')
+      return
+    }
+    setDetailUser({
+      ...(row.user || {}),
+      _id: uid,
+      name: row.user?.name || row.userName,
+      email: row.user?.email || row.userEmail,
+      phone: getCustomerPhone(row.user) || row.userPhone || row.phone,
+      wishlistCount: row.itemCount ?? row.items?.length ?? row.products?.length ?? 0,
+    })
   }
 
   const showList = variant !== 'popular'
@@ -191,6 +251,7 @@ export default function AdminWishlistsPage() {
                       <th>Products</th>
                       <th>Created</th>
                       {variant === 'stale' ? <th>Days Stale</th> : null}
+                      <th className="admin-leads__actions-col">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -199,6 +260,7 @@ export default function AdminWishlistsPage() {
                       const uid = userIdOfWishlist(row)
                       const name = row.user?.name || row.userName || 'Guest User'
                       const email = row.user?.email || row.userEmail || '—'
+                      const phone = getCustomerPhone(row.user) || row.userPhone || row.phone || ''
                       const itemCount = row.itemCount ?? row.items?.length ?? 0
                       const pills = productPills(row)
                       return (
@@ -217,6 +279,9 @@ export default function AdminWishlistsPage() {
                             <div className="admin-wishlists__customer">
                               <strong>{name}</strong>
                               <span>{email}</span>
+                              <span className="admin-leads__phone">
+                                {phone || 'No phone'}
+                              </span>
                             </div>
                           </td>
                           <td>
@@ -248,6 +313,44 @@ export default function AdminWishlistsPage() {
                               </span>
                             </td>
                           ) : null}
+                          <td className="admin-leads__actions-col">
+                            <div className="admin-leads__row-actions">
+                              <button
+                                type="button"
+                                className="admin-leads__row-action"
+                                onClick={() => handleSingleCartEmail(row)}
+                                disabled={!uid}
+                                title="Send cart reminder email"
+                                aria-label="Send cart reminder email"
+                              >
+                                <Mail size={15} />
+                              </button>
+                              <button
+                                type="button"
+                                className="admin-leads__row-action admin-leads__row-action--share"
+                                onClick={() => handleShareWhatsApp(row)}
+                                disabled={!phone}
+                                title={
+                                  phone
+                                    ? `Share via WhatsApp (${phone})`
+                                    : 'No phone number available'
+                                }
+                                aria-label="Share via WhatsApp"
+                              >
+                                <Share2 size={15} />
+                              </button>
+                              <button
+                                type="button"
+                                className="admin-leads__row-action"
+                                onClick={() => handleViewCustomer(row)}
+                                disabled={!uid}
+                                title="View customer details"
+                                aria-label="View customer details"
+                              >
+                                <Eye size={15} />
+                              </button>
+                            </div>
+                          </td>
                         </tr>
                       )
                     })}
@@ -318,6 +421,33 @@ export default function AdminWishlistsPage() {
           )}
         </div>
       )}
+
+      <AdminCustomerDetailsModal
+        open={Boolean(detailUser)}
+        onClose={() => setDetailUser(null)}
+        userId={detailUser ? (detailUser._id || detailUser.id) : null}
+        initialUser={detailUser}
+        onViewCart={(id, user) => {
+          setDetailUser(null)
+          setCartUser(user || { _id: id, id })
+        }}
+      />
+
+      <AdminCartDetailsModal
+        open={Boolean(cartUser)}
+        onClose={() => setCartUser(null)}
+        userId={cartUser ? (cartUser._id || cartUser.id) : null}
+        fallbackUser={cartUser}
+      />
+
+      <CartReminderEmailModal
+        open={cartReminderOpen}
+        onClose={() => {
+          setCartReminderOpen(false)
+          setCartReminderRecipients([])
+        }}
+        recipients={cartReminderRecipients}
+      />
     </div>
   )
 }

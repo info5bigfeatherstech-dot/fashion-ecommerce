@@ -23817,7 +23817,15 @@ a.cart-item__name:hover {
   transition: opacity 0.15s ease;
 }
 
-.admin-leads__table tbody tr:hover .admin-leads__row-actions {
+.admin-leads__table tbody tr:hover .admin-leads__row-actions,
+.admin-carts__table tbody tr:hover .admin-leads__row-actions,
+.admin-wishlists__table tbody tr:hover .admin-leads__row-actions {
+  opacity: 1;
+}
+
+/* Carts / Wishlists: always show WhatsApp action (same affordance as Customers hover) */
+.admin-carts .admin-leads__row-actions,
+.admin-wishlists .admin-leads__row-actions {
   opacity: 1;
 }
 

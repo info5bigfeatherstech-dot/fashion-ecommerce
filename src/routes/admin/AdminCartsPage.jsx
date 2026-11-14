@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Clock, Crosshair, Eye, ShoppingCart } from 'lucide-react'
+import { Clock, Crosshair, Eye, Mail, Share2, ShoppingCart } from 'lucide-react'
+import { toast } from 'sonner'
 import {
   AdminEmpty,
   AdminError,
@@ -8,8 +9,14 @@ import {
   extractListPayload,
 } from '@/features/admin/components/AdminUi'
 import { AdminCartDetailsModal } from '@/features/admin/components/AdminCartDetailsModal'
+import { AdminCustomerDetailsModal } from '@/features/admin/components/AdminCustomerDetailsModal'
+import { CartReminderEmailModal } from '@/features/admin/components/CartReminderEmailModal'
 import { LeadsAutoPushToggle } from '@/features/admin/components/LeadsAutoPushToggle'
 import { useAdminCarts } from '@/features/admin/hooks'
+import {
+  getCustomerPhone,
+  openWhatsAppShare,
+} from '@/features/admin/utils/whatsappShare'
 
 const LIMIT = 10
 const MIN_AMOUNT = 5000
@@ -51,6 +58,17 @@ function userIdOfCart(cart) {
   return cart?.user?._id || cart?.user?.id || cart?.userId
 }
 
+function snapshotCartUser(cart) {
+  const uid = userIdOfCart(cart)
+  const itemCount = cart?.itemCount ?? cart?.items?.length ?? 0
+  return {
+    _id: uid,
+    name: cart?.user?.name || cart?.userName,
+    email: cart?.user?.email || cart?.userEmail,
+    cartItemsCount: itemCount,
+  }
+}
+
 function extractCarts(data) {
   if (Array.isArray(data?.data)) {
     return { items: data.data, pagination: data.pagination || {} }
@@ -63,6 +81,10 @@ export default function AdminCartsPage() {
   const [variant, setVariant] = useState('all')
   const [selectedIds, setSelectedIds] = useState([])
   const [activeCartId, setActiveCartId] = useState(null)
+  const [cartUser, setCartUser] = useState(null)
+  const [detailUser, setDetailUser] = useState(null)
+  const [cartReminderOpen, setCartReminderOpen] = useState(false)
+  const [cartReminderRecipients, setCartReminderRecipients] = useState([])
 
   const allQuery = useAdminCarts({ variant: 'all', page: variant === 'all' ? page : 1, limit: LIMIT })
   const abandonedQuery = useAdminCarts({
@@ -105,6 +127,51 @@ export default function AdminCartsPage() {
   const toggleSelect = (id) => {
     if (!id) return
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  const handleShareWhatsApp = (cart, event) => {
+    event?.stopPropagation?.()
+    const user = cart?.user || {
+      name: cart?.userName,
+      phone: cart?.userPhone || cart?.phone,
+    }
+    const result = openWhatsAppShare(user)
+    if (!result.ok) {
+      toast.warning('No valid phone number found for this customer.')
+    }
+  }
+
+  const handleSingleCartEmail = (cart, event) => {
+    event?.stopPropagation?.()
+    const uid = userIdOfCart(cart)
+    const itemCount = cart?.itemCount ?? cart?.items?.length ?? 0
+    if (!uid) {
+      toast.warning('No customer linked to this cart.')
+      return
+    }
+    if (itemCount === 0) {
+      toast.warning('This customer has an empty cart.')
+      return
+    }
+    setCartReminderRecipients([snapshotCartUser(cart)])
+    setCartReminderOpen(true)
+  }
+
+  const handleViewCustomer = (cart, event) => {
+    event?.stopPropagation?.()
+    const uid = userIdOfCart(cart)
+    if (!uid) {
+      toast.warning('No customer linked to this cart.')
+      return
+    }
+    setDetailUser({
+      ...(cart.user || {}),
+      _id: uid,
+      name: cart.user?.name || cart.userName,
+      email: cart.user?.email || cart.userEmail,
+      phone: getCustomerPhone(cart.user) || cart.userPhone || cart.phone,
+      cartItemsCount: cart.itemCount ?? cart.items?.length ?? 0,
+    })
   }
 
   return (
@@ -174,6 +241,7 @@ export default function AdminCartsPage() {
                   <th>Items</th>
                   <th>Total Amount</th>
                   <th>Last Updated</th>
+                  <th className="admin-leads__actions-col">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -182,6 +250,7 @@ export default function AdminCartsPage() {
                   const uid = userIdOfCart(cart)
                   const name = cart.user?.name || cart.userName || 'Guest User'
                   const email = cart.user?.email || cart.userEmail || '—'
+                  const phone = getCustomerPhone(cart.user) || cart.userPhone || cart.phone || ''
                   const itemCount = cart.itemCount ?? cart.items?.length ?? 0
                   return (
                     <tr
@@ -203,6 +272,9 @@ export default function AdminCartsPage() {
                         <div className="admin-carts__customer">
                           <strong>{name}</strong>
                           <span>{email}</span>
+                          <span className="admin-leads__phone">
+                            {phone || 'No phone'}
+                          </span>
                         </div>
                       </td>
                       <td>
@@ -228,6 +300,51 @@ export default function AdminCartsPage() {
                         <div className="admin-carts__updated">
                           <span>{formatDate(cart.updatedAt)}</span>
                           <small>{formatTime(cart.updatedAt)}</small>
+                        </div>
+                      </td>
+                      <td
+                        className="admin-leads__actions-col"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="admin-leads__row-actions">
+                          <button
+                            type="button"
+                            className="admin-leads__row-action"
+                            onClick={(e) => handleSingleCartEmail(cart, e)}
+                            disabled={!(itemCount > 0) || !uid}
+                            title={
+                              itemCount > 0
+                                ? 'Send cart reminder email'
+                                : 'Empty cart — no reminder email'
+                            }
+                            aria-label="Send cart reminder email"
+                          >
+                            <Mail size={15} />
+                          </button>
+                          <button
+                            type="button"
+                            className="admin-leads__row-action admin-leads__row-action--share"
+                            onClick={(e) => handleShareWhatsApp(cart, e)}
+                            disabled={!phone}
+                            title={
+                              phone
+                                ? `Share via WhatsApp (${phone})`
+                                : 'No phone number available'
+                            }
+                            aria-label="Share via WhatsApp"
+                          >
+                            <Share2 size={15} />
+                          </button>
+                          <button
+                            type="button"
+                            className="admin-leads__row-action"
+                            onClick={(e) => handleViewCustomer(cart, e)}
+                            disabled={!uid}
+                            title="View customer details"
+                            aria-label="View customer details"
+                          >
+                            <Eye size={15} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -262,9 +379,35 @@ export default function AdminCartsPage() {
       </div>
 
       <AdminCartDetailsModal
-        open={Boolean(activeCartId)}
-        onClose={() => setActiveCartId(null)}
+        open={Boolean(activeCartId) || Boolean(cartUser)}
+        onClose={() => {
+          setActiveCartId(null)
+          setCartUser(null)
+        }}
         cartId={activeCartId}
+        userId={cartUser ? (cartUser._id || cartUser.id) : null}
+        fallbackUser={cartUser}
+      />
+
+      <AdminCustomerDetailsModal
+        open={Boolean(detailUser)}
+        onClose={() => setDetailUser(null)}
+        userId={detailUser ? (detailUser._id || detailUser.id) : null}
+        initialUser={detailUser}
+        onViewCart={(id, user) => {
+          setDetailUser(null)
+          setActiveCartId(null)
+          setCartUser(user || { _id: id, id })
+        }}
+      />
+
+      <CartReminderEmailModal
+        open={cartReminderOpen}
+        onClose={() => {
+          setCartReminderOpen(false)
+          setCartReminderRecipients([])
+        }}
+        recipients={cartReminderRecipients}
       />
     </div>
   )
