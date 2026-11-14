@@ -10142,18 +10142,17 @@ a.cart-item__name:hover {
 
 .pdp-gallery__main {
   position: relative;
-  /* Adaptive: JS sets --pdp-gallery-aspect from the active image (square / portrait / landscape). */
-  aspect-ratio: var(--pdp-gallery-aspect, 1);
+  /* Stable 1:1 frame — no height jump between thumbs. */
+  aspect-ratio: 1 / 1;
   width: 100%;
   height: auto !important;
   max-width: 520px;
-  max-height: min(720px, 78vh);
+  max-height: 520px;
   overflow: hidden;
   border-radius: var(--radius-sm);
   background-color: var(--color-neutral);
   touch-action: pan-y pinch-zoom;
   cursor: crosshair;
-  transition: aspect-ratio 180ms ease;
 }
 
 .pdp-gallery__empty {
@@ -10167,23 +10166,11 @@ a.cart-item__name:hover {
   width: 100%;
   height: 100%;
   max-width: none;
+  object-fit: cover;
   object-position: center;
   display: block;
   pointer-events: none;
   animation: pdpFadeIn 0.3s ease-out;
-}
-
-/* Square product shots: fill frame (classic PDP look). */
-.pdp-gallery--square .pdp-gallery__main img,
-.pdp-gallery[data-fit='cover'] .pdp-gallery__main img {
-  object-fit: cover;
-}
-
-/* Tall / wide creatives: show full image inside adaptive frame. */
-.pdp-gallery--portrait .pdp-gallery__main img,
-.pdp-gallery--landscape .pdp-gallery__main img,
-.pdp-gallery[data-fit='contain'] .pdp-gallery__main img {
-  object-fit: contain;
 }
 
 @keyframes pdpFadeIn {
@@ -10206,14 +10193,15 @@ a.cart-item__name:hover {
   z-index: 10;
 }
 
-/* Side-by-side zoom preview (size set inline from main frame). */
+/* Side-by-side zoom preview (square). */
 .pdp-gallery__zoom-window {
   position: absolute;
   left: calc(100% + var(--space-4));
   top: 0;
+  aspect-ratio: 1 / 1;
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
-  background-color: var(--color-neutral);
+  background-color: var(--color-white);
   box-shadow: 0 20px 48px rgba(20, 18, 15, 0.2);
   overflow: hidden;
   z-index: 100;
@@ -10226,6 +10214,7 @@ a.cart-item__name:hover {
   left: 0;
   max-width: none !important;
   max-height: none !important;
+  object-fit: cover !important;
   object-position: center;
   pointer-events: none;
   will-change: transform;
