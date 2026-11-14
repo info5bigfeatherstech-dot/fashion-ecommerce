@@ -10150,7 +10150,9 @@ a.cart-item__name:hover {
   height: 100%;
   aspect-ratio: 1 / 1 !important;
   max-width: none;
-  object-fit: cover;
+  /* Fit-to-frame: full image visible (no side crop). Square photos still fill cleanly. */
+  object-fit: contain;
+  object-position: center;
   display: block;
   pointer-events: none;
   animation: pdpFadeIn 0.3s ease-out;
@@ -10184,7 +10186,7 @@ a.cart-item__name:hover {
   aspect-ratio: 1 / 1 !important;
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
-  background-color: var(--color-white);
+  background-color: var(--color-neutral);
   box-shadow: 0 20px 48px rgba(20, 18, 15, 0.2);
   overflow: hidden;
   z-index: 100;
@@ -10197,7 +10199,8 @@ a.cart-item__name:hover {
   left: 0;
   max-width: none !important;
   max-height: none !important;
-  object-fit: cover !important;
+  object-fit: contain !important;
+  object-position: center;
   pointer-events: none;
   will-change: transform;
 }

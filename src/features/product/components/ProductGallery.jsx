@@ -271,5 +271,3 @@ export function ProductGallery({ images = [], name }) {
     </div>
   )
 }
-
-
