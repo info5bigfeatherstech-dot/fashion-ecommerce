@@ -1,46 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 
 const FALLBACK_IMAGE = ''
+
 const SWIPE_THRESHOLD = 48
 
-/** Near-square band — keep classic 1:1 product-shot look. */
-const SQUARE_MIN = 0.92
-const SQUARE_MAX = 1.08
-/** Clamp extreme ratios so PDP layout stays usable. */
-const PORTRAIT_MIN_RATIO = 0.68 // ~2:3 tall
-const LANDSCAPE_MAX_RATIO = 1.45 // ~3:2 wide
-
-const DEFAULT_FRAME = Object.freeze({
-  aspect: 1,
-  fit: 'cover',
-  shape: 'square',
-})
-
-/**
- * Adaptive PDP frame from natural image size.
- * Square → 1:1 + cover. Tall/wide → clamped natural ratio + contain (full image, less gap).
- */
-function resolveGalleryFrame(naturalWidth, naturalHeight) {
-  const w = Number(naturalWidth) || 0
-  const h = Number(naturalHeight) || 0
-  if (!(w > 0) || !(h > 0)) return DEFAULT_FRAME
-
-  const ratio = w / h
-
-  if (ratio >= SQUARE_MIN && ratio <= SQUARE_MAX) {
-    return { aspect: 1, fit: 'cover', shape: 'square' }
-  }
-
-  if (ratio < SQUARE_MIN) {
-    const aspect = Math.max(PORTRAIT_MIN_RATIO, Math.min(ratio, SQUARE_MIN))
-    return { aspect, fit: 'contain', shape: 'portrait' }
-  }
-
-  const aspect = Math.min(LANDSCAPE_MAX_RATIO, Math.max(ratio, SQUARE_MAX))
-  return { aspect, fit: 'contain', shape: 'landscape' }
-}
-
-function GalleryImage({ src, alt, style, onNaturalSize }) {
+function GalleryImage({ src, alt, style }) {
   const [currentSrc, setCurrentSrc] = useState(src)
 
   useEffect(() => {
@@ -53,10 +17,6 @@ function GalleryImage({ src, alt, style, onNaturalSize }) {
       alt={alt}
       style={style}
       referrerPolicy="no-referrer"
-      onLoad={(e) => {
-        const el = e.currentTarget
-        onNaturalSize?.(el.naturalWidth, el.naturalHeight)
-      }}
       onError={() => {
         if (FALLBACK_IMAGE && currentSrc !== FALLBACK_IMAGE) setCurrentSrc(FALLBACK_IMAGE)
       }}
@@ -66,7 +26,6 @@ function GalleryImage({ src, alt, style, onNaturalSize }) {
 
 export function ProductGallery({ images = [], name }) {
   const [activeIndex, setActiveIndex] = useState(0)
-  const [frame, setFrame] = useState(DEFAULT_FRAME)
   const [isZooming, setIsZooming] = useState(false)
   const [lensState, setLensState] = useState({
     lensX: 0,
@@ -80,7 +39,6 @@ export function ProductGallery({ images = [], name }) {
   const touchStartX = useRef(null)
   const pauseRef = useRef(false)
   const thumbRefs = useRef([])
-  const frameCacheRef = useRef(new Map())
 
   const photos = images.filter(Boolean)
   const photoKey = photos.join('|')
@@ -92,37 +50,7 @@ export function ProductGallery({ images = [], name }) {
   useEffect(() => {
     setActiveIndex(0)
     setIsZooming(false)
-    frameCacheRef.current.clear()
-    setFrame(DEFAULT_FRAME)
   }, [photoKey])
-
-  useEffect(() => {
-    if (!active) {
-      setFrame(DEFAULT_FRAME)
-      return
-    }
-    const cached = frameCacheRef.current.get(active)
-    if (cached) setFrame(cached)
-  }, [active])
-
-  const handleNaturalSize = useCallback(
-    (naturalWidth, naturalHeight) => {
-      if (!active) return
-      const next = resolveGalleryFrame(naturalWidth, naturalHeight)
-      frameCacheRef.current.set(active, next)
-      setFrame((prev) => {
-        if (
-          prev.aspect === next.aspect
-          && prev.fit === next.fit
-          && prev.shape === next.shape
-        ) {
-          return prev
-        }
-        return next
-      })
-    },
-    [active]
-  )
 
   const goTo = (index) => {
     if (photos.length <= 1) return
@@ -190,10 +118,6 @@ export function ProductGallery({ images = [], name }) {
     }
   }, [safeIndex])
 
-  useEffect(() => {
-    setIsZooming(false)
-  }, [frame.aspect, frame.fit])
-
   const handleMouseMove = useCallback(
     (e) => {
       if (!mainRef.current) return
@@ -201,14 +125,9 @@ export function ProductGallery({ images = [], name }) {
       const mouseX = e.clientX - rect.left
       const mouseY = e.clientY - rect.top
 
-      const zoomWidth = Math.max(rect.width + 70, 420)
-      const zoomHeight = Math.max(
-        280,
-        Math.min(zoomWidth * (rect.height / Math.max(rect.width, 1)), 640)
-      )
-
-      const lensWidth = zoomWidth / ZOOM_SCALE
-      const lensHeight = zoomHeight / ZOOM_SCALE
+      const zoomSize = Math.max(rect.width + 70, 570)
+      const lensWidth = zoomSize / ZOOM_SCALE
+      const lensHeight = zoomSize / ZOOM_SCALE
 
       const lensX = Math.max(0, Math.min(rect.width - lensWidth, mouseX - lensWidth / 2))
       const lensY = Math.max(0, Math.min(rect.height - lensHeight, mouseY - lensHeight / 2))
@@ -220,8 +139,7 @@ export function ProductGallery({ images = [], name }) {
         lensHeight,
         mainWidth: rect.width,
         mainHeight: rect.height,
-        zoomWidth,
-        zoomHeight,
+        zoomSize,
       })
       setIsZooming(true)
     },
@@ -255,17 +173,10 @@ export function ProductGallery({ images = [], name }) {
     goTo(safeIndex + (delta > 0 ? 1 : -1))
   }
 
-  const aspectValue = Number.isFinite(frame.aspect) && frame.aspect > 0 ? frame.aspect : 1
-  const mainStyle = {
-    '--pdp-gallery-aspect': String(aspectValue),
-    aspectRatio: String(aspectValue),
-  }
-
   return (
     <div
       ref={galleryRef}
-      className={`pdp-gallery pdp-gallery--${frame.shape || 'square'}`}
-      data-fit={frame.fit || 'cover'}
+      className="pdp-gallery"
       onMouseEnter={() => {
         pauseRef.current = true
       }}
@@ -295,7 +206,6 @@ export function ProductGallery({ images = [], name }) {
       <div
         ref={mainRef}
         className="pdp-gallery__main"
-        style={mainStyle}
         onMouseMove={photos.length ? handleMouseMove : undefined}
         onMouseEnter={photos.length ? handleMouseEnter : undefined}
         onMouseLeave={photos.length ? handleMouseLeave : undefined}
@@ -303,12 +213,7 @@ export function ProductGallery({ images = [], name }) {
         onTouchEnd={photos.length ? onTouchEnd : undefined}
       >
         {active ? (
-          <GalleryImage
-            key={active}
-            src={active}
-            alt={name}
-            onNaturalSize={handleNaturalSize}
-          />
+          <GalleryImage key={active} src={active} alt={name} />
         ) : (
           <div className="pdp-gallery__empty" aria-hidden="true" />
         )}
@@ -331,8 +236,8 @@ export function ProductGallery({ images = [], name }) {
           className="pdp-gallery__zoom-window"
           aria-hidden="true"
           style={{
-            width: `${lensState.zoomWidth || lensState.mainWidth}px`,
-            height: `${lensState.zoomHeight || lensState.mainHeight || lensState.mainWidth}px`,
+            width: `${lensState.zoomSize || lensState.mainWidth}px`,
+            height: `${lensState.zoomSize || lensState.mainWidth}px`,
           }}
         >
           <img
@@ -342,7 +247,6 @@ export function ProductGallery({ images = [], name }) {
             style={{
               width: `${lensState.mainWidth * ZOOM_SCALE}px`,
               height: `${lensState.mainHeight * ZOOM_SCALE}px`,
-              objectFit: frame.fit === 'contain' ? 'contain' : 'cover',
               transform: `translate(${-lensState.lensX * ZOOM_SCALE}px, ${-lensState.lensY * ZOOM_SCALE}px)`,
             }}
             referrerPolicy="no-referrer"
