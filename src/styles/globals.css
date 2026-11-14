@@ -4650,9 +4650,8 @@ div.auth-google-btn {
     width: var(--touch-min);
     height: var(--touch-min);
     min-width: var(--touch-min);
-    margin-left: auto;
-    /* pushes it to the far right */
-    order: 4;
+    margin-left: 0;
+    order: 2;
     background: transparent;
     border: 0;
     color: var(--color-ink);
@@ -4714,19 +4713,23 @@ div.auth-google-btn {
 
   .header__utils {
     order: 3;
-    flex: 1 0 100%;
-    width: 100%;
-    justify-content: flex-start;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: 0 0 auto;
+    width: auto;
     min-width: 0;
+    z-index: 3;
   }
 
   .header__search {
     display: none;
-    order: 3;
-    flex: 1 1 auto;
+    order: 4;
+    flex: 1 0 100%;
+    width: 100%;
     min-width: 0;
     max-width: none;
-    width: auto;
     margin: 0;
   }
 
@@ -4737,6 +4740,13 @@ div.auth-google-btn {
 
   .header--search-open .header__search {
     display: block;
+    order: 4;
+    flex: 1 0 100%;
+    width: 100%;
+    padding-top: var(--space-1);
+    padding-bottom: var(--space-2);
+    position: relative;
+    z-index: 4;
   }
 
   .header--search-open .search-bar,
