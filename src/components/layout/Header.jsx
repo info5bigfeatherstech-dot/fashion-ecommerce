@@ -199,7 +199,11 @@ export function Header() {
             </Link>
 
             <div className="header__search">
-              <SearchBar iconRight autoFocus={searchOpen} />
+              <SearchBar
+                iconRight={!searchOpen}
+                autoFocus={searchOpen}
+                onClose={searchOpen ? () => setSearchOpen(false) : undefined}
+              />
             </div>
 
             <div className="header__utils">
@@ -213,7 +217,7 @@ export function Header() {
                 aria-label={searchOpen ? 'Close search' : 'Open search'}
                 aria-expanded={searchOpen}
               >
-                {searchOpen ? <X size={18} /> : <Search size={18} />}
+                <Search size={18} />
               </button>
 
               {/* Mobile-only cart button — hidden on desktop */}

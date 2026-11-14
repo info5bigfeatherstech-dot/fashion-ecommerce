@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { Search, Sparkles } from 'lucide-react'
+import { Search, Sparkles, X } from 'lucide-react'
 import { searchProducts } from '../api'
 import { searchKeys } from '../queryKeys'
 import { formatPrice } from '@/lib/utils'
 
-export function SearchBar({ className, iconRight = false, autoFocus = false }) {
+export function SearchBar({ className, iconRight = false, autoFocus = false, onClose }) {
   const [query, setQuery] = useState('')
   const [isOpen, setIsOpen] = useState(false)
   const navigate = useNavigate()
@@ -41,8 +41,14 @@ export function SearchBar({ className, iconRight = false, autoFocus = false }) {
     }
   }
 
+  const handleClose = () => {
+    setQuery('')
+    setIsOpen(false)
+    if (onClose) onClose()
+  }
+
   return (
-    <div className={`search-bar ${iconRight ? 'search-bar--icon-right' : ''} ${className || ''}`} ref={wrapperRef}>
+    <div className={`search-bar ${iconRight ? 'search-bar--icon-right' : ''} ${onClose ? 'search-bar--has-close' : ''} ${className || ''}`} ref={wrapperRef}>
       <form onSubmit={handleSubmit}>
         <Search size={16} className="search-bar__icon" />
         <input
@@ -58,6 +64,16 @@ export function SearchBar({ className, iconRight = false, autoFocus = false }) {
           onFocus={() => setIsOpen(true)}
           aria-label="Search Products"
         />
+        {onClose && (
+          <button
+            type="button"
+            className="search-bar__close"
+            onClick={handleClose}
+            aria-label="Close search"
+          >
+            <X size={18} />
+          </button>
+        )}
       </form>
       {isOpen && query.trim().length >= 2 && results.length > 0 && (
         <Autosuggest results={results} onSelect={() => setIsOpen(false)} />
