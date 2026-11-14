@@ -10166,7 +10166,8 @@ a.cart-item__name:hover {
   width: 100%;
   height: 100%;
   max-width: none;
-  object-fit: cover;
+  /* Full image visible — side/top gaps OK; never crop client creatives. */
+  object-fit: contain;
   object-position: center;
   display: block;
   pointer-events: none;
@@ -10201,7 +10202,7 @@ a.cart-item__name:hover {
   aspect-ratio: 1 / 1;
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
-  background-color: var(--color-white);
+  background-color: var(--color-neutral);
   box-shadow: 0 20px 48px rgba(20, 18, 15, 0.2);
   overflow: hidden;
   z-index: 100;
@@ -10214,7 +10215,7 @@ a.cart-item__name:hover {
   left: 0;
   max-width: none !important;
   max-height: none !important;
-  object-fit: cover !important;
+  object-fit: contain !important;
   object-position: center;
   pointer-events: none;
   will-change: transform;
