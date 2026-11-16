@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Mail, MessageSquare, MoreVertical, Share2 } from 'lucide-react'
 import {
@@ -10,6 +10,7 @@ import {
   extractListPayload,
 } from '@/features/admin/components/AdminUi'
 import { useAdminUsers } from '@/features/admin/hooks'
+import { openWhatsAppShareWithUserDetail } from '@/features/admin/utils/whatsappShare'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
@@ -60,40 +61,6 @@ function LeadAvatar({ name, email }) {
       {initials}
     </div>
   )
-}
-
-const RANDOM_WHATSAPP_MESSAGES = [
-  (name) =>
-    `Hello ${name || 'there'}! 👋 Thank you for checking out our store. How can we assist you with your shopping today?`,
-  (name) =>
-    `Hi ${name || 'there'}! ✨ We noticed your interest in our collection. Let us know if you need any recommendations or details!`,
-  (name) =>
-    `Hello ${name || 'there'}! 🛍️ We have special offers running on our top styles today. Feel free to reply if you'd like to explore!`,
-  (name) =>
-    `Hi ${name || 'there'}! 💬 Thanks for visiting us. If you have any questions about sizing, orders, or delivery, we are here to help!`,
-  (name) =>
-    `Hello ${name || 'there'}! Hope you're having a wonderful day. Let us know if we can help you find anything special today!`,
-]
-
-function formatWhatsAppPhone(phone) {
-  if (!phone) return ''
-  let digits = String(phone).replace(/\D/g, '')
-  if (!digits) return ''
-  if (digits.length === 11 && digits.startsWith('0')) {
-    digits = digits.slice(1)
-  }
-  if (digits.length === 10) {
-    digits = `91${digits}`
-  }
-  return digits
-}
-
-const STORE_URL = 'https://fabuniqo.com/'
-
-function getRandomWhatsAppMessage(name) {
-  const cleanName = name && name !== 'Customer' && name !== 'Unnamed' ? name.trim() : ''
-  const template = RANDOM_WHATSAPP_MESSAGES[Math.floor(Math.random() * RANDOM_WHATSAPP_MESSAGES.length)]
-  return template(cleanName) + '\n\n' + STORE_URL
 }
 
 function LeadRow({ lead, onAction }) {
@@ -199,6 +166,7 @@ export default function AdminLeadsPage() {
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
+  const whatsappShareInFlightRef = useRef(new Set())
 
   const { data, isLoading, isError, error, refetch } = useAdminUsers({ page, search })
   const { items: users, pagination } = useMemo(
@@ -206,17 +174,28 @@ export default function AdminLeadsPage() {
     [data]
   )
 
-  const handleAction = (action, lead) => {
+  const handleAction = async (action, lead) => {
     if (action === 'share') {
-      const rawPhone = lead?.phone || lead?.phoneNumber || lead?.phone_number
-      const cleanPhone = formatWhatsAppPhone(rawPhone)
-      if (!cleanPhone) {
-        toast.warning('No valid phone number found for this lead.')
+      const uid = lead?._id || lead?.id
+      if (!uid) {
+        toast.warning('No lead id found.')
         return
       }
-      const message = getRandomWhatsAppMessage(lead?.name)
-      const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`
-      window.open(url, '_blank', 'noopener,noreferrer')
+      if (whatsappShareInFlightRef.current.has(uid)) return
+      whatsappShareInFlightRef.current.add(uid)
+      try {
+        const result = await openWhatsAppShareWithUserDetail(lead, {
+          userId: uid,
+          context: 'cart',
+        })
+        if (!result.ok) {
+          toast.warning('No valid phone number found for this lead.')
+        }
+      } catch {
+        toast.error('Could not open WhatsApp. Please try again.')
+      } finally {
+        whatsappShareInFlightRef.current.delete(uid)
+      }
       return
     }
     console.log('Action:', action, 'Lead:', lead)

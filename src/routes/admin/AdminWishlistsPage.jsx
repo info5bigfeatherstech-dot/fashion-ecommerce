@@ -143,7 +143,15 @@ export default function AdminWishlistsPage() {
       name: row?.userName,
       phone: row?.userPhone || row?.phone,
     }
-    const result = openWhatsAppShare(user)
+    const items = Array.isArray(row?.products)
+      ? row.products
+      : (Array.isArray(row?.items) ? row.items : [])
+    const itemCount = row?.itemCount ?? items.length ?? 0
+    const result = openWhatsAppShare(user, {
+      context: 'wishlist',
+      items,
+      itemCount,
+    })
     if (!result.ok) {
       toast.warning('No valid phone number found for this customer.')
     }

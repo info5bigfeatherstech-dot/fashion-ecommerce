@@ -135,7 +135,13 @@ export default function AdminCartsPage() {
       name: cart?.userName,
       phone: cart?.userPhone || cart?.phone,
     }
-    const result = openWhatsAppShare(user)
+    const items = Array.isArray(cart?.items) ? cart.items : []
+    const itemCount = cart?.itemCount ?? items.length ?? 0
+    const result = openWhatsAppShare(user, {
+      context: 'cart',
+      items,
+      itemCount,
+    })
     if (!result.ok) {
       toast.warning('No valid phone number found for this customer.')
     }

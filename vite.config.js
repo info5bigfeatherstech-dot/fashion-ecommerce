@@ -23,9 +23,9 @@ export default defineConfig({
       },
       includeAssets: ['favicon.svg', 'favicon-192.png', 'favicon-512.png', 'apple-touch-icon.png'],
       manifest: {
-        name: 'FABUNIQO',
+        name: 'FABUNIQO — Fashion Uniquely Yours',
         short_name: 'FABUNIQO',
-        description: 'FABUNIQO — Fashion Uniquely.',
+        description: 'FABUNIQO — Fashion Uniquely Yours.',
         theme_color: '#14120f',
         background_color: '#ffffff',
         display: 'standalone',

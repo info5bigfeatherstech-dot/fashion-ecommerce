@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Bell, Download, Eye, Heart, Mail, Search, Share2, ShoppingBag, Smartphone } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -19,6 +19,7 @@ import {
   useAdminUsers,
   useExportAdminUsers,
 } from '@/features/admin/hooks'
+import { openWhatsAppShareWithUserDetail } from '@/features/admin/utils/whatsappShare'
 
 const ENGAGEMENT_FILTERS = [
   { id: 'all', label: 'All' },
@@ -54,40 +55,6 @@ function snapshotUser(user) {
     email: user?.email,
     cartItemsCount: user?.cartItemsCount || 0,
   }
-}
-
-const RANDOM_WHATSAPP_MESSAGES = [
-  (name) =>
-    `Hello ${name || 'there'}!  Thank you for checking out our store. How can we assist you with your shopping today?`,
-  (name) =>
-    `Hi ${name || 'there'}!  We noticed your interest in our collection. Let us know if you need any recommendations or details!`,
-  (name) =>
-    `Hello ${name || 'there'}!  We have special offers running on our top styles today. Feel free to reply if you'd like to explore!`,
-  (name) =>
-    `Hi ${name || 'there'}!  Thanks for visiting us. If you have any questions about sizing, orders, or delivery, we are here to help!`,
-  (name) =>
-    `Hello ${name || 'there'}! Hope you're having a wonderful day. Let us know if we can help you find anything special today!`,
-]
-
-function formatWhatsAppPhone(phone) {
-  if (!phone) return ''
-  let digits = String(phone).replace(/\D/g, '')
-  if (!digits) return ''
-  if (digits.length === 11 && digits.startsWith('0')) {
-    digits = digits.slice(1)
-  }
-  if (digits.length === 10) {
-    digits = `91${digits}`
-  }
-  return digits
-}
-
-const STORE_URL = 'https://fabuniqo.com/'
-
-function getRandomWhatsAppMessage(name) {
-  const cleanName = name && name !== 'Customer' && name !== 'Unnamed' ? name.trim() : ''
-  const template = RANDOM_WHATSAPP_MESSAGES[Math.floor(Math.random() * RANDOM_WHATSAPP_MESSAGES.length)]
-  return template(cleanName) + '\n\n' + STORE_URL
 }
 
 function NotificationsCell({ user }) {
@@ -149,6 +116,7 @@ export default function AdminCustomersPage() {
   const [cartReminderRecipients, setCartReminderRecipients] = useState([])
   const [cartPushOpen, setCartPushOpen] = useState(false)
   const [cartPushRecipients, setCartPushRecipients] = useState([])
+  const whatsappShareInFlightRef = useRef(new Set())
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -270,16 +238,27 @@ export default function AdminCustomersPage() {
     openCartReminder([snapshotUser(user)])
   }
 
-  const handleShareWhatsApp = (user) => {
-    const rawPhone = user?.phone || user?.phoneNumber || user?.phone_number
-    const cleanPhone = formatWhatsAppPhone(rawPhone)
-    if (!cleanPhone) {
-      toast.warning('No valid phone number found for this customer.')
+  const handleShareWhatsApp = async (user) => {
+    const uid = userIdOf(user)
+    if (!uid) {
+      toast.warning('No customer id found.')
       return
     }
-    const message = getRandomWhatsAppMessage(user?.name)
-    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`
-    window.open(url, '_blank', 'noopener,noreferrer')
+    if (whatsappShareInFlightRef.current.has(uid)) return
+    whatsappShareInFlightRef.current.add(uid)
+    try {
+      const result = await openWhatsAppShareWithUserDetail(user, {
+        userId: uid,
+        context: 'cart',
+      })
+      if (!result.ok) {
+        toast.warning('No valid phone number found for this customer.')
+      }
+    } catch {
+      toast.error('Could not open WhatsApp. Please try again.')
+    } finally {
+      whatsappShareInFlightRef.current.delete(uid)
+    }
   }
   const handleExport = async () => {
     try {
