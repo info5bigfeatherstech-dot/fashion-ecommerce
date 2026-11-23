@@ -24,33 +24,42 @@ function formatInlineText(text) {
   if (!text.includes('**')) return text;
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return parts.map((part, i) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
+    if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
       return (
         <strong key={i} style={{ fontWeight: '700', color: 'inherit' }}>
           {part.slice(2, -2)}
         </strong>
       );
     }
-    return part;
+    // Strip any rogue or unmatched ** stars so they never show up as raw text
+    return part.replace(/\*\*/g, '');
   });
 }
 
 function renderLineContent(line) {
+  if (!line || typeof line !== 'string') return line;
+
+  // Clean any markdown bold colons, e.g. "• **Return Request:** rest" -> "• Return Request: rest"
+  const cleanLine = line
+    .replace(/^((?:\d+[.)]|[•\-*])\s+)\*\*([^*:\n]+):\*\*/, '$1$2:')
+    .replace(/^((?:\d+[.)]|[•\-*])\s+)\*\*([^*:\n]+)\*\*:/, '$1$2:');
+
   // Bold point headings (e.g. "• Online Payments: Refund..." or "1. Cash on Delivery (COD): Available...")
-  const pointMatch = line.match(/^((?:\d+[.)]|[•\-*])\s+)([^:\n]{2,50}):\s*(.*)$/);
+  const pointMatch = cleanLine.match(/^((?:\d+[.)]|[•\-*])\s+)([^:\n]{2,50}):\s*(.*)$/);
   if (pointMatch) {
     const [, bullet, pointTitle, rest] = pointMatch;
     const cleanTitle = pointTitle.replace(/\*\*/g, '').trim();
+    const cleanRest = rest.replace(/^\*\*\s*/, '').trim();
     return (
       <>
         <span>{bullet}</span>
         <strong style={{ fontWeight: '700', color: 'inherit' }}>{cleanTitle}:</strong>
-        {rest ? ' ' : ''}
-        {formatInlineText(rest)}
+        {cleanRest ? ' ' : ''}
+        {formatInlineText(cleanRest)}
       </>
     );
   }
-  return formatInlineText(line);
+  return formatInlineText(cleanLine);
 }
 
 export function ChatWidget() {
@@ -545,7 +554,591 @@ export function ChatWidget() {
         return;
       }
 
-      // C. Support ticket
+      // B5. PIN Code Serviceability Check
+      if (q.actionType === 'CHECK_PINCODE') {
+        setLoading(true);
+        try {
+          const data = await chatbotApi.checkPincode({
+            userId: user?.id || user?._id,
+            phone: user?.phone,
+            email: user?.email,
+          });
+
+          if (data?.savedLocation && data?.serviceable !== undefined) {
+            setInputContext(null);
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `pin_ack_${Date.now()}`,
+                sender: 'bot',
+                text: data.text,
+              },
+            ]);
+            setQuickPills([
+              { id: 'check_other_pin', label: '📍 Check Another PIN Code', type: 'QUESTION', payload: { actionType: 'MANUAL_PIN_CHECK' } },
+              { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+            ]);
+          } else {
+            setInputContext('PINCODE_CHECK');
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `b_${Date.now()}`,
+                sender: 'bot',
+                text: data?.text || 'Please type your 6-digit destination PIN code (e.g. 110001, 400001) in the box below to check live courier delivery & serviceability:',
+              },
+            ]);
+            setQuickPills([
+              { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+            ]);
+            inputRef.current?.focus();
+          }
+        } catch {
+          setInputContext('PINCODE_CHECK');
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `b_${Date.now()}`,
+              sender: 'bot',
+              text: 'Please type your 6-digit destination PIN code (e.g. 110001, 400001) in the box below to check live courier delivery & serviceability:',
+            },
+          ]);
+          setQuickPills([
+            { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+          ]);
+          inputRef.current?.focus();
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
+      // B5.2 Manual PIN input pill
+      if (q.actionType === 'MANUAL_PIN_CHECK') {
+        setInputContext('PINCODE_CHECK');
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `b_${Date.now()}`,
+            sender: 'bot',
+            text: 'Please type any 6-digit destination PIN code in the message box below:',
+          },
+        ]);
+        setQuickPills([
+          { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+        ]);
+        inputRef.current?.focus();
+        return;
+      }
+
+      // B7. Check Return & Refund Status (Live DB check for logged-in user or by Order ID)
+      if (q.actionType === 'CHECK_RETURN_REFUND') {
+        setLoading(true);
+        try {
+          const data = await chatbotApi.checkReturnRefund({
+            userId: user?.id || user?._id,
+            phone: user?.phone,
+            email: user?.email,
+          });
+
+          if (data?.found && data?.text) {
+            setInputContext(null);
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `ret_ack_${Date.now()}`,
+                sender: 'bot',
+                text: data.text,
+              },
+            ]);
+            setQuickPills([
+              { id: 'check_other_order_ret', label: '🔍 Check Another Order ID', type: 'QUESTION', payload: { actionType: 'MANUAL_RETURN_CHECK' } },
+              { id: 'talk_support', label: '📞 Talk to Support', type: 'CATEGORY', payload: { key: 'support', title: 'Contact Support' } },
+              { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+            ]);
+          } else {
+            setInputContext('RETURN_CHECK');
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `b_${Date.now()}`,
+                sender: 'bot',
+                text: data?.text || 'Please enter your Order ID (e.g. #1024 or FAB-ECOMM-...) to check live return & refund status from the database:',
+              },
+            ]);
+            setQuickPills([
+              { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+            ]);
+            inputRef.current?.focus();
+          }
+        } catch {
+          setInputContext('RETURN_CHECK');
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `b_${Date.now()}`,
+              sender: 'bot',
+              text: 'Please enter your Order ID (e.g. #1024) to check your live return and refund status from the database:',
+            },
+          ]);
+          setQuickPills([
+            { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+          ]);
+          inputRef.current?.focus();
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
+      // B7.2 Manual Return Check Input
+      if (q.actionType === 'MANUAL_RETURN_CHECK') {
+        setInputContext('RETURN_CHECK');
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `b_${Date.now()}`,
+            sender: 'bot',
+            text: 'Please type your Order ID (e.g. #1024 or FAB-ECOMM-...) in the message box below:',
+          },
+        ]);
+        setQuickPills([
+          { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+        ]);
+        inputRef.current?.focus();
+        return;
+      }
+
+      // B8. Exchange for a different size or item (Live policy & recent order check from DB)
+      if (q.actionType === 'EXCHANGE_INQUIRY') {
+        setLoading(true);
+        try {
+          const data = await chatbotApi.getExchangeInquiry({
+            userId: user?.id || user?._id,
+            phone: user?.phone,
+            email: user?.email,
+          });
+
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `exch_ack_${Date.now()}`,
+              sender: 'bot',
+              text: data?.text || 'We gladly offer exchanges for size, fit, or design within 7 days of delivery.',
+            },
+          ]);
+          setQuickPills([
+            { id: 'check_ret_status', label: '🔍 Check Return / Refund Status', type: 'QUESTION', payload: { actionType: 'CHECK_RETURN_REFUND' } },
+            { id: 'talk_support', label: '📞 Talk to Support', type: 'CATEGORY', payload: { key: 'support', title: 'Contact Support' } },
+            { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+          ]);
+        } catch {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `err_exch_${Date.now()}`,
+              sender: 'bot',
+              text: 'We offer size and item exchanges within 7 days of delivery. Please reach our support team on WhatsApp at 8527054683.',
+            },
+          ]);
+          showRootPills();
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
+      // B9. COD Refund process (Live checkout settings check from DB)
+      if (q.actionType === 'COD_REFUND_INFO') {
+        setLoading(true);
+        try {
+          const data = await chatbotApi.getCodRefundInfo();
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `cod_ack_${Date.now()}`,
+              sender: 'bot',
+              text: data?.text || 'For Cash on Delivery (COD) orders, refunds are credited directly to your Bank Account or UPI ID within 24–48 hours of warehouse inspection.',
+            },
+          ]);
+          setQuickPills([
+            { id: 'check_ret_status', label: '🔍 Check Return / Refund Status', type: 'QUESTION', payload: { actionType: 'CHECK_RETURN_REFUND' } },
+            { id: 'talk_support', label: '📞 Talk to Support', type: 'CATEGORY', payload: { key: 'support', title: 'Contact Support' } },
+            { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+          ]);
+        } catch {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `err_cod_${Date.now()}`,
+              sender: 'bot',
+              text: 'For COD orders, refunds are transferred directly to your UPI ID or Bank Account within 24–48 hours of warehouse inspection.',
+            },
+          ]);
+          showRootPills();
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
+      // B10. Partial Payment Info (Live DB checkout settings check)
+      if (q.actionType === 'PARTIAL_PAYMENT_INFO') {
+        setLoading(true);
+        try {
+          const data = await chatbotApi.getPartialPaymentInfo();
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `partial_ack_${Date.now()}`,
+              sender: 'bot',
+              text: data?.text || 'Our store supports Partial Payment (30% online advance + 70% cash at delivery).',
+            },
+          ]);
+          setQuickPills([
+            { id: 'view_coupons_more', label: '🏷️ View Coupons', type: 'QUESTION', payload: { actionType: 'VIEW_COUPONS' } },
+            { id: 'free_ship_more', label: '🚚 Free Shipping Offer', type: 'QUESTION', payload: { actionType: 'FREE_SHIPPING_INFO' } },
+            { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+          ]);
+        } catch {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `err_partial_${Date.now()}`,
+              sender: 'bot',
+              text: 'Our store offers Partial Payment (30% online advance + 70% cash at delivery).',
+            },
+          ]);
+          showRootPills();
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
+      // B11. Free Shipping Info (Live DB threshold lookup)
+      if (q.actionType === 'FREE_SHIPPING_INFO') {
+        setLoading(true);
+        try {
+          const data = await chatbotApi.getFreeShippingInfo();
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `freeship_ack_${Date.now()}`,
+              sender: 'bot',
+              text: data?.text || 'Free Express Shipping is active on all orders above ₹1099 across India.',
+            },
+          ]);
+          setQuickPills([
+            { id: 'view_cheap_p', label: '🪙 Budget Pieces from ₹29', type: 'QUESTION', payload: { actionType: 'CHEAP_PRODUCTS' } },
+            { id: 'view_coupons_f', label: '🏷️ View Coupons', type: 'QUESTION', payload: { actionType: 'VIEW_COUPONS' } },
+            { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+          ]);
+        } catch {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `err_freeship_${Date.now()}`,
+              sender: 'bot',
+              text: 'Free delivery is available on all orders above ₹1099 across India.',
+            },
+          ]);
+          showRootPills();
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
+      // B12. EMI & Pay Later Info
+      if (q.actionType === 'EMI_INFO') {
+        setLoading(true);
+        try {
+          const data = await chatbotApi.getEmiInfo();
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `emi_ack_${Date.now()}`,
+              sender: 'bot',
+              text: data?.text || 'Credit Card EMI and flexible payment options are available through our payment gateway at checkout.',
+            },
+          ]);
+          setQuickPills([
+            { id: 'partial_pay_opt', label: '🪙 Partial Payment (COD)', type: 'QUESTION', payload: { actionType: 'PARTIAL_PAYMENT_INFO' } },
+            { id: 'talk_support', label: '📞 Talk to Support', type: 'CATEGORY', payload: { key: 'support', title: 'Contact Support' } },
+            { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+          ]);
+        } catch {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `err_emi_${Date.now()}`,
+              sender: 'bot',
+              text: 'Credit Card EMI is available on major bank credit cards during checkout.',
+            },
+          ]);
+          showRootPills();
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
+      // B13. Payment Safety & Security Info
+      if (q.actionType === 'PAYMENT_SAFETY_INFO') {
+        setLoading(true);
+        try {
+          const data = await chatbotApi.getPaymentSafetyInfo();
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `safe_ack_${Date.now()}`,
+              sender: 'bot',
+              text: data?.text || 'All online transactions are 100% secure with 256-bit SSL encryption and RBI-authorized gateway.',
+            },
+          ]);
+          setQuickPills([
+            { id: 'talk_support', label: '📞 Talk to Support', type: 'CATEGORY', payload: { key: 'support', title: 'Contact Support' } },
+            { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+          ]);
+        } catch {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `err_safe_${Date.now()}`,
+              sender: 'bot',
+              text: 'Transactions are 100% safe and encrypted with 256-bit SSL.',
+            },
+          ]);
+          showRootPills();
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
+      // B14. GST Tax Invoice Info (Live DB check for recent orders)
+      if (q.actionType === 'GST_INVOICE_INFO') {
+        setLoading(true);
+        try {
+          const data = await chatbotApi.getGstInvoiceInfo({
+            userId: user?.id || user?._id,
+            phone: user?.phone,
+            email: user?.email,
+          });
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `gst_ack_${Date.now()}`,
+              sender: 'bot',
+              text: data?.text || 'Yes, every order includes a legitimate GST Tax invoice sent via email and enclosed in the parcel.',
+            },
+          ]);
+          setQuickPills([
+            { id: 'talk_support', label: '📞 Talk to Support', type: 'CATEGORY', payload: { key: 'support', title: 'Contact Support' } },
+            { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+          ]);
+        } catch {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `err_gst_${Date.now()}`,
+              sender: 'bot',
+              text: 'Every order includes a formal GST tax invoice with your package.',
+            },
+          ]);
+          showRootPills();
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
+      // B15. Browse by Category (Dynamic categories & catalog products from DB)
+      if (q.actionType === 'BROWSE_CATEGORIES') {
+        setLoading(true);
+        try {
+          const catPayload = q.categoryId
+            ? { categoryId: q.categoryId, category: q.categoryName, slug: q.categorySlug }
+            : (q.categorySlug ? { slug: q.categorySlug } : (q.categoryName ? { category: q.categoryName } : {}));
+
+          const hasSelectedCategory = Boolean(q.categoryId || q.categorySlug || q.categoryName);
+          const data = await chatbotApi.browseCategories(catPayload);
+
+          if (hasSelectedCategory && data?.type === 'PRODUCTS' && data?.products?.length > 0) {
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `cat_prod_${Date.now()}`,
+                sender: 'bot',
+                text: data.text || `Here are 4 of our pieces in ${data.category || q.categoryLabel || 'this category'}:`,
+                type: 'PRODUCTS',
+                products: data.products,
+              },
+            ]);
+            setQuickPills([
+              { id: 'all_cats', label: '💍 Browse Other Categories', type: 'QUESTION', payload: { actionType: 'BROWSE_CATEGORIES' } },
+              { id: 'view_bestsellers', label: '🔥 Best Sellers', type: 'QUESTION', payload: { actionType: 'BEST_SELLERS' } },
+              { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+            ]);
+          } else {
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `cat_ack_${Date.now()}`,
+                sender: 'bot',
+                text: data?.text || 'Please choose a category below to explore our jewelry collections:',
+              },
+            ]);
+
+            const dynamicPills = [];
+            if (Array.isArray(data?.categories) && data.categories.length > 0) {
+              data.categories.forEach((c) => {
+                dynamicPills.push({
+                  id: `cat_${c.slug || c.id}`,
+                  label: `${c.emoji || '✨'} ${c.label || c.name}`,
+                  type: 'QUESTION',
+                  payload: {
+                    actionType: 'BROWSE_CATEGORIES',
+                    categoryId: c.id,
+                    categorySlug: c.slug,
+                    categoryName: c.name,
+                    categoryLabel: c.label || c.name,
+                  },
+                });
+              });
+            } else {
+              dynamicPills.push(
+                { id: 'cat_earrings', label: '✨ Earrings & Jhumkas', type: 'QUESTION', payload: { actionType: 'BROWSE_CATEGORIES', categoryName: 'Earrings & Studs', categoryLabel: 'Earrings & Jhumkas' } },
+                { id: 'cat_rings', label: '💍 Rings', type: 'QUESTION', payload: { actionType: 'BROWSE_CATEGORIES', categoryName: 'rings', categoryLabel: 'Rings' } },
+                { id: 'cat_necklaces', label: '📿 Necklaces & Pendants', type: 'QUESTION', payload: { actionType: 'BROWSE_CATEGORIES', categoryName: 'necklace-pendants', categoryLabel: 'Necklaces & Pendants' } },
+                { id: 'cat_sets', label: '💎 Necklace Sets', type: 'QUESTION', payload: { actionType: 'BROWSE_CATEGORIES', categoryName: 'Necklace Sets', categoryLabel: 'Necklace Sets' } },
+                { id: 'cat_mangalsutra', label: '⚜️ Mangalsutras', type: 'QUESTION', payload: { actionType: 'BROWSE_CATEGORIES', categoryName: 'Mangalsutra', categoryLabel: 'Mangalsutras' } },
+                { id: 'cat_bangles', label: '💫 Bangles & Bracelets', type: 'QUESTION', payload: { actionType: 'BROWSE_CATEGORIES', categoryName: 'bracelets-bangles', categoryLabel: 'Bangles & Bracelets' } },
+                { id: 'cat_anklets', label: '🌸 Anklets & Toe Rings', type: 'QUESTION', payload: { actionType: 'BROWSE_CATEGORIES', categoryName: 'Anklets & Toe Rings', categoryLabel: 'Anklets & Toe Rings' } },
+                { id: 'cat_nath', label: '👑 Nath & Nose Rings', type: 'QUESTION', payload: { actionType: 'BROWSE_CATEGORIES', categoryName: 'Nath & Nose Rings', categoryLabel: 'Nath & Nose Rings' } }
+              );
+            }
+            dynamicPills.push({ id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' });
+            setQuickPills(dynamicPills);
+          }
+        } catch {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `err_cat_${Date.now()}`,
+              sender: 'bot',
+              text: 'Browse our jewelry collections: Earrings, Necklaces, Rings, Bangles & Bracelets.',
+            },
+          ]);
+          showRootPills();
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
+      // B16. Jewelry Care: Will it tarnish or fade (Live DB check for anti-tarnish micro-plating & alloy)
+      if (q.actionType === 'JEWELRY_CARE_INFO') {
+        setLoading(true);
+        try {
+          const data = await chatbotApi.getJewelryCareInfo();
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `care_ack_${Date.now()}`,
+              sender: 'bot',
+              text: data?.text || 'Our jewelry is crafted with premium anti-tarnish micro-plating. Keep away from water and perfumes to maintain shine.',
+            },
+          ]);
+          setQuickPills([
+            { id: 'hypo_more', label: '🌿 Skin-Friendly & Hypoallergenic', type: 'QUESTION', payload: { actionType: 'HYPOALLERGENIC_INFO' } },
+            { id: 'gift_more', label: '🎁 Gift Packaging & Cards', type: 'QUESTION', payload: { actionType: 'GIFT_PACKAGING_INFO' } },
+            { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+          ]);
+        } catch {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `err_care_${Date.now()}`,
+              sender: 'bot',
+              text: 'Our jewelry features protective anti-tarnish micro-plating and stays bright with proper care.',
+            },
+          ]);
+          showRootPills();
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
+      // B17. Gift Packaging & Personalized Message Cards (Live DB check for free gift offers & store settings)
+      if (q.actionType === 'GIFT_PACKAGING_INFO') {
+        setLoading(true);
+        try {
+          const data = await chatbotApi.getGiftPackagingInfo();
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `gift_ack_${Date.now()}`,
+              sender: 'bot',
+              text: data?.text || 'Every item is delivered in a luxury rigid gift box with velvet cushioning and complimentary gift note.',
+            },
+          ]);
+          setQuickPills([
+            { id: 'browse_cats', label: '💍 Browse by Category', type: 'QUESTION', payload: { actionType: 'BROWSE_CATEGORIES' } },
+            { id: 'talk_support', label: '📞 Talk to Support', type: 'CATEGORY', payload: { key: 'support', title: 'Contact Support' } },
+            { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+          ]);
+        } catch {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `err_gift_${Date.now()}`,
+              sender: 'bot',
+              text: 'Every order comes in a signature luxury gift box with free personalized message card support.',
+            },
+          ]);
+          showRootPills();
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
+      // B18. Skin-Friendly & Hypoallergenic (Live DB check for nickel-free & lead-free alloys)
+      if (q.actionType === 'HYPOALLERGENIC_INFO') {
+        setLoading(true);
+        try {
+          const data = await chatbotApi.getHypoallergenicInfo();
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `hypo_ack_${Date.now()}`,
+              sender: 'bot',
+              text: data?.text || 'All our jewelry is 100% skin-friendly, lead-free and nickel-free, safe for sensitive skin.',
+            },
+          ]);
+          setQuickPills([
+            { id: 'care_more', label: '✨ Jewelry Care: Will it tarnish?', type: 'QUESTION', payload: { actionType: 'JEWELRY_CARE_INFO' } },
+            { id: 'browse_cats', label: '💍 Browse by Category', type: 'QUESTION', payload: { actionType: 'BROWSE_CATEGORIES' } },
+            { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+          ]);
+        } catch {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `err_hypo_${Date.now()}`,
+              sender: 'bot',
+              text: 'Our jewelry is 100% nickel-free and lead-free, designed to be completely safe for sensitive skin.',
+            },
+          ]);
+          showRootPills();
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
       if (q.actionType === 'RAISE_TICKET') {
         setInputContext('TICKET_MSG');
         setMessages((prev) => [
@@ -730,6 +1323,82 @@ export function ChatWidget() {
       } finally {
         setLoading(false);
         showRootPills();
+      }
+      return;
+    }
+
+    // 2B. PIN Code Serviceability Check Input
+    if (inputContext === 'PINCODE_CHECK') {
+      setInputContext(null);
+      setLoading(true);
+
+      try {
+        const data = await chatbotApi.checkPincode({ pincode: query });
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `pin_ack_${Date.now()}`,
+            sender: 'bot',
+            text: data.text || 'PIN code verification completed.',
+          },
+        ]);
+        setQuickPills([
+          { id: 'check_other_pin', label: '📍 Check Another PIN Code', type: 'QUESTION', payload: { actionType: 'MANUAL_PIN_CHECK' } },
+          { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+        ]);
+      } catch (err) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `err_pin_${Date.now()}`,
+            sender: 'bot',
+            text: err?.message || 'Could not verify PIN code serviceability. Please try again.',
+          },
+        ]);
+        showRootPills();
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // 2C. Live Return & Refund Status Check by typed Order ID
+    if (inputContext === 'RETURN_CHECK') {
+      setInputContext(null);
+      setLoading(true);
+
+      try {
+        const data = await chatbotApi.checkReturnRefund({
+          query,
+          userId: user?.id || user?._id,
+          phone: user?.phone,
+          email: user?.email,
+        });
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `ret_ack_${Date.now()}`,
+            sender: 'bot',
+            text: data.text || 'Return status details loaded.',
+          },
+        ]);
+        setQuickPills([
+          { id: 'check_other_ret', label: '🔍 Check Another Order ID', type: 'QUESTION', payload: { actionType: 'MANUAL_RETURN_CHECK' } },
+          { id: 'talk_agent', label: '📞 Talk to Support', type: 'CATEGORY', payload: { key: 'support', title: 'Contact Support' } },
+          { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+        ]);
+      } catch (err) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `err_ret_${Date.now()}`,
+            sender: 'bot',
+            text: err?.message || 'Could not verify return status right now. Please try again or message support.',
+          },
+        ]);
+        showRootPills();
+      } finally {
+        setLoading(false);
       }
       return;
     }

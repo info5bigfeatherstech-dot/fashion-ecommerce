@@ -38,6 +38,71 @@ export const chatbotApi = {
   getCoupons: () => fetchJson(`${BASE_URL}/coupons`),
   getCheaperProducts: () => fetchJson(`${BASE_URL}/cheaper-products`),
   getExpensiveProducts: () => fetchJson(`${BASE_URL}/expensive-products`),
+  checkPincode: (payload) =>
+    fetchJson(`${BASE_URL}/check-pincode`, {
+      method: 'POST',
+      body: JSON.stringify(typeof payload === 'string' ? { pincode: payload } : (payload || {})),
+    }),
+  checkReturnRefund: (payload) =>
+    fetchJson(`${BASE_URL}/check-return-refund`, {
+      method: 'POST',
+      body: JSON.stringify(typeof payload === 'string' ? { query: payload } : (payload || {})),
+    }),
+  getExchangeInquiry: (payload) =>
+    fetchJson(`${BASE_URL}/exchange-inquiry`, {
+      method: 'POST',
+      body: JSON.stringify(payload || {}),
+    }),
+  getCodRefundInfo: () =>
+    fetchJson(`${BASE_URL}/cod-refund-info`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+  getPartialPaymentInfo: () =>
+    fetchJson(`${BASE_URL}/partial-payment-info`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+  getFreeShippingInfo: () =>
+    fetchJson(`${BASE_URL}/free-shipping-info`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+  getEmiInfo: () =>
+    fetchJson(`${BASE_URL}/emi-info`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+  getPaymentSafetyInfo: () =>
+    fetchJson(`${BASE_URL}/payment-safety-info`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+  getGstInvoiceInfo: (payload) =>
+    fetchJson(`${BASE_URL}/gst-invoice-info`, {
+      method: 'POST',
+      body: JSON.stringify(payload || {}),
+    }),
+  browseCategories: (payload) =>
+    fetchJson(`${BASE_URL}/browse-categories`, {
+      method: 'POST',
+      body: JSON.stringify(payload || {}),
+    }),
+  getJewelryCareInfo: () =>
+    fetchJson(`${BASE_URL}/jewelry-care`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+  getGiftPackagingInfo: () =>
+    fetchJson(`${BASE_URL}/gift-packaging`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+  getHypoallergenicInfo: () =>
+    fetchJson(`${BASE_URL}/hypoallergenic-info`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
   submitTicket: (payload) =>
     fetchJson(`${BASE_URL}/ticket`, {
       method: 'POST',
