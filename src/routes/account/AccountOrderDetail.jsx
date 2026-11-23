@@ -3,7 +3,9 @@ import { useCallback, useState } from 'react'
 import {
   AlertCircle,
   ArrowLeft,
+  Check,
   Clock,
+  Copy,
   CreditCard,
   Download,
   FileText,
@@ -122,6 +124,16 @@ export function AccountOrderDetail({ orderId, onBack }) {
   const [showInvoiceModal, setShowInvoiceModal] = useState(false)
   const [show24hModal, setShow24hModal] = useState(false)
   const [showReturnModal, setShowReturnModal] = useState(false)
+  const [copiedOrderId, setCopiedOrderId] = useState(false)
+
+  const handleCopyOrderId = useCallback((idToCopy) => {
+    if (!idToCopy) return
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(idToCopy).catch(() => {})
+    }
+    setCopiedOrderId(true)
+    setTimeout(() => setCopiedOrderId(false), 2000)
+  }, [])
 
   // Razorpay payment flow state
   const [showRazorpay, setShowRazorpay] = useState(false)
@@ -374,6 +386,39 @@ export function AccountOrderDetail({ orderId, onBack }) {
             <div>
               <div className="account-order-detail__id-row">
                 <h3 className="display-md">{order.orderId}</h3>
+                <button
+                  type="button"
+                  onClick={() => handleCopyOrderId(order.orderId)}
+                  title={copiedOrderId ? 'Copied Order ID!' : 'Copy Order ID'}
+                  aria-label="Copy Order ID"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '4px 8px',
+                    borderRadius: '8px',
+                    border: copiedOrderId ? '1px solid #10b981' : '1px solid #DDD7CC',
+                    backgroundColor: copiedOrderId ? '#FAF7F2' : '#FFFFFF',
+                    color: copiedOrderId ? '#059669' : '#6B6560',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                  className="hover:border-[#14120F] hover:text-[#14120F] active:scale-95"
+                >
+                  {copiedOrderId ? (
+                    <>
+                      <Check size={13} style={{ color: '#059669' }} />
+                      <span style={{ color: '#059669' }}>Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={13} />
+                      <span>Copy</span>
+                    </>
+                  )}
+                </button>
                 <OrderStatusBadge status={order.orderStatus} />
                 {(order.isGiftOrder || order.orderIntent?.type === 'gift_other' || order.orderIntentType === 'gift_other') && (
                   <span

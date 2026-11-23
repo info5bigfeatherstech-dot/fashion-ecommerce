@@ -9,6 +9,7 @@ import { AuthModal } from '@/features/auth/components/AuthModal'
 import { PhoneRequiredGate } from '@/features/auth/components/PhoneRequiredGate'
 import { AppInstallNotification } from '@/components/common/AppInstallNotification'
 import { AllowNotificationModal } from '@/components/common/AllowNotificationModal'
+import { ChatWidget } from '@/features/chatbot/components/ChatWidget'
 import { usePushNotifications } from '@/features/notifications/usePushNotifications'
 import { useAppStore } from '@/store'
 import {
@@ -253,6 +254,7 @@ export function Layout() {
       <PhoneRequiredGate />
       <AppInstallNotification />
       <AllowNotificationModal />
+      <ChatWidget />
     </>
   )
 }

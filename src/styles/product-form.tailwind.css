@@ -3,3 +3,4 @@
 @source "../features/admin/components/AdminProductModal.jsx";
 @source "../components/common/AppInstallNotification.jsx";
 @source "../components/common/AllowNotificationModal.jsx";
+@source "../features/chatbot";

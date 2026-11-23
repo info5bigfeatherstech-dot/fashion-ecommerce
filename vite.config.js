@@ -67,6 +67,11 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      '/api/chatbot': {
+        target: 'http://localhost:8082',
+        changeOrigin: true,
+        secure: false,
+      },
       '/api': {
         target: 'http://localhost:8081',
         changeOrigin: true,
