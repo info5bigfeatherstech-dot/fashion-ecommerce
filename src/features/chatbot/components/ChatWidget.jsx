@@ -108,6 +108,13 @@ export function ChatWidget() {
   const openAuthModal = useAppStore((s) => s.openAuthModal);
 
   const [isOpen, setIsOpen] = useState(false);
+  const [language, setLanguage] = useState(() => {
+    try {
+      return localStorage.getItem('chat_preferred_lang') || null;
+    } catch {
+      return null;
+    }
+  });
   const [messages, setMessages] = useState([]);
   const [categories, setCategories] = useState([]);
   const [quickPills, setQuickPills] = useState([]);
@@ -148,10 +155,25 @@ export function ChatWidget() {
     scrollToBottom();
   }, [messages, loading, quickPills]);
 
-  // Load welcome state when chat opens first time
+  const promptLanguageSelection = () => {
+    setMessages([
+      {
+        id: 'lang_select_1',
+        sender: 'bot',
+        text: 'Welcome to FABUNIQO 👋\nPlease select your preferred language / Apni pasandida bhasha chunein:',
+      },
+    ]);
+    setQuickPills([
+      { id: 'lang_en', label: 'English', type: 'SELECT_LANGUAGE', payload: 'en' },
+      { id: 'lang_hi', label: 'Hindi', type: 'SELECT_LANGUAGE', payload: 'hi' },
+    ]);
+    setInputContext(null);
+  };
+
+  // When chat opens, always prompt language selection with the two boxes if empty
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      loadInitialState();
+      promptLanguageSelection();
     }
   }, [isOpen, messages.length]);
 
@@ -159,13 +181,16 @@ export function ChatWidget() {
   const prevAuthRef = useRef(isAuthenticated);
   useEffect(() => {
     if (!prevAuthRef.current && isAuthenticated) {
+      const isHi = language === 'hi';
       if (categories.length > 0) {
         setMessages((prev) => [
           ...prev,
           {
             id: `auth_ok_${Date.now()}`,
             sender: 'bot',
-            text: 'Welcome back! You are now logged in. How can I assist you today?',
+            text: isHi
+              ? 'Swagat hai! Aap login ho chuke hain. Aaj hum aapki kya sahayata kar sakte hain?'
+              : 'Welcome back! You are now logged in. How can I assist you today?',
           },
         ]);
         setQuickPills(
@@ -178,29 +203,36 @@ export function ChatWidget() {
         );
         setInputContext(null);
       } else {
-        loadInitialState();
+        loadInitialState(language || 'en');
       }
     }
     prevAuthRef.current = isAuthenticated;
-  }, [isAuthenticated, categories]);
+  }, [isAuthenticated, categories, language]);
 
-  const loadInitialState = async () => {
+  const loadInitialState = async (forcedLang) => {
+    const lang = forcedLang || language || 'en';
     try {
       setLoading(true);
-      const data = await chatbotApi.getWelcome();
+      const data = await chatbotApi.getWelcome(lang);
       const cats = data.categories || [];
       setCategories(cats);
 
-      // Initial bot welcome bubble (matches Tidio greeting)
+      // Initial bot welcome bubble
+      const greeting =
+        data.greeting ||
+        (lang === 'hi'
+          ? 'FABUNIQO me aapka swagat hai! 👋 Aaj hum aapki kya sahayata kar sakte hain?'
+          : 'Welcome to our store 👋\nHow can I help you today?');
+
       setMessages([
         {
-          id: 'welcome_1',
+          id: `welcome_${Date.now()}`,
           sender: 'bot',
-          text: 'Welcome to our store 👋\nHow can I help you today?',
+          text: greeting,
         },
       ]);
 
-      // Pill chips (matching the Tidio layout)
+      // Pill chips
       setQuickPills(
         cats.map((c) => ({
           id: c.key,
@@ -211,19 +243,30 @@ export function ChatWidget() {
       );
       setInputContext(null);
     } catch {
-      const fallbackCats = [
-        { key: 'orders', title: 'Orders & Tracking' },
-        { key: 'products', title: 'Products & Sizing' },
-        { key: 'returns', title: 'Returns & Refunds' },
-        { key: 'payments', title: 'Payments & Offers' },
-        { key: 'support', title: 'Contact Support' },
-      ];
+      const isHi = lang === 'hi';
+      const fallbackCats = isHi
+        ? [
+            { key: 'orders', title: 'Orders & Tracking' },
+            { key: 'products', title: 'Products & Catalog' },
+            { key: 'returns', title: 'Returns & Refunds' },
+            { key: 'payments', title: 'Payments & Offers' },
+            { key: 'support', title: 'Customer Support' },
+          ]
+        : [
+            { key: 'orders', title: 'Orders & Tracking' },
+            { key: 'products', title: 'Products & Sizing' },
+            { key: 'returns', title: 'Returns & Refunds' },
+            { key: 'payments', title: 'Payments & Offers' },
+            { key: 'support', title: 'Contact Support' },
+          ];
       setCategories(fallbackCats);
       setMessages([
         {
-          id: 'welcome_1',
+          id: `welcome_${Date.now()}`,
           sender: 'bot',
-          text: 'Welcome to our store 👋\nHow can I help you today?',
+          text: isHi
+            ? 'FABUNIQO me aapka swagat hai! 👋 Aaj hum aapki kya sahayata kar sakte hain?'
+            : 'Welcome to our store 👋\nHow can I help you today?',
         },
       ]);
       setQuickPills(
@@ -239,23 +282,59 @@ export function ChatWidget() {
     }
   };
 
+  const handleToggleLanguage = (newLang) => {
+    const nextLang = newLang || (language === 'hi' ? 'en' : 'hi');
+    setLanguage(nextLang);
+    try {
+      localStorage.setItem('chat_preferred_lang', nextLang);
+    } catch {}
+    setMessages([]);
+    setInputText('');
+    setInputContext(null);
+    setQuickPills([]);
+    loadInitialState(nextLang);
+  };
+
   const handleReset = () => {
     setMessages([]);
     setInputText('');
     setInputContext(null);
     setQuickPills([]);
-    loadInitialState();
+    promptLanguageSelection();
   };
 
   // ── USER CLICKS A PILL CHIP ──
   const handlePillClick = async (pill) => {
-    // 0. If clicking Login pill
+    // 0. Language Selection Pill (runs even before login)
+    if (pill.type === 'SELECT_LANGUAGE') {
+      const selectedLang = pill.payload || 'en';
+      setLanguage(selectedLang);
+      try {
+        localStorage.setItem('chat_preferred_lang', selectedLang);
+      } catch {}
+
+      setMessages((prev) => [
+        ...prev,
+        { id: `u_${Date.now()}`, sender: 'user', text: pill.label },
+      ]);
+      setQuickPills([]);
+      loadInitialState(selectedLang);
+      return;
+    }
+
+    // 0.01 If changing language from menu
+    if (pill.type === 'CHANGE_LANGUAGE') {
+      promptLanguageSelection();
+      return;
+    }
+
+    // 0.1 If clicking Login pill
     if (pill.type === 'LOGIN') {
       openAuthModal({ mode: 'login' });
       return;
     }
 
-    // 0.1 If clicking Navigate pill (e.g. Go to Profile Orders)
+    // 0.2 If clicking Navigate pill (e.g. Go to Profile Orders)
     if (pill.type === 'NAVIGATE') {
       if (pill.payload?.path) {
         navigate(pill.payload.path);
@@ -272,29 +351,33 @@ export function ChatWidget() {
 
     // Require login if user is logged out and trying to query
     if (!isAuthenticated) {
+      const isHi = language === 'hi';
       setMessages((prev) => [
         ...prev,
         {
           id: `login_prompt_${Date.now()}`,
           sender: 'bot',
           type: 'LOGIN_REQUIRED',
-          text: 'Please log in to your account to query our assistant, track orders, or access customer support.',
+          text: isHi
+            ? 'Query karne, order track karne ya customer support access karne ke liye kripya apne account me login karein.'
+            : 'Please log in to your account to query our assistant, track orders, or access customer support.',
         },
       ]);
       setQuickPills([
-        { id: 'login_pill', label: '🔒 Log In to Continue', type: 'LOGIN' },
+        { id: 'login_pill', label: isHi ? '🔒 Login Karein' : '🔒 Log In to Continue', type: 'LOGIN' },
       ]);
       return;
     }
 
     // Back to main menu pill
     if (pill.type === 'BACK_TO_MENU') {
+      const isHi = language === 'hi';
       setMessages((prev) => [
         ...prev,
         {
           id: `b_${Date.now()}`,
           sender: 'bot',
-          text: 'What else can I help you with?',
+          text: isHi ? 'Main aur kya sahayata kar sakta hoon?' : 'What else can I help you with?',
         },
       ]);
       setQuickPills(
@@ -353,15 +436,16 @@ export function ChatWidget() {
       setLoading(true);
 
       try {
-        const data = await chatbotApi.getCategoryQuestions(cat.key);
+        const data = await chatbotApi.getCategoryQuestions(cat.key, language || 'en');
         const questions = data.questions || [];
 
+        const isHi = language === 'hi';
         setMessages((prev) => [
           ...prev,
           {
             id: `b_${Date.now()}`,
             sender: 'bot',
-            text: `Choose a question about ${cat.title}:`,
+            text: isHi ? `${cat.title} ke bare mein sawal chunein:` : `Choose a question about ${cat.title}:`,
           },
         ]);
 
@@ -380,12 +464,15 @@ export function ChatWidget() {
 
         setQuickPills(nextPills);
       } catch {
+        const isHi = language === 'hi';
         setMessages((prev) => [
           ...prev,
           {
             id: `err_${Date.now()}`,
             sender: 'bot',
-            text: 'Unable to load options. Please choose another topic.',
+            text: isHi
+              ? 'Options load nahi ho paye. Kripya doosra topic chunein.'
+              : 'Unable to load options. Please choose another topic.',
           },
         ]);
         showRootPills();
@@ -401,6 +488,7 @@ export function ChatWidget() {
 
       // A. Order tracking
       if (q.actionType === 'ORDER_TRACK') {
+        const isHi = language === 'hi';
         if (!isAuthenticated && !user?.phone && !user?.email && !user?.id && !user?._id) {
           setInputContext('ORDER_TRACK');
           setMessages((prev) => [
@@ -408,11 +496,13 @@ export function ChatWidget() {
             {
               id: `b_${Date.now()}`,
               sender: 'bot',
-              text: 'Please log in to view your orders automatically, or type your Order ID / phone number below:',
+              text: isHi
+                ? 'Apne orders automatically dekhne ke liye login karein, ya neeche apna Order ID / phone number likhein:'
+                : 'Please log in to view your orders automatically, or type your Order ID / phone number below:',
             },
           ]);
           setQuickPills([
-            { id: 'login_pill', label: '🔐 Log In to View Orders', type: 'LOGIN' },
+            { id: 'login_pill', label: isHi ? '🔐 Login Karke Orders Dekhein' : '🔐 Log In to View Orders', type: 'LOGIN' },
             { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
           ]);
           inputRef.current?.focus();
@@ -437,17 +527,17 @@ export function ChatWidget() {
                 sender: 'bot',
                 text:
                   data.orders.length === 1
-                    ? 'Here is the tracking status of your recent order:'
-                    : `Here are your ${data.orders.length} most recent orders:`,
+                    ? (isHi ? 'Aapke recent order ka live tracking status ye raha:' : 'Here is the tracking status of your recent order:')
+                    : (isHi ? `Aapke ${data.orders.length} recent orders ye rahe:` : `Here are your ${data.orders.length} most recent orders:`),
                 type: 'ORDER_RESULT',
                 orders: data.orders,
                 order: data.orders[0],
               },
             ]);
             setQuickPills([
-              { id: 'track_by_id', label: '🔍 Search by Order ID #', type: 'QUESTION', payload: { actionType: 'MANUAL_ORDER_TRACK' } },
+              { id: 'track_by_id', label: isHi ? '🔍 Order ID # se Search Karein' : '🔍 Search by Order ID #', type: 'QUESTION', payload: { actionType: 'MANUAL_ORDER_TRACK' } },
               { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
-              { id: 'talk_support', label: '📞 Talk to Support', type: 'CATEGORY', payload: { key: 'support', title: 'Contact Support' } },
+              { id: 'talk_support', label: isHi ? '📞 Support se Baat Karein' : '📞 Talk to Support', type: 'CATEGORY', payload: { key: 'support', title: isHi ? 'Customer Support' : 'Contact Support' } },
             ]);
           } else {
             setInputContext('ORDER_TRACK');
@@ -456,7 +546,9 @@ export function ChatWidget() {
               {
                 id: `b_${Date.now()}`,
                 sender: 'bot',
-                text: "We couldn't find any recent orders associated with your account. If you placed an order as a guest or with a different phone number, please enter your Order ID or phone number below:",
+                text: isHi
+                  ? 'Aapke account se juda koi recent order nahi mila. Agar aapne guest user ki tarah ya doosre phone number se order kiya tha, toh kripya apna Order ID ya phone number neeche likhein:'
+                  : "We couldn't find any recent orders associated with your account. If you placed an order as a guest or with a different phone number, please enter your Order ID or phone number below:",
               },
             ]);
             setQuickPills([
@@ -471,7 +563,9 @@ export function ChatWidget() {
             {
               id: `b_${Date.now()}`,
               sender: 'bot',
-              text: 'Please type your Order ID (e.g. #1024) or phone number in the message box below:',
+              text: isHi
+                ? 'Kripya neeche message box mein apna Order ID (jaise #1024) ya phone number likhein:'
+                : 'Please type your Order ID (e.g. #1024) or phone number in the message box below:',
             },
           ]);
           showRootPills();
@@ -483,13 +577,16 @@ export function ChatWidget() {
 
       // A2. Manual Order Tracking pill
       if (q.actionType === 'MANUAL_ORDER_TRACK') {
+        const isHi = language === 'hi';
         setInputContext('ORDER_TRACK');
         setMessages((prev) => [
           ...prev,
           {
             id: `b_${Date.now()}`,
             sender: 'bot',
-            text: 'Please type your Order ID (e.g. #FAB-ECOMM-554418) or phone number in the message box below:',
+            text: isHi
+              ? 'Kripya neeche message box mein apna Order ID (jaise #FAB-ECOMM-554418) ya phone number likhein:'
+              : 'Please type your Order ID (e.g. #FAB-ECOMM-554418) or phone number in the message box below:',
           },
         ]);
         setQuickPills([
@@ -647,13 +744,16 @@ export function ChatWidget() {
         q.actionType === 'MANUAL_PIN_CHECK' ||
         q.questionId === 'check_pincode'
       ) {
+        const isHi = language === 'hi';
         setInputContext('PINCODE_CHECK');
         setMessages((prev) => [
           ...prev,
           {
             id: `b_${Date.now()}`,
             sender: 'bot',
-            text: 'Please type the 6-digit destination PIN code (e.g. 110001, 400050, 560001) in the message box below to check live delivery & serviceability:',
+            text: isHi
+              ? 'Delivery aur serviceability check karne ke liye kripya neeche message box mein 6-digit destination PIN code (jaise 110001, 400050, 560001) likhein:'
+              : 'Please type the 6-digit destination PIN code (e.g. 110001, 400050, 560001) in the message box below to check live delivery & serviceability:',
           },
         ]);
         setQuickPills([
@@ -667,6 +767,7 @@ export function ChatWidget() {
 
       // B7. Check Return & Refund Status (Live DB check for logged-in user or by Order ID)
       if (q.actionType === 'CHECK_RETURN_REFUND') {
+        const isHi = language === 'hi';
         setLoading(true);
         try {
           const data = await chatbotApi.checkReturnRefund({
@@ -684,13 +785,13 @@ export function ChatWidget() {
                 sender: 'bot',
                 text: data.text,
                 redirectUrl: data.redirectUrl || '/account/orders',
-                redirectLabel: data.redirectLabel || 'View All Orders in Profile',
+                redirectLabel: data.redirectLabel || (isHi ? 'Apne Orders Dekhein' : 'View All Orders in Profile'),
               },
             ]);
             setQuickPills([
-              { id: 'view_profile_orders', label: '📦 Go to My Orders', type: 'NAVIGATE', payload: { path: '/account/orders' } },
-              { id: 'check_other_order_ret', label: '🔍 Check Another Order ID', type: 'QUESTION', payload: { actionType: 'MANUAL_RETURN_CHECK' } },
-              { id: 'talk_support', label: '📞 Talk to Support', type: 'CATEGORY', payload: { key: 'support', title: 'Contact Support' } },
+              { id: 'view_profile_orders', label: isHi ? '📦 Apne Orders Dekhein' : '📦 Go to My Orders', type: 'NAVIGATE', payload: { path: '/account/orders' } },
+              { id: 'check_other_order_ret', label: isHi ? '🔍 Doosra Order ID Check Karein' : '🔍 Check Another Order ID', type: 'QUESTION', payload: { actionType: 'MANUAL_RETURN_CHECK' } },
+              { id: 'talk_support', label: isHi ? '📞 Support se Baat Karein' : '📞 Talk to Support', type: 'CATEGORY', payload: { key: 'support', title: isHi ? 'Customer Support' : 'Contact Support' } },
               { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
             ]);
           } else {
@@ -700,13 +801,15 @@ export function ChatWidget() {
               {
                 id: `b_${Date.now()}`,
                 sender: 'bot',
-                text: data?.text || 'Please enter your Order ID (e.g. #1024 or FAB-ECOMM-...) to check live return & refund status from the database:',
+                text: data?.text || (isHi
+                  ? 'Live return aur refund status check karne ke liye kripya apna Order ID (jaise #1024 ya FAB-ECOMM-...) likhein:'
+                  : 'Please enter your Order ID (e.g. #1024 or FAB-ECOMM-...) to check live return & refund status from the database:'),
                 redirectUrl: data?.redirectUrl || '/account/orders',
-                redirectLabel: data?.redirectLabel || 'Go to My Orders',
+                redirectLabel: data?.redirectLabel || (isHi ? 'Apne Orders pe Jayein' : 'Go to My Orders'),
               },
             ]);
             setQuickPills([
-              { id: 'view_profile_orders', label: '📦 Go to My Orders', type: 'NAVIGATE', payload: { path: '/account/orders' } },
+              { id: 'view_profile_orders', label: isHi ? '📦 Apne Orders Dekhein' : '📦 Go to My Orders', type: 'NAVIGATE', payload: { path: '/account/orders' } },
               { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
             ]);
             inputRef.current?.focus();
@@ -718,7 +821,9 @@ export function ChatWidget() {
             {
               id: `b_${Date.now()}`,
               sender: 'bot',
-              text: 'Please enter your Order ID (e.g. #1024) to check your live return and refund status from the database:',
+              text: isHi
+                ? 'Live return aur refund status check karne ke liye kripya apna Order ID (jaise #1024) neeche likhein:'
+                : 'Please enter your Order ID (e.g. #1024) to check your live return and refund status from the database:',
             },
           ]);
           setQuickPills([
@@ -733,13 +838,16 @@ export function ChatWidget() {
 
       // B7.2 Manual Return Check Input
       if (q.actionType === 'MANUAL_RETURN_CHECK') {
+        const isHi = language === 'hi';
         setInputContext('RETURN_CHECK');
         setMessages((prev) => [
           ...prev,
           {
             id: `b_${Date.now()}`,
             sender: 'bot',
-            text: 'Please type your Order ID (e.g. #1024 or FAB-ECOMM-...) in the message box below:',
+            text: isHi
+              ? 'Kripya apna Order ID (jaise #1024 ya FAB-ECOMM-...) neeche message box mein likhein:'
+              : 'Please type your Order ID (e.g. #1024 or FAB-ECOMM-...) in the message box below:',
           },
         ]);
         setQuickPills([
@@ -755,13 +863,16 @@ export function ChatWidget() {
         q.actionType === 'DELIVERY_DISPUTE' ||
         q.questionId === 'delivered_not_received'
       ) {
+        const isHi = language === 'hi';
         setInputContext('DELIVERY_DISPUTE_CHECK');
         setMessages((prev) => [
           ...prev,
           {
             id: `b_${Date.now()}`,
             sender: 'bot',
-            text: 'Please type your Order ID (e.g. #FAB-ECOMM-187286) below so we can verify the delivery status in our database and assist you:',
+            text: isHi
+              ? 'Kripya apna Order ID (jaise #FAB-ECOMM-187286) neeche likhein taaki hum database me delivery status verify karke aapki sahayata kar sakein:'
+              : 'Please type your Order ID (e.g. #FAB-ECOMM-187286) below so we can verify the delivery status in our database and assist you:',
           },
         ]);
         setQuickPills([
@@ -1269,6 +1380,15 @@ export function ChatWidget() {
     const query = inputText.trim();
     if (!query) return;
 
+    let activeLang = language;
+    if (!activeLang) {
+      activeLang = 'en';
+      setLanguage('en');
+      try {
+        localStorage.setItem('chat_preferred_lang', 'en');
+      } catch {}
+    }
+
     setInputText('');
     setMessages((prev) => [
       ...prev,
@@ -1278,17 +1398,20 @@ export function ChatWidget() {
 
     // Require login if user is logged out and trying to query
     if (!isAuthenticated) {
+      const isHi = activeLang === 'hi';
       setMessages((prev) => [
         ...prev,
         {
           id: `login_prompt_${Date.now()}`,
           sender: 'bot',
           type: 'LOGIN_REQUIRED',
-          text: 'Please log in to your account to query our assistant, track orders, or access customer support.',
+          text: isHi
+            ? 'Query karne, order track karne ya customer support access karne ke liye kripya apne account me login karein.'
+            : 'Please log in to your account to query our assistant, track orders, or access customer support.',
         },
       ]);
       setQuickPills([
-        { id: 'login_pill', label: '🔒 Log In to Continue', type: 'LOGIN' },
+        { id: 'login_pill', label: isHi ? '🔒 Login Karein' : '🔒 Log In to Continue', type: 'LOGIN' },
       ]);
       return;
     }
@@ -1949,7 +2072,7 @@ export function ChatWidget() {
                   </h3>
                   <div className="flex items-center gap-1.5 pt-0.5 text-[11px] font-semibold text-[#14120F]/80">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                    <span>We are online! Replies instantly</span>
+                    <span>{language === 'hi' ? 'Hum online hain! Turant reply' : 'We are online! Replies instantly'}</span>
                   </div>
                 </div>
               </div>
@@ -1959,7 +2082,7 @@ export function ChatWidget() {
                 <button
                   type="button"
                   onClick={handleReset}
-                  title="Restart conversation"
+                  title={language === 'hi' ? 'Baat cheet dobara shuru karein' : 'Restart conversation'}
                   style={{ cursor: 'pointer' }}
                   className="p-2 rounded-full text-[#14120F]/80 hover:text-[#14120F] hover:bg-black/10 transition-colors"
                 >
@@ -2867,7 +2990,7 @@ export function ChatWidget() {
                       letterSpacing: '0.02em',
                     }}
                   >
-                    Assistant is typing...
+                    {language === 'hi' ? 'Assistant likh raha hai...' : 'Assistant is typing...'}
                   </span>
                 </div>
               </div>
@@ -2894,15 +3017,15 @@ export function ChatWidget() {
                       fontFamily: "var(--font-ui, 'Montserrat', sans-serif)",
                       backgroundColor: pill.type === 'LOGIN' ? '#14120F' : '#FFFFFF',
                       borderColor: 'rgb(196, 157, 64)',
-                      borderWidth: '1.5px',
+                      borderWidth: pill.type === 'SELECT_LANGUAGE' ? '2px' : '1.5px',
                       borderStyle: 'solid',
                       color: pill.type === 'LOGIN' ? '#D1A743' : '#14120F',
-                      padding: '8px 16px',
+                      padding: pill.type === 'SELECT_LANGUAGE' ? '10px 28px' : '8px 16px',
                       borderRadius: '9999px',
-                      fontSize: '12px',
-                      fontWeight: '600',
+                      fontSize: pill.type === 'SELECT_LANGUAGE' ? '13px' : '12px',
+                      fontWeight: pill.type === 'SELECT_LANGUAGE' ? '700' : '600',
                       lineHeight: '1.4',
-                      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04)',
+                      boxShadow: pill.type === 'SELECT_LANGUAGE' ? '0 3px 10px rgba(196, 157, 64, 0.15)' : '0 2px 6px rgba(0, 0, 0, 0.04)',
                       transition: 'all 0.15s ease',
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -2953,20 +3076,22 @@ export function ChatWidget() {
                 onBlur={() => setIsInputFocused(false)}
                 placeholder={
                   loading
-                    ? 'Assistant is replying...'
+                    ? (language === 'hi' ? 'Assistant reply kar raha hai...' : 'Assistant is replying...')
                     : !isAuthenticated
-                    ? 'Please log in to query...'
+                    ? (language === 'hi' ? 'Kripya login karein...' : 'Please log in to query...')
+                    : !language
+                    ? 'Bhasha chunein / Select language...'
                     : inputContext === 'ORDER_TRACK'
-                    ? 'Enter Order ID (e.g. #1024)...'
+                    ? (language === 'hi' ? 'Order ID likhein (jaise #1024 ya FAB-ECOMM)...' : 'Enter Order ID (e.g. #1024)...')
                     : inputContext === 'DELIVERY_DISPUTE_CHECK'
-                    ? 'Enter Order ID (e.g. #FAB-ECOMM-187286)...'
+                    ? (language === 'hi' ? 'Order ID likhein (jaise #FAB-ECOMM-187286)...' : 'Enter Order ID (e.g. #FAB-ECOMM-187286)...')
                     : inputContext === 'PINCODE_CHECK'
-                    ? 'Enter 6-digit PIN code (e.g. 110001)...'
+                    ? (language === 'hi' ? '6-digit PIN code likhein (jaise 110001)...' : 'Enter 6-digit PIN code (e.g. 110001)...')
                     : inputContext === 'RETURN_CHECK'
-                    ? 'Enter Order ID (e.g. #1024)...'
+                    ? (language === 'hi' ? 'Order ID likhein (jaise #1024)...' : 'Enter Order ID (e.g. #1024)...')
                     : inputContext === 'TICKET_MSG'
-                    ? 'Enter your phone/message...'
-                    : 'Enter your message...'
+                    ? (language === 'hi' ? 'Apna phone number ya message likhein...' : 'Enter your phone/message...')
+                    : (language === 'hi' ? 'Apna message likhein...' : 'Enter your message...')
                 }
                 style={{
                   backgroundColor: loading ? '#F3EFEA' : '#FAF7F2',
