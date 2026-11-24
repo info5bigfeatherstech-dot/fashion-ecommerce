@@ -11,9 +11,11 @@ import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { useOrderTracking } from '../hooks'
 import {
+  formatEstimatedDaysLabel,
   formatOrderDateTime,
   getCustomerSafeCourierName,
   getCustomerTrackingStatusLabel,
+  getOrderEstimatedDays,
 } from '../utils'
 
 /** Common customer milestones only — no raw carrier / provider scan labels. */
@@ -26,7 +28,7 @@ const DEFAULT_STAGES = [
   { key: 'delivered', label: 'Delivered' },
 ]
 
-export function OrderTrackingModal({ open, onClose, orderId, initialTracking = null }) {
+export function OrderTrackingModal({ open, onClose, orderId, order = null, initialTracking = null }) {
   const { data: trackingData, isLoading, isError, error, refetch, isFetching } = useOrderTracking(
     orderId,
     { enabled: Boolean(open && orderId) }
@@ -47,6 +49,8 @@ export function OrderTrackingModal({ open, onClose, orderId, initialTracking = n
   const courier = getCustomerSafeCourierName(tracking)
   const trackingNumber = tracking?.trackingNumber || tracking?.awbCode || null
   const estimatedDelivery = tracking?.estimatedDelivery || null
+  const estimatedDays = getOrderEstimatedDays(order, tracking)
+  const estimatedDaysLabel = formatEstimatedDaysLabel(estimatedDays)
 
   const stageOrder = ['pending', 'confirmed', 'processing', 'shipped', 'out_for_delivery', 'delivered']
   let activeIndex = stageOrder.indexOf(currentStatus)
@@ -136,6 +140,13 @@ export function OrderTrackingModal({ open, onClose, orderId, initialTracking = n
                         {copied ? 'Copied' : ''}
                       </button>
                     </span>
+                  </div>
+                ) : null}
+
+                {estimatedDaysLabel ? (
+                  <div className="order-tracking-detail-item">
+                    <span className="order-tracking-detail-item__label">Estimated Days</span>
+                    <span className="order-tracking-detail-item__val">{estimatedDaysLabel}</span>
                   </div>
                 ) : null}
 

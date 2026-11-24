@@ -7,9 +7,11 @@ import {
 } from 'lucide-react'
 import { useOrderTracking } from '../hooks'
 import {
+  formatEstimatedDaysLabel,
   formatOrderDate,
   getCustomerSafeCourierName,
   getCustomerTrackingStatusLabel,
+  getOrderEstimatedDays,
 } from '../utils'
 
 /** Common customer milestones only — no raw carrier / provider scan labels. */
@@ -64,6 +66,9 @@ export function OrderTrackerSection({ orderId, order, className = '' }) {
     order?.shipmentInfo?.estimatedDelivery ||
     order?.deliveryEstimate ||
     null
+
+  const estimatedDays = getOrderEstimatedDays(order, tracking)
+  const estimatedDaysLabel = formatEstimatedDaysLabel(estimatedDays)
 
   const stageOrder = ['pending', 'confirmed', 'processing', 'shipped', 'out_for_delivery', 'delivered']
   let activeIndex = stageOrder.indexOf(currentStatus)
@@ -128,6 +133,13 @@ export function OrderTrackerSection({ orderId, order, className = '' }) {
                 <div className="order-tracker-info-cell">
                   <span className="order-tracker-info-label">Courier</span>
                   <span className="order-tracker-info-val">{courier}</span>
+                </div>
+              ) : null}
+
+              {estimatedDaysLabel ? (
+                <div className="order-tracker-info-cell">
+                  <span className="order-tracker-info-label">Estimated Days</span>
+                  <span className="order-tracker-info-val">{estimatedDaysLabel}</span>
                 </div>
               ) : null}
 

@@ -37,6 +37,7 @@ import {
   canRequestReturn,
   canResumeOnlinePayment,
   canShow24HourOption,
+  formatEstimatedDaysLabel,
   formatOrderDate,
   formatOrderDateTime,
   getHoursRemainingIn24h,
@@ -46,6 +47,7 @@ import {
   getOrderItemProductHref,
   getOrderItemVariantLabel,
   getOrderItems,
+  getOrderEstimatedDays,
   getOrderStatusClass,
   getOrderStatusLabel,
   getPaymentStatusLabel,
@@ -265,6 +267,8 @@ export function AccountOrderDetail({ orderId, onBack }) {
   const returnActive = hasActiveReturn(order)
   const returnEligible = canRequestReturn(order)
   const cancelRefundNotice = getCancellationRefundNotice(order)
+  const estimatedDays = getOrderEstimatedDays(order)
+  const estimatedDaysLabel = formatEstimatedDaysLabel(estimatedDays)
 
   return (
     <>
@@ -484,6 +488,11 @@ export function AccountOrderDetail({ orderId, onBack }) {
                   return delivery === 0 ? 'Free' : formatPrice(delivery)
                 })()}
               </p>
+              {estimatedDaysLabel && (
+                <p className="body-xs text-muted" style={{ marginTop: '2px', fontSize: '11px' }}>
+                  ({estimatedDaysLabel})
+                </p>
+              )}
             </div>
             <div>
               <p className="account-order-detail__label">Tax</p>
@@ -725,6 +734,18 @@ export function AccountOrderDetail({ orderId, onBack }) {
                 {address?.phone && <p className="body-sm text-muted">{address.phone}</p>}
               </div>
             </div>
+            {estimatedDaysLabel && (
+              <>
+                <Separator style={{ marginBlock: 'var(--space-3)' }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Truck size={15} className="text-muted" />
+                  <p className="body-sm text-muted">
+                    Estimated Delivery Timeline:{' '}
+                    <strong style={{ color: 'var(--color-ink)' }}>{estimatedDaysLabel}</strong>
+                  </p>
+                </div>
+              </>
+            )}
             {order.deliveryEstimate && (
               <>
                 <Separator style={{ marginBlock: 'var(--space-3)' }} />
@@ -823,6 +844,7 @@ export function AccountOrderDetail({ orderId, onBack }) {
           open={showTrackingModal}
           onClose={() => setShowTrackingModal(false)}
           orderId={orderId}
+          order={order}
           initialTracking={shipment ? {
             orderId,
             currentStatus: order.orderStatus,
@@ -830,7 +852,12 @@ export function AccountOrderDetail({ orderId, onBack }) {
             courier: shipment.courier,
             estimatedDelivery: shipment.estimatedDelivery,
             providerStatus: shipment.providerStatus,
-          } : null}
+            estimatedDays: order.shippingSnapshot?.estimatedDays,
+          } : {
+            orderId,
+            currentStatus: order.orderStatus,
+            estimatedDays: order.shippingSnapshot?.estimatedDays,
+          }}
         />
       )}
 

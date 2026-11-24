@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Clock, Eye, MessageSquare, Package, Truck } from 'lucide-react'
+import { Check, Clock, Copy, Eye, MessageSquare, Package, Truck } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import {
   canResumeOnlinePayment,
@@ -74,6 +74,16 @@ export function AccountOrderCard({ order, onSelect, isHydrating = false }) {
   const [showTracking, setShowTracking] = useState(false)
   const [showChangeModal, setShowChangeModal] = useState(false)
   const [showReturnModal, setShowReturnModal] = useState(false)
+  const [copiedOrderId, setCopiedOrderId] = useState(false)
+
+  const handleCopyOrderId = (idToCopy) => {
+    if (!idToCopy) return
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(idToCopy).catch(() => {})
+    }
+    setCopiedOrderId(true)
+    setTimeout(() => setCopiedOrderId(false), 2000)
+  }
 
   const items = getOrderItems(order)
   const itemCount = getOrderItemCount(order)
@@ -196,6 +206,73 @@ export function AccountOrderCard({ order, onSelect, isHydrating = false }) {
           <OrderProductMedia item={primaryItem} label={primaryName} extraCount={extraCount} />
 
           <div className="account-order-card__content">
+            {order.orderId && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  marginBottom: '5px',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: 'monospace',
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    color: '#14120F',
+                    letterSpacing: '0.04em',
+                    backgroundColor: '#FAF7F2',
+                    border: '1px solid #DDD7CC',
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  {order.orderId.startsWith('#') ? order.orderId : `#${order.orderId}`}
+                </span>
+                <button
+                  type="button"
+                  data-order-card-stop="1"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleCopyOrderId(order.orderId)
+                  }}
+                  title={copiedOrderId ? 'Copied Order ID!' : 'Copy Order ID'}
+                  aria-label="Copy Order ID"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    padding: '2px 6px',
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    color: copiedOrderId ? '#059669' : '#6B6560',
+                    backgroundColor: copiedOrderId ? '#EAF8F1' : '#FFFFFF',
+                    border: copiedOrderId ? '1px solid #10b981' : '1px solid #DDD7CC',
+                    borderRadius: '5px',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                  className="hover:border-[#D1A743] active:scale-95"
+                >
+                  {copiedOrderId ? (
+                    <>
+                      <Check size={11} style={{ color: '#059669' }} />
+                      <span>Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={11} />
+                      <span>Copy</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+
             {primaryHref ? (
               <Link to={primaryHref} className="account-order-card__title account-order-card__product-link">
                 {primaryName}

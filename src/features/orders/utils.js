@@ -453,3 +453,49 @@ export function getCustomerSafeProviderStatus(value) {
   if (textMentionsShippingAggregator(raw)) return null
   return raw
 }
+
+/**
+ * Extract estimated days from order snapshot / metadata or tracking.
+ * Checks shippingSnapshot, shippingMeta, shipmentInfo, deliveryEstimate, etc.
+ */
+export function getOrderEstimatedDays(order, tracking = null) {
+  let days =
+    order?.shippingSnapshot?.estimatedDays ??
+    order?.shippingMeta?.estimatedDays ??
+    order?.estimatedDays ??
+    order?.shipmentInfo?.estimatedDays ??
+    tracking?.estimatedDays ??
+    tracking?.shippingSnapshot?.estimatedDays ??
+    null
+
+  if (days == null && order?.deliveryEstimate) {
+    if (typeof order.deliveryEstimate === 'string' && !isNaN(Number(order.deliveryEstimate))) {
+      days = order.deliveryEstimate
+    } else if (typeof order.deliveryEstimate === 'object') {
+      days = order.deliveryEstimate.days ?? order.deliveryEstimate.estimatedDays ?? order.deliveryEstimate.text ?? null
+    }
+  }
+
+  if (days != null && String(days).trim() !== '') {
+    return String(days).trim()
+  }
+  return null
+}
+
+/**
+ * Format estimated days into customer-friendly label, e.g. "2 business days" or "1 business day"
+ */
+export function formatEstimatedDaysLabel(days) {
+  if (!days) return null
+  const str = String(days).trim()
+  if (!str) return null
+  if (/day/i.test(str)) {
+    return str
+  }
+  const num = Number(str)
+  if (!Number.isNaN(num) && num > 0) {
+    return `${num} ${num === 1 ? 'business day' : 'business days'}`
+  }
+  return `${str} business days`
+}
+

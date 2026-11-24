@@ -254,7 +254,7 @@ export function Layout() {
       <PhoneRequiredGate />
       <AppInstallNotification />
       <AllowNotificationModal />
-      {/* <ChatWidget /> */}
+      <ChatWidget />
     </>
   )
 }

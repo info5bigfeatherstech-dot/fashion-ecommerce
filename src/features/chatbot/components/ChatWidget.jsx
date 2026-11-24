@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   MessageCircle,
   RotateCcw,
@@ -19,11 +20,49 @@ import {
 import { useAppStore } from '@/store';
 import { chatbotApi } from '../services/chatbotApi';
 
-function formatInlineText(text) {
+function formatInlineText(text, onNavigate) {
   if (!text || typeof text !== 'string') return text;
-  if (!text.includes('**')) return text;
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+
+  // Pattern matching [label](url) OR **bold**
+  const pattern = /(\[[^\]]+\]\([^)]+\)|\*\*[^*]+\*\*)/g;
+  if (!pattern.test(text)) return text.replace(/\*\*/g, '');
+
+  const parts = text.split(pattern);
   return parts.map((part, i) => {
+    if (!part) return null;
+
+    // Markdown link: [label](url)
+    const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+    if (linkMatch) {
+      const [, label, url] = linkMatch;
+      const isInternal = url.startsWith('/');
+      return (
+        <a
+          key={i}
+          href={url}
+          onClick={(e) => {
+            if (isInternal && onNavigate) {
+              e.preventDefault();
+              onNavigate(url);
+            }
+          }}
+          target={isInternal ? undefined : '_blank'}
+          rel={isInternal ? undefined : 'noopener noreferrer'}
+          style={{
+            color: '#B38728',
+            fontWeight: '600',
+            textDecoration: 'underline',
+            textUnderlineOffset: '3px',
+            cursor: 'pointer',
+          }}
+          className="hover:text-[#8C6B1F] transition-colors"
+        >
+          {label}
+        </a>
+      );
+    }
+
+    // Bold text: **text**
     if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
       return (
         <strong key={i} style={{ fontWeight: '700', color: 'inherit' }}>
@@ -31,12 +70,12 @@ function formatInlineText(text) {
         </strong>
       );
     }
-    // Strip any rogue or unmatched ** stars so they never show up as raw text
+
     return part.replace(/\*\*/g, '');
   });
 }
 
-function renderLineContent(line) {
+function renderLineContent(line, onNavigate) {
   if (!line || typeof line !== 'string') return line;
 
   // Clean any markdown bold colons, e.g. "• **Return Request:** rest" -> "• Return Request: rest"
@@ -55,14 +94,15 @@ function renderLineContent(line) {
         <span>{bullet}</span>
         <strong style={{ fontWeight: '700', color: 'inherit' }}>{cleanTitle}:</strong>
         {cleanRest ? ' ' : ''}
-        {formatInlineText(cleanRest)}
+        {formatInlineText(cleanRest, onNavigate)}
       </>
     );
   }
-  return formatInlineText(cleanLine);
+  return formatInlineText(cleanLine, onNavigate);
 }
 
 export function ChatWidget() {
+  const navigate = useNavigate();
   const isAuthenticated = useAppStore((s) => s.isAuthenticated);
   const user = useAppStore((s) => s.user);
   const openAuthModal = useAppStore((s) => s.openAuthModal);
@@ -212,6 +252,14 @@ export function ChatWidget() {
     // 0. If clicking Login pill
     if (pill.type === 'LOGIN') {
       openAuthModal({ mode: 'login' });
+      return;
+    }
+
+    // 0.1 If clicking Navigate pill (e.g. Go to Profile Orders)
+    if (pill.type === 'NAVIGATE') {
+      if (pill.payload?.path) {
+        navigate(pill.payload.path);
+      }
       return;
     }
 
@@ -605,7 +653,7 @@ export function ChatWidget() {
           {
             id: `b_${Date.now()}`,
             sender: 'bot',
-            text: 'Please type the 6-digit destination PIN code (e.g. 110001, 400050, 560001) in the message box below to check live courier delivery & serviceability:',
+            text: 'Please type the 6-digit destination PIN code (e.g. 110001, 400050, 560001) in the message box below to check live delivery & serviceability:',
           },
         ]);
         setQuickPills([
@@ -635,9 +683,12 @@ export function ChatWidget() {
                 id: `ret_ack_${Date.now()}`,
                 sender: 'bot',
                 text: data.text,
+                redirectUrl: data.redirectUrl || '/account/orders',
+                redirectLabel: data.redirectLabel || 'View All Orders in Profile',
               },
             ]);
             setQuickPills([
+              { id: 'view_profile_orders', label: '📦 Go to My Orders', type: 'NAVIGATE', payload: { path: '/account/orders' } },
               { id: 'check_other_order_ret', label: '🔍 Check Another Order ID', type: 'QUESTION', payload: { actionType: 'MANUAL_RETURN_CHECK' } },
               { id: 'talk_support', label: '📞 Talk to Support', type: 'CATEGORY', payload: { key: 'support', title: 'Contact Support' } },
               { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
@@ -650,9 +701,12 @@ export function ChatWidget() {
                 id: `b_${Date.now()}`,
                 sender: 'bot',
                 text: data?.text || 'Please enter your Order ID (e.g. #1024 or FAB-ECOMM-...) to check live return & refund status from the database:',
+                redirectUrl: data?.redirectUrl || '/account/orders',
+                redirectLabel: data?.redirectLabel || 'Go to My Orders',
               },
             ]);
             setQuickPills([
+              { id: 'view_profile_orders', label: '📦 Go to My Orders', type: 'NAVIGATE', payload: { path: '/account/orders' } },
               { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
             ]);
             inputRef.current?.focus();
@@ -902,7 +956,7 @@ export function ChatWidget() {
             {
               id: `safe_ack_${Date.now()}`,
               sender: 'bot',
-              text: data?.text || 'All online transactions are 100% secure with 256-bit SSL encryption and RBI-authorized gateway.',
+              text: data?.text || 'All online transactions are 100% safe, secure, and encrypted with bank-grade security.',
             },
           ]);
           setQuickPills([
@@ -915,7 +969,7 @@ export function ChatWidget() {
             {
               id: `err_safe_${Date.now()}`,
               sender: 'bot',
-              text: 'Transactions are 100% safe and encrypted with 256-bit SSL.',
+              text: 'All online transactions are 100% safe, secure, and encrypted with bank-grade security.',
             },
           ]);
           showRootPills();
@@ -1402,9 +1456,12 @@ export function ChatWidget() {
             id: `ret_ack_${Date.now()}`,
             sender: 'bot',
             text: data.text || 'Return status details loaded.',
+            redirectUrl: data.redirectUrl || '/account/orders',
+            redirectLabel: data.redirectLabel || 'View All Orders in Profile',
           },
         ]);
         setQuickPills([
+          { id: 'view_profile_orders', label: '📦 Go to My Orders', type: 'NAVIGATE', payload: { path: '/account/orders' } },
           { id: 'check_other_ret', label: '🔍 Check Another Order ID', type: 'QUESTION', payload: { actionType: 'MANUAL_RETURN_CHECK' } },
           { id: 'talk_agent', label: '📞 Talk to Support', type: 'CATEGORY', payload: { key: 'support', title: 'Contact Support' } },
           { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
@@ -1718,7 +1775,7 @@ export function ChatWidget() {
           {
             id: `pin_p_${Date.now()}`,
             sender: 'bot',
-            text: data.text || 'Please type the 6-digit destination PIN code (e.g. 110001, 400050, 560001) in the message box below to check live courier delivery & serviceability:',
+            text: data.text || 'Please type the 6-digit destination PIN code (e.g. 110001, 400050, 560001) in the message box below to check live delivery & serviceability:',
           },
         ]);
         setQuickPills([
@@ -1978,10 +2035,47 @@ export function ChatWidget() {
                             lineHeight: '1.55',
                           }}
                         >
-                          {renderLineContent(trimmed)}
+                          {renderLineContent(trimmed, navigate)}
                         </div>
                       );
                     })}
+
+                    {/* Direct Redirect Action Button (e.g. Go to Profile Orders) */}
+                    {msg.redirectUrl && (
+                      <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid #EAE5DC' }}>
+                        <a
+                          href={msg.redirectUrl}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (navigate) navigate(msg.redirectUrl);
+                            else window.location.href = msg.redirectUrl;
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '7px',
+                            padding: '9px 12px',
+                            backgroundColor: '#14120F',
+                            color: '#FAF7F2',
+                            borderRadius: '8px',
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            textDecoration: 'none',
+                            border: '1px solid #D1A743',
+                            cursor: 'pointer',
+                            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
+                            boxSizing: 'border-box',
+                            transition: 'all 0.15s ease',
+                          }}
+                          className="hover:bg-[#2A2621] active:scale-95"
+                        >
+                          <Package style={{ width: '13px', height: '13px', color: '#D1A743' }} />
+                          <span>{msg.redirectLabel || 'View All Orders in Profile'}</span>
+                          <ExternalLink style={{ width: '11px', height: '11px' }} />
+                        </a>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -2163,15 +2257,15 @@ export function ChatWidget() {
                   </div>
                 )}
 
-                {/* ── LUXURY COUPON CARDS ── */}
+                {/* ── COMPACT COUPON CARDS ── */}
                 {msg.type === 'COUPONS' && msg.coupons && (
                   <div
                     style={{
                       width: '100%',
-                      marginTop: '10px',
+                      marginTop: '8px',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '10px',
+                      gap: '8px',
                     }}
                   >
                     {msg.coupons.map((coupon) => {
@@ -2181,187 +2275,115 @@ export function ChatWidget() {
                           key={coupon.id || coupon.code}
                           style={{
                             backgroundColor: '#FFFFFF',
-                            border: '1.5px dashed #D1A743',
-                            borderRadius: '16px',
-                            padding: '14px 16px',
-                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                            border: '1px solid #DDD7CC',
+                            borderRadius: '10px',
+                            padding: '9px 12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '10px',
+                            boxShadow: '0 1px 4px rgba(0, 0, 0, 0.04)',
                             fontFamily: "var(--font-ui, 'Montserrat', sans-serif)",
-                            position: 'relative',
-                            overflow: 'hidden',
+                            boxSizing: 'border-box',
                           }}
                         >
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              gap: '8px',
-                              marginBottom: '8px',
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <div
-                                style={{
-                                  width: '28px',
-                                  height: '28px',
-                                  borderRadius: '8px',
-                                  backgroundColor: 'rgba(209, 167, 67, 0.12)',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  color: '#A88430',
-                                }}
-                              >
-                                <Tag style={{ width: '14px', height: '14px' }} />
-                              </div>
-                              <span style={{ fontSize: '13px', fontWeight: '700', color: '#14120F' }}>
-                                {coupon.name}
-                              </span>
-                            </div>
-                            <span
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                            <div
                               style={{
-                                backgroundColor: '#FAF7F2',
-                                color: '#A88430',
-                                border: '1px solid rgba(209, 167, 67, 0.3)',
-                                padding: '3px 9px',
-                                borderRadius: '9999px',
-                                fontSize: '11px',
-                                fontWeight: '800',
-                                letterSpacing: '0.04em',
-                                textTransform: 'uppercase',
-                              }}
-                            >
-                              {coupon.discountLabel}
-                            </span>
-                          </div>
-
-                          {coupon.description && (
-                            <p
-                              style={{
-                                margin: '0 0 10px 0',
-                                fontSize: '11px',
-                                color: '#635B54',
-                                lineHeight: '1.4',
-                              }}
-                            >
-                              {coupon.description}
-                            </p>
-                          )}
-
-                          <div
-                            style={{
-                              backgroundColor: '#FAF7F2',
-                              border: '1px solid #EDE7DD',
-                              borderRadius: '10px',
-                              padding: '8px 12px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              gap: '10px',
-                            }}
-                          >
-                            <div>
-                              <span
-                                style={{
-                                  fontSize: '9.5px',
-                                  color: '#8C827A',
-                                  textTransform: 'uppercase',
-                                  fontWeight: '700',
-                                  letterSpacing: '0.05em',
-                                  display: 'block',
-                                }}
-                              >
-                                Promo Code
-                              </span>
-                              <span
-                                style={{
-                                  fontFamily: 'monospace',
-                                  fontSize: '14px',
-                                  fontWeight: '800',
-                                  color: '#14120F',
-                                  letterSpacing: '0.08em',
-                                }}
-                              >
-                                {coupon.code}
-                              </span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleCopyCoupon(coupon.code)}
-                              style={{
-                                cursor: 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '5px',
-                                padding: '6px 12px',
-                                borderRadius: '8px',
-                                backgroundColor: isCopied ? '#EAF8F1' : '#14120F',
-                                color: isCopied ? '#0A7A48' : '#FAF7F2',
-                                border: isCopied ? '1px solid #B7E8CE' : 'none',
-                                fontSize: '11px',
-                                fontWeight: '700',
-                                transition: 'all 0.15s ease',
-                              }}
-                              className="active:scale-95 hover:opacity-90"
-                              title={isCopied ? 'Copied code!' : 'Copy promo code'}
-                            >
-                              {isCopied ? (
-                                <>
-                                  <Check style={{ width: '12px', height: '12px', color: '#0A7A48' }} />
-                                  <span>Copied!</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Copy style={{ width: '12px', height: '12px' }} />
-                                  <span>Copy</span>
-                                </>
-                              )}
-                            </button>
-                          </div>
-
-                          <div
-                            style={{
-                              marginTop: '8px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              fontSize: '10.5px',
-                              color: '#8C827A',
-                              padding: '0 2px',
-                            }}
-                          >
-                            <span>
-                              {coupon.minOrderValue > 0
-                                ? `Min order: ₹${coupon.minOrderValue}`
-                                : 'No minimum order'}
-                            </span>
-                            <span>{coupon.expiryDate ? `Valid till: ${coupon.expiryDate}` : 'No expiry'}</span>
-                          </div>
-
-                          <div style={{ marginTop: '10px' }}>
-                            <a
-                              href="/checkout"
-                              style={{
+                                width: '28px',
+                                height: '28px',
+                                borderRadius: '7px',
+                                backgroundColor: 'rgba(209, 167, 67, 0.12)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                gap: '6px',
-                                padding: '8px 12px',
-                                backgroundColor: '#FAF7F2',
-                                border: '1px solid #DDD7CC',
-                                borderRadius: '8px',
-                                color: '#14120F',
-                                fontSize: '11.5px',
-                                fontWeight: '600',
-                                textDecoration: 'none',
-                                transition: 'all 0.15s ease',
+                                color: '#A88430',
+                                flexShrink: 0,
                               }}
-                              className="hover:border-[#D1A743] hover:bg-[#FFFFFF] active:scale-95"
                             >
-                              <span>Apply at Checkout</span>
-                              <ExternalLink style={{ width: '11px', height: '11px' }} />
-                            </a>
+                              <Tag style={{ width: '13px', height: '13px' }} />
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span
+                                  style={{
+                                    fontFamily: 'monospace',
+                                    fontSize: '13.5px',
+                                    fontWeight: '800',
+                                    color: '#14120F',
+                                    letterSpacing: '0.06em',
+                                  }}
+                                >
+                                  {coupon.code}
+                                </span>
+                                {coupon.discountLabel && (
+                                  <span
+                                    style={{
+                                      backgroundColor: '#FAF7F2',
+                                      color: '#A88430',
+                                      border: '1px solid rgba(209, 167, 67, 0.35)',
+                                      padding: '1px 6px',
+                                      borderRadius: '9999px',
+                                      fontSize: '10px',
+                                      fontWeight: '800',
+                                      letterSpacing: '0.02em',
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    {coupon.discountLabel}
+                                  </span>
+                                )}
+                              </div>
+                              {coupon.name && (
+                                <span
+                                  style={{
+                                    fontSize: '10.5px',
+                                    color: '#8C827A',
+                                    display: 'block',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {coupon.name}
+                                </span>
+                              )}
+                            </div>
                           </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleCopyCoupon(coupon.code)}
+                            style={{
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '6px 12px',
+                              borderRadius: '7px',
+                              backgroundColor: isCopied ? '#EAF8F1' : '#14120F',
+                              color: isCopied ? '#0A7A48' : '#FAF7F2',
+                              border: isCopied ? '1px solid #B7E8CE' : 'none',
+                              fontSize: '11px',
+                              fontWeight: '700',
+                              flexShrink: 0,
+                              transition: 'all 0.15s ease',
+                            }}
+                            className="active:scale-95 hover:opacity-90"
+                            title={isCopied ? 'Copied code!' : 'Copy promo code'}
+                          >
+                            {isCopied ? (
+                              <>
+                                <Check style={{ width: '12px', height: '12px', color: '#0A7A48' }} />
+                                <span>Copied</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy style={{ width: '12px', height: '12px' }} />
+                                <span>Copy</span>
+                              </>
+                            )}
+                          </button>
                         </div>
                       );
                     })}
