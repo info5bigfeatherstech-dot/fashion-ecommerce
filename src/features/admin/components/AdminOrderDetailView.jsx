@@ -13,7 +13,13 @@ import { AdminError, AdminLoading } from '@/features/admin/components/AdminUi'
 import { AdminPendingAddressPanel } from '@/features/admin/components/AdminPendingAddressPanel'
 import { AdminGiftIntentPanel } from '@/features/admin/components/AdminGiftIntentPanel'
 import { AdminPendingOrderEditPanel } from '@/features/admin/components/AdminPendingOrderEditPanel'
+import { AdminPendingShippingMetricsPanel } from '@/features/admin/components/AdminPendingShippingMetricsPanel'
 import { OrderPaymentSummaryCard } from '@/features/admin/components/OrderPaymentSummaryCard'
+import {
+  resolveAdminQuotedDeliveryInr,
+  resolveAdminShippingDeltaInr,
+  resolveCheckoutDeliveryInr,
+} from '@/features/admin/utils/orderShippingMoneyDisplay'
 import { OrderShipmentTrackingPanel } from '@/features/admin/components/OrderShipmentTrackingPanel'
 import { RemovedOrderItemsSection } from '@/features/orders/components'
 import {
@@ -91,7 +97,7 @@ function buildPendingCancelConfirmMessage(order) {
 }
 
 function getDeliveryBreakdown(order) {
-  const charges = Number(order?.deliveryCharges)
+  const charges = resolveCheckoutDeliveryInr(order)
   if (Number.isFinite(charges) && charges !== 0) {
     return { mode: 'paid', amount: charges }
   }
@@ -110,8 +116,21 @@ function getDeliveryBreakdown(order) {
 
 function DeliveryTotalValue({ order }) {
   const delivery = getDeliveryBreakdown(order)
+  const adminQuoted = resolveAdminQuotedDeliveryInr(order)
+  const delta = resolveAdminShippingDeltaInr(order)
+
   if (delivery.mode === 'paid') {
-    return <strong className="od-totals__amount">{formatInr(delivery.amount)}</strong>
+    return (
+      <div className="od-totals__value-stack">
+        <strong className="od-totals__amount">{formatInr(delivery.amount)}</strong>
+        {adminQuoted != null ? (
+          <span className="od-totals__sub">
+            Admin quote {formatInr(adminQuoted)}
+            {delta != null ? ` · Δ ${formatInr(delta)}` : ''}
+          </span>
+        ) : null}
+      </div>
+    )
   }
   return (
     <div className="od-totals__value-stack">
@@ -124,6 +143,12 @@ function DeliveryTotalValue({ order }) {
       {delivery.codFee > 0 ? (
         <span className="od-totals__sub">
           <s>{formatInr(delivery.codFee)}</s> COD FREE
+        </span>
+      ) : null}
+      {adminQuoted != null ? (
+        <span className="od-totals__sub">
+          Admin quote {formatInr(adminQuoted)}
+          {delta != null ? ` · Δ ${formatInr(delta)}` : ''}
         </span>
       ) : null}
     </div>
@@ -778,6 +803,7 @@ export function AdminOrderDetailView({
         <div className="od-grid__main">
           {/* Items — editable when pending, read-only after confirm */}
           {isPendingOrder ? (
+            <>
             <AdminPendingOrderEditPanel
               order={order}
               orderId={orderId}
@@ -787,6 +813,16 @@ export function AdminOrderDetailView({
                 await refreshOrder()
               }}
             />
+            <AdminPendingShippingMetricsPanel
+              order={order}
+              orderId={orderId}
+              disabled={fulfillmentBusy}
+              onApplied={async () => {
+                setActionMsg({ type: 'ok', text: 'Package weight/dimensions updated.' })
+                await refreshOrder()
+              }}
+            />
+            </>
           ) : (
           <section className="od-card od-card--items">
             <div className="od-card__head od-card__head--items">
@@ -858,9 +894,34 @@ export function AdminOrderDetailView({
                 <strong className="od-totals__amount">{formatInr(order.tax)}</strong>
               </div>
               <div className="od-totals__row">
-                <span className="od-totals__label">Delivery</span>
+                <span className="od-totals__label">Customer delivery (locked)</span>
                 <DeliveryTotalValue order={order} />
               </div>
+              {resolveAdminQuotedDeliveryInr(order) != null ? (
+                <div className="od-totals__row od-totals__admin-ship">
+                  <span className="od-totals__label">Admin courier quote</span>
+                  <div className="od-totals__value-stack">
+                    <strong className="od-totals__amount">
+                      {Number(resolveAdminQuotedDeliveryInr(order)) === 0
+                        ? 'FREE'
+                        : formatInr(resolveAdminQuotedDeliveryInr(order))}
+                    </strong>
+                    {resolveAdminShippingDeltaInr(order) != null ? (
+                      <span
+                        className={`od-totals__sub${
+                          resolveAdminShippingDeltaInr(order) > 0.005
+                            ? ' is-up'
+                            : resolveAdminShippingDeltaInr(order) < -0.005
+                              ? ' is-down'
+                              : ''
+                        }`}
+                      >
+                        Delta {formatInr(resolveAdminShippingDeltaInr(order))} (admin only)
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
               {Number(order.discount) > 0 ? (
                 <div className="od-totals__row od-totals__discount">
                   <span className="od-totals__label">Discount</span>
@@ -868,7 +929,7 @@ export function AdminOrderDetailView({
                 </div>
               ) : null}
               <div className="od-totals__row od-totals__grand">
-                <span className="od-totals__label">Grand total</span>
+                <span className="od-totals__label">Grand total (customer)</span>
                 <strong className="od-totals__amount">{formatInr(order.totalAmount ?? order.amountInr)}</strong>
               </div>
             </div>
@@ -925,15 +986,49 @@ export function AdminOrderDetailView({
                   </div>
                 ) : null}
                 <div>
-                  <p className="od-field-label">Customer shipping (quote)</p>
+                  <p className="od-field-label">Customer shipping (locked)</p>
                   <p className="od-field-value">
-                    {Number(order?.customerFacing?.deliveryInr ?? order?.deliveryCharges) === 0
+                    {Number(resolveCheckoutDeliveryInr(order)) === 0
                       ? 'FREE'
-                      : formatInr(order?.customerFacing?.deliveryInr ?? order?.deliveryCharges)}
+                      : formatInr(resolveCheckoutDeliveryInr(order))}
+                  </p>
+                  <p className="od-muted" style={{ marginTop: 4, fontSize: 11 }}>
+                    Checkout pe customer ne jo pay kiya — hamesha yahi
                   </p>
                 </div>
-                {order?.shippingSnapshot?.freightInr != null &&
-                Number.isFinite(Number(order.shippingSnapshot.freightInr)) ? (
+                {resolveAdminQuotedDeliveryInr(order) != null ? (
+                  <div>
+                    <p className="od-field-label">Admin courier quote</p>
+                    <p className="od-field-value">
+                      {Number(resolveAdminQuotedDeliveryInr(order)) === 0
+                        ? 'FREE'
+                        : formatInr(resolveAdminQuotedDeliveryInr(order))}
+                    </p>
+                    <p className="od-muted" style={{ marginTop: 4, fontSize: 11 }}>
+                      Actual courier rate after weight/address fix (admin only)
+                    </p>
+                    {resolveAdminShippingDeltaInr(order) != null ? (
+                      <p
+                        className={`od-muted${
+                          resolveAdminShippingDeltaInr(order) > 0.005
+                            ? ' od-ship-delta--up'
+                            : resolveAdminShippingDeltaInr(order) < -0.005
+                              ? ' od-ship-delta--down'
+                              : ''
+                        }`}
+                        style={{ marginTop: 2, fontSize: 12, fontWeight: 600 }}
+                      >
+                        Delta {formatInr(resolveAdminShippingDeltaInr(order))}
+                        {resolveAdminShippingDeltaInr(order) > 0.005
+                          ? ' · merchant absorbs more'
+                          : resolveAdminShippingDeltaInr(order) < -0.005
+                            ? ' · merchant saves'
+                            : ''}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : order?.shippingSnapshot?.freightInr != null &&
+                  Number.isFinite(Number(order.shippingSnapshot.freightInr)) ? (
                   <div>
                     <p className="od-field-label">Quote freight (internal)</p>
                     <p className="od-field-value">{formatInr(order.shippingSnapshot.freightInr)}</p>

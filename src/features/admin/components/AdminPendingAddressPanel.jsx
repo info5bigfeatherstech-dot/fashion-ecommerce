@@ -461,8 +461,17 @@ export function AdminPendingAddressPanel({ order, orderId, disabled, onApplied }
               ) : (
                 <>
                   <p>
-                    Shipping: {formatInr(preview.shipping?.oldDelivery)} →{' '}
-                    {formatInr(preview.shipping?.customerDelivery)}
+                    Customer shipping (locked):{' '}
+                    {formatInr(
+                      preview.shipping?.checkoutDeliveryCharges ??
+                        preview.shipping?.customerDelivery ??
+                        preview.shipping?.oldDelivery
+                    )}
+                    {' · '}
+                    Admin quote:{' '}
+                    {formatInr(
+                      preview.shipping?.adminQuotedDeliveryInr ?? preview.shipping?.quotedDelivery
+                    )}
                     {preview.shipping?.courierName ? ` · ${preview.shipping.courierName}` : ''}
                   </p>
                   <p>

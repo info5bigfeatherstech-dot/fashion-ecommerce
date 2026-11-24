@@ -158,7 +158,17 @@ export function AdminPendingOrderEditPanel({ order, orderId, disabled, onApplied
 
   const displaySubtotal = preview?.after?.subtotal ?? order?.subtotal
   const displayTax = preview?.after?.tax ?? order?.tax
-  const displayDelivery = preview?.shipping?.customerDelivery ?? order?.deliveryCharges
+  const displayDelivery =
+    preview?.shipping?.checkoutDeliveryCharges ??
+    preview?.shipping?.customerDelivery ??
+    order?.checkoutDeliveryCharges ??
+    order?.deliveryCharges
+  const displayAdminQuoted =
+    preview?.shipping?.adminQuotedDeliveryInr ??
+    preview?.shipping?.quotedDelivery ??
+    order?.adminQuotedDeliveryInr
+  const displayAdminDelta =
+    preview?.shipping?.adminShippingDeltaInr ?? order?.adminShippingDeltaInr
   const displayTotal = preview?.after?.totalAmount ?? order?.totalAmount ?? order?.amountInr
   const displayDiscount = preview?.after?.discount ?? order?.discount
   const couponCode = order?.appliedCoupon?.code
@@ -282,7 +292,7 @@ export function AdminPendingOrderEditPanel({ order, orderId, disabled, onApplied
               <span>{formatInr(displayTax)}</span>
             </div>
             <div className="od-pending-items__row">
-              <span>Shipping</span>
+              <span>Customer shipping (locked)</span>
               <span>
                 {Number(displayDelivery) === 0 ? (
                   <span className="od-pending-items__free">FREE</span>
@@ -291,6 +301,19 @@ export function AdminPendingOrderEditPanel({ order, orderId, disabled, onApplied
                 )}
               </span>
             </div>
+            {displayAdminQuoted != null && Number.isFinite(Number(displayAdminQuoted)) ? (
+              <div className="od-pending-items__row">
+                <span>Admin courier quote</span>
+                <span>
+                  {Number(displayAdminQuoted) === 0
+                    ? 'FREE'
+                    : formatInr(displayAdminQuoted)}
+                  {displayAdminDelta != null && Number.isFinite(Number(displayAdminDelta))
+                    ? ` (Δ ${formatInr(displayAdminDelta)})`
+                    : ''}
+                </span>
+              </div>
+            ) : null}
             {Number(displayDiscount) > 0 ? (
               <div className="od-pending-items__row od-pending-items__row--discount">
                 <span>
@@ -351,8 +374,20 @@ export function AdminPendingOrderEditPanel({ order, orderId, disabled, onApplied
                 <p className="od-field-value">{formatInr(preview.after?.tax)}</p>
               </div>
               <div>
-                <p className="od-field-label">Shipping (on bill now)</p>
-                <p className="od-field-value">{formatInr(preview.shipping?.customerDelivery)}</p>
+                <p className="od-field-label">Customer shipping (locked)</p>
+                <p className="od-field-value">
+                  {formatInr(
+                    preview.shipping?.checkoutDeliveryCharges ?? preview.shipping?.customerDelivery
+                  )}
+                </p>
+              </div>
+              <div>
+                <p className="od-field-label">Admin courier quote</p>
+                <p className="od-field-value">
+                  {formatInr(
+                    preview.shipping?.adminQuotedDeliveryInr ?? preview.shipping?.quotedDelivery
+                  )}
+                </p>
               </div>
               <div>
                 <p className="od-field-label">New total</p>

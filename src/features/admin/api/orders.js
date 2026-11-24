@@ -417,6 +417,20 @@ export async function applyAdminPendingOrderEdit(orderId, { itemUpdates } = {}) 
   return unwrapAdmin(payload) || payload
 }
 
+export async function previewAdminPendingShippingMetricsEdit(orderId, { lineOverrides } = {}) {
+  const payload = await adminPost(API_ENDPOINTS.admin.orderEditPendingShippingMetricsPreview(orderId), {
+    lineOverrides,
+  })
+  return unwrapAdmin(payload) || payload
+}
+
+export async function applyAdminPendingShippingMetricsEdit(orderId, { lineOverrides } = {}) {
+  const payload = await adminPost(API_ENDPOINTS.admin.orderEditPendingShippingMetrics(orderId), {
+    lineOverrides,
+  })
+  return unwrapAdmin(payload) || payload
+}
+
 export async function getAdminPickupCalendar({ signal, daysAhead = 45 } = {}) {
   const payload = await adminGet(API_ENDPOINTS.admin.pickupCalendar, {
     signal,

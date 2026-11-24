@@ -33380,6 +33380,20 @@ select.pf-spec-input {
   line-height: 1.3;
 }
 
+.od-totals__sub.is-up,
+.od-ship-delta--up {
+  color: #b45309;
+}
+
+.od-totals__sub.is-down,
+.od-ship-delta--down {
+  color: #047857;
+}
+
+.od-totals__admin-ship .od-totals__label {
+  color: #64748b;
+}
+
 .od-totals__sub s {
   text-decoration: line-through;
 }
@@ -33750,6 +33764,250 @@ select.pf-spec-input {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 10px;
+}
+
+.od-card--pending-ship-metrics {
+  margin-top: 12px;
+}
+
+.od-ship-metrics__head {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 16px 16px 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.od-ship-metrics__title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.od-ship-metrics__icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #475569;
+  margin-top: 1px;
+}
+
+.od-ship-metrics__title-block {
+  min-width: 0;
+  flex: 1;
+}
+
+.od-ship-metrics__title {
+  margin: 0;
+  line-height: 1.3;
+}
+
+.od-ship-metrics__sub {
+  margin: 4px 0 0;
+  max-width: 40rem;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.od-ship-metrics__pkg-chip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.od-ship-metrics__pkg-chip-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.od-ship-metrics__pkg-chip-line {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.3;
+}
+
+.od-ship-metrics__money {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 14px 16px;
+}
+
+@media (max-width: 720px) {
+  .od-ship-metrics__money {
+    grid-template-columns: 1fr;
+  }
+}
+
+.od-ship-metrics__stat {
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.od-ship-metrics__stat-value {
+  margin-top: 2px;
+  font-size: 0.95rem;
+}
+
+.od-ship-metrics__stat-value.is-up {
+  color: #b45309;
+}
+
+.od-ship-metrics__stat-value.is-down {
+  color: #047857;
+}
+
+.od-ship-metrics__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 16px 12px;
+}
+
+.od-ship-metrics__row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.1fr) minmax(240px, 1fr);
+  gap: 14px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
+}
+
+@media (max-width: 860px) {
+  .od-ship-metrics__row {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+}
+
+.od-ship-metrics__product {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.od-ship-metrics__thumb {
+  width: 64px;
+  height: 64px;
+}
+
+.od-ship-metrics__info {
+  min-width: 0;
+  flex: 1;
+}
+
+.od-ship-metrics__info .od-pending-item__name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.od-ship-metrics__info .od-pending-item__sku {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.od-ship-metrics__qty {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.od-ship-metrics__fields {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+}
+
+.od-ship-metrics__fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.od-ship-metrics__fields input {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  background: #fff;
+}
+
+.od-ship-metrics__fields input:focus {
+  outline: none;
+  border-color: #94a3b8;
+  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.25);
+}
+
+.od-ship-metrics__fields input:disabled {
+  opacity: 0.6;
+}
+
+.od-ship-metrics__badge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.od-ship-metrics__package {
+  margin: 0 16px 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px dashed #cbd5e1;
+  background: #f8fafc;
+}
+
+.od-ship-metrics__package-value {
+  margin-top: 2px;
+  font-size: 0.9rem;
 }
 
 .od-removed-archive {

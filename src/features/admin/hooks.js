@@ -28,6 +28,8 @@ import {
   applyAdminPendingAddressEdit,
   previewAdminPendingOrderEdit,
   applyAdminPendingOrderEdit,
+  previewAdminPendingShippingMetricsEdit,
+  applyAdminPendingShippingMetricsEdit,
   getAdminPickupCalendar,
   fetchAdminOrderInvoiceHtml,
   downloadAdminOrderShippingLabelFile,
@@ -585,6 +587,28 @@ export function useAdminApplyPendingOrderEdit() {
   return useMutation({
     mutationFn: ({ orderId, itemUpdates }) =>
       applyAdminPendingOrderEdit(orderId, { itemUpdates }),
+    onSuccess: (_d, vars) => {
+      const id = String(vars?.orderId || '').trim()
+      if (!id) return
+      queryClient.invalidateQueries({ queryKey: adminKeys.orderDetail(id) })
+      queryClient.invalidateQueries({ queryKey: adminKeys.orderTracking(id) })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'orders-list'] })
+    },
+  })
+}
+
+export function useAdminPreviewPendingShippingMetricsEdit() {
+  return useMutation({
+    mutationFn: ({ orderId, lineOverrides }) =>
+      previewAdminPendingShippingMetricsEdit(orderId, { lineOverrides }),
+  })
+}
+
+export function useAdminApplyPendingShippingMetricsEdit() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ orderId, lineOverrides }) =>
+      applyAdminPendingShippingMetricsEdit(orderId, { lineOverrides }),
     onSuccess: (_d, vars) => {
       const id = String(vars?.orderId || '').trim()
       if (!id) return

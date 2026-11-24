@@ -155,6 +155,8 @@ export {
   applyAdminPendingAddressEdit,
   previewAdminPendingOrderEdit,
   applyAdminPendingOrderEdit,
+  previewAdminPendingShippingMetricsEdit,
+  applyAdminPendingShippingMetricsEdit,
   getAdminPickupCalendar,
   fetchAdminOrderInvoiceHtml,
   downloadAdminOrderShippingLabelFile,
