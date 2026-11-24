@@ -417,17 +417,31 @@ export async function applyAdminPendingOrderEdit(orderId, { itemUpdates } = {}) 
   return unwrapAdmin(payload) || payload
 }
 
-export async function previewAdminPendingShippingMetricsEdit(orderId, { lineOverrides } = {}) {
-  const payload = await adminPost(API_ENDPOINTS.admin.orderEditPendingShippingMetricsPreview(orderId), {
-    lineOverrides,
-  })
+export async function previewAdminPendingShippingMetricsEdit(
+  orderId,
+  { lineOverrides, packageOverride } = {}
+) {
+  const body = {}
+  if (packageOverride != null) body.packageOverride = packageOverride
+  if (Array.isArray(lineOverrides) && lineOverrides.length) body.lineOverrides = lineOverrides
+  const payload = await adminPost(
+    API_ENDPOINTS.admin.orderEditPendingShippingMetricsPreview(orderId),
+    body
+  )
   return unwrapAdmin(payload) || payload
 }
 
-export async function applyAdminPendingShippingMetricsEdit(orderId, { lineOverrides } = {}) {
-  const payload = await adminPost(API_ENDPOINTS.admin.orderEditPendingShippingMetrics(orderId), {
-    lineOverrides,
-  })
+export async function applyAdminPendingShippingMetricsEdit(
+  orderId,
+  { lineOverrides, packageOverride } = {}
+) {
+  const body = {}
+  if (packageOverride != null) body.packageOverride = packageOverride
+  if (Array.isArray(lineOverrides) && lineOverrides.length) body.lineOverrides = lineOverrides
+  const payload = await adminPost(
+    API_ENDPOINTS.admin.orderEditPendingShippingMetrics(orderId),
+    body
+  )
   return unwrapAdmin(payload) || payload
 }
 

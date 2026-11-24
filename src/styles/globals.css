@@ -33844,6 +33844,80 @@ select.pf-spec-input {
   line-height: 1.3;
 }
 
+.od-ship-metrics__mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  width: fit-content;
+}
+
+.od-ship-metrics__mode-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.od-ship-metrics__mode-btn.is-active {
+  background: #0f172a;
+  color: #fff;
+}
+
+.od-ship-metrics__mode-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.od-ship-metrics__hint {
+  margin: 0 0 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.od-ship-metrics__hint--pad {
+  padding: 0 0 4px;
+}
+
+.od-ship-metrics__package-edit {
+  padding: 0 16px 12px;
+}
+
+.od-ship-metrics__fields--package {
+  margin-bottom: 8px;
+}
+
+.od-ship-metrics__ref-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.od-ship-metrics__ref-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid #f1f5f9;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.od-ship-metrics__thumb--sm {
+  width: 44px;
+  height: 44px;
+}
+
 .od-ship-metrics__money {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

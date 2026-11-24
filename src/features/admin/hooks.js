@@ -599,16 +599,16 @@ export function useAdminApplyPendingOrderEdit() {
 
 export function useAdminPreviewPendingShippingMetricsEdit() {
   return useMutation({
-    mutationFn: ({ orderId, lineOverrides }) =>
-      previewAdminPendingShippingMetricsEdit(orderId, { lineOverrides }),
+    mutationFn: ({ orderId, lineOverrides, packageOverride }) =>
+      previewAdminPendingShippingMetricsEdit(orderId, { lineOverrides, packageOverride }),
   })
 }
 
 export function useAdminApplyPendingShippingMetricsEdit() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ orderId, lineOverrides }) =>
-      applyAdminPendingShippingMetricsEdit(orderId, { lineOverrides }),
+    mutationFn: ({ orderId, lineOverrides, packageOverride }) =>
+      applyAdminPendingShippingMetricsEdit(orderId, { lineOverrides, packageOverride }),
     onSuccess: (_d, vars) => {
       const id = String(vars?.orderId || '').trim()
       if (!id) return
