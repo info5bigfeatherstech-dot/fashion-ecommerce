@@ -108,6 +108,16 @@ export const chatbotApi = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+  checkDeliveryDispute: (payload) =>
+    fetchJson(`${BASE_URL}/delivery-dispute-check`, {
+      method: 'POST',
+      body: JSON.stringify(typeof payload === 'string' ? { orderId: payload } : (payload || {})),
+    }),
+  raiseDeliveryTicket: (payload) =>
+    fetchJson(`${BASE_URL}/raise-delivery-ticket`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
   sendGeneralQuery: (query) =>
     fetchJson(`${BASE_URL}/query`, {
       method: 'POST',

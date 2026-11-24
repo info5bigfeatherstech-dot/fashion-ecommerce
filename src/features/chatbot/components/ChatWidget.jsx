@@ -3,7 +3,7 @@ import {
   MessageCircle,
   RotateCcw,
   Send,
-  Phone,
+  Mail,
   Truck,
   Package,
   Copy,
@@ -77,6 +77,7 @@ export function ChatWidget() {
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [copiedOrderId, setCopiedOrderId] = useState(null);
   const [copiedCoupon, setCopiedCoupon] = useState(null);
+  const [copiedEmailId, setCopiedEmailId] = useState(null);
 
   const handleCopyOrderId = (idToCopy, msgId) => {
     if (!idToCopy) return;
@@ -257,6 +258,44 @@ export function ChatWidget() {
         }))
       );
       setInputContext(null);
+      return;
+    }
+
+    // Raise delivery escalation ticket pill
+    if (pill.type === 'RAISE_DELIVERY_TICKET') {
+      setLoading(true);
+      try {
+        const data = await chatbotApi.raiseDeliveryTicket({
+          orderId: pill.payload?.orderId,
+          customerName: user?.name,
+          contact: user?.phone || user?.email,
+        });
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `ticket_ack_${Date.now()}`,
+            sender: 'bot',
+            text: data.message,
+            contactCard: data.contactCard,
+          },
+        ]);
+        setQuickPills([
+          { id: 'talk_support', label: '📞 Talk to Support', type: 'CATEGORY', payload: { key: 'support', title: 'Contact Support' } },
+          { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+        ]);
+      } catch {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `err_${Date.now()}`,
+            sender: 'bot',
+            text: 'Could not raise an escalation ticket right now. Please reach out to our team via email at support.fabuniqo@gmail.com.',
+          },
+        ]);
+        showRootPills();
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 
@@ -555,79 +594,26 @@ export function ChatWidget() {
       }
 
       // B5. PIN Code Serviceability Check
-      if (q.actionType === 'CHECK_PINCODE') {
-        setLoading(true);
-        try {
-          const data = await chatbotApi.checkPincode({
-            userId: user?.id || user?._id,
-            phone: user?.phone,
-            email: user?.email,
-          });
-
-          if (data?.savedLocation && data?.serviceable !== undefined) {
-            setInputContext(null);
-            setMessages((prev) => [
-              ...prev,
-              {
-                id: `pin_ack_${Date.now()}`,
-                sender: 'bot',
-                text: data.text,
-              },
-            ]);
-            setQuickPills([
-              { id: 'check_other_pin', label: '📍 Check Another PIN Code', type: 'QUESTION', payload: { actionType: 'MANUAL_PIN_CHECK' } },
-              { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
-            ]);
-          } else {
-            setInputContext('PINCODE_CHECK');
-            setMessages((prev) => [
-              ...prev,
-              {
-                id: `b_${Date.now()}`,
-                sender: 'bot',
-                text: data?.text || 'Please type your 6-digit destination PIN code (e.g. 110001, 400001) in the box below to check live courier delivery & serviceability:',
-              },
-            ]);
-            setQuickPills([
-              { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
-            ]);
-            inputRef.current?.focus();
-          }
-        } catch {
-          setInputContext('PINCODE_CHECK');
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: `b_${Date.now()}`,
-              sender: 'bot',
-              text: 'Please type your 6-digit destination PIN code (e.g. 110001, 400001) in the box below to check live courier delivery & serviceability:',
-            },
-          ]);
-          setQuickPills([
-            { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
-          ]);
-          inputRef.current?.focus();
-        } finally {
-          setLoading(false);
-        }
-        return;
-      }
-
-      // B5.2 Manual PIN input pill
-      if (q.actionType === 'MANUAL_PIN_CHECK') {
+      if (
+        q.actionType === 'CHECK_PINCODE' ||
+        q.actionType === 'MANUAL_PIN_CHECK' ||
+        q.questionId === 'check_pincode'
+      ) {
         setInputContext('PINCODE_CHECK');
         setMessages((prev) => [
           ...prev,
           {
             id: `b_${Date.now()}`,
             sender: 'bot',
-            text: 'Please type any 6-digit destination PIN code in the message box below:',
+            text: 'Please type the 6-digit destination PIN code (e.g. 110001, 400050, 560001) in the message box below to check live courier delivery & serviceability:',
           },
         ]);
         setQuickPills([
           { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
         ]);
-        inputRef.current?.focus();
+        setTimeout(() => {
+          inputRef.current?.focus();
+        }, 100);
         return;
       }
 
@@ -709,6 +695,28 @@ export function ChatWidget() {
         return;
       }
 
+      // B7.3 Delivery Dispute: Order marked delivered but not received
+      if (
+        q.actionType === 'DELIVERY_DISPUTE_PROMPT' ||
+        q.actionType === 'DELIVERY_DISPUTE' ||
+        q.questionId === 'delivered_not_received'
+      ) {
+        setInputContext('DELIVERY_DISPUTE_CHECK');
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `b_${Date.now()}`,
+            sender: 'bot',
+            text: 'Please type your Order ID (e.g. #FAB-ECOMM-187286) below so we can verify the delivery status in our database and assist you:',
+          },
+        ]);
+        setQuickPills([
+          { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+        ]);
+        inputRef.current?.focus();
+        return;
+      }
+
       // B8. Exchange for a different size or item (Live policy & recent order check from DB)
       if (q.actionType === 'EXCHANGE_INQUIRY') {
         setLoading(true);
@@ -738,7 +746,7 @@ export function ChatWidget() {
             {
               id: `err_exch_${Date.now()}`,
               sender: 'bot',
-              text: 'We offer size and item exchanges within 7 days of delivery. Please reach our support team on WhatsApp at 8527054683.',
+              text: 'We offer size and item exchanges within 7 days of delivery. Please reach our support team via email at support.fabuniqo@gmail.com with your Order ID.',
             },
           ]);
           showRootPills();
@@ -1231,55 +1239,53 @@ export function ChatWidget() {
       return;
     }
 
-    // 1. Order tracking flow: either active tracking context, or order-like query
-    const cleanId = query.replace(/[#\s]/g, '');
-    const isOrderPattern =
-      /^\d{4,12}$/i.test(cleanId) ||
-      /^(?:FAB|ECOMM|ORD|ORDER)[-_]?\w+/i.test(cleanId) ||
-      /\b(?:track|status|order)\b.*[#\d]/i.test(query);
+    // ── PRIORITY 1: Handle Active Input Contexts First ──
 
-    if (inputContext === 'ORDER_TRACK' || isOrderPattern) {
-      setLoading(true);
-
-      try {
-        const data = await chatbotApi.trackOrder(query);
-        if (data.found && data.order) {
-          setInputContext(null);
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: `track_res_${Date.now()}`,
-              sender: 'bot',
-              type: 'ORDER_RESULT',
-              order: data.order,
-            },
-          ]);
-        } else {
-          // Keep inputContext as ORDER_TRACK so user can immediately retry or provide phone
-          setInputContext('ORDER_TRACK');
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: `track_nf_${Date.now()}`,
-              sender: 'bot',
-              text:
-                data.message ||
-                `I could not find an order matching "${query}". Please check the ID or contact support.`,
-            },
-          ]);
-        }
-
-        setQuickPills([
-          { id: 'track_again', label: '🔍 Track Another Order', type: 'QUESTION', payload: { actionType: 'MANUAL_ORDER_TRACK' } },
-          { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
-        ]);
-      } catch {
+    // 1A. PIN Code Serviceability Check Input
+    if (inputContext === 'PINCODE_CHECK') {
+      const pinCandidate = query.replace(/\D/g, '').trim();
+      if (!pinCandidate || pinCandidate.length !== 6) {
         setMessages((prev) => [
           ...prev,
           {
-            id: `err_track_${Date.now()}`,
+            id: `err_pin_${Date.now()}`,
             sender: 'bot',
-            text: 'Order tracking service is momentarily busy. Please try again later.',
+            text: `"${query}" is not a valid 6-digit PIN code. Please type a valid 6-digit destination PIN code (e.g. 110001, 400050, 560001):`,
+          },
+        ]);
+        setQuickPills([
+          { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+        ]);
+        setTimeout(() => {
+          inputRef.current?.focus();
+        }, 100);
+        return;
+      }
+
+      setInputContext(null);
+      setLoading(true);
+
+      try {
+        const data = await chatbotApi.checkPincode({ pincode: pinCandidate });
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `pin_ack_${Date.now()}`,
+            sender: 'bot',
+            text: data.text || 'PIN code verification completed.',
+          },
+        ]);
+        setQuickPills([
+          { id: 'check_other_pin', label: '📍 Check Another PIN Code', type: 'QUESTION', payload: { actionType: 'MANUAL_PIN_CHECK' } },
+          { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+        ]);
+      } catch (err) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `err_pin_${Date.now()}`,
+            sender: 'bot',
+            text: err?.message || 'Could not verify PIN code serviceability. Please try again.',
           },
         ]);
         showRootPills();
@@ -1289,7 +1295,7 @@ export function ChatWidget() {
       return;
     }
 
-    // 2. Ticket / custom inquiry
+    // 1B. Support Ticket Input
     if (inputContext === 'TICKET_MSG') {
       setInputContext(null);
       setLoading(true);
@@ -1317,7 +1323,7 @@ export function ChatWidget() {
           {
             id: `err_ticket_${Date.now()}`,
             sender: 'bot',
-            text: 'Could not send ticket. You can reach us directly on WhatsApp.',
+            text: 'Could not send ticket. You can reach us directly via email at support.fabuniqo@gmail.com.',
           },
         ]);
       } finally {
@@ -1327,32 +1333,48 @@ export function ChatWidget() {
       return;
     }
 
-    // 2B. PIN Code Serviceability Check Input
-    if (inputContext === 'PINCODE_CHECK') {
-      setInputContext(null);
+    // 1C. Explicit Order Tracking Input Context
+    if (inputContext === 'ORDER_TRACK') {
       setLoading(true);
 
       try {
-        const data = await chatbotApi.checkPincode({ pincode: query });
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `pin_ack_${Date.now()}`,
-            sender: 'bot',
-            text: data.text || 'PIN code verification completed.',
-          },
-        ]);
+        const data = await chatbotApi.trackOrder(query);
+        if (data.found && data.order) {
+          setInputContext(null);
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `track_res_${Date.now()}`,
+              sender: 'bot',
+              type: 'ORDER_RESULT',
+              order: data.order,
+            },
+          ]);
+        } else {
+          setInputContext('ORDER_TRACK');
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `track_nf_${Date.now()}`,
+              sender: 'bot',
+              text:
+                data.message ||
+                `I could not find an order matching "${query}". Please check the ID or contact support.`,
+            },
+          ]);
+        }
+
         setQuickPills([
-          { id: 'check_other_pin', label: '📍 Check Another PIN Code', type: 'QUESTION', payload: { actionType: 'MANUAL_PIN_CHECK' } },
+          { id: 'track_again', label: '🔍 Track Another Order', type: 'QUESTION', payload: { actionType: 'MANUAL_ORDER_TRACK' } },
           { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
         ]);
-      } catch (err) {
+      } catch {
         setMessages((prev) => [
           ...prev,
           {
-            id: `err_pin_${Date.now()}`,
+            id: `err_track_${Date.now()}`,
             sender: 'bot',
-            text: err?.message || 'Could not verify PIN code serviceability. Please try again.',
+            text: 'Order tracking service is momentarily busy. Please try again later.',
           },
         ]);
         showRootPills();
@@ -1394,6 +1416,190 @@ export function ChatWidget() {
             id: `err_ret_${Date.now()}`,
             sender: 'bot',
             text: err?.message || 'Could not verify return status right now. Please try again or message support.',
+          },
+        ]);
+        showRootPills();
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // 2D. Delivery Dispute Check by typed Order ID (Order marked delivered but not received)
+    if (inputContext === 'DELIVERY_DISPUTE_CHECK') {
+      setInputContext(null);
+      setLoading(true);
+
+      try {
+        const data = await chatbotApi.checkDeliveryDispute({
+          orderId: query,
+          userId: user?.id || user?._id,
+          phone: user?.phone,
+          email: user?.email,
+        });
+
+        if (data.found && data.order) {
+          if (data.isDelivered) {
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `deliv_ack_${Date.now()}`,
+                sender: 'bot',
+                text: data.text,
+              },
+            ]);
+            setQuickPills([
+              {
+                id: 'raise_ticket_for_order',
+                label: '📝 Raise Ticket for this Order',
+                type: 'RAISE_DELIVERY_TICKET',
+                payload: { orderId: data.order.orderId },
+              },
+              {
+                id: 'check_other_order_deliv',
+                label: '🔍 Check Another Order ID',
+                type: 'QUESTION',
+                payload: { actionType: 'DELIVERY_DISPUTE_PROMPT' },
+              },
+              { id: 'talk_agent', label: '📞 Talk to Support', type: 'CATEGORY', payload: { key: 'support', title: 'Contact Support' } },
+              { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+            ]);
+          } else {
+            // Not yet marked delivered! Show compact order card and live progress
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `deliv_not_yet_${Date.now()}`,
+                sender: 'bot',
+                text: data.text,
+                type: 'ORDER_RESULT',
+                order: data.order,
+              },
+            ]);
+            setQuickPills([
+              { id: 'talk_support', label: '📞 Talk to Support', type: 'CATEGORY', payload: { key: 'support', title: 'Contact Support' } },
+              { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+            ]);
+          }
+        } else {
+          setInputContext('DELIVERY_DISPUTE_CHECK');
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `err_deliv_${Date.now()}`,
+              sender: 'bot',
+              text: data.message || `Could not find an order matching "${query}". Please check your Order ID and try again.`,
+            },
+          ]);
+          setQuickPills([
+            { id: 'raise_ticket_gen', label: '📝 Raise Support Ticket', type: 'QUESTION', payload: { actionType: 'RAISE_TICKET' } },
+            { id: 'talk_agent', label: '📞 Talk to Support', type: 'CATEGORY', payload: { key: 'support', title: 'Contact Support' } },
+            { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+          ]);
+        }
+      } catch (err) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `err_deliv_ex_${Date.now()}`,
+            sender: 'bot',
+            text: err?.message || 'Could not verify delivery status right now. Please try again or message support.',
+          },
+        ]);
+        showRootPills();
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // ── PRIORITY 2: Free-form queries without active input context ──
+
+    // 2A. Pure 6-digit PIN code check (e.g. user directly types "110045" or "pincode 110045")
+    const cleanDigits = query.replace(/\D/g, '').trim();
+    const isPurePincode =
+      /^[1-9]\d{5}$/.test(query.trim()) ||
+      (cleanDigits.length === 6 && /\b(pin|pincode|deliver|delivery|serviceable|serviceability|check)\b/i.test(query));
+
+    if (isPurePincode) {
+      setLoading(true);
+      const pinCandidate = query.trim().length === 6 ? query.trim() : cleanDigits;
+      try {
+        const data = await chatbotApi.checkPincode({ pincode: pinCandidate });
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `pin_ack_${Date.now()}`,
+            sender: 'bot',
+            text: data.text || 'PIN code verification completed.',
+          },
+        ]);
+        setQuickPills([
+          { id: 'check_other_pin', label: '📍 Check Another PIN Code', type: 'QUESTION', payload: { actionType: 'MANUAL_PIN_CHECK' } },
+          { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+        ]);
+      } catch (err) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `err_pin_${Date.now()}`,
+            sender: 'bot',
+            text: err?.message || 'Could not verify PIN code serviceability. Please try again.',
+          },
+        ]);
+        showRootPills();
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // 2B. Explicit order tracking pattern (e.g. #1024, FAB-ECOMM-..., or tracking words)
+    const cleanId = query.replace(/[#\s]/g, '');
+    const isExplicitOrderPattern =
+      /^(?:FAB|ECOMM|ORD|ORDER)[-_]?\w+/i.test(cleanId) ||
+      /^#\d{3,12}$/i.test(query.trim()) ||
+      /\b(?:track|tracking|order\s*status|where\s*is\s*my\s*order)\b/i.test(query);
+
+    if (isExplicitOrderPattern) {
+      setLoading(true);
+      try {
+        const data = await chatbotApi.trackOrder(query);
+        if (data.found && data.order) {
+          setInputContext(null);
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `track_res_${Date.now()}`,
+              sender: 'bot',
+              type: 'ORDER_RESULT',
+              order: data.order,
+            },
+          ]);
+        } else {
+          setInputContext('ORDER_TRACK');
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `track_nf_${Date.now()}`,
+              sender: 'bot',
+              text:
+                data.message ||
+                `I could not find an order matching "${query}". Please check the ID or contact support.`,
+            },
+          ]);
+        }
+        setQuickPills([
+          { id: 'track_again', label: '🔍 Track Another Order', type: 'QUESTION', payload: { actionType: 'MANUAL_ORDER_TRACK' } },
+          { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+        ]);
+      } catch {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `err_track_${Date.now()}`,
+            sender: 'bot',
+            text: 'Order tracking service is momentarily busy. Please try again later.',
           },
         ]);
         showRootPills();
@@ -1491,6 +1697,36 @@ export function ChatWidget() {
         setQuickPills([
           { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
         ]);
+      } else if (data.type === 'DELIVERY_DISPUTE_PROMPT') {
+        setInputContext('DELIVERY_DISPUTE_CHECK');
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `deliv_p_${Date.now()}`,
+            sender: 'bot',
+            text: data.text || 'Please enter your Order ID (e.g. #FAB-ECOMM-187286) to verify delivery status in our database:',
+          },
+        ]);
+        setQuickPills([
+          { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+        ]);
+        inputRef.current?.focus();
+      } else if (data.type === 'PINCODE_PROMPT') {
+        setInputContext('PINCODE_CHECK');
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `pin_p_${Date.now()}`,
+            sender: 'bot',
+            text: data.text || 'Please type the 6-digit destination PIN code (e.g. 110001, 400050, 560001) in the message box below to check live courier delivery & serviceability:',
+          },
+        ]);
+        setQuickPills([
+          { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+        ]);
+        setTimeout(() => {
+          inputRef.current?.focus();
+        }, 100);
       } else if (data.type === 'COUPONS' && data.coupons && data.coupons.length > 0) {
         setMessages((prev) => [
           ...prev,
@@ -2132,17 +2368,17 @@ export function ChatWidget() {
                   </div>
                 )}
 
-                {/* ── LUXURY ORDER TRACKING RESULT CARDS ── */}
+                {/* ── COMPACT ORDER TRACKING RESULT CARDS ── */}
                 {msg.type === 'ORDER_RESULT' && (msg.orders || msg.order) && (() => {
                   const ordersList = msg.orders && msg.orders.length > 0 ? msg.orders : [msg.order];
                   return (
                     <div
                       style={{
                         width: '100%',
-                        marginTop: '10px',
+                        marginTop: '8px',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '12px',
+                        gap: '10px',
                       }}
                     >
                       {ordersList.map((orderItem) => {
@@ -2154,305 +2390,243 @@ export function ChatWidget() {
                             key={orderItem.orderId}
                             style={{
                               backgroundColor: '#FFFFFF',
-                              border: '1.5px solid #DDD7CC',
-                              borderRadius: '16px',
-                              padding: '16px',
-                              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.05)',
+                              border: '1.5px solid #E8E2D8',
+                              borderRadius: '14px',
+                              padding: '12px',
+                              boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
                               fontFamily: "var(--font-ui, 'Montserrat', sans-serif)",
                               boxSizing: 'border-box',
                               width: '100%',
                             }}
                           >
-                            {/* Top Header: ID + Copy Icon + Status Pill */}
+                            {/* Top Row: Order ID + Copy + Status Badge */}
                             <div
                               style={{
                                 display: 'flex',
-                                alignItems: 'flex-start',
+                                alignItems: 'center',
                                 justifyContent: 'space-between',
                                 gap: '8px',
-                                paddingBottom: '12px',
-                                borderBottom: '1px solid #EBE5DA',
+                                paddingBottom: '8px',
+                                borderBottom: '1px solid #F0ECE4',
                               }}
                             >
-                              <div style={{ minWidth: 0, flex: 1 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                  <span
-                                    style={{
-                                      fontFamily: "var(--font-serif, 'Playfair Display', Georgia, serif)",
-                                      fontSize: '15px',
-                                      fontWeight: '700',
-                                      color: '#14120F',
-                                      letterSpacing: '0.02em',
-                                    }}
-                                  >
-                                    #{orderItem.orderId}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleCopyOrderId(orderItem.orderId)}
-                                    title={isCopied ? 'Copied Order ID!' : 'Copy Order ID'}
-                                    aria-label="Copy Order ID"
-                                    style={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      background: isCopied ? '#EAF8F1' : '#FAF7F2',
-                                      border: isCopied ? '1px solid #B7E8CE' : '1px solid #EDE7DD',
-                                      borderRadius: '6px',
-                                      padding: '3px 6px',
-                                      cursor: 'pointer',
-                                      color: isCopied ? '#059669' : '#8C827A',
-                                      fontSize: '11px',
-                                      fontWeight: '600',
-                                      gap: '4px',
-                                      transition: 'all 0.15s ease',
-                                    }}
-                                    className="hover:text-[#14120F] hover:border-[#D1A743] active:scale-95"
-                                  >
-                                    {isCopied ? (
-                                      <>
-                                        <Check style={{ width: '12px', height: '12px', color: '#059669' }} />
-                                        <span>Copied</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Copy style={{ width: '12px', height: '12px' }} />
-                                        <span>Copy</span>
-                                      </>
-                                    )}
-                                  </button>
-                                </div>
-                                {orderItem.orderDate && (
-                                  <div
-                                    style={{
-                                      fontSize: '11px',
-                                      color: '#8C827A',
-                                      marginTop: '3px',
-                                    }}
-                                  >
-                                    {orderItem.orderDate}
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Status Badge */}
-                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
                                 <span
                                   style={{
-                                    backgroundColor: statusStyle.bg,
-                                    color: statusStyle.color,
-                                    border: statusStyle.border,
-                                    padding: '3px 9px',
-                                    borderRadius: '9999px',
-                                    fontSize: '10px',
+                                    fontFamily: "var(--font-serif, 'Playfair Display', Georgia, serif)",
+                                    fontSize: '13.5px',
                                     fontWeight: '700',
-                                    letterSpacing: '0.05em',
-                                    textTransform: 'uppercase',
-                                    lineHeight: '1.3',
-                                    flexShrink: 0,
+                                    color: '#14120F',
                                   }}
                                 >
-                                  {statusStyle.label}
+                                  #{orderItem.orderId}
                                 </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyOrderId(orderItem.orderId)}
+                                  title={isCopied ? 'Copied Order ID!' : 'Copy Order ID'}
+                                  aria-label="Copy Order ID"
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    background: isCopied ? '#EAF8F1' : '#FAF7F2',
+                                    border: isCopied ? '1px solid #B7E8CE' : '1px solid #EDE7DD',
+                                    borderRadius: '5px',
+                                    padding: '2px 5px',
+                                    cursor: 'pointer',
+                                    color: isCopied ? '#059669' : '#8C827A',
+                                    fontSize: '10px',
+                                    fontWeight: '600',
+                                    gap: '3px',
+                                    transition: 'all 0.15s ease',
+                                  }}
+                                  className="hover:text-[#14120F] hover:border-[#D1A743] active:scale-95"
+                                >
+                                  {isCopied ? (
+                                    <>
+                                      <Check style={{ width: '10px', height: '10px', color: '#059669' }} />
+                                      <span>Copied</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy style={{ width: '10px', height: '10px' }} />
+                                      <span>Copy</span>
+                                    </>
+                                  )}
+                                </button>
                               </div>
-                            </div>
-
-                            {/* Item Highlight (if available) */}
-                            {orderItem.itemName && (
-                              <div
+                              <span
                                 style={{
-                                  marginTop: '10px',
-                                  backgroundColor: '#FAF7F2',
-                                  border: '1px solid #EDE7DD',
-                                  borderRadius: '10px',
-                                  padding: '8px 10px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  gap: '8px',
+                                  backgroundColor: statusStyle.bg,
+                                  color: statusStyle.color,
+                                  border: statusStyle.border,
+                                  padding: '2px 8px',
+                                  borderRadius: '9999px',
+                                  fontSize: '9.5px',
+                                  fontWeight: '700',
+                                  letterSpacing: '0.04em',
+                                  textTransform: 'uppercase',
+                                  flexShrink: 0,
                                 }}
                               >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                                  <Package style={{ width: '15px', height: '15px', color: '#A88430', flexShrink: 0 }} />
-                                  <span
-                                    style={{
-                                      fontSize: '11.5px',
-                                      fontWeight: '600',
-                                      color: '#14120F',
-                                      whiteSpace: 'nowrap',
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
+                                {statusStyle.label}
+                              </span>
+                            </div>
+
+                            {/* Middle Row: Product Thumbnail + Details side-by-side */}
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                paddingTop: '8px',
+                                paddingBottom: '8px',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: '52px',
+                                  height: '52px',
+                                  borderRadius: '10px',
+                                  overflow: 'hidden',
+                                  backgroundColor: '#FAF7F2',
+                                  border: '1px solid #EDE7DD',
+                                  flexShrink: 0,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                {orderItem.itemImage ? (
+                                  <img
+                                    src={orderItem.itemImage}
+                                    alt={orderItem.itemName || 'Product'}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
                                     }}
-                                    title={orderItem.itemName}
-                                  >
-                                    {orderItem.itemName}
-                                  </span>
-                                </div>
-                                {orderItem.itemsCount > 1 && (
-                                  <span
-                                    style={{
-                                      fontSize: '10.5px',
-                                      color: '#8C827A',
-                                      fontWeight: '600',
-                                      backgroundColor: '#FFFFFF',
-                                      padding: '2px 6px',
-                                      borderRadius: '6px',
-                                      border: '1px solid #EDE7DD',
-                                      flexShrink: 0,
-                                    }}
-                                  >
-                                    +{orderItem.itemsCount - 1} more
-                                  </span>
+                                  />
+                                ) : (
+                                  <Package style={{ width: '22px', height: '22px', color: '#A88430' }} />
                                 )}
                               </div>
-                            )}
-
-                            {/* 4-Column Financial Breakdown matching Web UI */}
-                            <div
-                              style={{
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-                                gap: '6px',
-                                marginTop: '10px',
-                                padding: '8px 10px',
-                                backgroundColor: '#FAF7F2',
-                                border: '1px solid #EDE7DD',
-                                borderRadius: '10px',
-                              }}
-                            >
-                              <div>
-                                <div style={{ fontSize: '9.5px', fontWeight: '600', color: '#8C827A', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                  Subtotal
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div
+                                  style={{
+                                    fontSize: '12px',
+                                    fontWeight: '600',
+                                    color: '#14120F',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                  }}
+                                  title={orderItem.itemName}
+                                >
+                                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {orderItem.itemName || 'Ordered Item'}
+                                  </span>
+                                  {orderItem.itemsCount > 1 && (
+                                    <span
+                                      style={{
+                                        fontSize: '9.5px',
+                                        color: '#8C827A',
+                                        backgroundColor: '#FAF7F2',
+                                        border: '1px solid #EDE7DD',
+                                        padding: '1px 5px',
+                                        borderRadius: '4px',
+                                        flexShrink: 0,
+                                      }}
+                                    >
+                                      +{orderItem.itemsCount - 1}
+                                    </span>
+                                  )}
                                 </div>
-                                <div style={{ fontSize: '11.5px', fontWeight: '700', color: '#14120F', marginTop: '2px' }}>
-                                  ₹{orderItem.subtotal != null ? orderItem.subtotal : orderItem.totalAmount || 0}
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    fontSize: '11px',
+                                    color: '#5A524A',
+                                    marginTop: '3px',
+                                    flexWrap: 'wrap',
+                                  }}
+                                >
+                                  <span style={{ fontWeight: '700', color: '#14120F' }}>
+                                    ₹{orderItem.totalAmount || 0}
+                                  </span>
+                                  <span>•</span>
+                                  <span>{orderItem.paymentMethod || 'Online'}</span>
+                                  {orderItem.orderDate && (
+                                    <>
+                                      <span>•</span>
+                                      <span style={{ color: '#8C827A', fontSize: '10.5px' }}>
+                                        {orderItem.orderDate.split(',')[0]}
+                                      </span>
+                                    </>
+                                  )}
                                 </div>
-                              </div>
-                              <div>
-                                <div style={{ fontSize: '9.5px', fontWeight: '600', color: '#8C827A', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                  Delivery
-                                </div>
-                                <div style={{ fontSize: '11.5px', fontWeight: '700', color: '#14120F', marginTop: '2px' }}>
-                                  ₹{orderItem.deliveryCharges || 0}
-                                </div>
-                              </div>
-                              <div>
-                                <div style={{ fontSize: '9.5px', fontWeight: '600', color: '#8C827A', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                  Tax
-                                </div>
-                                <div style={{ fontSize: '11.5px', fontWeight: '700', color: '#14120F', marginTop: '2px' }}>
-                                  ₹{orderItem.tax || 0}
-                                </div>
-                              </div>
-                              <div>
-                                <div style={{ fontSize: '9.5px', fontWeight: '700', color: '#A88430', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                  Total
-                                </div>
-                                <div style={{ fontSize: '12px', fontWeight: '800', color: '#14120F', marginTop: '2px' }}>
-                                  ₹{orderItem.totalAmount || 0}
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Payment & Delivery Info Grid */}
-                            <div
-                              style={{
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                                gap: '6px',
-                                marginTop: '8px',
-                              }}
-                            >
-                              <div style={{ backgroundColor: '#FAF7F2', border: '1px solid #EDE7DD', borderRadius: '8px', padding: '6px 8px' }}>
-                                <span style={{ fontSize: '9.5px', color: '#8C827A', textTransform: 'uppercase', fontWeight: '600', display: 'block' }}>Payment Method</span>
-                                <span style={{ fontSize: '11.5px', fontWeight: '600', color: '#14120F' }}>
-                                  {orderItem.paymentMethod || 'ONLINE'} {orderItem.amountPaid != null ? `(Paid ₹${orderItem.amountPaid})` : ''}
-                                </span>
-                              </div>
-                              <div style={{ backgroundColor: '#FAF7F2', border: '1px solid #EDE7DD', borderRadius: '8px', padding: '6px 8px' }}>
-                                <span style={{ fontSize: '9.5px', color: '#8C827A', textTransform: 'uppercase', fontWeight: '600', display: 'block' }}>Courier / City</span>
-                                <span style={{ fontSize: '11.5px', fontWeight: '600', color: '#14120F', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }} title={`${orderItem.courier || 'Shadowfax Surface'} - ${orderItem.customerCity || 'India'}`}>
-                                  {orderItem.courier || 'Shadowfax'} {orderItem.customerCity ? `· ${orderItem.customerCity}` : ''}
-                                </span>
                               </div>
                             </div>
 
-                            {/* Tracking Number / AWB if present */}
-                            {orderItem.trackingNumber && (
-                              <div
-                                style={{
-                                  marginTop: '8px',
-                                  padding: '6px 10px',
-                                  backgroundColor: '#FAF7F2',
-                                  border: '1px solid #EDE7DD',
-                                  borderRadius: '8px',
-                                  fontSize: '11px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                }}
-                              >
-                                <span style={{ fontWeight: '600', color: '#8C827A' }}>AWB / Tracking:</span>
-                                <span style={{ fontFamily: 'monospace', fontWeight: '700', color: '#14120F' }}>
-                                  {orderItem.trackingNumber}
-                                </span>
-                              </div>
-                            )}
-
-                            {/* Action Buttons: Carrier tracking link or View Orders */}
-                            <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                            {/* Bottom Row: Single Compact Action Button */}
+                            <div style={{ paddingTop: '2px' }}>
                               {orderItem.trackingUrl ? (
                                 <a
                                   href={orderItem.trackingUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   style={{
-                                    flex: 1,
+                                    width: '100%',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     gap: '6px',
-                                    padding: '8px 12px',
+                                    padding: '6px 10px',
                                     backgroundColor: '#14120F',
                                     color: '#FAF7F2',
                                     borderRadius: '8px',
-                                    fontSize: '11.5px',
+                                    fontSize: '11px',
                                     fontWeight: '600',
                                     textDecoration: 'none',
-                                    transition: 'all 0.15s ease',
+                                    boxSizing: 'border-box',
                                   }}
-                                  className="hover:bg-black hover:scale-[1.01] active:scale-[0.99]"
+                                  className="hover:bg-black active:scale-95 transition-all"
                                 >
-                                  <Truck style={{ width: '13px', height: '13px' }} />
-                                  <span>Track Shipment</span>
-                                  <ExternalLink style={{ width: '11px', height: '11px' }} />
+                                  <Truck style={{ width: '12px', height: '12px' }} />
+                                  <span>Track Live Shipment</span>
+                                  <ExternalLink style={{ width: '10px', height: '10px' }} />
                                 </a>
-                              ) : null}
-                              <a
-                                href="/account/orders"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{
-                                  flex: 1,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  gap: '6px',
-                                  padding: '8px 12px',
-                                  backgroundColor: orderItem.trackingUrl ? '#FAF7F2' : '#14120F',
-                                  color: orderItem.trackingUrl ? '#14120F' : '#FAF7F2',
-                                  border: orderItem.trackingUrl ? '1px solid #DDD7CC' : 'none',
-                                  borderRadius: '8px',
-                                  fontSize: '11.5px',
-                                  fontWeight: '600',
-                                  textDecoration: 'none',
-                                  transition: 'all 0.15s ease',
-                                }}
-                                className="hover:scale-[1.01] active:scale-[0.99]"
-                              >
-                                <span>Track on Store</span>
-                                <ExternalLink style={{ width: '11px', height: '11px' }} />
-                              </a>
+                              ) : (
+                                <a
+                                  href="/account/orders"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{
+                                    width: '100%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '6px',
+                                    padding: '6px 10px',
+                                    backgroundColor: '#FAF7F2',
+                                    color: '#14120F',
+                                    border: '1px solid #DDD7CC',
+                                    borderRadius: '8px',
+                                    fontSize: '11px',
+                                    fontWeight: '600',
+                                    textDecoration: 'none',
+                                    boxSizing: 'border-box',
+                                  }}
+                                  className="hover:border-[#D1A743] active:scale-95 transition-all"
+                                >
+                                  <span>View Order Details</span>
+                                  <ExternalLink style={{ width: '10px', height: '10px' }} />
+                                </a>
+                              )}
                             </div>
                           </div>
                         );
@@ -2497,60 +2671,91 @@ export function ChatWidget() {
                         }}
                       />
                       <span>
-                        Concierge Hours: <strong style={{ color: '#14120F' }}>{msg.contactCard.hours}</strong>
+                        Support Hours: <strong style={{ color: '#14120F' }}>{msg.contactCard.hours || '10:00 AM - 7:00 PM IST (Mon-Sat)'}</strong>
                       </span>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <a
-                        href={`https://wa.me/91${msg.contactCard.whatsapp}?text=Hi%20FABUNIQO%20Support`}
-                        target="_blank"
-                        rel="noopener noreferrer"
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 14px',
+                        backgroundColor: '#FAF7F2',
+                        borderRadius: '12px',
+                        border: '1px solid #ECE6DB',
+                        marginBottom: '10px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                        <Mail style={{ width: '16px', height: '16px', color: '#C49D40', flexShrink: 0 }} />
+                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#14120F', wordBreak: 'break-all' }}>
+                          {msg.contactCard.email || 'support.fabuniqo@gmail.com'}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const emailToCopy = msg.contactCard.email || 'support.fabuniqo@gmail.com';
+                          navigator.clipboard?.writeText(emailToCopy).catch(() => {});
+                          setCopiedEmailId(msg.id || 'email');
+                          setTimeout(() => setCopiedEmailId(null), 2000);
+                        }}
                         style={{
-                          flex: 1,
+                          background: 'none',
+                          border: 'none',
+                          padding: '4px 8px',
+                          cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
-                          padding: '10px 14px',
-                          backgroundColor: '#25D366',
-                          color: '#FFFFFF',
-                          fontSize: '12px',
-                          fontWeight: '700',
-                          borderRadius: '10px',
-                          textDecoration: 'none',
-                          boxShadow: '0 2px 8px rgba(37, 211, 102, 0.25)',
+                          gap: '4px',
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          color: copiedEmailId === (msg.id || 'email') ? '#10B981' : '#8C827A',
+                          borderRadius: '6px',
                           transition: 'all 0.15s ease',
-                          cursor: 'pointer',
                         }}
-                        className="hover:brightness-105 active:scale-95"
+                        title="Copy email address"
                       >
-                        <MessageCircle style={{ width: '15px', height: '15px' }} />
-                        <span>WhatsApp</span>
-                      </a>
-                      <a
-                        href={`tel:${msg.contactCard.phone}`}
-                        style={{
-                          flex: 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
-                          padding: '10px 14px',
-                          backgroundColor: '#14120F',
-                          color: '#FAF7F2',
-                          fontSize: '12px',
-                          fontWeight: '700',
-                          borderRadius: '10px',
-                          textDecoration: 'none',
-                          transition: 'all 0.15s ease',
-                          cursor: 'pointer',
-                        }}
-                        className="hover:bg-black active:scale-95"
-                      >
-                        <Phone style={{ width: '15px', height: '15px', color: '#D1A743' }} />
-                        <span>Call Support</span>
-                      </a>
+                        {copiedEmailId === (msg.id || 'email') ? (
+                          <>
+                            <Check style={{ width: '13px', height: '13px', color: '#10B981' }} />
+                            <span>Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy style={{ width: '13px', height: '13px' }} />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
                     </div>
+
+                    <a
+                      href={`mailto:${msg.contactCard.email || 'support.fabuniqo@gmail.com'}?subject=FABUNIQO%20Customer%20Support%20Inquiry`}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        padding: '11px 16px',
+                        backgroundColor: '#14120F',
+                        color: '#FAF7F2',
+                        fontSize: '13px',
+                        fontWeight: '700',
+                        borderRadius: '10px',
+                        textDecoration: 'none',
+                        boxShadow: '0 3px 10px rgba(20, 18, 15, 0.2)',
+                        transition: 'all 0.15s ease',
+                        cursor: 'pointer',
+                        boxSizing: 'border-box',
+                      }}
+                      className="hover:bg-black active:scale-98"
+                    >
+                      <Mail style={{ width: '16px', height: '16px', color: '#D1A743' }} />
+                      <span>Send Email to Support</span>
+                    </a>
                   </div>
                 )}
               </div>
@@ -2731,6 +2936,14 @@ export function ChatWidget() {
                     ? 'Please log in to query...'
                     : inputContext === 'ORDER_TRACK'
                     ? 'Enter Order ID (e.g. #1024)...'
+                    : inputContext === 'DELIVERY_DISPUTE_CHECK'
+                    ? 'Enter Order ID (e.g. #FAB-ECOMM-187286)...'
+                    : inputContext === 'PINCODE_CHECK'
+                    ? 'Enter 6-digit PIN code (e.g. 110001)...'
+                    : inputContext === 'RETURN_CHECK'
+                    ? 'Enter Order ID (e.g. #1024)...'
+                    : inputContext === 'TICKET_MSG'
+                    ? 'Enter your phone/message...'
                     : 'Enter your message...'
                 }
                 style={{
