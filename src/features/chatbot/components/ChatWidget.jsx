@@ -16,6 +16,7 @@ import {
   LogIn,
   Loader2,
   Tag,
+  Search,
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { chatbotApi } from '../services/chatbotApi';
@@ -142,6 +143,80 @@ export function ChatWidget() {
     }
     setCopiedCoupon(code);
     setTimeout(() => setCopiedCoupon(null), 2000);
+  };
+
+  const handleSelectOrderForRefund = async (orderItem) => {
+    if (!orderItem || !orderItem.orderId) return;
+    const isHi = language === 'hi';
+    const userMsgText = isHi
+      ? `#${orderItem.orderId} ka refund status check karein`
+      : `Check refund status for #${orderItem.orderId}`;
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `u_${Date.now()}`,
+        sender: 'user',
+        text: userMsgText,
+      },
+    ]);
+
+    setLoading(true);
+    try {
+      const data = await chatbotApi.checkReturnRefund({
+        query: orderItem.orderId,
+      });
+
+      if (data?.found && data?.text) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `ret_ack_${Date.now()}`,
+            sender: 'bot',
+            text: data.text,
+            redirectUrl: data.redirectUrl || '/account/orders',
+            redirectLabel: data.redirectLabel || (isHi ? 'Apne Orders Dekhein' : 'View in Profile Orders'),
+          },
+        ]);
+        setQuickPills([
+          { id: 'check_another_refund', label: isHi ? '🔍 Doosra Order Check Karein' : '🔍 Check Another Order', type: 'QUESTION', payload: { actionType: 'CHECK_RETURN_REFUND' } },
+          { id: 'view_profile_orders', label: isHi ? '📦 Apne Orders Dekhein' : '📦 Go to My Orders', type: 'NAVIGATE', payload: { path: '/account/orders' } },
+          { id: 'talk_support', label: isHi ? '📞 Support se Baat Karein' : '📞 Talk to Support', type: 'CATEGORY', payload: { key: 'support', title: isHi ? 'Customer Support' : 'Contact Support' } },
+          { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+        ]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `ret_ack_${Date.now()}`,
+            sender: 'bot',
+            text: data?.text || (isHi
+              ? 'Is order ka refund status prapt nahi ho saka. Kripya apna Order ID dobara check karein.'
+              : 'Could not load refund status for this order. Please check your Order ID and try again.'),
+          },
+        ]);
+        setQuickPills([
+          { id: 'check_another_refund', label: isHi ? '🔍 Doosra Order Check Karein' : '🔍 Check Another Order', type: 'QUESTION', payload: { actionType: 'CHECK_RETURN_REFUND' } },
+          { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+        ]);
+      }
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `ret_err_${Date.now()}`,
+          sender: 'bot',
+          text: isHi
+            ? 'Return aur refund status check karne me dikkat aayi. Kripya thodi der baad koshish karein.'
+            : 'Could not fetch return & refund status right now. Please try again later.',
+        },
+      ]);
+      setQuickPills([
+        { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+      ]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const messagesEndRef = useRef(null);
@@ -775,6 +850,29 @@ export function ChatWidget() {
             phone: user?.phone,
             email: user?.email,
           });
+
+          // If backend returned order list for selection
+          if (data?.mode === 'SELECT_ORDER' && Array.isArray(data?.orders) && data.orders.length > 0) {
+            setInputContext(null);
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `ret_orders_${Date.now()}`,
+                sender: 'bot',
+                text: data.text || (isHi
+                  ? 'Aapke account ke orders neeche diye gaye hain. Kripya us order par click karein jiska live Return & Refund status check karna hai:'
+                  : 'Here are the recent orders from your account. Please click an order card below to check its live return & refund status from our database:'),
+                type: 'RETURN_ORDERS_SELECT',
+                orders: data.orders,
+              },
+            ]);
+            setQuickPills([
+              { id: 'check_other_order_ret', label: isHi ? '🔍 Doosra Order ID Likhkar Check Karein' : '🔍 Enter Order ID Manually', type: 'QUESTION', payload: { actionType: 'MANUAL_RETURN_CHECK' } },
+              { id: 'view_profile_orders', label: isHi ? '📦 Apne Orders Dekhein' : '📦 Go to My Orders', type: 'NAVIGATE', payload: { path: '/account/orders' } },
+              { id: 'back_main', label: '⬅ Main Menu', type: 'BACK_TO_MENU' },
+            ]);
+            return;
+          }
 
           if (data?.found && data?.text) {
             setInputContext(null);
@@ -2772,6 +2870,302 @@ export function ChatWidget() {
                                   <ExternalLink style={{ width: '10px', height: '10px' }} />
                                 </a>
                               )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+
+                {/* ── RETURN & REFUND ORDER SELECTION CARDS ── */}
+                {msg.type === 'RETURN_ORDERS_SELECT' && Array.isArray(msg.orders) && msg.orders.length > 0 && (() => {
+                  return (
+                    <div
+                      style={{
+                        width: '100%',
+                        marginTop: '8px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '10px',
+                      }}
+                    >
+                      {msg.orders.map((orderItem) => {
+                        const isCopied = copiedOrderId === orderItem.orderId;
+                        const isRefunded = orderItem.isRefunded || orderItem.paymentStatus === 'refunded';
+                        const refundPending = orderItem.refundPending;
+                        const hasReturn = orderItem.hasReturn;
+                        const isCancelled = String(orderItem.status || '').toLowerCase() === 'cancelled';
+
+                        // Badge styling based on refund/return state
+                        let badgeStyle = {
+                          text: orderItem.status?.toUpperCase() || 'ORDERED',
+                          bg: '#FAF7F2',
+                          color: '#6E6259',
+                          border: '1px solid #EDE7DD',
+                        };
+
+                        if (isRefunded) {
+                          badgeStyle = {
+                            text: '✓ REFUND COMPLETED',
+                            bg: '#ECFDF5',
+                            color: '#047857',
+                            border: '1px solid #A7F3D0',
+                          };
+                        } else if (refundPending) {
+                          badgeStyle = {
+                            text: '⏳ REFUND IN PROGRESS',
+                            bg: '#FFFBEB',
+                            color: '#B45309',
+                            border: '1px solid #FDE68A',
+                          };
+                        } else if (hasReturn) {
+                          badgeStyle = {
+                            text: '🔄 RETURN REQUESTED',
+                            bg: '#EEF2FF',
+                            color: '#4338CA',
+                            border: '1px solid #C7D2FE',
+                          };
+                        } else if (isCancelled) {
+                          badgeStyle = {
+                            text: 'CANCELLED',
+                            bg: '#FEF2F2',
+                            color: '#DC2626',
+                            border: '1px solid #FECACA',
+                          };
+                        } else {
+                          const normal = getOrderStatusStyle(orderItem.status);
+                          badgeStyle = {
+                            text: normal.label,
+                            bg: normal.bg,
+                            color: normal.color,
+                            border: normal.border,
+                          };
+                        }
+
+                        return (
+                          <div
+                            key={orderItem.orderId}
+                            onClick={() => handleSelectOrderForRefund(orderItem)}
+                            style={{
+                              backgroundColor: '#FFFFFF',
+                              border: '1.5px solid #E8E2D8',
+                              borderRadius: '14px',
+                              padding: '12px',
+                              boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
+                              fontFamily: "var(--font-ui, 'Montserrat', sans-serif)",
+                              boxSizing: 'border-box',
+                              width: '100%',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                            }}
+                            className="hover:border-[#D1A743] hover:shadow-md"
+                          >
+                            {/* Top Row: Order ID + Copy + Status/Refund Badge */}
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '8px',
+                                paddingBottom: '8px',
+                                borderBottom: '1px solid #F0ECE4',
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                                <span
+                                  style={{
+                                    fontFamily: "var(--font-serif, 'Playfair Display', Georgia, serif)",
+                                    fontSize: '13.5px',
+                                    fontWeight: '700',
+                                    color: '#14120F',
+                                  }}
+                                >
+                                  #{orderItem.orderId}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCopyOrderId(orderItem.orderId);
+                                  }}
+                                  title={isCopied ? 'Copied Order ID!' : 'Copy Order ID'}
+                                  aria-label="Copy Order ID"
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    background: isCopied ? '#EAF8F1' : '#FAF7F2',
+                                    border: isCopied ? '1px solid #B7E8CE' : '1px solid #EDE7DD',
+                                    borderRadius: '5px',
+                                    padding: '2px 5px',
+                                    cursor: 'pointer',
+                                    color: isCopied ? '#059669' : '#8C827A',
+                                    fontSize: '10px',
+                                    fontWeight: '600',
+                                    gap: '3px',
+                                    transition: 'all 0.15s ease',
+                                  }}
+                                  className="hover:text-[#14120F] hover:border-[#D1A743] active:scale-95"
+                                >
+                                  {isCopied ? (
+                                    <>
+                                      <Check style={{ width: '10px', height: '10px', color: '#059669' }} />
+                                      <span>Copied</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy style={{ width: '10px', height: '10px' }} />
+                                      <span>Copy</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                              <span
+                                style={{
+                                  backgroundColor: badgeStyle.bg,
+                                  color: badgeStyle.color,
+                                  border: badgeStyle.border,
+                                  padding: '2px 8px',
+                                  borderRadius: '9999px',
+                                  fontSize: '9.5px',
+                                  fontWeight: '700',
+                                  letterSpacing: '0.04em',
+                                  textTransform: 'uppercase',
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {badgeStyle.text}
+                              </span>
+                            </div>
+
+                            {/* Middle Row: Product Thumbnail + Details side-by-side */}
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                paddingTop: '8px',
+                                paddingBottom: '8px',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: '52px',
+                                  height: '52px',
+                                  borderRadius: '10px',
+                                  overflow: 'hidden',
+                                  backgroundColor: '#FAF7F2',
+                                  border: '1px solid #EDE7DD',
+                                  flexShrink: 0,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                {orderItem.itemImage ? (
+                                  <img
+                                    src={orderItem.itemImage}
+                                    alt={orderItem.itemName || 'Product'}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                    }}
+                                  />
+                                ) : (
+                                  <Package style={{ width: '22px', height: '22px', color: '#A88430' }} />
+                                )}
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div
+                                  style={{
+                                    fontSize: '12px',
+                                    fontWeight: '600',
+                                    color: '#14120F',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                  }}
+                                  title={orderItem.itemName}
+                                >
+                                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {orderItem.itemName || 'Ordered Item'}
+                                  </span>
+                                  {orderItem.itemsCount > 1 && (
+                                    <span
+                                      style={{
+                                        fontSize: '9.5px',
+                                        color: '#8C827A',
+                                        backgroundColor: '#FAF7F2',
+                                        border: '1px solid #EDE7DD',
+                                        padding: '1px 5px',
+                                        borderRadius: '4px',
+                                        flexShrink: 0,
+                                      }}
+                                    >
+                                      +{orderItem.itemsCount - 1}
+                                    </span>
+                                  )}
+                                </div>
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    fontSize: '11px',
+                                    color: '#5A524A',
+                                    marginTop: '3px',
+                                    flexWrap: 'wrap',
+                                  }}
+                                >
+                                  <span style={{ fontWeight: '700', color: '#14120F' }}>
+                                    ₹{orderItem.totalAmount || 0}
+                                  </span>
+                                  <span>•</span>
+                                  <span>{orderItem.paymentMethod || 'Online'}</span>
+                                  {orderItem.orderDate && (
+                                    <>
+                                      <span>•</span>
+                                      <span style={{ color: '#8C827A', fontSize: '10.5px' }}>
+                                        {orderItem.orderDate.split(',')[0]}
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Bottom Row: Check Refund Status Action Button */}
+                            <div style={{ paddingTop: '2px' }}>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSelectOrderForRefund(orderItem);
+                                }}
+                                style={{
+                                  width: '100%',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '6px',
+                                  padding: '7px 10px',
+                                  backgroundColor: '#14120F',
+                                  color: '#FAF7F2',
+                                  borderRadius: '8px',
+                                  fontSize: '11px',
+                                  fontWeight: '600',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  boxSizing: 'border-box',
+                                }}
+                                className="hover:bg-[#2A241E] active:scale-95 transition-all"
+                              >
+                                <Search style={{ width: '12px', height: '12px', color: '#D1A743' }} />
+                                <span>{language === 'hi' ? 'Refund Status Check Karein' : 'Check Refund Status'}</span>
+                              </button>
                             </div>
                           </div>
                         );
